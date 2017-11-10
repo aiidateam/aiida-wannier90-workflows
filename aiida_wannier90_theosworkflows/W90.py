@@ -294,7 +294,7 @@ class SimpleWannier90WorkChain(WorkChain):
         inputs['pseudo_family'] = self.inputs.pseudo_family
         try:
             inputs['options'] = self.inputs.nscf['options']
-        except AttributeError:
+        except KeyError:
             self.report("No options (walltime, resources, etc.) specified for NSCF, I will use those for the SCF step.")
         # Final input preparation, wrapping dictionaries in ParameterData nodes
 
