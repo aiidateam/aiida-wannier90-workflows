@@ -11,7 +11,7 @@ from aiida.orm.data.upf import UpfData
 from aiida.orm.data.structure import StructureData
 from aiida.orm.data.array.kpoints import KpointsData
 from aiida.work.run import run,submit
-from aiida_wannier90.workflows.W90 import SimpleWannier90WorkChain
+from aiida_wannier90_theosworkflows.workflows.W90 import SimpleWannier90WorkChain
 from aiida.orm.data.base import List
 import ase, ase.io
 from aiida.common.example_helpers import test_and_get_code
