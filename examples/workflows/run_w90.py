@@ -11,7 +11,7 @@ from aiida.orm.data.upf import UpfData
 from aiida.orm.data.structure import StructureData
 from aiida.orm.data.array.kpoints import KpointsData
 from aiida.work.run import run,submit
-from aiida_wannier90.workflows.W90 import SimpleWannier90WorkChain
+from aiida_wannier90_theosworkflows.workflows.W90 import SimpleWannier90WorkChain
 from aiida.orm.data.base import List
 import ase, ase.io
 from aiida.common.example_helpers import test_and_get_code
@@ -47,7 +47,7 @@ try:
 
     pseudo_family_name = sys.argv[5]
     valid_pseudo_group_names = [_.name for _ in UpfData.get_upf_groups(filter_elements=required_elements)]
-    print valid_pseudo_group_names
+    #print valid_pseudo_group_names
 
 
     try:
@@ -56,7 +56,7 @@ try:
         print >> sys.stderr, "pseudo_family_name='{}'".format(pseudo_family_name)
         print >> sys.stderr, "   but no group with such a name found in the DB."
         print >> sys.stderr, "   Valid UPF groups are:"
-        print >> sys.stderr, "   " + ",".join(i.name for i in valid_pseudo_groups)
+        print >> sys.stderr, "   " + ",".join(valid_pseudo_group_names)
         sys.exit(1)
     if pseudo_family_name not in valid_pseudo_group_names:
         print >> sys.stderr, "Error: pseudo_family_name='{}'".format(pseudo_family_name)
