@@ -22,10 +22,15 @@ from aiida_quantumespresso.calculations.pw2wannier90 import Pw2wannier90Calculat
 from aiida_wannier90.calculations import Wannier90Calculation
 #from seekpath.aiidawrappers import get_path, get_explicit_k_path
 from aiida.orm.data.base import List
+from aiida.orm import Group
 
 class SimpleWannier90WorkChain(WorkChain):
     """
-    Workchain to obtain maximally localised Wannier functions
+    Workchain to obtain maximally localised Wannier functions (MLWF)
+    Authors: Antimo Marrazzo (antimo.marrazzo@epfl.ch), Giovanni Pizzi (giovanni.pizzi@epfl.ch)
+
+    Scheme: SETUP-->SCF-->NSCF-->W90_PP-->PW2WANNIER90-->WANNIER90-->RESULTS
+
     """
 
     @classmethod
@@ -71,9 +76,6 @@ class SimpleWannier90WorkChain(WorkChain):
         spec.output('mlwf_output_parameters')
         spec.output('mlwf_interpolated_bands', required=False)
 
-        #spec.output('band_parameters', valid_type=ParameterData)
-        #spec.output('dft_band_structure', valid_type=BandsData)
-        #spec.output('interpolated_band_structure', valid_type=BandsData)
 
     def setup(self):
         """
@@ -81,7 +83,7 @@ class SimpleWannier90WorkChain(WorkChain):
         """
         self.ctx.inputs = {
             'code': self.inputs.pw_code,
-       #     'parameters': self.inputs.scf_parameters.get_dict(),
+            #'parameters': self.inputs.scf_parameters.get_dict(),
             #'settings': self.inputs.settings,
             #'options': self.inputs.options,
         }
@@ -127,10 +129,33 @@ class SimpleWannier90WorkChain(WorkChain):
             self.ctx.do_nscf = True
             self.ctx.do_mlwf_pp = True
             self.ctx.do_pw2wannier90 = True
-
+        #Checking workchain options specified in input
         try:
             control_options = self.inputs.workchain_control
             self.report('Workchain control options found in input.')
+            control_dict = control_options.get_dict()
+            #Retrive Hamiltonian
+            try:
+                self.ctx.retrieve_ham = control_dict['retrieve_hamiltonian']
+            except KeyError:
+                self.ctx.retrieve_ham = False
+            if self.ctx.retrieve_ham:
+                self.report("The Wannier Hamiltonian will be retrieved.")
+            #Group name
+            try:
+                self.ctx.group_name = control_dict['group_name']
+            except KeyError:
+                self.ctx.retrieve_ham = None
+            if self.ctx.group_name is not None:
+                self.report("Wannier90 calc will be added to the group {}.".format(self.ctx.group_name))
+            #Zero at Fermi
+            try:
+                self.ctx.zero_is_fermi = control_dict['zero_is_fermi']
+            except KeyError:
+                self.ctx.zero_is_fermi = False
+            if self.ctx.zero_is_fermi:
+                self.report("W90 windows defined with the Fermi level as zero.")
+
         except AttributeError:
             control_options = None
 
@@ -249,7 +274,6 @@ class SimpleWannier90WorkChain(WorkChain):
 
         parameters['ELECTRONS']['diago_full_acc'] = True
 
-       # parameters['SYSTEM']['nbnd'] =
 
         inputs['parameters'] = parameters
         inputs['parameters'] = ParameterData(dict=inputs['parameters'])
@@ -268,7 +292,10 @@ class SimpleWannier90WorkChain(WorkChain):
         inputs['kpoints'] = kpoints_mesh
         inputs['parent_folder'] = remote_folder
         inputs['pseudo_family'] = self.inputs.pseudo_family
-
+        try:
+            inputs['options'] = self.inputs.nscf['options']
+        except AttributeError:
+            self.report("No options (walltime, resources, etc.) specified for NSCF, I will use those for the SCF step.")
         # Final input preparation, wrapping dictionaries in ParameterData nodes
 
         running = submit(PwBaseWorkChain, **inputs)
@@ -322,12 +349,10 @@ class SimpleWannier90WorkChain(WorkChain):
 
 
         # settings that can only be enabled if parent is nscf
-#        settings_dict = {'seedname':'gaas','random_projections':True}
+#       settings_dict = {'seedname':'gaas','random_projections':True}
         process = Wannier90Calculation.process()
         running = submit(process, **inputs)
 
-        #calc.store_all()
-        #running = calc.submit()
         self.report('MLWF PP step - launching Wannier90 Calculation <{}> in pp mode'.format(running.pid))
 
         return ToContext(calc_mlwf_pp=running)
@@ -344,19 +369,11 @@ class SimpleWannier90WorkChain(WorkChain):
         inputs['code'] = self.inputs.pw2wannier90_code
         inputs['nnkp_file'] = self.ctx.calc_mlwf_pp.out.output_nnkp
         inputs['_options']= inputs['_options'].get_dict()
-#        inputs['_options'] = {
-#            'resources': {
-#                'num_machines': 1,
-#                'tot_num_mpiprocs': 1,
-#            },
-#            'max_wallclock_seconds': 60*10,
-#        }
-#        inputs['settings'] =  ParameterData(dict={})
         inputs['parameters'] = ParameterData(dict={'inputpp':{'write_mmn':True,'write_amn':True}})
         process = Pw2wannier90Calculation.process()
         running = submit(process, **inputs)
         self.report('Pw2wannier90 step - launching Pw2Wannier90 Calculation <{}>'.format(running.pid))
-        return ToContext(pw2wannier90=running)
+        return ToContext(calc_pw2wannier90=running)
 
     def run_wannier90(self):
         try:
@@ -383,14 +400,43 @@ class SimpleWannier90WorkChain(WorkChain):
             kpoints_path.set_cell_from_structure(structure)
             try:
                 kpath = inputs['kpoint_path']
+                kpoints_path.set_kpoints_path(kpath)
             except KeyError:
-                kpath = None
-            kpoints_path.set_kpoints_path(kpath)
+                kpoints_path.set_kpoints_path()
             inputs['kpoint_path'] = kpoints_path
+
+        try:
+            efermi = self.ctx.workchain_scf.res.fermi_energy
+            efermi_units = str(self.ctx.workchain_scf.res.fermi_energy_units)
+            if efermi_units != 'eV':
+                raise TypeError("Error: Fermi energy is not in eV!"
+                                "it is {}".format(efermi_units))
+        except AttributeError:
+            raise TypeError("Error in retriving the SCF Fermi energy "
+                            "from pk: {}".format(self.ctx.workchain_scf.res.fermi_energy.pk))
+
+        if self.ctx.zero_is_fermi:
+            inputs['parameters'] = update_w90_params_zero_with_fermi(parameters=inputs['parameters'],
+                                                                     fermi=Float(efermi)
+                                                                     )['output_parameters']
+
 
         wannier_pp_options = inputs.pop('pp_options',None)
         wannier_options = inputs.pop('options',None)
-        inputs['_options'] = wannier_pp_options.get_dict()
+        inputs['_options'] = wannier_options.get_dict()
+
+        #Check if settings is given in input
+        try:
+            settings = inputs['settings']
+        except KeyError:
+            settings = None
+        #Check if the hamiltonian needs to be retrieved or not
+        if self.ctx.retrieve_ham:
+            if settings is None:
+                settings = {}
+            settings['retrieve_hoppings'] = True
+        if settings is not None:
+            inputs['settings'] = ParameterData(dict=settings)
 
         process = Wannier90Calculation.process()
         running = submit(process, **inputs)
@@ -444,6 +490,10 @@ class SimpleWannier90WorkChain(WorkChain):
         self.out('scf_output_parameters', self.ctx.workchain_scf.out.output_parameters)
         self.out('nscf_output_parameters', self.ctx.workchain_nscf.out.output_parameters)
         self.out('mlwf_output_parameters', self.ctx.calc_mlwf.out.output_parameters)
+        if self.ctx.group_name is not None:
+            g,_ = Group.get_or_create(name=self.ctx.group_name)
+            g.add_nodes(self.ctx.calc_mlwf)
+
         self.out('overlap_matrices_remote_folder',self.ctx.calc_pw2wannier90.out.remote_folder)
         try:
             self.out('overlap_matrices_local_folder',self.ctx.calc_pw2wannier90.out.retrieved)
@@ -452,11 +502,15 @@ class SimpleWannier90WorkChain(WorkChain):
 
         if self.ctx.bands_plot:
             try:
-                self.out('mlwf_interpolated_bands', self.ctx.calc_mlwf.out.interpolated_bands)
+                self.out('MLWF_interpolated_bands', self.ctx.calc_mlwf.out.interpolated_bands)
+                self.report('Interpolated bands pk: {}'.format(self.ctx.calc_mlwf.out.interpolated_bands.pk))
             except:
                 self.report('WARNING: interpolated bands missing, while they should be there.')
-
-        self.report('Wannier90WorkChain succesfully completed.')
+        w90_state = self.ctx.calc_mlwf.get_state()
+        if w90_state=='FAILED':
+            self.report("Wannier90 calc pk: {} FAILED!")
+        else:
+            self.report('Wannier90WorkChain successfully completed.')
 
 
     def should_run_scf(self):
@@ -479,3 +533,43 @@ class SimpleWannier90WorkChain(WorkChain):
         Return whether a nscf WorkChain should be run or it is provided by input
         """
         return self.ctx.do_pw2wannier90
+
+@workfunction
+def update_w90_params_zero_with_fermi(parameters,fermi):
+    """
+    Updated W90 windows with Fermi energy as zero.
+    :param fermi:
+    :return:
+    """
+    params = parameters.get_dict()
+    var_list = []
+    try:
+        dwmax = params['dis_win_max']
+        dwmax += fermi
+        params['dis_win_max'] = dwmax
+        var_list.append('dis_win_max')
+    except KeyError:
+        pass
+    try:
+        dfmax = params['dis_froz_max']
+        dfmax += fermi
+        params['dis_froz_max'] = dfmax
+        var_list.append('dis_froz_max')
+    except KeyError:
+        pass
+    try:
+        dwmin = params['dis_win_min']
+        dwmin += fermi
+        params['dis_win_min'] = dwmin
+        var_list.append('dis_win_min')
+    except KeyError:
+        pass
+    try:
+        dfmin = params['dis_froz_min']
+        dfmin += fermi
+        params['dis_froz_min'] = dfmin
+        var_list.append('dis_froz_min')
+    except KeyError:
+        pass
+    results = {'output_parameters':ParameterData(dict=params)}
+    return results
