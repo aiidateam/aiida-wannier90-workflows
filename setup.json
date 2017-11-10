@@ -1,0 +1,21 @@
+{
+  "entry_points": {
+  }, 
+  "name": "aiida-wannier90-theosworkflows", 
+  "license": "Private code", 
+  "author": "Antimo Marrazzo, Giovanni Pizzi", 
+  "author_email": "developers@aiida.net", 
+  "install_requires": [
+    "aiida-wannier90"
+  ], 
+  "version": "0.1.0", 
+  "keywords": "wannier90 aiida workflows", 
+  "classifiers": [
+    "Environment :: Plugins", 
+    "Framework :: AiiDA", 
+    "Intended Audience :: Science/Research", 
+    "Programming Language :: Python :: 2.7", 
+    "Topic :: Scientific/Engineering :: Physics"
+  ], 
+  "description": "Advanced AiiDA workflows for Wannier90"
+}
