@@ -515,7 +515,7 @@ class SimpleWannier90WorkChain(WorkChain):
                 self.report('WARNING: interpolated bands missing, while they should be there.')
         w90_state = self.ctx.calc_mlwf.get_state()
         if w90_state=='FAILED':
-            self.report("Wannier90 calc pk: {} FAILED!")
+            self.report("Wannier90 calc pk: {} FAILED!".format(self.ctx.calc_mlwf.pk))
         else:
             self.report('Wannier90WorkChain successfully completed.')
 
