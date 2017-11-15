@@ -23,6 +23,7 @@ from aiida_wannier90.calculations import Wannier90Calculation
 #from seekpath.aiidawrappers import get_path, get_explicit_k_path
 from aiida.orm.data.base import List
 from aiida.orm import Group
+import copy
 
 class SimpleWannier90WorkChain(WorkChain):
     """
@@ -315,7 +316,7 @@ class SimpleWannier90WorkChain(WorkChain):
         #    orbital_projections = self.inputs.orbital_projections
         #except KeyError:
         #    pass
-        inputs = self.inputs.mlwf
+        inputs = copy.deepcopy(self.inputs.mlwf)
         #if local_input:
         #    calc.use_local_input_folder(input_folder)
         #else:
@@ -338,14 +339,17 @@ class SimpleWannier90WorkChain(WorkChain):
             bands_plot = False
         self.ctx.bands_plot = bands_plot
         if bands_plot:
-            kpoints_path = KpointsData()
-            kpoints_path.set_cell_from_structure(structure)
+            kpoint_path = KpointsData()
+            kpoint_path.set_cell_from_structure(structure)
             try:
                 kpath = inputs['kpoint_path']
+                if isinstance(kpath,KpointsData):
+                    kpoint_path = kpath
+                else:
+                    kpoint_path.set_kpoints_path(kpath)
             except KeyError:
-                kpath = None
-            kpoints_path.set_kpoints_path(kpath)
-            inputs['kpoint_path'] = kpoints_path
+                kpoint_path.set_kpoints_path()
+            inputs['kpoint_path'] = kpoint_path
 
 
         # settings that can only be enabled if parent is nscf
@@ -382,7 +386,7 @@ class SimpleWannier90WorkChain(WorkChain):
             self.abort_nowait('the pw2wannier90 calculation di not output a remote_folder node')
             return
 
-        inputs = self.inputs.mlwf
+        inputs = copy.deepcopy(self.inputs.mlwf)
         inputs['remote_input_folder'] = remote_folder
         inputs['code'] = self.inputs.wannier90_code
         inputs['kpoints'] = self.ctx.workchain_nscf.inp.kpoints
@@ -396,18 +400,21 @@ class SimpleWannier90WorkChain(WorkChain):
             bands_plot = False
         self.ctx.bands_plot = bands_plot
         if bands_plot:
-            kpoints_path = KpointsData()
-            kpoints_path.set_cell_from_structure(structure)
+            kpoint_path = KpointsData()
+            kpoint_path.set_cell_from_structure(structure)
             try:
                 kpath = inputs['kpoint_path']
-                kpoints_path.set_kpoints_path(kpath)
+                if isinstance(kpath,KpointsData):
+                    kpoint_path = kpath
+                else:
+                    kpoint_path.set_kpoints_path(kpath)
             except KeyError:
-                kpoints_path.set_kpoints_path()
-            inputs['kpoint_path'] = kpoints_path
+                kpoint_path.set_kpoints_path()
+            inputs['kpoint_path'] = kpoint_path
 
         try:
-            efermi = self.ctx.workchain_scf.res.fermi_energy
-            efermi_units = str(self.ctx.workchain_scf.res.fermi_energy_units)
+            efermi = self.ctx.workchain_scf.out.output_parameters.get_dict()['fermi_energy']
+            efermi_units = self.ctx.workchain_scf.out.output_parameters.get_dict()['fermi_energy_units']
             if efermi_units != 'eV':
                 raise TypeError("Error: Fermi energy is not in eV!"
                                 "it is {}".format(efermi_units))
@@ -569,6 +576,13 @@ def update_w90_params_zero_with_fermi(parameters,fermi):
         dfmin += fermi
         params['dis_froz_min'] = dfmin
         var_list.append('dis_froz_min')
+    except KeyError:
+        pass
+    try:
+        scdm_mu = params['scdm_mu']
+        scdm_mu += fermi
+        params['scdm_mu'] = scdm_mu
+        var_list.append('scdm_mu')
     except KeyError:
         pass
     results = {'output_parameters':ParameterData(dict=params)}
