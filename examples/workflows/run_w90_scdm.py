@@ -51,13 +51,14 @@ pw2wannier90_options  = ParameterData(dict={
                              })
 wannier90_parameters = ParameterData(dict={'bands_plot':True,
                                 'write_hr':True,
+                                'write_xyz':True,
               #                  'use_ws_distance':True,
                                 'num_iter': 0,
                                 'dis_num_iter':0,
                              #   'guiding_centres': True,
                                 'num_wann': 8,
                                 'num_bands':12,
-                                'dis_win_max':10.0,
+                        #        'dis_win_max':10.0,
                                 'dis_froz_max':0.5,
                                 'scdm_proj': True,
                                 'scdm_entanglement':'erfc',
@@ -75,6 +76,7 @@ wannier_pp_options = ParameterData(dict={
         'tot_num_mpiprocs': 1,
     },
     'max_wallclock_seconds': 60 * 10,'queue_name':'debug',
+    'withmpi':True,
 })
 wannier_options = ParameterData(dict={
     'resources': {
@@ -82,6 +84,7 @@ wannier_options = ParameterData(dict={
         'tot_num_mpiprocs': 1,
     },
     'max_wallclock_seconds': 60 * 10,'queue_name':'debug',
+    'withmpi':True,
 })
 wc_control = {'group_name':'w90wc_trial_1','retrieve_hamiltonian':True,'zero_is_fermi':True}
 structure = load_node(8490)
@@ -105,7 +108,7 @@ wc = submit(SimpleWannier90WorkChain,
               'options':wannier_options}, #'projections':projections, 'kpoint_path':None},
         matrices={'_options':pw2wannier90_options},
         restart_options = {'scf_workchain':load_node(9502),'nscf_workchain':load_node(9515),'mlwf_pp':load_node(9526),
-                           'pw2wannier90':load_node(9532)},
+                          'pw2wannier90':load_node(9532)},
         workchain_control = ParameterData(dict=wc_control),
     )
 
