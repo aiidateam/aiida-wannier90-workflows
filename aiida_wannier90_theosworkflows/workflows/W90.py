@@ -184,6 +184,26 @@ class SimpleWannier90WorkChain(WorkChain):
                 self.ctx.do_projwfc = True
             self.report("The number of WFs auto-set.")
 
+        try:
+            self.ctx.max_projectability = control_dict['max_projectability']
+            self.report("Max projectability set to {}.".format(self.ctx.max_projectability)
+        except KeyError:
+            self.ctx.max_projectability = 0.95
+            self.report("Max projectability set to {} (DEFAULT).".format(self.ctx.max_projectability)
+
+        try:
+            self.ctx.set_mu_from_projections = control_dict['set_mu_from_projections']
+        except KeyError:
+            self.ctx.set_mu_from_projections = False
+        if self.ctx.set_mu_from_projections:
+            if self.ctx.zero_is_fermi:
+                self.abort_nowait('zero_is_fermi = True and set_mu_from_projections = True are incompatible. '
+                                  'You do not need to use zero_is_fermi in this case!')
+            if not self.ctx.do_projwfc:
+                self.abort_nowait('use_projwfc = False and set_mu_from_projections = True are incompatible. '
+                                  'You need to do a projwfc calculations to do that! Set use_projwfc = True.')
+
+            self.report("SCDM mu is auto-set using projectability.")
         # We expect either a KpointsData with given mesh or a desired distance between k-points
 #        if all([key not in self.inputs for key in ['kpoints_mesh', 'kpoints_distance']]):
 #            self.abort_nowait('neither the kpoints_mesh nor a kpoints_distance was specified in the inputs')
@@ -394,6 +414,33 @@ class SimpleWannier90WorkChain(WorkChain):
             bands_plot = w90_params['bands_plot']
         except KeyError:
             bands_plot = False
+        try:
+            efermi = self.ctx.workchain_scf.out.output_parameters.get_dict()['fermi_energy']
+            efermi_units = self.ctx.workchain_scf.out.output_parameters.get_dict()['fermi_energy_units']
+            if efermi_units != 'eV':
+                raise TypeError("Error: Fermi energy is not in eV!"
+                                "it is {}".format(efermi_units))
+        except AttributeError:
+            raise TypeError("Error in retriving the SCF Fermi energy "
+                            "from pk: {}".format(self.ctx.workchain_scf.res.fermi_energy.pk))
+
+        if self.ctx.zero_is_fermi:
+            inputs['parameters'] = update_w90_params_zero_with_fermi(
+                parameters=inputs['parameters'],
+                fermi=Float(efermi)
+                )['output_parameters']
+        if self.ctx.set_mu_from_projections:
+            results = set_mu_from_projections(parameters=inputs['parameters'],
+                bands = self.ctx.calc_projwfc.out.bands ,
+                projections=self.ctx.calc_projwfc.out.projections,
+                thresholds=ParameterData(dict={'max_projectability':self.ctx.max_projectability}),
+                                              )
+            if not results['success']:
+                self.abort_nowait('WARNING: set_mu_from_projection failed!')
+            inputs['parameters'] = results['output_parameters']
+
+
+
         self.ctx.bands_plot = bands_plot
         if bands_plot:
             try:
@@ -457,6 +504,7 @@ class SimpleWannier90WorkChain(WorkChain):
         structure = self.inputs.structure
         inputs['structure'] = structure
         #Using the parameters of the W90 pp
+        inputs['parameters'] =  self.ctx.calc_mlwf_pp.inp.parameters
         w90_params = self.ctx.calc_mlwf_pp.inp.parameters.get_dict()
         try:
             bands_plot = w90_params['bands_plot']
@@ -482,22 +530,6 @@ class SimpleWannier90WorkChain(WorkChain):
                     self.abort_nowait('WARNING: aborting, kpoint_path for W90 not recognised!')
 
             inputs['kpoint_path'] = kpoint_path
-
-        try:
-            efermi = self.ctx.workchain_scf.out.output_parameters.get_dict()['fermi_energy']
-            efermi_units = self.ctx.workchain_scf.out.output_parameters.get_dict()['fermi_energy_units']
-            if efermi_units != 'eV':
-                raise TypeError("Error: Fermi energy is not in eV!"
-                                "it is {}".format(efermi_units))
-        except AttributeError:
-            raise TypeError("Error in retriving the SCF Fermi energy "
-                            "from pk: {}".format(self.ctx.workchain_scf.res.fermi_energy.pk))
-
-        if self.ctx.zero_is_fermi:
-            inputs['parameters'] = update_w90_params_zero_with_fermi(
-                parameters=self.ctx.calc_mlwf_pp.inp.parameters,
-                fermi=Float(efermi)
-                )['output_parameters']
 
 
 
@@ -685,3 +717,46 @@ def from_seekpath_to_wannier(seekpath_parameters):
     }
     results = {'kpoint_info':ParameterData(dict=kinfo)}
     return results
+
+@workfunction
+def set_mu_from_projections(bands,parameters,projections,thresholds):
+    '''
+    Setting mu parameter for the SCDM-k method:
+    mu is such that the projectability on all the atomic orbitals
+    contained in the pseudos is exactly equal to a a max_projectability
+    values passed through the thresholds ParameterData.
+
+    :param bands: output of projwfc, it was computed in the nscf calc
+    :param parameters: wannier90 input params (the one to update with this wf)
+    :param projections: output of projwfc
+    :param thresholds:
+    :return:
+    '''
+    import numpy as np
+    params = parameters.get_dict()
+    params['scdm_mu'] = len(projections.get_orbitals())
+    # List of specifications of atomic orbitals in dictionary form
+    dict_list = [i.get_orbital_dict() for i in projections.get_orbitals()]
+    # Sum of the projections on all atomic orbitals (shape kpoints x nbands)
+    out_array = sum([sum([x[1] for x in projections.get_projections(
+        **get_dict)]) for get_dict in dict_list])
+    #Flattening (projection modulus squared according to QE, energies)
+    projwfc_flat, bands_flat = out_array.flatten(), bands.get_bands().flatten()
+    #Sorted by energy
+    sorted_bands, sorted_projwfc = zip(*sorted(zip(bands_flat, projwfc_flat)))
+    Nk = len(bands.get_kpoints())
+    #Cumulative sum and normalisation
+    int_pdos = np.cumsum(sorted_projwfc)
+    int_pdos = int_pdos/float(Nk)  # Normalizes over kpoints (not really needed)
+    total_charge = np.max(int_pdos)
+    int_pdos = int_pdos/float(total_charge)
+    thr = thresholds.get_dict()['max_projectability']
+    #Indices where projctability is larger than a threshold value
+    indices_true = np.where(int_pdos>thr)[0]
+    #Take the first energy eigenvalue (n,k) such that proj>thr
+    if len(indices_true)>0:
+        success = True
+        params['scdm_mu'] = sorted_bands[indices_true[0]]
+    else:
+        success = False
+    return {'output_parameters': ParameterData(dict = params),'success':success}
