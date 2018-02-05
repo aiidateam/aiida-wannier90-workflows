@@ -186,10 +186,10 @@ class SimpleWannier90WorkChain(WorkChain):
 
         try:
             self.ctx.max_projectability = control_dict['max_projectability']
-            self.report("Max projectability set to {}.".format(self.ctx.max_projectability)
+            self.report("Max projectability set to {}.".format(self.ctx.max_projectability))
         except KeyError:
             self.ctx.max_projectability = 0.95
-            self.report("Max projectability set to {} (DEFAULT).".format(self.ctx.max_projectability)
+            self.report("Max projectability set to {} (DEFAULT).".format(self.ctx.max_projectability))
 
         try:
             self.ctx.set_mu_from_projections = control_dict['set_mu_from_projections']
