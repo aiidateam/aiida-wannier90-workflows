@@ -435,7 +435,7 @@ class SimpleWannier90WorkChain(WorkChain):
                 projections=self.ctx.calc_projwfc.out.projections,
                 thresholds=ParameterData(dict={'max_projectability':self.ctx.max_projectability}),
                                               )
-            if not results['success']:
+            if not results['success'].value:
                 self.abort_nowait('WARNING: set_mu_from_projection failed!')
             inputs['parameters'] = results['output_parameters']
 
@@ -732,6 +732,7 @@ def set_mu_from_projections(bands,parameters,projections,thresholds):
     :param thresholds:
     :return:
     '''
+    from aiida.orm.data.base import Bool
     import numpy as np
     params = parameters.get_dict()
     params['scdm_mu'] = len(projections.get_orbitals())
@@ -759,4 +760,4 @@ def set_mu_from_projections(bands,parameters,projections,thresholds):
         params['scdm_mu'] = sorted_bands[indices_true[0]]
     else:
         success = False
-    return {'output_parameters': ParameterData(dict = params),'success':success}
+    return {'output_parameters': ParameterData(dict = params),'success': Bool(success)}
