@@ -141,6 +141,10 @@ class SimpleWannier90WorkChain(WorkChain):
         except AttributeError:
             control_dict = {}
 
+        #Write UNK files (to plot WFs)
+        self.ctx.write_unk = control_dict.get('write_unk', False)
+        self.report("UNK files will {}be written.".format("" if self.ctx.write_unk else "NOT "))
+
         #Retrive Hamiltonian
         try:
             self.ctx.retrieve_ham = control_dict['retrieve_hamiltonian']
@@ -190,6 +194,14 @@ class SimpleWannier90WorkChain(WorkChain):
         except KeyError:
             self.ctx.max_projectability = 0.95
             self.report("Max projectability set to {} (DEFAULT).".format(self.ctx.max_projectability))
+
+        try:
+            self.ctx.sigma_factor_shift = control_dict['sigma_factor_shift']
+            self.report("Sigma factor shift set to {}.".format(self.ctx.sigma_factor_shift))
+        except KeyError:
+            self.ctx.max_projectability = 3.
+            self.report("Sigma factor shift set to {} (DEFAULT).".format(self.ctx.sigma_factor_shift))
+
 
         try:
             self.ctx.set_mu_from_projections = control_dict['set_mu_from_projections']
@@ -431,10 +443,13 @@ class SimpleWannier90WorkChain(WorkChain):
                 )['output_parameters']
         if self.ctx.set_mu_from_projections:
             results = set_mu_from_projections(parameters=inputs['parameters'],
-                bands = self.ctx.calc_projwfc.out.bands ,
+                bands = self.ctx.calc_projwfc.out.bands,
                 projections=self.ctx.calc_projwfc.out.projections,
-                thresholds=ParameterData(dict={'max_projectability':self.ctx.max_projectability}),
-                                              )
+                thresholds=ParameterData(dict={
+                    'max_projectability': self.ctx.max_projectability,
+                    'sigma_factor_shift': self.ctx.sigma_factor_shift,
+                }),
+            )
             if not results['success'].value:
                 self.abort_nowait('WARNING: set_mu_from_projection failed!')
             inputs['parameters'] = results['output_parameters']
@@ -484,7 +499,13 @@ class SimpleWannier90WorkChain(WorkChain):
         inputs['code'] = self.inputs.pw2wannier90_code
         inputs['nnkp_file'] = self.ctx.calc_mlwf_pp.out.output_nnkp
         inputs['_options']= inputs['_options'].get_dict()
-        inputs['parameters'] = ParameterData(dict={'inputpp':{'write_mmn':True,'write_amn':True}})
+        inputs['parameters'] = ParameterData(dict={
+            'inputpp':{
+                'write_mmn':True,
+                'write_amn':True,
+                'write_unk': self.ctx.write_unk,
+                }
+            })
         process = Pw2wannier90Calculation.process()
         running = submit(process, **inputs)
         self.report('Pw2wannier90 step - launching Pw2Wannier90 Calculation <{}>'.format(running.pid))
@@ -729,8 +750,16 @@ def set_mu_from_projections(bands,parameters,projections,thresholds):
     :param bands: output of projwfc, it was computed in the nscf calc
     :param parameters: wannier90 input params (the one to update with this wf)
     :param projections: output of projwfc
-    :param thresholds:
-    :return:
+    :param thresholds: must contain a 'max_projectability' value (e.g. 0.95) to 
+        evaluate an energy, and a 'sigma_factor_shift'; scdm_mu will be set to::
+          
+          scdm_mu = E(projectability==max_projectability) - sigma_factor_shift * scdm_sigma
+        
+        Note that you have to set the scdm_mu in the input parameters first! 
+        Pass sigma_factor_shift = 0 if you do not want to shift
+    :return: a modified ParameterData in output_parameters, with the proper value for scdm_mu set,
+        and a Bool called 'success' that tells if the algorithm could find the energy at which
+        the required projectability is achieved.
     '''
     from aiida.orm.data.base import Bool
     import numpy as np
@@ -757,7 +786,7 @@ def set_mu_from_projections(bands,parameters,projections,thresholds):
     #Take the first energy eigenvalue (n,k) such that proj>thr
     if len(indices_true)>0:
         success = True
-        params['scdm_mu'] = sorted_bands[indices_true[0]]
+        params['scdm_mu'] = sorted_bands[indices_true[0]] - params['scdm_sigma'] * thresholds.get_dict()['sigma_factor_shift']
     else:
         success = False
     return {'output_parameters': ParameterData(dict = params),'success': Bool(success)}
