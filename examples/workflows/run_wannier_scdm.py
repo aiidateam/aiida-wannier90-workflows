@@ -26,7 +26,7 @@ plot_wfs = True
 
 # Add a suffix to the output group name, to distinguish from previous runs, if needed
 #g_name_suffix = ''
-g_name_suffix = '_projectability095-sigma4-sigmashift3'
+g_name_suffix = '_musigmaauto1-sigmashift0'
 
 use_antimo_codes = False
 
@@ -38,8 +38,8 @@ gp_computer = 'fidis'
 system_set = 'default'
 #system_set = 'gp-onesystem'
 
-#only_these_structures = None # Then do all of them
-only_these_structures = ['S2Ta'] # Only this
+only_these_structures = None # Then do all of them
+#only_these_structures = ['S2Ta'] # Only this
 #only_these_structures = ['He', 'Ne', 'Kr2', 'O2Pb2', 'Be2I4', 'BaTe', 'Se4Tl4', 'Ar2', 'F2Xe', 'CsH', 'CaO', 'Hg3O3', 'O2Rb2', 'C2Cd2O6'] # All insulators but InP, 14 systems
 
 max_sec_scf = 4*3600
@@ -241,8 +241,8 @@ for (wc,old_structure) in  all_results:
         wannier90_params_dict['scdm_entanglement'] = 'erfc'
         ## Removed because I set set_mu_from_projections later
         #wannier90_params_dict['scdm_mu'] = 10
-        # This has to be set in the input (required internally)
-        wannier90_params_dict['scdm_sigma'] = 4.
+        # This has to be set in the input (required internally) ONLY FOR THE METHOD THAT SETS ONLY MU
+        #wannier90_params_dict['scdm_sigma'] = 4.
     
         wannier90_params_dict['dis_num_iter'] = 0
         if do_disen:
@@ -292,7 +292,7 @@ for (wc,old_structure) in  all_results:
         wc_control['set_auto_wann'] = True
         wc_control['set_mu_and_sigma_from_projections'] = True
       #  wc_control['max_projectability'] = 0.95
-        wc_control['sigma_factor_shift'] = 3.
+        wc_control['sigma_factor_shift'] = 0.
 
 
 #   scf_kpoints = KpointsData()
@@ -342,7 +342,7 @@ for (wc,old_structure) in  all_results:
         projwfc_code=projwfc_code,
         #orbital_projections=projections,
         structure=structure,
-        pseudo_family=Str('SSSP_efficiency_v0.95'),
+        pseudo_family=Str('SSSP_efficiency_v0.95_with_wfc'),
         #wannier90_parameters=wannier90_parameters,
         scf={'parameters':scf_parameters,'kpoints':scf_kpoints,'settings':scf_settings,'options':scf_options},
         nscf={'parameters':nscf_parameters,'kpoints':nscf_kpoints, 'options':nscf_options},
