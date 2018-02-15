@@ -204,15 +204,15 @@ class SimpleWannier90WorkChain(WorkChain):
 
 
         try:
-            self.ctx.set_mu_from_projections = control_dict['set_mu_from_projections']
+            self.ctx.set_mu_and_sigma_from_projections = control_dict['set_mu_and_sigma_from_projections']
         except KeyError:
-            self.ctx.set_mu_from_projections = False
-        if self.ctx.set_mu_from_projections:
+            self.ctx.set_mu_and_sigma_from_projections = False
+        if self.ctx.set_mu_and_sigma_from_projections:
             if self.ctx.zero_is_fermi:
-                self.abort_nowait('zero_is_fermi = True and set_mu_from_projections = True are incompatible. '
+                self.abort_nowait('zero_is_fermi = True and set_mu_and_sigma_from_projections = True are incompatible. '
                                   'You do not need to use zero_is_fermi in this case!')
             if not self.ctx.do_projwfc:
-                self.abort_nowait('use_projwfc = False and set_mu_from_projections = True are incompatible. '
+                self.abort_nowait('use_projwfc = False and set_mu_and_sigma_from_projections = True are incompatible. '
                                   'You need to do a projwfc calculations to do that! Set use_projwfc = True.')
 
             self.report("SCDM mu is auto-set using projectability.")
@@ -441,17 +441,17 @@ class SimpleWannier90WorkChain(WorkChain):
                 parameters=inputs['parameters'],
                 fermi=Float(efermi)
                 )['output_parameters']
-        if self.ctx.set_mu_from_projections:
-            results = set_mu_from_projections(parameters=inputs['parameters'],
+        if self.ctx.set_mu_and_sigma_from_projections:
+            results = set_mu_and_sigma_from_projections(parameters=inputs['parameters'],
                 bands = self.ctx.calc_projwfc.out.bands,
                 projections=self.ctx.calc_projwfc.out.projections,
                 thresholds=ParameterData(dict={
-                    'max_projectability': self.ctx.max_projectability,
+                    #'max_projectability': self.ctx.max_projectability,
                     'sigma_factor_shift': self.ctx.sigma_factor_shift,
                 }),
             )
             if not results['success'].value:
-                self.abort_nowait('WARNING: set_mu_from_projection failed!')
+                self.abort_nowait('WARNING: set_mu_and_sigma_from_projection failed!')
             inputs['parameters'] = results['output_parameters']
 
 
@@ -764,7 +764,7 @@ def set_mu_from_projections(bands,parameters,projections,thresholds):
     from aiida.orm.data.base import Bool
     import numpy as np
     params = parameters.get_dict()
-    params['scdm_mu'] = len(projections.get_orbitals())
+    #params['scdm_mu'] = len(projections.get_orbitals())
     # List of specifications of atomic orbitals in dictionary form
     dict_list = [i.get_orbital_dict() for i in projections.get_orbitals()]
     # Sum of the projections on all atomic orbitals (shape kpoints x nbands)
@@ -790,3 +790,62 @@ def set_mu_from_projections(bands,parameters,projections,thresholds):
     else:
         success = False
     return {'output_parameters': ParameterData(dict = params),'success': Bool(success)}
+
+@workfunction
+def set_mu_and_sigma_from_projections(bands, parameters, projections, thresholds):
+    '''
+    Setting mu parameter for the SCDM-k method:
+    mu is such that the projectability on all the atomic orbitals
+    contained in the pseudos is exactly equal to a a max_projectability
+    values passed through the thresholds ParameterData.
+
+    :param bands: output of projwfc, it was computed in the nscf calc
+    :param parameters: wannier90 input params (the one to update with this wf)
+    :param projections: output of projwfc
+    :param thresholds: must contain a 'max_projectability' value (e.g. 0.95) to
+           evaluate an energy, and a 'sigma_factor_shift'; scdm_mu will be set to::
+           scdm_mu = E(projectability==max_projectability) - sigma_factor_shift * scdm_sigma
+           Note that you have to set the scdm_mu in the input parameters first!
+           Pass sigma_factor_shift = 0 if you do not want to shift
+    :return: a modified ParameterData in output_parameters, with the proper value for scdm_mu set,
+             and a Bool called 'success' that tells if the algorithm could find the energy at which
+             the required projectability is achieved.
+    '''
+    from aiida.orm.data.base import Bool
+    import numpy as np
+
+    def erfc_scdm(x,mu,sigma):
+        from scipy.special import erfc
+        return 0.5*erfc((x-mu)/sigma)
+
+    def find_max(proj_list,max_value):
+        f = lambda x : True if x<max_value else False
+        bool_list = map(f,proj_list)
+        for i,item in enumerate(bool_list):
+            if item:
+                break
+        print i,proj_list[i]
+    def fit_erfc(f,xdata,ydata):
+        from scipy.optimize import curve_fit
+        return curve_fit(f, xdata, ydata,bounds=([-50,0],[50,50]))
+
+
+    params = parameters.get_dict()
+    # List of specifications of atomic orbitals in dictionary form
+    dict_list = [i.get_orbital_dict() for i in projections.get_orbitals()]
+    # Sum of the projections on all atomic orbitals (shape kpoints x nbands)
+    out_array = sum([sum([x[1] for x in projections.get_projections(
+        **get_dict)]) for get_dict in dict_list])
+    # Flattening (projection modulus squared according to QE, energies)
+    projwfc_flat, bands_flat = out_array.flatten(), bands.get_bands().flatten()
+    # Sorted by energy
+    sorted_bands, sorted_projwfc = zip(*sorted(zip(bands_flat, projwfc_flat)))
+    popt,pcov = fit_erfc(erfc_scdm,sorted_bands,sorted_projwfc)
+    mu = popt[0]
+    sigma = popt[1]
+    # Temporary, TODO add check on interpolation
+    success = True
+    params['scdm_sigma'] = sigma
+    params['scdm_mu'] = mu - sigma * thresholds.get_dict()['sigma_factor_shift']
+    
+    return {'output_parameters': ParameterData(dict=params), 'success': Bool(success)}
