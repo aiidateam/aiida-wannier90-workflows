@@ -284,14 +284,14 @@ for (wc,old_structure) in  all_results:
     wc_control = {'group_name':g_name,'retrieve_hamiltonian':True} 
     # I do not use 'zero_is_fermi':True because now I use set_mu_from_projections
 
-    wc_control = {'write_unk': plot_wfs}
+    wc_control['write_unk'] =  plot_wfs
 
     if only_valence:
         wc_control['set_auto_wann'] = False
     else:
         wc_control['set_auto_wann'] = True
-        wc_control['set_mu_from_projections'] = True
-        wc_control['max_projectability'] = 0.95
+        wc_control['set_mu_and_sigma_from_projections'] = True
+      #  wc_control['max_projectability'] = 0.95
         wc_control['sigma_factor_shift'] = 3.
 
 
