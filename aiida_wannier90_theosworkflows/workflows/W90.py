@@ -199,7 +199,7 @@ class SimpleWannier90WorkChain(WorkChain):
             self.ctx.sigma_factor_shift = control_dict['sigma_factor_shift']
             self.report("Sigma factor shift set to {}.".format(self.ctx.sigma_factor_shift))
         except KeyError:
-            self.ctx.max_projectability = 3.
+            self.ctx.sigma_factor_shift = 3.
             self.report("Sigma factor shift set to {} (DEFAULT).".format(self.ctx.sigma_factor_shift))
 
 
