@@ -26,7 +26,7 @@ from aiida.orm.data.base import List
 from aiida.orm import Group
 import copy
 
-class SimpleWannier90WorkChain(WorkChain):
+class Wannier90WorkChain(WorkChain):
     """
     Workchain to obtain maximally localised Wannier functions (MLWF)
     Authors: Antimo Marrazzo (antimo.marrazzo@epfl.ch), Giovanni Pizzi (giovanni.pizzi@epfl.ch)
