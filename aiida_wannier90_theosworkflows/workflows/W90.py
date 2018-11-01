@@ -74,10 +74,6 @@ class Wannier90WorkChain(WorkChain):
             cls.results,
                     )
 
-        #Workchain parameters/options
-        #-Retrieve amn mmn
-        #-Get TB model...
-
         #SCF and NSCF OUTPUT PARAMS (scf_out_parameters)
         spec.output('scf_output_parameters', valid_type=ParameterData)
         spec.output('nscf_output_parameters', valid_type=ParameterData)
@@ -222,7 +218,8 @@ class Wannier90WorkChain(WorkChain):
                                   'You need to do a projwfc calculations to do that! Set use_projwfc = True.')
 
             self.report("SCDM mu is auto-set using projectability.")
-        # We expect either a KpointsData with given mesh or a desired distance between k-points
+
+#        We expect either a KpointsData with given mesh or a desired distance between k-points
 #        if all([key not in self.inputs for key in ['kpoints_mesh', 'kpoints_distance']]):
 #            self.abort_nowait('neither the kpoints_mesh nor a kpoints_distance was specified in the inputs')
 #           return
@@ -292,8 +289,6 @@ class Wannier90WorkChain(WorkChain):
         self.report('SCF step - launching PwBaseWorkChain<{}> in {} mode'.format(running.pid, calculation_mode))
 
         return ToContext(workchain_scf=running)
-
-
 
     def run_nscf(self):
         """
@@ -391,14 +386,12 @@ class Wannier90WorkChain(WorkChain):
         self.report('PROJWFC step - launching Projwfc Calculation <{}>.'.format(running.pid))
         return ToContext(calc_projwfc=running)
 
-
     def run_wannier90_pp(self):
         try:
             remote_folder = self.ctx.workchain_nscf.out.remote_folder
         except AttributeError as exception:
             self.abort_nowait('the nscf workchain did not output a remote_folder node')
             return
-
 
         #try:
         #    orbital_projections = self.inputs.orbital_projections
@@ -459,8 +452,6 @@ class Wannier90WorkChain(WorkChain):
                 self.abort_nowait('WARNING: set_mu_and_sigma_from_projection failed!')
             inputs['parameters'] = results['output_parameters']
 
-
-
         self.ctx.bands_plot = bands_plot
         if bands_plot:
             try:
@@ -483,15 +474,14 @@ class Wannier90WorkChain(WorkChain):
             inputs['kpoint_path'] = kpoint_path
 
 
-        # settings that can only be enabled if parent is nscf
-#       settings_dict = {'seedname':'gaas','random_projections':True}
+        # DEBUG settings that can only be enabled if parent is nscf
+        # settings_dict = {'seedname':'gaas','random_projections':True}
         process = Wannier90Calculation.process()
         running = submit(process, **inputs)
 
         self.report('MLWF PP step - launching Wannier90 Calculation <{}> in pp mode'.format(running.pid))
 
         return ToContext(calc_mlwf_pp=running)
-
 
     def run_pw2wannier90(self):
         try:
@@ -650,7 +640,6 @@ class Wannier90WorkChain(WorkChain):
         else:
             self.report('Wannier90WorkChain successfully completed.')
 
-
     def should_run_scf(self):
         """
         Return whether a scf WorkChain should be run or it is provided by input
@@ -766,8 +755,7 @@ def get_exclude_bands(parameters):
     keep_bands = np.array([idx for idx in range(params['num_bands']+len(exclude_bands))
                            if idx not in xb_startzero_set])
 
-    return {"exclude_bands": exclude_bands, "keep_bands": keep_bands, 'num_bands':num_bands}
-
+    return {"exclude_bands": exclude_bands, "keep_bands": keep_bands, 'num_bands':params['num_bands']}
 
 @workfunction
 def from_seekpath_to_wannier(seekpath_parameters):
@@ -781,6 +769,7 @@ def from_seekpath_to_wannier(seekpath_parameters):
 @workfunction
 def set_mu_from_projections(bands,parameters,projections,thresholds):
     '''
+    DEPRECATED
     Setting mu parameter for the SCDM-k method:
     mu is such that the projectability on all the atomic orbitals
     contained in the pseudos is exactly equal to a a max_projectability
@@ -892,6 +881,3 @@ def set_mu_and_sigma_from_projections(bands, parameters, projections, thresholds
     params['scdm_mu'] = mu - sigma * thresholds.get_dict()['sigma_factor_shift']
     
     return {'output_parameters': ParameterData(dict=params), 'success': Bool(success)}
-
-
-
