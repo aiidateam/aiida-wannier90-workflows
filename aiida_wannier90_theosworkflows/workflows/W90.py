@@ -3,18 +3,12 @@ from aiida.orm import Code
 from aiida.orm.data.base import Str, Float
 from aiida.orm.data.parameter import ParameterData
 from aiida.orm.data.structure import StructureData
-from aiida.orm.data.array.bands import BandsData
 from aiida.orm.data.array.kpoints import KpointsData
 from aiida.orm.data.singlefile import SinglefileData
 from aiida.orm.data.folder import FolderData
 from aiida.orm.data.remote import RemoteData
-from aiida.orm.data.orbital import OrbitalData
-from aiida.common.links import LinkType
-from aiida.common.exceptions import AiidaException, NotExistent
-from aiida.common.datastructures import calc_states
-from aiida.common.example_helpers import test_and_get_code
 from aiida.work.run import submit
-from aiida.work.workchain import WorkChain, ToContext, while_, append_, if_
+from aiida.work.workchain import WorkChain, ToContext, while_, if_
 from aiida.work.workfunction import workfunction
 from aiida_quantumespresso.workflows.pw.base import PwBaseWorkChain
 from aiida_quantumespresso.workflows.pw.relax import PwRelaxWorkChain
@@ -22,7 +16,6 @@ from aiida_quantumespresso.calculations.pw2wannier90 import Pw2wannier90Calculat
 from aiida_quantumespresso.calculations.projwfc import ProjwfcCalculation
 from aiida_wannier90.calculations import Wannier90Calculation
 #from seekpath.aiidawrappers import get_path, get_explicit_k_path
-from aiida.orm.data.base import List
 from aiida.orm import Group
 import copy
 import numpy as np
@@ -312,15 +305,16 @@ class Wannier90WorkChain(WorkChain):
         return ToContext(workchain_scf=running)
 
     def run_nscf(self):
+        # pylint: disable=inconsistent-return-statements
         """
         Run the PwBaseWorkChain in nscf mode
         """
         try:
             remote_folder = self.ctx.workchain_scf.out.remote_folder
-        except AttributeError as exception:
+        except AttributeError:
             self.abort_nowait(
                 'the scf workchain did not output a remote_folder node')
-            return
+            return # pylint: disable=inconsistent-return-statements
         inputs = self.inputs.scf
         inputs.update({
             'code': self.inputs.pw_code,
@@ -389,7 +383,7 @@ class Wannier90WorkChain(WorkChain):
 
         return ToContext(workchain_nscf=running)
 
-    def run_projwfc(self):
+    def run_projwfc(self): # pylint: disable=inconsistent-return-statements
         """
         Projwfc step
         :return:
@@ -397,7 +391,7 @@ class Wannier90WorkChain(WorkChain):
         inputs = self.inputs.projwfc
         try:
             remote_folder = self.ctx.workchain_nscf.out.remote_folder
-        except AttributeError as exception:
+        except AttributeError:
             self.abort_nowait(
                 'the nscf workchain did not output a remote_folder node')
             return
@@ -414,10 +408,10 @@ class Wannier90WorkChain(WorkChain):
                 running.pid))
         return ToContext(calc_projwfc=running)
 
-    def run_wannier90_pp(self):
+    def run_wannier90_pp(self): # pylint: disable=inconsistent-return-statements,too-many-locals
         try:
-            remote_folder = self.ctx.workchain_nscf.out.remote_folder
-        except AttributeError as exception:
+            self.ctx.workchain_nscf.out.remote_folder
+        except AttributeError:
             self.abort_nowait(
                 'the nscf workchain did not output a remote_folder node')
             return
@@ -444,7 +438,7 @@ class Wannier90WorkChain(WorkChain):
         inputs['structure'] = structure
         inputs['settings'] = ParameterData(dict={'postproc_setup': True})
         wannier_pp_options = inputs.pop('pp_options', None)
-        wannier_options = inputs.pop('options', None)
+        #wannier_options = inputs.pop('options', None)
 
         inputs['_options'] = wannier_pp_options.get_dict()
 
