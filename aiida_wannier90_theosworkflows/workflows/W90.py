@@ -458,6 +458,17 @@ class Wannier90WorkChain(WorkChain):
             inputs['parameters'] = \
                 set_auto_numwann(parameters, self.ctx.calc_projwfc.out.projections)['output_parameters']
 
+        w90_numbands = inputs['parameters'].get_dict().get('num_bands')
+        nbnd = self.ctx.workchain_nscf.out.output_parameters.get_dict()[
+                'number_of_bands']
+        num_ex_bands = len(inputs['parameters'].get_dict().get('exclude_bands', []))
+        if w90_numbands is not None:
+            if w90_numbands + num_ex_bands != nbnd :
+                self.abort_nowait('FATAL ERROR: mismatch on number of bands -'
+                                  ' w90 {}, exclude bands {} while nscf nbnd is {}'.format(
+                                      w90_numbands,
+                                      num_ex_bands,
+                                      nbnd))
         inputs['code'] = self.inputs.wannier90_code
         inputs['kpoints'] = self.ctx.workchain_nscf.inp.kpoints
         structure = self.inputs.structure
