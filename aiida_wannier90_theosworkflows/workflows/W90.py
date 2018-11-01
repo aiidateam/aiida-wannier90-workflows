@@ -113,6 +113,15 @@ class Wannier90WorkChain(WorkChain):
             except KeyError:
                 self.ctx.do_nscf = True
             try:
+                calc_projwfc = restart_options['projwfc']
+                self.report(
+                    'Previous projwfc calc (pk: {} ) found in input'.
+                    format(calc_projwfc.pk))
+                self.ctx.do_projwfc = False
+                self.ctx.calc_projwfc = calc_projwfc
+            except KeyError:
+                self.ctx.do_projwfc = True                
+            try:
                 calc_mlwf_pp = restart_options['mlwf_pp']
                 self.report(
                     'Previous mlwf post_proc calc (pk: {} ) found in input'.
@@ -133,6 +142,7 @@ class Wannier90WorkChain(WorkChain):
         else:
             self.ctx.do_scf = True
             self.ctx.do_nscf = True
+            self.ctx.do_projwfc = True
             self.ctx.do_mlwf_pp = True
             self.ctx.do_pw2wannier90 = True
         #Checking workchain options specified in input
@@ -172,27 +182,43 @@ class Wannier90WorkChain(WorkChain):
             self.report("W90 windows defined with the Fermi level as zero.")
         # Do projwfc
         try:
-            self.ctx.do_projwfc = control_dict['use_projwfc']
-            use_projwfc_specified = True
+            self.ctx.use_projwfc = control_dict['use_projwfc']
+            use_projwfc_is_specified_manual = True
         except KeyError:
-            self.ctx.do_projwfc = False
-            use_projwfc_specified = False
-
-        if self.ctx.do_projwfc:
-            self.report("A Projwfc calculation is performed.")
+            # I set the default to False - note that the default should be True
+            # if set_auto_wann is True - This case is dealt with below
+            self.ctx.use_projwfc = False
+            use_projwfc_is_specified_manual = False
 
         try:
             self.ctx.set_auto_wann = control_dict['set_auto_wann']
         except KeyError:
             self.ctx.set_auto_wann = False
         if self.ctx.set_auto_wann:
-            if not self.ctx.do_projwfc and use_projwfc_specified:
+            # if set_auto_wann is True I want the default
+            # (i.e. iwhen use_proj_is_specified_manual == False) to be True
+            if not self.ctx.use_projwfc and use_projwfc_is_specified_manual:
                 self.abort_nowait(
                     'set_auto_wann = True and use_projwfc = False are incompatible'
                 )
             else:
-                self.ctx.do_projwfc = True
+                # Here we change the default by hand, forcing to use projections
+                self.ctx.use_projwfc = True
+                
             self.report("The number of WFs auto-set.")
+
+        if not self.ctx.use_projwfc:
+            self.ctx.do_projwfc = False
+        #elif is redundant because default is True (see restart options)
+
+        if self.ctx.use_projwfc:
+            self.report("Atomic projections will be used.")
+            if self.ctx.do_projwfc:
+                self.report("A Projwfc calculation will performed.")
+            else:
+                self.report("A Projwfc calculation will not performed (restart).")
+        else:
+            self.report("Atomic projections will not be used.")
 
         try:
             self.ctx.max_projectability = control_dict['max_projectability']
@@ -222,7 +248,7 @@ class Wannier90WorkChain(WorkChain):
                 self.abort_nowait(
                     'zero_is_fermi = True and set_mu_and_sigma_from_projections = True are incompatible. '
                     'You do not need to use zero_is_fermi in this case!')
-            if not self.ctx.do_projwfc:
+            if not self.ctx.use_projwfc:
                 self.abort_nowait(
                     'use_projwfc = False and set_mu_and_sigma_from_projections = True are incompatible. '
                     'You need to do a projwfc calculations to do that! Set use_projwfc = True.'
