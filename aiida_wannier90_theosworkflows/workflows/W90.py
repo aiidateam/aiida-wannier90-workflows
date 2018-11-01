@@ -25,11 +25,17 @@ from aiida_wannier90.calculations import Wannier90Calculation
 from aiida.orm.data.base import List
 from aiida.orm import Group
 import copy
+import numpy as np
 
 class Wannier90WorkChain(WorkChain):
     """
     Workchain to obtain maximally localised Wannier functions (MLWF)
     Authors: Antimo Marrazzo (antimo.marrazzo@epfl.ch), Giovanni Pizzi (giovanni.pizzi@epfl.ch)
+    
+    MIT License - Copyright (c), 2018, ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE
+    (Theory and Simulation of Materials (THEOS) and National Centre for 
+    Computational Design and Discovery of Novel Materials (NCCR MARVEL)).
+    All rights reserved.
 
     Scheme: SETUP-->SCF-->NSCF-->PROJWFC -> W90_PP-->PW2WANNIER90-->WANNIER90-->RESULTS
 
@@ -37,7 +43,7 @@ class Wannier90WorkChain(WorkChain):
 
     @classmethod
     def define(cls, spec):
-        super(SimpleWannier90WorkChain, cls).define(spec)
+        super(Wannier90WorkChain, cls).define(spec)
         spec.input('pw_code', valid_type=Code)
         spec.input('projwfc_code', valid_type=Code, required=False)
         spec.input('pw2wannier90_code', valid_type=Code)
@@ -404,8 +410,7 @@ class Wannier90WorkChain(WorkChain):
         #else:
         #    calc.use_remote_input_folder(remote_folder)
         #calc = self.inputs.wannier90_code.new_calc()
-
-
+        
         if self.ctx.set_auto_wann:
             parameters = inputs['parameters']
             inputs['parameters'] = \
@@ -728,7 +733,41 @@ def set_auto_numwann(parameters,projections):
     """
     params = parameters.get_dict()
     params['num_wann'] = len(projections.get_orbitals())
+    if do_exclude_bands(parameters):
+        params['num_wann'] -= len(params['exclude_bands'])
     return {'output_parameters': ParameterData(dict = params)}
+
+def do_exclude_bands(parameters):
+    """
+    Check whether exclude_bands keyword is there
+    """
+    params = parameters.get_dict()
+    try:
+        exclude_bands_list = params['exclude_bands']
+        if len(exclude_bands_list)!=0:
+            return True
+        else:
+            return False
+    except KeyError:
+        False
+
+def get_exclude_bands(parameters):
+    """
+    Updated W90 params.
+    :param
+    :return
+    exclude_bands return the indices of the ones to exclude
+    keep_bands the ones to keep
+    num_bands is not changed
+    """
+    params = parameters.get_dict()
+    exclude_bands = params.get('exclude_bands', [])
+    xb_startzero_set = set([idx-1 for idx in exclude_bands]) # in Fortran/W90: 1-based; in py: 0-based
+    keep_bands = np.array([idx for idx in range(params['num_bands']+len(exclude_bands))
+                           if idx not in xb_startzero_set])
+
+    return {"exclude_bands": exclude_bands, "keep_bands": keep_bands, 'num_bands':num_bands}
+
 
 @workfunction
 def from_seekpath_to_wannier(seekpath_parameters):
@@ -795,17 +834,16 @@ def set_mu_from_projections(bands,parameters,projections,thresholds):
 def set_mu_and_sigma_from_projections(bands, parameters, projections, thresholds):
     '''
     Setting mu parameter for the SCDM-k method:
-    mu is such that the projectability on all the atomic orbitals
-    contained in the pseudos is exactly equal to a a max_projectability
-    values passed through the thresholds ParameterData.
+    The projectability of all orbitals is fitted using an erfc(x)
+    function. Mu and sigma are extracted from the fitted distribution,
+    with mu = mu_fit - k * sigma, sigma = sigma_fit and
+    k a parameter with default k = 3.
 
     :param bands: output of projwfc, it was computed in the nscf calc
     :param parameters: wannier90 input params (the one to update with this wf)
     :param projections: output of projwfc
-    :param thresholds: must contain a 'max_projectability' value (e.g. 0.95) to
-           evaluate an energy, and a 'sigma_factor_shift'; scdm_mu will be set to::
+    :param thresholds: must contain 'sigma_factor_shift'; scdm_mu will be set to::
            scdm_mu = E(projectability==max_projectability) - sigma_factor_shift * scdm_sigma
-           Note that you have to set the scdm_mu in the input parameters first!
            Pass sigma_factor_shift = 0 if you do not want to shift
     :return: a modified ParameterData in output_parameters, with the proper value for scdm_mu set,
              and a Bool called 'success' that tells if the algorithm could find the energy at which
@@ -833,11 +871,16 @@ def set_mu_and_sigma_from_projections(bands, parameters, projections, thresholds
     params = parameters.get_dict()
     # List of specifications of atomic orbitals in dictionary form
     dict_list = [i.get_orbital_dict() for i in projections.get_orbitals()]
+    
+    keep_bands  = get_exclude_bands(parameters)["keep_bands"]
     # Sum of the projections on all atomic orbitals (shape kpoints x nbands)
-    out_array = sum([sum([x[1] for x in projections.get_projections(
+    # WITHOUT EXCLUDE BANDS out_array = sum([sum([x[1] for x in projections.get_projections(
+    #    **get_dict)]) for get_dict in dict_list])  
+    out_array = sum([sum([x[1][:,keep_bands] for x in projections.get_projections(
         **get_dict)]) for get_dict in dict_list])
+
     # Flattening (projection modulus squared according to QE, energies)
-    projwfc_flat, bands_flat = out_array.flatten(), bands.get_bands().flatten()
+    projwfc_flat, bands_flat = out_array.flatten(), bands.get_bands()[:,keep_bands].flatten()
     # Sorted by energy
     sorted_bands, sorted_projwfc = zip(*sorted(zip(bands_flat, projwfc_flat)))
     popt,pcov = fit_erfc(erfc_scdm,sorted_bands,sorted_projwfc)
@@ -849,3 +892,6 @@ def set_mu_and_sigma_from_projections(bands, parameters, projections, thresholds
     params['scdm_mu'] = mu - sigma * thresholds.get_dict()['sigma_factor_shift']
     
     return {'output_parameters': ParameterData(dict=params), 'success': Bool(success)}
+
+
+
