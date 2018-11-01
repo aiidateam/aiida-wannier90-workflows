@@ -475,7 +475,7 @@ class Wannier90WorkChain(WorkChain):
         inputs['structure'] = structure
         inputs['settings'] = ParameterData(dict={'postproc_setup': True})
         wannier_pp_options = inputs.pop('pp_options', None)
-        #wannier_options = inputs.pop('options', None)
+        inputs.pop('options', None) #Need to pop it ! 
 
         inputs['_options'] = wannier_pp_options.get_dict()
 
