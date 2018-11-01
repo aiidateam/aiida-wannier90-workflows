@@ -8,7 +8,7 @@ from aiida.orm.data.singlefile import SinglefileData
 from aiida.orm.data.folder import FolderData
 from aiida.orm.data.remote import RemoteData
 from aiida.work.run import submit
-from aiida.work.workchain import WorkChain, ToContext, while_, if_
+from aiida.work.workchain import WorkChain, ToContext, if_
 from aiida.work.workfunction import workfunction
 from aiida_quantumespresso.workflows.pw.base import PwBaseWorkChain
 from aiida_quantumespresso.workflows.pw.relax import PwRelaxWorkChain
@@ -75,7 +75,7 @@ class Wannier90WorkChain(WorkChain):
         spec.output('mlwf_output_parameters')
         spec.output('mlwf_interpolated_bands', required=False)
 
-    def setup(self):
+    def setup(self):# pylint: disable=too-many-statements; # noqa: MC0001
         """
         Input validation and context setup
         """
@@ -330,8 +330,7 @@ class Wannier90WorkChain(WorkChain):
 
         return ToContext(workchain_scf=running)
 
-    def run_nscf(self):
-        # pylint: disable=inconsistent-return-statements
+    def run_nscf(self):# pylint: disable=inconsistent-return-statements
         """
         Run the PwBaseWorkChain in nscf mode
         """
@@ -434,25 +433,14 @@ class Wannier90WorkChain(WorkChain):
                 running.pid))
         return ToContext(calc_projwfc=running)
 
-    def run_wannier90_pp(self): # pylint: disable=inconsistent-return-statements,too-many-locals
+    def run_wannier90_pp(self): # pylint: disable=inconsistent-return-statements,too-many-locals,too-many-statements; # noqa: MC0001
         try:
             self.ctx.workchain_nscf.out.remote_folder
         except AttributeError:
             self.abort_nowait(
                 'the nscf workchain did not output a remote_folder node')
             return
-
-        #try:
-        #    orbital_projections = self.inputs.orbital_projections
-        #except KeyError:
-        #    pass
         inputs = copy.deepcopy(self.inputs.mlwf)
-        #if local_input:
-        #    calc.use_local_input_folder(input_folder)
-        #else:
-        #    calc.use_remote_input_folder(remote_folder)
-        #calc = self.inputs.wannier90_code.new_calc()
-
         if self.ctx.set_auto_wann:
             parameters = inputs['parameters']
             inputs['parameters'] = \
@@ -540,7 +528,6 @@ class Wannier90WorkChain(WorkChain):
                     )
 
             inputs['kpoint_path'] = kpoint_path
-
         # DEBUG settings that can only be enabled if parent is nscf
         # settings_dict = {'seedname':'gaas','random_projections':True}
         process = Wannier90Calculation.process()
@@ -552,10 +539,10 @@ class Wannier90WorkChain(WorkChain):
 
         return ToContext(calc_mlwf_pp=running)
 
-    def run_pw2wannier90(self):
+    def run_pw2wannier90(self): #pylint: disable=inconsistent-return-statements,
         try:
             remote_folder = self.ctx.workchain_nscf.out.remote_folder
-        except AttributeError as exception:
+        except AttributeError:
             self.abort_nowait(
                 'the nscf workchain did not output a remote_folder node')
             return
@@ -578,10 +565,10 @@ class Wannier90WorkChain(WorkChain):
             format(running.pid))
         return ToContext(calc_pw2wannier90=running)
 
-    def run_wannier90(self):
+    def run_wannier90(self): # pylint:disable=inconsistent-return-statements,too-many-locals
         try:
             remote_folder = self.ctx.calc_pw2wannier90.out.remote_folder
-        except AttributeError as exception:
+        except AttributeError:
             self.abort_nowait(
                 'the pw2wannier90 calculation di not output a remote_folder node'
             )
@@ -624,7 +611,7 @@ class Wannier90WorkChain(WorkChain):
 
             inputs['kpoint_path'] = kpoint_path
 
-        wannier_pp_options = inputs.pop('pp_options', None)
+        inputs.pop('pp_options', None)   # must pop here!
         wannier_options = inputs.pop('options', None)
         inputs['_options'] = wannier_options.get_dict()
 
@@ -648,13 +635,13 @@ class Wannier90WorkChain(WorkChain):
 
         return ToContext(calc_mlwf=running)
 
-    def run_bands(self):
+    def run_bands(self): # pylint: disable=inconsistent-return-statements
         """
         Run the PwBaseWorkChain to run a bands PwCalculation
         """
         try:
             remote_folder = self.ctx.workchain_scf.out.remote_folder
-        except AttributeError as exception:
+        except AttributeError:
             self.abort_nowait(
                 'the scf workchain did not output a remote_folder node')
             return
@@ -717,7 +704,7 @@ class Wannier90WorkChain(WorkChain):
                          self.ctx.calc_mlwf.out.interpolated_bands)
                 self.report('Interpolated bands pk: {}'.format(
                     self.ctx.calc_mlwf.out.interpolated_bands.pk))
-            except:
+            except Exception: #Attribute error?
                 self.report(
                     'WARNING: interpolated bands missing, while they should be there.'
                 )
@@ -828,12 +815,11 @@ def do_exclude_bands(parameters):
     params = parameters.get_dict()
     try:
         exclude_bands_list = params['exclude_bands']
-        if len(exclude_bands_list) != 0:
+        if exclude_bands_list:
             return True
-        else:
-            return False
+        return False
     except KeyError:
-        False
+        return False
 
 
 def get_exclude_bands(parameters):
@@ -873,7 +859,7 @@ def from_seekpath_to_wannier(seekpath_parameters):
 
 
 @workfunction
-def set_mu_from_projections(bands, parameters, projections, thresholds):
+def set_mu_from_projections(bands, parameters, projections, thresholds): # pylint: disable=too-many-locals
     '''
     DEPRECATED
     Setting mu parameter for the SCDM-k method:
@@ -896,7 +882,6 @@ def set_mu_from_projections(bands, parameters, projections, thresholds):
         the required projectability is achieved.
     '''
     from aiida.orm.data.base import Bool
-    import numpy as np
     params = parameters.get_dict()
     #params['scdm_mu'] = len(projections.get_orbitals())
     # List of specifications of atomic orbitals in dictionary form
@@ -921,7 +906,7 @@ def set_mu_from_projections(bands, parameters, projections, thresholds):
     #Indices where projctability is larger than a threshold value
     indices_true = np.where(int_pdos > thr)[0]
     #Take the first energy eigenvalue (n,k) such that proj>thr
-    if len(indices_true) > 0:
+    if indices_true:
         success = True
         params[
             'scdm_mu'] = sorted_bands[indices_true[0]] - params['scdm_sigma'] * thresholds.get_dict(
@@ -935,7 +920,7 @@ def set_mu_from_projections(bands, parameters, projections, thresholds):
 
 
 @workfunction
-def set_mu_and_sigma_from_projections(bands, parameters, projections,
+def set_mu_and_sigma_from_projections(bands, parameters, projections, # pylint: disable=too-many-locals
                                       thresholds):
     '''
     Setting mu parameter for the SCDM-k method:
@@ -955,19 +940,19 @@ def set_mu_and_sigma_from_projections(bands, parameters, projections,
              the required projectability is achieved.
     '''
     from aiida.orm.data.base import Bool
-    import numpy as np
 
     def erfc_scdm(x, mu, sigma):
-        from scipy.special import erfc
+        from scipy.special import erfc # pylint: disable=E0611
         return 0.5 * erfc((x - mu) / sigma)
 
-    def find_max(proj_list, max_value):
-        f = lambda x: True if x < max_value else False
-        bool_list = map(f, proj_list)
-        for i, item in enumerate(bool_list):
-            if item:
-                break
-        print i, proj_list[i]
+    #UNUSED
+    #def find_max(proj_list, max_value):
+    #    f = lambda x: True if x < max_value else False
+    #    bool_list = map(f, proj_list)
+    #    for i, item in enumerate(bool_list):
+    #        if item:
+    #            break
+    #    print i, proj_list[i]
 
     def fit_erfc(f, xdata, ydata):
         from scipy.optimize import curve_fit
@@ -993,7 +978,7 @@ def set_mu_and_sigma_from_projections(bands, parameters, projections,
     )[:, keep_bands].flatten()
     # Sorted by energy
     sorted_bands, sorted_projwfc = zip(*sorted(zip(bands_flat, projwfc_flat)))
-    popt, pcov = fit_erfc(erfc_scdm, sorted_bands, sorted_projwfc)
+    popt, pcov = fit_erfc(erfc_scdm, sorted_bands, sorted_projwfc) # pylint: disable=unused-variable
     mu = popt[0]
     sigma = popt[1]
     # Temporary, TODO add check on interpolation
