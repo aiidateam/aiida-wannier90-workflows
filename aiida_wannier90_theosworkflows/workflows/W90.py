@@ -255,7 +255,12 @@ class Wannier90WorkChain(WorkChain):
                 )
 
             self.report("SCDM mu is auto-set using projectability.")
-
+        try:
+            self.ctx.random_projections = control_dict['random_projections']
+            if self.ctx.random_projections:
+                self.report("projections override: set to random from input.")
+        except KeyError:
+            self.ctx.random_projections = False
 
 #        We expect either a KpointsData with given mesh or a desired distance between k-points
 #        if all([key not in self.inputs for key in ['kpoints_mesh', 'kpoints_distance']]):
@@ -461,7 +466,7 @@ class Wannier90WorkChain(WorkChain):
         inputs['kpoints'] = self.ctx.workchain_nscf.inp.kpoints
         structure = self.inputs.structure
         inputs['structure'] = structure
-        inputs['settings'] = ParameterData(dict={'postproc_setup': True})
+
         wannier_pp_options = inputs.pop('pp_options', None)
         inputs.pop('options', None) #Need to pop it ! 
 
@@ -504,6 +509,13 @@ class Wannier90WorkChain(WorkChain):
                 self.abort_nowait(
                     'WARNING: set_mu_and_sigma_from_projection failed!')
             inputs['parameters'] = results['output_parameters']
+        
+        settings_dict_pp = {'postproc_setup': True}
+
+        if self.ctx.random_projections:
+            settings_dict_pp['random_projections'] = True
+
+        inputs['settings'] = ParameterData(dict=settings_dict_pp)
 
         self.ctx.bands_plot = bands_plot
         if bands_plot:
@@ -620,6 +632,12 @@ class Wannier90WorkChain(WorkChain):
             settings = inputs['settings']
         except KeyError:
             settings = None
+
+        if self.ctx.random_projections:
+            if settings is not None:
+                settings['random_projections'] = True
+            else:
+                settings = {'random_projections':True}
         #Check if the hamiltonian needs to be retrieved or not
         if self.ctx.retrieve_ham:
             if settings is None:
