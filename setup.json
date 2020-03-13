@@ -1,20 +1,27 @@
 {
   "entry_points": {
+    "aiida.workflows": [
+      "aiida_wannier90_theosworkflows.bands = aiida_wannier90_theosworkflows.workflows.bands:Wannier90BandsWorkChain",
+      "aiida_wannier90_theosworkflows.wannier90 = aiida_wannier90_theosworkflows.workflows.wannier:Wannier90WorkChain"
+    ]
   }, 
   "name": "aiida-wannier90-theosworkflows", 
   "license": "Private code", 
-  "author": "Antimo Marrazzo, Giovanni Pizzi", 
+  "author": "Antimo Marrazzo, Giovanni Pizzi, Junfeng Qiao", 
   "author_email": "developers@aiida.net", 
   "install_requires": [
     "aiida-wannier90"
   ], 
-  "version": "0.1.0", 
+  "version": "1.0.0", 
   "keywords": "wannier90 aiida workflows", 
   "classifiers": [
     "Environment :: Plugins", 
     "Framework :: AiiDA", 
     "Intended Audience :: Science/Research", 
-    "Programming Language :: Python :: 2.7", 
+    "Programming Language :: Python :: 3", 
+    "Programming Language :: Python :: 3.6", 
+    "Programming Language :: Python :: 3.7", 
+    "Programming Language :: Python :: 3.8", 
     "Topic :: Scientific/Engineering :: Physics"
   ], 
   "description": "Advanced AiiDA workflows for Wannier90"
