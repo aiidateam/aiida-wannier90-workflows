@@ -1,0 +1,22 @@
+# Install pre-commit hooks via
+# pre-commit install
+
+- repo: local
+  hooks:
+  - id: yapf
+    name: yapf
+    entry: yapf
+    language: system
+    types: [python]
+    args: ["-i"]
+  - id: prospector
+    language: system
+    types: [file, python]
+    name: prospector
+    description: "This hook runs Prospector: https://github.com/landscapeio/prospector"
+    entry: prospector
+  - id: version-number
+    name: Check version numbers
+    entry: python ./.travis-data/check_version.py
+    language: system
+    files: '^(setup.json)|(aiida_wannier90/__init__.py)'

@@ -1,17 +1,21 @@
 {
   "entry_points": {
     "aiida.workflows": [
-      "aiida_wannier90_theosworkflows.bands = aiida_wannier90_theosworkflows.workflows.bands:Wannier90BandsWorkChain",
-      "aiida_wannier90_theosworkflows.wannier90 = aiida_wannier90_theosworkflows.workflows.wannier:Wannier90WorkChain"
+      "aiida_wannier90_workflows.bands = aiida_wannier90_workflows.workflows.bands:Wannier90BandsWorkChain",
+      "aiida_wannier90_workflows.wannier90 = aiida_wannier90_workflows.workflows.wannier:Wannier90WorkChain"
     ]
   }, 
-  "name": "aiida-wannier90-theosworkflows", 
+  "name": "aiida-wannier90-workflows", 
   "license": "Private code", 
   "author": "Antimo Marrazzo, Giovanni Pizzi, Junfeng Qiao", 
   "author_email": "developers@aiida.net", 
   "install_requires": [
-    "aiida-wannier90"
+    "aiida-core>=1.1.1,<2",
+    "aiida-quantumespresso>=3.0.0a6",
+    "aiida-wannier90>=2.0.0"
   ], 
+  "url": "https://github.com/aiidateam/aiida-wannier90-workflows",
+  "python_requires": ">=3.6",
   "version": "1.0.0", 
   "keywords": "wannier90 aiida workflows", 
   "classifiers": [

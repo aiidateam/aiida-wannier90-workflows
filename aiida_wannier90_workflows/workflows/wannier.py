@@ -4,11 +4,6 @@ from aiida.engine.processes import WorkChain, ToContext, if_
 from aiida.engine.processes import calcfunction
 from aiida.plugins import WorkflowFactory, CalculationFactory
 from aiida_quantumespresso.utils.mapping import prepare_process_inputs
-#PwBaseWorkChain = WorkflowFactory('quantumespresso.pw.base')
-#PwRelaxWorkChain = WorkflowFactory('quantumespresso.pw.relax')
-#ProjwfcCalculation = CalculationFactory('quantumespresso.projwfc')
-#Pw2wannier90Calculation = CalculationFactory('quantumespresso.pw2wannier90')
-#Wannier90Calculation = CalculationFactory('wannier90.wannier90')
 from aiida_quantumespresso.workflows.pw.base import PwBaseWorkChain
 from aiida_quantumespresso.workflows.pw.relax import PwRelaxWorkChain
 from aiida_quantumespresso.calculations.projwfc import ProjwfcCalculation
@@ -37,9 +32,11 @@ class Wannier90WorkChain(WorkChain):
     @classmethod
     def define(cls, spec):
         super().define(spec)
-        spec.input('structure',
-                   valid_type=orm.StructureData,
-                   help='The inputs structure.')
+        spec.input(
+            'structure',
+            valid_type=orm.StructureData,
+            help='The inputs structure.'
+        )
         spec.input(
             'clean_workdir',
             valid_type=orm.Bool,
@@ -47,25 +44,31 @@ class Wannier90WorkChain(WorkChain):
             help=
             'If `True`, work directories of all called calculation will be cleaned at the end of execution.'
         )
-        spec.input('only_valence',
-                   valid_type=orm.Bool,
-                   default=orm.Bool(False),
-                   help='Whether only wannierise valence band or not')
+        spec.input(
+            'only_valence',
+            valid_type=orm.Bool,
+            default=orm.Bool(False),
+            help='Whether only wannierise valence band or not'
+        )
         spec.input(
             'wannier_energies_relative_to_fermi',
             valid_type=orm.Bool,
             default=orm.Bool(False),
             help=
             'determines if the energies(dis_froz_min/max, dis_win_min/max) defined in the input parameters '
-            + 'are relative to scf Fermi energy or not.')
+            + 'are relative to scf Fermi energy or not.'
+        )
         spec.input(
             'scdm_thresholds',
             valid_type=orm.Dict,
-            default=orm.Dict(dict={
-                'max_projectability': 0.95,
-                'sigma_factor': 3
-            }),
-            help='can contain two keyword: max_projectability, sigma_factor')
+            default=orm.Dict(
+                dict={
+                    'max_projectability': 0.95,
+                    'sigma_factor': 3
+                }
+            ),
+            help='can contain two keyword: max_projectability, sigma_factor'
+        )
         spec.expose_inputs(
             PwRelaxWorkChain,
             namespace='relax',
@@ -77,7 +80,8 @@ class Wannier90WorkChain(WorkChain):
                 False,
                 'help':
                 'Inputs for the `PwRelaxWorkChain`, if not specified at all, the relaxation step is skipped.'
-            })
+            }
+        )
         spec.expose_inputs(
             PwBaseWorkChain,
             namespace='scf',
@@ -85,7 +89,8 @@ class Wannier90WorkChain(WorkChain):
             namespace_options={
                 'help':
                 'Inputs for the `PwBaseWorkChain` for the SCF calculation.'
-            })
+            }
+        )
         spec.expose_inputs(
             PwBaseWorkChain,
             namespace='nscf',
@@ -93,7 +98,8 @@ class Wannier90WorkChain(WorkChain):
             namespace_options={
                 'help':
                 'Inputs for the `PwBaseWorkChain` for the NSCF calculation.'
-            })
+            }
+        )
         spec.expose_inputs(
             ProjwfcCalculation,
             namespace='projwfc',
@@ -103,7 +109,8 @@ class Wannier90WorkChain(WorkChain):
                 False,
                 'help':
                 'Inputs for the `ProjwfcCalculation` for the Projwfc calculation.'
-            })
+            }
+        )
         spec.expose_inputs(
             Pw2wannier90Calculation,
             namespace='pw2wannier90',
@@ -111,7 +118,8 @@ class Wannier90WorkChain(WorkChain):
             namespace_options={
                 'help':
                 'Inputs for the `Pw2wannier90Calculation` for the pw2wannier90 calculation.'
-            })
+            }
+        )
         spec.expose_inputs(
             Wannier90Calculation,
             namespace='wannier90',
@@ -119,7 +127,8 @@ class Wannier90WorkChain(WorkChain):
             namespace_options={
                 'help':
                 'Inputs for the `Wannier90Calculation` for the Wannier90 calculation.'
-            })
+            }
+        )
         spec.outline(
             cls.setup,
             if_(cls.should_do_relax)(
@@ -143,45 +152,63 @@ class Wannier90WorkChain(WorkChain):
             cls.results,
         )
 
-        spec.expose_outputs(PwRelaxWorkChain,
-                            namespace='relax',
-                            namespace_options={'required': False})
+        spec.expose_outputs(
+            PwRelaxWorkChain,
+            namespace='relax',
+            namespace_options={'required': False}
+        )
         spec.expose_outputs(PwBaseWorkChain, namespace='scf')
         spec.expose_outputs(PwBaseWorkChain, namespace='nscf')
-        spec.expose_outputs(ProjwfcCalculation,
-                            namespace='projwfc',
-                            namespace_options={'required': False})
+        spec.expose_outputs(
+            ProjwfcCalculation,
+            namespace='projwfc',
+            namespace_options={'required': False}
+        )
         spec.expose_outputs(Pw2wannier90Calculation, namespace='pw2wannier90')
         # spec.expose_outputs(Wannier90Calculation, namespace='wannier90_pp')
         spec.expose_outputs(Wannier90BaseWorkChain, namespace='wannier90_pp')
         spec.expose_outputs(Wannier90Calculation, namespace='wannier90')
 
-        spec.exit_code(401,
-                       'ERROR_SUB_PROCESSS_FAILED_SETUP',
-                       message='setup failed, check your input')
-        spec.exit_code(402,
-                       'ERROR_SUB_PROCESS_FAILED_RELAX',
-                       message='the PwRelaxWorkChain sub process failed')
-        spec.exit_code(403,
-                       'ERROR_SUB_PROCESS_FAILED_SCF',
-                       message='the scf PwBasexWorkChain sub process failed')
-        spec.exit_code(404,
-                       'ERROR_SUB_PROCESS_FAILED_NSCF',
-                       message='the nscf PwBasexWorkChain sub process failed')
-        spec.exit_code(405,
-                       'ERROR_SUB_PROCESS_FAILED_PROJWFC',
-                       message='the ProjwfcCalculation sub process failed')
+        spec.exit_code(
+            401,
+            'ERROR_SUB_PROCESSS_FAILED_SETUP',
+            message='setup failed, check your input'
+        )
+        spec.exit_code(
+            402,
+            'ERROR_SUB_PROCESS_FAILED_RELAX',
+            message='the PwRelaxWorkChain sub process failed'
+        )
+        spec.exit_code(
+            403,
+            'ERROR_SUB_PROCESS_FAILED_SCF',
+            message='the scf PwBasexWorkChain sub process failed'
+        )
+        spec.exit_code(
+            404,
+            'ERROR_SUB_PROCESS_FAILED_NSCF',
+            message='the nscf PwBasexWorkChain sub process failed'
+        )
+        spec.exit_code(
+            405,
+            'ERROR_SUB_PROCESS_FAILED_PROJWFC',
+            message='the ProjwfcCalculation sub process failed'
+        )
         spec.exit_code(
             406,
             'ERROR_SUB_PROCESS_FAILED_WANNIER90PP',
-            message='the postproc Wannier90Calculation sub process failed')
+            message='the postproc Wannier90Calculation sub process failed'
+        )
         spec.exit_code(
             407,
             'ERROR_SUB_PROCESS_FAILED_PW2WANNIER90',
-            message='the Pw2wannier90Calculation sub process failed')
-        spec.exit_code(408,
-                       'ERROR_SUB_PROCESS_FAILED_WANNIER90',
-                       message='the Wannier90Calculation sub process failed')
+            message='the Pw2wannier90Calculation sub process failed'
+        )
+        spec.exit_code(
+            408,
+            'ERROR_SUB_PROCESS_FAILED_WANNIER90',
+            message='the Wannier90Calculation sub process failed'
+        )
 
     def setup(self):
         """
@@ -190,7 +217,8 @@ class Wannier90WorkChain(WorkChain):
         self.ctx.current_structure = self.inputs.structure
 
         inputs = AttributeDict(
-            self.exposed_inputs(Wannier90Calculation, namespace='wannier90'))
+            self.exposed_inputs(Wannier90Calculation, namespace='wannier90')
+        )
         parameters = inputs.parameters.get_dict()
 
         self.ctx.bands_plot = parameters.get('bands_plot', False)
@@ -201,7 +229,8 @@ class Wannier90WorkChain(WorkChain):
             kpoint_path = inputs.get('kpoint_path', None)
             if kpoint_path is None:
                 self.report(
-                    'bands_plot is required but no kpoint_path provided')
+                    'bands_plot is required but no kpoint_path provided'
+                )
                 return self.exit_codes.ERROR_SUB_PROCESSS_FAILED_SETUP
 
         # debug
@@ -225,7 +254,8 @@ class Wannier90WorkChain(WorkChain):
         Run the PwRelaxWorkChain to run a relax calculation
         """
         inputs = AttributeDict(
-            self.exposed_inputs(PwRelaxWorkChain, namespace='relax'))
+            self.exposed_inputs(PwRelaxWorkChain, namespace='relax')
+        )
         inputs.structure = self.ctx.current_structure
 
         running = self.submit(PwRelaxWorkChain, **inputs)
@@ -241,8 +271,11 @@ class Wannier90WorkChain(WorkChain):
         workchain = self.ctx.workchain_relax
 
         if not workchain.is_finished_ok:
-            self.report('PwRelaxWorkChain failed with exit status {}'.format(
-                workchain.exit_status))
+            self.report(
+                'PwRelaxWorkChain failed with exit status {}'.format(
+                    workchain.exit_status
+                )
+            )
             return self.exit_codes.ERROR_SUB_PROCESS_FAILED_RELAX
 
         self.ctx.current_structure = workchain.outputs.output_structure
@@ -252,7 +285,8 @@ class Wannier90WorkChain(WorkChain):
         Run the PwBaseWorkChain in scf mode on the primitive cell of (optionally relaxed) input structure.
         """
         inputs = AttributeDict(
-            self.exposed_inputs(PwBaseWorkChain, namespace='scf'))
+            self.exposed_inputs(PwBaseWorkChain, namespace='scf')
+        )
         inputs.pw.structure = self.ctx.current_structure
         inputs.pw.parameters = inputs.pw.parameters.get_dict()
         inputs.pw.parameters.setdefault('CONTROL', {})
@@ -263,7 +297,9 @@ class Wannier90WorkChain(WorkChain):
 
         self.report(
             'scf step - launching PwBaseWorkChain<{}> in {} mode'.format(
-                running.pk, 'scf'))
+                running.pk, 'scf'
+            )
+        )
 
         return ToContext(workchain_scf=running)
 
@@ -274,7 +310,9 @@ class Wannier90WorkChain(WorkChain):
         if not workchain.is_finished_ok:
             self.report(
                 'scf PwBaseWorkChain failed with exit status {}'.format(
-                    workchain.exit_status))
+                    workchain.exit_status
+                )
+            )
             return self.exit_codes.ERROR_SUB_PROCESS_FAILED_SCF
 
         self.ctx.current_folder = workchain.outputs.remote_folder
@@ -285,7 +323,8 @@ class Wannier90WorkChain(WorkChain):
         Run the PwBaseWorkChain in nscf mode
         """
         inputs = AttributeDict(
-            self.exposed_inputs(PwBaseWorkChain, namespace='nscf'))
+            self.exposed_inputs(PwBaseWorkChain, namespace='nscf')
+        )
         inputs.pw.structure = self.ctx.current_structure
         inputs.pw.parent_folder = self.ctx.current_folder
         inputs.pw.parameters = inputs.pw.parameters.get_dict()
@@ -302,9 +341,11 @@ class Wannier90WorkChain(WorkChain):
         if self.inputs.only_valence:
             inputs.pw.parameters['SYSTEM']['occupations'] = 'fixed'
             inputs.pw.parameters['SYSTEM'].pop(
-                'smearing', None)  # pop None to avoid KeyError
+                'smearing', None
+            )  # pop None to avoid KeyError
             inputs.pw.parameters['SYSTEM'].pop(
-                'degauss', None)  # pop None to avoid KeyError
+                'degauss', None
+            )  # pop None to avoid KeyError
 
         # inputs.pw.pseudos is an AttributeDict, but calcfunction only accepts
         # orm.Data, so we unpack it to pass in orm.UpfData
@@ -312,9 +353,12 @@ class Wannier90WorkChain(WorkChain):
             orm.Dict(dict=inputs.pw.parameters),
             self.ctx.workchain_scf.outputs.output_parameters,
             self.ctx.current_structure, self.inputs.only_valence,
-            **inputs.pw.pseudos)
-        self.report('nscf number of bands set as ' +
-                    str(inputs.pw.parameters['SYSTEM']['nbnd']))
+            **inputs.pw.pseudos
+        )
+        self.report(
+            'nscf number of bands set as ' +
+            str(inputs.pw.parameters['SYSTEM']['nbnd'])
+        )
 
         # check kmesh
         try:
@@ -323,9 +367,10 @@ class Wannier90WorkChain(WorkChain):
             # then kpoints_distance must exists, since this is ensured by inputs check of this workchain
             from aiida_quantumespresso.workflows.functions.create_kpoints_from_distance import create_kpoints_from_distance
             force_parity = inputs.get('kpoints_force_parity', orm.Bool(False))
-            kmesh = create_kpoints_from_distance(self.ctx.current_structure,
-                                                 inputs.kpoints_distance,
-                                                 force_parity)
+            kmesh = create_kpoints_from_distance(
+                self.ctx.current_structure, inputs.kpoints_distance,
+                force_parity
+            )
             #kpoints_data = orm.KpointsData()
             # kpoints_data.set_cell_from_structure(self.ctx.current_structure)
             # kmesh = kpoints_data.set_kpoints_mesh_from_density(inputs.kpoints_distance.value)
@@ -349,7 +394,9 @@ class Wannier90WorkChain(WorkChain):
 
         self.report(
             'nscf step - launching PwBaseWorkChain<{}> in {} mode'.format(
-                running.pk, 'nscf'))
+                running.pk, 'nscf'
+            )
+        )
 
         return ToContext(workchain_nscf=running)
 
@@ -360,7 +407,9 @@ class Wannier90WorkChain(WorkChain):
         if not workchain.is_finished_ok:
             self.report(
                 'nscf PwBaseWorkChain failed with exit status {}'.format(
-                    workchain.exit_status))
+                    workchain.exit_status
+                )
+            )
             return self.exit_codes.ERROR_SUB_PROCESS_FAILED_NSCF
 
         self.ctx.current_folder = workchain.outputs.remote_folder
@@ -380,14 +429,18 @@ class Wannier90WorkChain(WorkChain):
         :return:
         """
         inputs = AttributeDict(
-            self.exposed_inputs(ProjwfcCalculation, namespace='projwfc'))
+            self.exposed_inputs(ProjwfcCalculation, namespace='projwfc')
+        )
         inputs.parent_folder = self.ctx.current_folder
 
         inputs = prepare_process_inputs(ProjwfcCalculation, inputs)
         running = self.submit(ProjwfcCalculation, **inputs)
 
-        self.report('projwfc step - launching ProjwfcCalculation<{}>'.format(
-            running.pk))
+        self.report(
+            'projwfc step - launching ProjwfcCalculation<{}>'.format(
+                running.pk
+            )
+        )
 
         return ToContext(calc_projwfc=running)
 
@@ -396,8 +449,11 @@ class Wannier90WorkChain(WorkChain):
         calculation = self.ctx.calc_projwfc
 
         if not calculation.is_finished_ok:
-            self.report('ProjwfcCalculation failed with exit status {}'.format(
-                calculation.exit_status))
+            self.report(
+                'ProjwfcCalculation failed with exit status {}'.format(
+                    calculation.exit_status
+                )
+            )
             return self.exit_codes.ERROR_SUB_PROCESS_FAILED_PROJWFC
 
         self.ctx.current_folder = calculation.outputs.remote_folder
@@ -410,7 +466,8 @@ class Wannier90WorkChain(WorkChain):
         :rtype: [type]
         """
         inputs = AttributeDict(
-            self.exposed_inputs(Wannier90Calculation, namespace='wannier90'))
+            self.exposed_inputs(Wannier90Calculation, namespace='wannier90')
+        )
         inputs.structure = self.ctx.current_structure
         parameters = inputs.parameters.get_dict()
 
@@ -435,22 +492,28 @@ class Wannier90WorkChain(WorkChain):
                 inputs.parameters = orm.Dict(dict=parameters)
                 inputs.parameters = update_w90_params_numwann(
                     inputs.parameters,
-                    self.ctx.calc_projwfc.outputs.projections)
+                    self.ctx.calc_projwfc.outputs.projections
+                )
                 self.report(
                     'number of Wannier functions extracted from projections: '
-                    + str(inputs.parameters['num_wann']))
+                    + str(inputs.parameters['num_wann'])
+                )
 
         # get scf Fermi energy
         try:
             energies_relative_to_fermi = self.inputs.get(
-                'wannier_energies_relative_to_fermi')
+                'wannier_energies_relative_to_fermi'
+            )
             inputs.parameters = update_w90_params_fermi(
                 inputs.parameters,
                 self.ctx.workchain_scf.outputs.output_parameters,
-                energies_relative_to_fermi)
+                energies_relative_to_fermi
+            )
         except TypeError:
-            self.report("Error in retriving the SCF Fermi energy "
-                        "from pk: {}".format(self.ctx.workchain_scf))
+            self.report(
+                "Error in retriving the SCF Fermi energy "
+                "from pk: {}".format(self.ctx.workchain_scf)
+            )
             return self.exit_codes.ERROR_SUB_PROCESS_FAILED_WANNIER90PP
 
         #Check if settings is given in input
@@ -465,14 +528,16 @@ class Wannier90WorkChain(WorkChain):
         # can automatically handle kmesh_tol related errors
         # inputs = prepare_process_inputs(Wannier90Calculation, inputs)
         # running = self.submit(Wannier90Calculation, **inputs)
-        inputs = prepare_process_inputs(Wannier90BaseWorkChain,
-                                        {'wannier90': inputs})
+        inputs = prepare_process_inputs(
+            Wannier90BaseWorkChain, {'wannier90': inputs}
+        )
         running = self.submit(Wannier90BaseWorkChain, **inputs)
 
         self.report(
             # 'wannier90 postproc step - launching Wannier90Calculation<{}> in postproc mode'
             'wannier90 postproc step - launching Wannier90BaseWorkChain<{}> in postproc mode'
-            .format(running.pk))
+            .format(running.pk)
+        )
 
         # return ToContext(calc_wannier90_pp=running)
         return ToContext(workchain_wannier90_pp=running)
@@ -485,23 +550,28 @@ class Wannier90WorkChain(WorkChain):
         if not workchain.is_finished_ok:
             self.report(
                 'wannier90 postproc Wannier90Calculation failed with exit status {}'
-                .format(workchain.exit_status))
+                .format(workchain.exit_status)
+            )
             return self.exit_codes.ERROR_SUB_PROCESS_FAILED_WANNIER90PP
 
         self.ctx.current_folder = workchain.outputs.remote_folder
         self.report(
-            "wannier90 postproc Wannier90Calculation successfully finished")
+            "wannier90 postproc Wannier90Calculation successfully finished"
+        )
 
     def run_pw2wannier90(self):
         inputs = AttributeDict(
-            self.exposed_inputs(Pw2wannier90Calculation,
-                                namespace='pw2wannier90'))
+            self.exposed_inputs(
+                Pw2wannier90Calculation, namespace='pw2wannier90'
+            )
+        )
 
         try:
             remote_folder = self.ctx.workchain_nscf.outputs.remote_folder
         except AttributeError:
             return self.exit_codes.ERROR_SUB_PROCESS_FAILED_PW2WANNIER90(
-                'the nscf WorkChain did not output a remote_folder node')
+                'the nscf WorkChain did not output a remote_folder node'
+            )
 
         inputs['parent_folder'] = remote_folder
         # inputs['nnkp_file'] = self.ctx.calc_wannier90_pp.outputs.nnkp_file
@@ -529,10 +599,12 @@ class Wannier90WorkChain(WorkChain):
                         inputs.wannier90__parameters,
                         bands=self.ctx.calc_projwfc.outputs.bands,
                         projections=self.ctx.calc_projwfc.outputs.projections,
-                        thresholds=self.inputs.get('scdm_thresholds'))
+                        thresholds=self.inputs.get('scdm_thresholds')
+                    )
                 except ValueError:
                     self.report(
-                        'WARNING: update_pw2wan_params_mu_sigma failed!')
+                        'WARNING: update_pw2wan_params_mu_sigma failed!'
+                    )
                     return self.exit_codes.ERROR_SUB_PROCESS_FAILED_PW2WANNIER90
 
         inputs = prepare_process_inputs(Pw2wannier90Calculation, inputs)
@@ -540,7 +612,9 @@ class Wannier90WorkChain(WorkChain):
 
         self.report(
             'pw2wannier90 step - launching Pw2Wannier90Calculation<{}>'.format(
-                running.pk))
+                running.pk
+            )
+        )
         return ToContext(calc_pw2wannier90=running)
 
     def inspect_pw2wannier90(self):
@@ -550,7 +624,9 @@ class Wannier90WorkChain(WorkChain):
         if not workchain.is_finished_ok:
             self.report(
                 'Pw2wannier90Calculation failed with exit status {}'.format(
-                    workchain.exit_status))
+                    workchain.exit_status
+                )
+            )
             return self.exit_codes.ERROR_SUB_PROCESS_FAILED_PW2WANNIER90
 
         self.ctx.current_folder = workchain.outputs.remote_folder
@@ -567,11 +643,14 @@ class Wannier90WorkChain(WorkChain):
 
         # we need metadata in exposed_inputs
         inputs = AttributeDict(
-            self.exposed_inputs(Wannier90Calculation, namespace='wannier90'))
+            self.exposed_inputs(Wannier90Calculation, namespace='wannier90')
+        )
         # pp_inputs = self.ctx.calc_wannier90_pp.inputs
         # this is annoying cause some times the last of called is not the newest one,
         # so I need to sort it
-        pp_inputs = max(self.ctx.workchain_wannier90_pp.called, key=lambda x: x.pk).inputs
+        pp_inputs = max(
+            self.ctx.workchain_wannier90_pp.called, key=lambda x: x.pk
+        ).inputs
         pp_keys = [
             'code', 'parameters', 'kpoint_path', 'structure', 'kpoints',
             'settings'
@@ -590,7 +669,9 @@ class Wannier90WorkChain(WorkChain):
 
         self.report(
             'wannier90 step - launching Wannier90Calculation<{}>'.format(
-                running.pk))
+                running.pk
+            )
+        )
 
         return ToContext(calc_wannier90=running)
 
@@ -601,7 +682,9 @@ class Wannier90WorkChain(WorkChain):
         if not workchain.is_finished_ok:
             self.report(
                 'Wannier90Calculation failed with exit status {}'.format(
-                    workchain.exit_status))
+                    workchain.exit_status
+                )
+            )
             return self.exit_codes.ERROR_SUB_PROCESS_FAILED_WANNIER90
 
         self.report("Wannier90Calculation successfully finished")
@@ -657,41 +740,57 @@ class Wannier90WorkChain(WorkChain):
             pass
         else:
             self.out_many(
-                self.exposed_outputs(self.ctx.workchain_relax,
-                                     PwRelaxWorkChain,
-                                     namespace='relax'))
+                self.exposed_outputs(
+                    self.ctx.workchain_relax,
+                    PwRelaxWorkChain,
+                    namespace='relax'
+                )
+            )
         self.out_many(
-            self.exposed_outputs(self.ctx.workchain_scf,
-                                 PwBaseWorkChain,
-                                 namespace='scf'))
+            self.exposed_outputs(
+                self.ctx.workchain_scf, PwBaseWorkChain, namespace='scf'
+            )
+        )
         self.out_many(
-            self.exposed_outputs(self.ctx.workchain_nscf,
-                                 PwBaseWorkChain,
-                                 namespace='nscf'))
+            self.exposed_outputs(
+                self.ctx.workchain_nscf, PwBaseWorkChain, namespace='nscf'
+            )
+        )
         try:
             self.ctx.calc_projwfc
         except AttributeError:
             pass
         else:
             self.out_many(
-                self.exposed_outputs(self.ctx.calc_projwfc,
-                                     ProjwfcCalculation,
-                                     namespace='projwfc'))
+                self.exposed_outputs(
+                    self.ctx.calc_projwfc,
+                    ProjwfcCalculation,
+                    namespace='projwfc'
+                )
+            )
         self.out_many(
-            self.exposed_outputs(self.ctx.calc_pw2wannier90,
-                                 Pw2wannier90Calculation,
-                                 namespace='pw2wannier90'))
+            self.exposed_outputs(
+                self.ctx.calc_pw2wannier90,
+                Pw2wannier90Calculation,
+                namespace='pw2wannier90'
+            )
+        )
         self.out_many(
             self.exposed_outputs(
                 # self.ctx.calc_wannier90_pp,
                 # Wannier90Calculation,
                 self.ctx.workchain_wannier90_pp,
                 Wannier90BaseWorkChain,
-                namespace='wannier90_pp'))
+                namespace='wannier90_pp'
+            )
+        )
         self.out_many(
-            self.exposed_outputs(self.ctx.calc_wannier90,
-                                 Wannier90Calculation,
-                                 namespace='wannier90'))
+            self.exposed_outputs(
+                self.ctx.calc_wannier90,
+                Wannier90Calculation,
+                namespace='wannier90'
+            )
+        )
         self.report('Wannier90WorkChain successfully completed')
 
 
@@ -737,8 +836,10 @@ def convert_kpoints_mesh_to_list(kmesh):
 
 
 @calcfunction
-def update_nscf_num_bands(nscf_input_parameters, scf_output_parameters,
-                          structure, only_valence, **pseudos):
+def update_nscf_num_bands(
+    nscf_input_parameters, scf_output_parameters, structure, only_valence,
+    **pseudos
+):
     '''
     this calcfunction does 2 works:
         1. calculate nbnd based on scf output_parameters
@@ -829,6 +930,7 @@ def get_exclude_bands(parameters):
     exclude_bands = parameters.get('exclude_bands', [])
     return exclude_bands
 
+
 def get_keep_bands(parameters):
     """get keep_bands from Wannier90 parameters
     
@@ -839,17 +941,19 @@ def get_keep_bands(parameters):
     """
     import numpy as np
     exclude_bands = get_exclude_bands(parameters)
-    xb_startzero_set = set([idx - 1 for idx in exclude_bands
-                            ])  # in Fortran/W90: 1-based; in py: 0-based
+    xb_startzero_set = set([idx - 1 for idx in exclude_bands]
+                           )  # in Fortran/W90: 1-based; in py: 0-based
     keep_bands = np.array([
         idx for idx in range(parameters['num_bands'] + len(exclude_bands))
         if idx not in xb_startzero_set
     ])
     return keep_bands
 
+
 @calcfunction
-def update_w90_params_fermi(parameters, scf_output_parameters,
-                            relative_to_fermi):
+def update_w90_params_fermi(
+    parameters, scf_output_parameters, relative_to_fermi
+):
     """
     Updated W90 windows with the specified Fermi energy.
     
@@ -871,12 +975,16 @@ def update_w90_params_fermi(parameters, scf_output_parameters,
             efermi = scf_out_dict['fermi_energy']
             efermi_units = scf_out_dict['fermi_energy_units']
             if efermi_units != 'eV':
-                raise TypeError("Error: Fermi energy is not in eV!"
-                                "it is {}".format(efermi_units))
+                raise TypeError(
+                    "Error: Fermi energy is not in eV!"
+                    "it is {}".format(efermi_units)
+                )
         except AttributeError:
             raise TypeError(
                 "Error in retriving the SCF Fermi energy from pk: {}".format(
-                    scf_output_parameters.pk))
+                    scf_output_parameters.pk
+                )
+            )
         return efermi
 
     params = parameters.get_dict()
@@ -929,8 +1037,9 @@ def update_w90_params_numwann(parameters, projections):
 
 
 @calcfunction
-def update_pw2wan_params_mu_sigma(parameters, wannier_parameters, bands,
-                                  projections, thresholds):
+def update_pw2wan_params_mu_sigma(
+    parameters, wannier_parameters, bands, projections, thresholds
+):
     """[summary]
     
     :param pw2wan_parameters: [description]
@@ -944,7 +1053,8 @@ def update_pw2wan_params_mu_sigma(parameters, wannier_parameters, bands,
         wannier_parameters,
         bands,
         projections,  # pylint: disable=too-many-locals
-        thresholds):
+        thresholds
+    ):
         '''
         Setting mu parameter for the SCDM-k method:
         The projectability of all orbitals is fitted using an erfc(x)
@@ -989,7 +1099,8 @@ def update_pw2wan_params_mu_sigma(parameters, wannier_parameters, bands,
         )[:, keep_bands].flatten()
         # Sorted by energy
         sorted_bands, sorted_projwfc = zip(
-            *sorted(zip(bands_flat, projwfc_flat)))
+            *sorted(zip(bands_flat, projwfc_flat))
+        )
         popt, pcov = fit_erfc(erfc_scdm, sorted_bands, sorted_projwfc)
         mu = popt[0]
         sigma = popt[1]
@@ -1005,8 +1116,9 @@ def update_pw2wan_params_mu_sigma(parameters, wannier_parameters, bands,
         }
         return result
 
-    results = get_mu_and_sigma_from_projections(wannier_parameters, bands,
-                                                projections, thresholds)
+    results = get_mu_and_sigma_from_projections(
+        wannier_parameters, bands, projections, thresholds
+    )
     if not results['success']:
         raise ValueError('mu and sigma failed')
     parameters_dict = parameters.get_dict()

@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 """Workchain to automatically compute a band structure for a given structure using Quantum ESPRESSO pw.x.
 This is a copy of the one included in aiida_quantumespresso, the diff is that this one does not do relax calculation."""
-from __future__ import absolute_import
-
 from aiida import orm
 from aiida.common import AttributeDict
 from aiida.engine import WorkChain, ToContext
@@ -29,7 +27,6 @@ def validate_protocol(protocol_dict):
 
 class PwBandStructureWorkChain(WorkChain):
     """Workchain to automatically compute a band structure for a given structure using Quantum ESPRESSO pw.x."""
-
     @classmethod
     def define(cls, spec):
         """Define the process specification."""

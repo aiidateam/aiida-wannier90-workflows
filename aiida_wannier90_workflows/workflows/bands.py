@@ -6,8 +6,6 @@ from aiida.plugins import WorkflowFactory
 from aiida_quantumespresso.workflows.functions.seekpath_structure_analysis import seekpath_structure_analysis
 from aiida_quantumespresso.utils.protocols.pw import ProtocolManager
 from aiida_quantumespresso.utils.pseudopotential import get_pseudos_from_dict
-
-# Wannier90WorkChain = WorkflowFactory('quantumespresso.pw.bands')
 from .wannier import Wannier90WorkChain
 
 
@@ -20,9 +18,11 @@ class Wannier90BandsWorkChain(WorkChain):
         """Define the process specification."""
         super().define(spec)
         # spec.input('vdw_table', valid_type=orm.SinglefileData, required=False)
-        spec.input('code.pw',
-                   valid_type=orm.Code,
-                   help='The `pw.x` code to use for the `PwCalculations`.')
+        spec.input(
+            'code.pw',
+            valid_type=orm.Code,
+            help='The `pw.x` code to use for the `PwCalculations`.'
+        )
         spec.input(
             'code.pw2wannier90',
             valid_type=orm.Code,
@@ -32,20 +32,26 @@ class Wannier90BandsWorkChain(WorkChain):
         spec.input(
             'code.wannier90',
             valid_type=orm.Code,
-            help='The `wannier90.x` code to use for the `PwCalculations`.')
+            help='The `wannier90.x` code to use for the `PwCalculations`.'
+        )
         spec.input(
             'code.projwfc',
             valid_type=orm.Code,
             required=False,
-            help='The `projwfc.x` code to use for the `PwCalculations`.')
-        spec.input('structure',
-                   valid_type=orm.StructureData,
-                   help='The input structure.')
-        spec.input('protocol',
-                   valid_type=orm.Dict,
-                   default=lambda: orm.Dict(dict={'name': 'theos-ht-1.0'}),
-                   help='The protocol to use for the workchain.',
-                   validator=validate_protocol)
+            help='The `projwfc.x` code to use for the `PwCalculations`.'
+        )
+        spec.input(
+            'structure',
+            valid_type=orm.StructureData,
+            help='The input structure.'
+        )
+        spec.input(
+            'protocol',
+            valid_type=orm.Dict,
+            default=lambda: orm.Dict(dict={'name': 'theos-ht-1.0'}),
+            help='The protocol to use for the workchain.',
+            validator=validate_protocol
+        )
         spec.input(
             'controls.auto_projections',
             valid_type=orm.Bool,
@@ -53,18 +59,24 @@ class Wannier90BandsWorkChain(WorkChain):
             help=
             'Whether using SCDM to automatically construct Wannier functions or not.'
         )
-        spec.input('controls.only_valence',
-                   valid_type=orm.Bool,
-                   default=lambda: orm.Bool(False),
-                   help='Group name that the calculations will be added to.')
-        spec.input('controls.retrieve_hamiltonian',
-                   valid_type=orm.Bool,
-                   default=lambda: orm.Bool(False),
-                   help='Group name that the calculations will be added to.')
-        spec.input('controls.plot_wannier_functions',
-                   valid_type=orm.Bool,
-                   default=lambda: orm.Bool(False),
-                   help='Group name that the calculations will be added to.')
+        spec.input(
+            'controls.only_valence',
+            valid_type=orm.Bool,
+            default=lambda: orm.Bool(False),
+            help='Group name that the calculations will be added to.'
+        )
+        spec.input(
+            'controls.retrieve_hamiltonian',
+            valid_type=orm.Bool,
+            default=lambda: orm.Bool(False),
+            help='Group name that the calculations will be added to.'
+        )
+        spec.input(
+            'controls.plot_wannier_functions',
+            valid_type=orm.Bool,
+            default=lambda: orm.Bool(False),
+            help='Group name that the calculations will be added to.'
+        )
         spec.input(
             'controls.do_disentanglement',
             valid_type=orm.Bool,
@@ -72,14 +84,18 @@ class Wannier90BandsWorkChain(WorkChain):
             help=
             'Used only if only_valence == False. Usually disentanglement worsens SCDM bands, keep it default to False.'
         )
-        spec.input('controls.do_mlwf',
-                   valid_type=orm.Bool,
-                   default=lambda: orm.Bool(True),
-                   help='Group name that the calculations will be added to.')
-        spec.input('controls.kpoints_distance_for_bands',
-                   valid_type=orm.Float,
-                   default=lambda: orm.Float(0.01),
-                   help='Kpoint mesh density of the resulting band structure.')
+        spec.input(
+            'controls.do_mlwf',
+            valid_type=orm.Bool,
+            default=lambda: orm.Bool(True),
+            help='Group name that the calculations will be added to.'
+        )
+        spec.input(
+            'controls.kpoints_distance_for_bands',
+            valid_type=orm.Float,
+            default=lambda: orm.Float(0.01),
+            help='Kpoint mesh density of the resulting band structure.'
+        )
         # spec.input('controls.nbands_factor', valid_type=orm.Float, default=orm.Float(1.5),
         # help='The number of bands for the NSCF calculation is that used for the SCF multiplied by this factor.')
 
@@ -95,44 +111,62 @@ class Wannier90BandsWorkChain(WorkChain):
             help=
             'The parameters used in the SeeKpath call to normalize the input or relaxed structure.'
         )
-        spec.output('scf_parameters',
-                    valid_type=orm.Dict,
-                    help='The output parameters of the SCF `PwBaseWorkChain`.')
+        spec.output(
+            'scf_parameters',
+            valid_type=orm.Dict,
+            help='The output parameters of the SCF `PwBaseWorkChain`.'
+        )
         spec.output(
             'nscf_parameters',
             valid_type=orm.Dict,
-            help='The output parameters of the NSCF `PwBaseWorkChain`.')
-        spec.output('projwfc_bands',
-                    valid_type=orm.BandsData,
-                    required=False,
-                    help='The output bands of projwfc run.')
-        spec.output('projwfc_projections',
-                    valid_type=orm.ProjectionData,
-                    required=False,
-                    help='The output projections of projwfc run.')
-        spec.output('pw2wannier90_remote_folder',
-                    valid_type=orm.RemoteData,
-                    required=False)
+            help='The output parameters of the NSCF `PwBaseWorkChain`.'
+        )
+        spec.output(
+            'projwfc_bands',
+            valid_type=orm.BandsData,
+            required=False,
+            help='The output bands of projwfc run.'
+        )
+        spec.output(
+            'projwfc_projections',
+            valid_type=orm.ProjectionData,
+            required=False,
+            help='The output projections of projwfc run.'
+        )
+        spec.output(
+            'pw2wannier90_remote_folder',
+            valid_type=orm.RemoteData,
+            required=False
+        )
         spec.output('wannier90_parameters', valid_type=orm.Dict)
         spec.output('wannier90_retrieved', valid_type=orm.FolderData)
-        spec.output('wannier90_remote_folder',
-                    valid_type=orm.RemoteData,
-                    required=False)
-        spec.output('wannier90_interpolated_bands',
-                    valid_type=orm.BandsData,
-                    required=False,
-                    help='The computed band structure.')
+        spec.output(
+            'wannier90_remote_folder',
+            valid_type=orm.RemoteData,
+            required=False
+        )
+        spec.output(
+            'wannier90_interpolated_bands',
+            valid_type=orm.BandsData,
+            required=False,
+            help='The computed band structure.'
+        )
 
-        spec.outline(cls.setup, cls.run_seekpath, cls.setup_parameters,
-                     cls.run_wannier_workchain, cls.results)
+        spec.outline(
+            cls.setup, cls.run_seekpath, cls.setup_parameters,
+            cls.run_wannier_workchain, cls.results
+        )
 
         spec.exit_code(
             201,
             'ERROR_INVALID_INPUT_UNRECOGNIZED_KIND',
-            message='Input `StructureData` contains an unsupported kind.')
-        spec.exit_code(401,
-                       'ERROR_SUB_PROCESS_FAILED_BANDS',
-                       message='The `PwBandsWorkChain` sub process failed.')
+            message='Input `StructureData` contains an unsupported kind.'
+        )
+        spec.exit_code(
+            401,
+            'ERROR_SUB_PROCESS_FAILED_BANDS',
+            message='The `PwBandsWorkChain` sub process failed.'
+        )
 
     def _get_protocol(self):
         """Return a `ProtocolManager` instance and a dictionary of modifiers."""
@@ -150,10 +184,14 @@ class Wannier90BandsWorkChain(WorkChain):
         Based on the specified protocol, we define values for variables that affect the execution of the calculations.
         """
         protocol, protocol_modifiers = self._get_protocol()
-        self.report('running the workchain with the "{}" protocol'.format(
-            protocol.name))
+        self.report(
+            'running the workchain with the "{}" protocol'.format(
+                protocol.name
+            )
+        )
         self.ctx.protocol = protocol.get_protocol_data(
-            modifiers=protocol_modifiers)
+            modifiers=protocol_modifiers
+        )
         # self.report('protocol: ' + str(self.ctx.protocol))
 
     def setup(self):
@@ -181,15 +219,19 @@ class Wannier90BandsWorkChain(WorkChain):
         """
         kpoints_distance_for_bands = self.inputs.controls.get(
             'kpoints_distance_for_bands',
-            self.ctx.protocol['kpoints_distance_for_bands'])
+            self.ctx.protocol['kpoints_distance_for_bands']
+        )
         seekpath_parameters = orm.Dict(
-            dict={'reference_distance': kpoints_distance_for_bands})
+            dict={'reference_distance': kpoints_distance_for_bands}
+        )
         structure_formula = self.inputs.structure.get_formula()
         self.report(
-            'running seekpath to get primitive structure for: {}'.format(
-                structure_formula))
-        result = seekpath_structure_analysis(self.inputs.structure,
-                                             seekpath_parameters)
+            'running seekpath to get primitive structure for: {}'.
+            format(structure_formula)
+        )
+        result = seekpath_structure_analysis(
+            self.inputs.structure, seekpath_parameters
+        )
         self.ctx.current_structure = result['primitive_structure']
         self.ctx.explicit_kpoints_path = result['explicit_kpoints']
         # save kpoint_path for bands_plot
@@ -218,7 +260,8 @@ class Wannier90BandsWorkChain(WorkChain):
         # self.report("wannier90:" + str(self.ctx.wannier90_parameters.get_dict()))
         self.report(
             'number of machines {} auto-set according to number of atoms'.
-            format(estimate_num_machines(self.ctx.current_structure)))
+            format(estimate_num_machines(self.ctx.current_structure))
+        )
 
     def setup_scf_parameters(self):
         """Set up the default input parameters required for the `PwBandsWorkChain`, and store it in self.ctx"""
@@ -235,7 +278,8 @@ class Wannier90BandsWorkChain(WorkChain):
             except KeyError:
                 self.report(
                     'failed to retrieve the cutoff or dual factor for {}'.
-                    format(kind))
+                    format(kind)
+                )
                 return self.exit_codes.ERROR_INVALID_INPUT_UNRECOGNIZED_KIND
 
         number_of_atoms = len(self.ctx.current_structure.sites)
@@ -429,7 +473,8 @@ class Wannier90BandsWorkChain(WorkChain):
         protocol, protocol_modifiers = self._get_protocol()
         checked_pseudos = protocol.check_pseudos(
             modifier_name=protocol_modifiers.get('pseudo', None),
-            pseudo_data=protocol_modifiers.get('pseudo_data', None))
+            pseudo_data=protocol_modifiers.get('pseudo_data', None)
+        )
         known_pseudos = checked_pseudos['found']
 
         inputs = AttributeDict({
@@ -437,8 +482,9 @@ class Wannier90BandsWorkChain(WorkChain):
                 'code':
                 self.inputs.code.pw,
                 'pseudos':
-                get_pseudos_from_dict(self.ctx.current_structure,
-                                      known_pseudos),
+                get_pseudos_from_dict(
+                    self.ctx.current_structure, known_pseudos
+                ),
                 'parameters':
                 self.ctx.scf_parameters,
                 'metadata': {},
@@ -449,7 +495,8 @@ class Wannier90BandsWorkChain(WorkChain):
             inputs.pw.metadata.options = self.inputs.options.get_dict()
         else:
             inputs.pw.metadata.options = self.get_default_options(
-                with_mpi=True)
+                with_mpi=True
+            )
 
         return inputs
 
@@ -595,10 +642,12 @@ class Wannier90BandsWorkChain(WorkChain):
 
         # inputs.relax.base.kpoints_distance = orm.Float(self.ctx.protocol['kpoints_mesh_density'])
         inputs.scf.kpoints_distance = orm.Float(
-            self.ctx.protocol['kpoints_mesh_density'])
+            self.ctx.protocol['kpoints_mesh_density']
+        )
         # inputs.bands.kpoints_distance = orm.Float(self.ctx.protocol['kpoints_distance_for_bands'])
         inputs.nscf.kpoints_distance = orm.Float(
-            self.ctx.protocol['kpoints_mesh_density'])
+            self.ctx.protocol['kpoints_mesh_density']
+        )
 
         # num_bands_factor = self.ctx.protocol.get('num_bands_factor', None)
         # if num_bands_factor is not None:
@@ -616,28 +665,43 @@ class Wannier90BandsWorkChain(WorkChain):
         workchain = self.ctx.workchain_bands
 
         if not workchain.is_finished_ok:
-            self.report('sub process Wannier90WorkChain<{}> failed'.format(
-                workchain.pk))
+            self.report(
+                'sub process Wannier90WorkChain<{}> failed'.format(
+                    workchain.pk
+                )
+            )
             return self.exit_codes.ERROR_SUB_PROCESS_FAILED_BANDS
 
         self.out('scf_parameters', workchain.outputs.scf__output_parameters)
         self.out('nscf_parameters', workchain.outputs.nscf__output_parameters)
         if 'projwfc__bands' in workchain.outputs:
             self.out('projwfc_bands', workchain.outputs.projwfc__bands)
-            self.out('projwfc_projections',
-                     workchain.outputs.projwfc__projections)
-        self.out('pw2wannier90_remote_folder',
-                 workchain.outputs.pw2wannier90__remote_folder)
-        self.out('wannier90_parameters',
-                 workchain.outputs.wannier90__output_parameters)
+            self.out(
+                'projwfc_projections', workchain.outputs.projwfc__projections
+            )
+        self.out(
+            'pw2wannier90_remote_folder',
+            workchain.outputs.pw2wannier90__remote_folder
+        )
+        self.out(
+            'wannier90_parameters',
+            workchain.outputs.wannier90__output_parameters
+        )
         self.out('wannier90_retrieved', workchain.outputs.wannier90__retrieved)
-        self.out('wannier90_remote_folder',
-                 workchain.outputs.wannier90__remote_folder)
+        self.out(
+            'wannier90_remote_folder',
+            workchain.outputs.wannier90__remote_folder
+        )
         if 'wannier90__interpolated_bands' in workchain.outputs:
-            self.out('wannier90_interpolated_bands',
-                     workchain.outputs.wannier90__interpolated_bands)
-            self.report('wannier90 interpolated bands pk: {}'.format(
-                workchain.outputs.wannier90__interpolated_bands.pk))
+            self.out(
+                'wannier90_interpolated_bands',
+                workchain.outputs.wannier90__interpolated_bands
+            )
+            self.report(
+                'wannier90 interpolated bands pk: {}'.format(
+                    workchain.outputs.wannier90__interpolated_bands.pk
+                )
+            )
 
         self.report('Wannier90BandsWorkChain successfully completed')
 
@@ -652,9 +716,11 @@ class Wannier90BandsWorkChain(WorkChain):
         """
         from aiida_quantumespresso.utils.resources import get_default_options as get_opt
         num_machines = estimate_num_machines(self.ctx.current_structure)
-        opt = get_opt(max_num_machines=num_machines,
-                      max_wallclock_seconds=3600 * 5,
-                      with_mpi=with_mpi)
+        opt = get_opt(
+            max_num_machines=num_machines,
+            max_wallclock_seconds=3600 * 5,
+            with_mpi=with_mpi
+        )
         return opt
 
 
