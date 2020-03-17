@@ -29,7 +29,7 @@ def get_pythtb(wan_calculation, xyz_workaround=False):
                 filepath, os.path.join(tmpdir, os.path.basename(filepath))
             )
         else:
-            print "Skipping {}".format(os.path.basename(filepath))
+            print("Skipping {}".format(os.path.basename(filepath)))
 
     if xyz_workaround:
         parsed = raw_wout_parser(
@@ -70,4 +70,4 @@ def get_pythtb(wan_calculation, xyz_workaround=False):
 if __name__ == "__main__":
     c = load_node(16515)
     tb_w90 = get_pythtb(c, xyz_workaround=True)
-    print tb_w90.model()
+    print(tb_w90.model())
