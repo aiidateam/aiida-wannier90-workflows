@@ -1,4 +1,4 @@
-# aiida-wannier90-theosworkflows
+# aiida-wannier90-workflows
 Advanced AiiDA workflows developed in the THEOS group for QE+Wannier90
 
 The protocol for automating the construction of Wannier functions is discussed in the following article
@@ -22,7 +22,7 @@ The initial workflow was written by Antimo Marrazzo (EPFL) and Giovanni Pizzi (E
 ## Available workflows
 
 ```
-aiida_wannier90_theosworkflows/
+aiida_wannier90_workflows/
 └── workflows
     ├── bands.py
     ├── band_structure.py
@@ -55,8 +55,8 @@ examples/workflows/run_automated_wannier.py
 2. then install this repository
 
    ```
-   git clone git@github.com:epfl-theos/aiida-wannier90-theosworkflows.git
-   cd aiida-wannier90-theosworkflows/
+   git clone https://github.com/aiidateam/aiida-wannier90-workflows.git
+   cd aiida-wannier90-workflows/
    pip install -e .
    ```
 
