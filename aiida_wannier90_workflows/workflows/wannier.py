@@ -9,7 +9,6 @@ from aiida_quantumespresso.workflows.pw.relax import PwRelaxWorkChain
 from aiida_quantumespresso.calculations.projwfc import ProjwfcCalculation
 from aiida_quantumespresso.calculations.pw2wannier90 import Pw2wannier90Calculation
 from aiida_wannier90.calculations import Wannier90Calculation
-from aiida_wannier90.workflows import Wannier90BaseWorkChain
 
 
 class Wannier90WorkChain(WorkChain):
@@ -165,8 +164,7 @@ class Wannier90WorkChain(WorkChain):
             namespace_options={'required': False}
         )
         spec.expose_outputs(Pw2wannier90Calculation, namespace='pw2wannier90')
-        # spec.expose_outputs(Wannier90Calculation, namespace='wannier90_pp')
-        spec.expose_outputs(Wannier90BaseWorkChain, namespace='wannier90_pp')
+        spec.expose_outputs(Wannier90Calculation, namespace='wannier90_pp')
         spec.expose_outputs(Wannier90Calculation, namespace='wannier90')
 
         spec.exit_code(
@@ -524,28 +522,19 @@ class Wannier90WorkChain(WorkChain):
         settings['postproc_setup'] = True
         inputs['settings'] = settings
 
-        # note here we submit Wannier90BaseWorkChain instead, since it
-        # can automatically handle kmesh_tol related errors
-        # inputs = prepare_process_inputs(Wannier90Calculation, inputs)
-        # running = self.submit(Wannier90Calculation, **inputs)
-        inputs = prepare_process_inputs(
-            Wannier90BaseWorkChain, {'wannier90': inputs}
-        )
-        running = self.submit(Wannier90BaseWorkChain, **inputs)
+        inputs = prepare_process_inputs(Wannier90Calculation, inputs)
+        running = self.submit(Wannier90Calculation, **inputs)
 
         self.report(
-            # 'wannier90 postproc step - launching Wannier90Calculation<{}> in postproc mode'
-            'wannier90 postproc step - launching Wannier90BaseWorkChain<{}> in postproc mode'
+            'wannier90 postproc step - launching Wannier90Calculation<{}> in postproc mode'
             .format(running.pk)
         )
 
-        # return ToContext(calc_wannier90_pp=running)
-        return ToContext(workchain_wannier90_pp=running)
+        return ToContext(calc_wannier90_pp=running)
 
     def inspect_wannier90_pp(self):
         """Verify that the Wannier90Calculation for the wannier90 run successfully finished."""
-        # workchain = self.ctx.calc_wannier90_pp
-        workchain = self.ctx.workchain_wannier90_pp
+        workchain = self.ctx.calc_wannier90_pp
 
         if not workchain.is_finished_ok:
             self.report(
@@ -574,8 +563,7 @@ class Wannier90WorkChain(WorkChain):
             )
 
         inputs['parent_folder'] = remote_folder
-        # inputs['nnkp_file'] = self.ctx.calc_wannier90_pp.outputs.nnkp_file
-        inputs['nnkp_file'] = self.ctx.workchain_wannier90_pp.outputs.nnkp_file
+        inputs['nnkp_file'] = self.ctx.calc_wannier90_pp.outputs.nnkp_file
         inputs.parameters = inputs.parameters.get_dict()
         inputs.parameters['inputpp'].update({
             'write_mmn': True,
@@ -594,9 +582,7 @@ class Wannier90WorkChain(WorkChain):
                 try:
                     inputs.parameters = update_pw2wan_params_mu_sigma(
                         parameters=orm.Dict(dict=inputs.parameters),
-                        # wannier_parameters=self.ctx.calc_wannier90_pp.inputs.parameters,
-                        wannier_parameters=self.ctx.workchain_wannier90_pp.
-                        inputs.wannier90__parameters,
+                        wannier_parameters=self.ctx.calc_wannier90_pp.inputs.parameters,
                         bands=self.ctx.calc_projwfc.outputs.bands,
                         projections=self.ctx.calc_projwfc.outputs.projections,
                         thresholds=self.inputs.get('scdm_thresholds')
@@ -645,12 +631,7 @@ class Wannier90WorkChain(WorkChain):
         inputs = AttributeDict(
             self.exposed_inputs(Wannier90Calculation, namespace='wannier90')
         )
-        # pp_inputs = self.ctx.calc_wannier90_pp.inputs
-        # this is annoying cause some times the last of called is not the newest one,
-        # so I need to sort it
-        pp_inputs = max(
-            self.ctx.workchain_wannier90_pp.called, key=lambda x: x.pk
-        ).inputs
+        pp_inputs = self.ctx.calc_wannier90_pp.inputs
         pp_keys = [
             'code', 'parameters', 'kpoint_path', 'structure', 'kpoints',
             'settings'
@@ -777,10 +758,8 @@ class Wannier90WorkChain(WorkChain):
         )
         self.out_many(
             self.exposed_outputs(
-                # self.ctx.calc_wannier90_pp,
-                # Wannier90Calculation,
-                self.ctx.workchain_wannier90_pp,
-                Wannier90BaseWorkChain,
+                self.ctx.calc_wannier90_pp,
+                Wannier90Calculation,
                 namespace='wannier90_pp'
             )
         )
