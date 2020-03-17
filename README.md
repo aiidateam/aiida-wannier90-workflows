@@ -37,7 +37,7 @@ examples/workflows/run_automated_wannier.py
 2. then install this repository
 
    ```
-   git clone git@github.com:epfl-theos/aiida-wannier90-theosworkflows.git
+   git clone git@github.com:aiidateam/aiida-wannier90-workflows.git
    cd aiida-wannier90-theosworkflows/
    pip install -e .
    ```
