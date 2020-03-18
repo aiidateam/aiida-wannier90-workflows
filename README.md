@@ -19,6 +19,18 @@ which leverages the SCDM method that was introduced in:
 
 The initial workflow was written by Antimo Marrazzo (EPFL) and Giovanni Pizzi (EPFL), it was later substantially improved and upgraded to AiiDA v1.1.1 by Junfeng Qiao (EFPL). The SCDM implementation in Quantum ESPRESSO was done by Valerio Vitale (Imperial College London and University of Cambridge).
 
+## Note
+
+There are 2 repositories with branches
+
+* https://github.com/epfl-theos/aiida-wannier90-theosworkflows
+  * master
+  * develop
+* https://github.com/aiidateam/aiida-wannier90-workflows
+  * master
+
+The `aiidateam` repo is for public release, the `epfl-theos` repo is for internal development. `aiidateam/master` is identical with `epfl-theos/master`, for now which does not contain `Wannier90BaseWorkChain` for automatically handling `kmesh_tol` errors. The `epfl-theos/develop` uses `Wannier90BaseWorkChain`.
+
 ## Available workflows
 
 ```
