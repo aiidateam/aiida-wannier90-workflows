@@ -1,8 +1,8 @@
 {
   "entry_points": {
     "aiida.workflows": [
-      "aiida_wannier90_workflows.bands = aiida_wannier90_workflows.workflows.bands:Wannier90BandsWorkChain",
-      "aiida_wannier90_workflows.wannier90 = aiida_wannier90_workflows.workflows.wannier:Wannier90WorkChain"
+      "wannier90_workflows.bands = aiida_wannier90_workflows.workflows.bands:Wannier90BandsWorkChain",
+      "wannier90_workflows.wannier90 = aiida_wannier90_workflows.workflows.wannier:Wannier90WorkChain"
     ]
   }, 
   "name": "aiida-wannier90-workflows", 
