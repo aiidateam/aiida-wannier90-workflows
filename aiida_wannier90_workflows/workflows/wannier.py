@@ -2,14 +2,13 @@ from aiida import orm
 from aiida.common import AttributeDict
 from aiida.engine.processes import WorkChain, ToContext, if_
 from aiida.engine.processes import calcfunction
-from aiida.plugins import WorkflowFactory, CalculationFactory
 from aiida_quantumespresso.utils.mapping import prepare_process_inputs
 from aiida_quantumespresso.workflows.pw.base import PwBaseWorkChain
 from aiida_quantumespresso.workflows.pw.relax import PwRelaxWorkChain
 from aiida_quantumespresso.calculations.projwfc import ProjwfcCalculation
 from aiida_quantumespresso.calculations.pw2wannier90 import Pw2wannier90Calculation
 from aiida_wannier90.calculations import Wannier90Calculation
-from aiida_wannier90.workflows import Wannier90BaseWorkChain
+from .base import Wannier90BaseWorkChain
 
 
 class Wannier90WorkChain(WorkChain):
