@@ -413,8 +413,8 @@ class Wannier90BandsWorkChain(WorkChain):
         number_of_atoms = len(self.ctx.current_structure.sites)
         if self.inputs.controls.do_mlwf:
             parameters.update({
-                'num_iter': 8000,
-                'conv_tol': 1e-8 * number_of_atoms,
+                'num_iter': 400,
+                'conv_tol': 1e-7 * number_of_atoms,
                 'conv_window': 3,
             })
         else:
