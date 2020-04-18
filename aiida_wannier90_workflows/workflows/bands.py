@@ -219,7 +219,7 @@ class Wannier90BandsWorkChain(WorkChain):
         """
         kpoints_distance_for_bands = self.inputs.controls.get(
             'kpoints_distance_for_bands',
-            self.ctx.protocol['kpoints_distance_for_bands']
+            orm.Float(self.ctx.protocol['kpoints_distance_for_bands'])
         )
         seekpath_parameters = orm.Dict(
             dict={'reference_distance': kpoints_distance_for_bands}
