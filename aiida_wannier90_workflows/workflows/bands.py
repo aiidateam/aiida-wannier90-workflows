@@ -230,7 +230,7 @@ class Wannier90BandsWorkChain(WorkChain):
             format(structure_formula)
         )
         result = seekpath_structure_analysis(
-            self.inputs.structure, seekpath_parameters
+            self.inputs.structure, **seekpath_parameters
         )
         self.ctx.current_structure = result['primitive_structure']
         self.ctx.explicit_kpoints_path = result['explicit_kpoints']
