@@ -73,7 +73,7 @@ def submit_workchain(structure):
 
 def print_help(workchain, structure):
     print(
-        'launched Wannier90BandsWorkChain pk {} for structure {}'.format(
+        'launched PwBandStructureWorkChain pk {} for structure {}'.format(
             workchain.pk, structure.get_formula()
         )
     )
