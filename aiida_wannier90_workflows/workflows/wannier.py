@@ -15,17 +15,17 @@ class Wannier90WorkChain(WorkChain):
     """
     Workchain to obtain maximally localised Wannier functions (MLWF)
     Authors: Antimo Marrazzo (antimo.marrazzo@epfl.ch), Giovanni Pizzi (giovanni.pizzi@epfl.ch), Junfeng Qiao(junfeng.qiao@epfl.ch)
-    
+
     MIT License - Copyright (c), 2018, ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE
-    (Theory and Simulation of Materials (THEOS) and National Centre for 
+    (Theory and Simulation of Materials (THEOS) and National Centre for
     Computational Design and Discovery of Novel Materials (NCCR MARVEL)).
     All rights reserved.
 
-    Scheme: setup --> relax(optional) --> scf --> nscf --> projwfc 
+    Scheme: setup --> relax(optional) --> scf --> nscf --> projwfc
             -> wannier90_postproc --> pw2wannier90 --> wannier90 --> results
-    
-    This is a very basic workchain, in that user needs to specify 
-    inputs of every step. Please consider using Wannier90BandsWorkChain, 
+
+    This is a very basic workchain, in that user needs to specify
+    inputs of every step. Please consider using Wannier90BandsWorkChain,
     which automatically generates inputs.
     """
     @classmethod
@@ -39,20 +39,20 @@ class Wannier90WorkChain(WorkChain):
         spec.input(
             'clean_workdir',
             valid_type=orm.Bool,
-            default=orm.Bool(False),
+            default=lambda: orm.Bool(False),
             help=
             'If `True`, work directories of all called calculation will be cleaned at the end of execution.'
         )
         spec.input(
             'only_valence',
             valid_type=orm.Bool,
-            default=orm.Bool(False),
+            default=lambda: orm.Bool(False),
             help='Whether only wannierise valence band or not'
         )
         spec.input(
             'wannier_energies_relative_to_fermi',
             valid_type=orm.Bool,
-            default=orm.Bool(False),
+            default=lambda: orm.Bool(False),
             help=
             'determines if the energies(dis_froz_min/max, dis_win_min/max) defined in the input parameters '
             + 'are relative to scf Fermi energy or not.'
@@ -60,12 +60,11 @@ class Wannier90WorkChain(WorkChain):
         spec.input(
             'scdm_thresholds',
             valid_type=orm.Dict,
-            default=orm.Dict(
-                dict={
-                    'max_projectability': 0.95,
-                    'sigma_factor': 3
-                }
-            ),
+            default=lambda: orm.
+            Dict(dict={
+                'max_projectability': 0.95,
+                'sigma_factor': 3
+            }),
             help='can contain two keyword: max_projectability, sigma_factor'
         )
         spec.expose_inputs(
@@ -415,7 +414,7 @@ class Wannier90WorkChain(WorkChain):
 
     def should_do_projwfc(self):
         """
-        If the 'auto_projections = true' && only_valence, we 
+        If the 'auto_projections = true' && only_valence, we
         run projwfc calculation to extract SCDM mu & sigma.
         """
         self.report("SCDM mu & sigma are auto-set using projectability")
@@ -459,7 +458,7 @@ class Wannier90WorkChain(WorkChain):
 
     def run_wannier90_pp(self):
         """The input of wannier90 calculation is build here.
-        
+
         :return: [description]
         :rtype: [type]
         """
@@ -582,7 +581,8 @@ class Wannier90WorkChain(WorkChain):
                 try:
                     inputs.parameters = update_pw2wan_params_mu_sigma(
                         parameters=orm.Dict(dict=inputs.parameters),
-                        wannier_parameters=self.ctx.calc_wannier90_pp.inputs.parameters,
+                        wannier_parameters=self.ctx.calc_wannier90_pp.inputs.
+                        parameters,
                         bands=self.ctx.calc_projwfc.outputs.bands,
                         projections=self.ctx.calc_projwfc.outputs.projections,
                         thresholds=self.inputs.get('scdm_thresholds')
@@ -776,7 +776,7 @@ class Wannier90WorkChain(WorkChain):
 @calcfunction
 def convert_kpoints_mesh_to_list(kmesh):
     """works just like kmesh.pl in Wannier90
-    
+
     :param kmesh: [description]
     :type kmesh: KpointsData
     :raises ValueError: [description]
@@ -900,7 +900,7 @@ def update_nscf_num_bands(
 
 def get_exclude_bands(parameters):
     """get exclude_bands from Wannier90 parameters
-    
+
     :param parameters: Wannier90Calculation input parameters
     :type parameters: dict, NOT Dict, this is not a calcfunction
     :return: the indices of the bands to be excluded
@@ -912,7 +912,7 @@ def get_exclude_bands(parameters):
 
 def get_keep_bands(parameters):
     """get keep_bands from Wannier90 parameters
-    
+
     :param parameters: Wannier90Calculation input parameters
     :type parameters: dict, NOT Dict, this is not a calcfunction
     :return: the indices of the bands to be kept
@@ -935,12 +935,12 @@ def update_w90_params_fermi(
 ):
     """
     Updated W90 windows with the specified Fermi energy.
-    
+
     :param parameters: Wannier90Calculation input parameters
     :type parameters: Dict
     :param fermi_energy: [description]
     :type fermi_energy: Float
-    :param relative_to_fermi: if energies in input parameters are defined relative 
+    :param relative_to_fermi: if energies in input parameters are defined relative
     scf Fermi energy.
     :type relative_to_fermi: Bool
     :return: updated parameters
@@ -1020,7 +1020,7 @@ def update_pw2wan_params_mu_sigma(
     parameters, wannier_parameters, bands, projections, thresholds
 ):
     """[summary]
-    
+
     :param pw2wan_parameters: [description]
     :type pw2wan_parameters: Dict
     :param mu_sigma: [description]
