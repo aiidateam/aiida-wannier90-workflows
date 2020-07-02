@@ -495,6 +495,8 @@ class Wannier90WorkChain(WorkChain):
                     'number of Wannier functions extracted from projections: '
                     + str(inputs.parameters['num_wann'])
                 )
+        else:
+            inputs.parameters = orm.Dict(dict=parameters)
 
         # get scf Fermi energy
         try:
