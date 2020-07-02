@@ -563,7 +563,12 @@ class Wannier90WorkChain(WorkChain):
 
         inputs['parent_folder'] = remote_folder
         inputs['nnkp_file'] = self.ctx.calc_wannier90_pp.outputs.nnkp_file
-        inputs.parameters = inputs.parameters.get_dict()
+        try:
+            inputs.parameters = inputs.parameters.get_dict()
+        except AttributeError:
+            inputs.parameters = {}
+        inputs.parameters.setdefault('inputpp', {})
+
         inputs.parameters['inputpp'].update({
             'write_mmn': True,
             'write_amn': True,
