@@ -25,7 +25,15 @@ if __name__ == "__main__":
 
     wannier90bandsworkchain = orm.load_node(args.pk)
     formula = wannier90bandsworkchain.inputs.structure.get_formula()
-    wannier90workchain = findLastNode('Wannier90WorkChain', wannier90bandsworkchain.called)
+
+    if 'use_opengrid' in wannier90bandsworkchain.inputs:
+        if wannier90bandsworkchain.inputs.use_opengrid:
+            workchain_name = 'Wannier90OpengridWorkChain'
+        else:
+            workchain_name = 'Wannier90WorkChain'
+    else:
+        workchain_name = 'Wannier90WorkChain'
+    wannier90workchain = findLastNode(workchain_name, wannier90bandsworkchain.called)
 
     wannier90calculation = findLastNode('Wannier90Calculation', wannier90workchain.called)
     fermi_energy = wannier90calculation.inputs.parameters['fermi_energy']

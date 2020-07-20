@@ -138,9 +138,9 @@ def print_help(workchain, structure):
     '# To get a detailed state of the workflow, run:\n'
     f'verdi process report {workchain.pk}\n'
     '\n'
-    'Tools for visualization:\n'
-    '    ../../aiida_wannier90_workflows/tools/plot_projectabilities.py\n'
-    '    ../../aiida_wannier90_workflows/tools/compare_dft_wannier_bands.py\n'
+    'Several tools for visualization, launch as:\n'
+    f'    ../../aiida_wannier90_workflows/tools/plot_projectabilities.py {workchain.pk}\n'
+    f'    ../../aiida_wannier90_workflows/tools/compare_dft_wannier_bands.py {workchain.pk}\n'
     )
 
 
@@ -181,7 +181,7 @@ def submit_workchain(
         'maximal_localisation': orm.Bool(do_mlwf),
         'retrieve_hamiltonian': orm.Bool(retrieve_hamiltonian),
         # optional
-        # 'use_opengrid': orm.Bool(True),
+        'use_opengrid': orm.Bool(True),
         'compare_dft_bands': orm.Bool(True)
     }
 

@@ -13,8 +13,8 @@ from aiida_quantumespresso.workflows.pw.base import PwBaseWorkChain
 from aiida_quantumespresso.calculations.functions.create_kpoints_from_distance import create_kpoints_from_distance
 
 from aiida_wannier90_workflows.workflows.wannier import Wannier90WorkChain
-# from aiida_wannier90_workflows.workflows.opengrid import Wannier90OpengridWorkChain
-from aiida_wannier90_workflows.utils.upf import get_number_of_electrons, get_number_of_projections
+from aiida_wannier90_workflows.workflows.opengrid import Wannier90OpengridWorkChain
+from aiida_wannier90_workflows.utils.upf import get_number_of_electrons, get_number_of_projections, get_wannier_number_of_bands
 from aiida_wannier90_workflows.calculations.functions.kmesh import convert_kpoints_mesh_to_list
 
 __all__ = ['Wannier90BandsWorkChain']
@@ -44,6 +44,8 @@ class Wannier90BandsWorkChain(WorkChain):
             help='If True use SCDM projections, otherwise use random projections.')
         spec.input('use_opengrid', valid_type=orm.Bool, default=lambda: orm.Bool(False),
             help='If True use open_grid.x to accelerate calculations.')
+        spec.input('opengrid_only_scf', valid_type=orm.Bool, default=lambda: orm.Bool(True),
+            help='If True only one scf calculation will be performed in the OpengridWorkChain.')
         spec.input('only_valence', valid_type=orm.Bool, default=lambda: orm.Bool(False),
             help='If True only Wannierise valence bands.')
         spec.input('compare_dft_bands', valid_type=orm.Bool, default=lambda: orm.Bool(False),
@@ -67,9 +69,9 @@ class Wannier90BandsWorkChain(WorkChain):
             help='The normalized and primitivized structure for which the calculations are computed.')
         spec.output('seekpath_parameters', valid_type=orm.Dict,
             help='The parameters used in the SeeKpath call to normalize the input or relaxed structure.')
-        spec.output('scf_parameters', valid_type=orm.Dict, help='The output parameters of the SCF `PwBaseWorkChain`.')
-        spec.output('nscf_parameters', valid_type=orm.Dict,
-            help='The output parameters of the NSCF `PwBaseWorkChain`.')
+        spec.output('scf_parameters', valid_type=orm.Dict, help='The output parameters of the scf `PwBaseWorkChain`.')
+        spec.output('nscf_parameters', valid_type=orm.Dict, required=False,
+            help='The output parameters of the nscf `PwBaseWorkChain`.')
         spec.output('projwfc_bands', valid_type=orm.BandsData, required=False,
             help='The output bands of projwfc run.')
         spec.output('projwfc_projections', valid_type=orm.ProjectionData, required=False,
@@ -179,9 +181,28 @@ class Wannier90BandsWorkChain(WorkChain):
             self.ctx.options = self.inputs.options.get_dict()
         else:
             self.ctx.options = get_default_options(self.ctx.current_structure, with_mpi=True)
+            # or manually assign parallelizations here
             # self.ctx.options = get_manual_options()
         self.report('number of machines {} auto-set according to number of atoms'.
             format(self.ctx.options['resources']['num_machines']))
+
+        # save variables to ctx because they maybe used in several difference methods
+        args = {'structure': self.ctx.current_structure, 'pseudos': self.ctx.pseudos}
+        # number_of_electrons & number_of_projections will be used in setting wannier parameters,
+        # and since they are calculated manually, they will be checked in the
+        # `inspect_wannier_workchain` against QE outputs, to ensure they are correct.
+        self.ctx.number_of_electrons = get_number_of_electrons(**args)
+        self.ctx.number_of_projections = get_number_of_projections(**args)
+        args.update({
+            'only_valence': self.inputs.only_valence.value,
+            'spin_polarized': self.inputs.spin_polarized.value,
+            'spin_orbit_coupling': self.inputs.spin_orbit_coupling.value
+            })
+        # nscf_nbnd will be used in
+        # 1. setting nscf number of bands, or
+        # 2. setting nscf number of bands when opengrid is used & opengrid has nscf step
+        # 3. setting scf number of bands when opengrid is used & opengrid only has scf step
+        self.ctx.nscf_nbnd = get_wannier_number_of_bands(**args)
 
         self.setup_scf_parameters()
         self.setup_nscf_parameters()
@@ -223,41 +244,24 @@ class Wannier90BandsWorkChain(WorkChain):
                 'conv_thr': self.ctx.protocol['convergence_threshold_per_atom'] * number_of_atoms,
             }
         }
+        if self.inputs.use_opengrid and self.inputs.opengrid_only_scf:
+            pw_parameters['SYSTEM']['nbnd'] = self.ctx.nscf_nbnd
+
         self.ctx.scf_parameters = orm.Dict(dict=pw_parameters)
 
     def setup_nscf_parameters(self):
         """almost identical to scf_parameters, but need to set nbnd"""
-        args = {'structure': self.ctx.current_structure, 'pseudos': self.ctx.pseudos}
-        number_of_electrons = get_number_of_electrons(**args)
-        number_of_projections = get_number_of_projections(**args)
-        if self.inputs.spin_orbit_coupling:
-            number_of_projections = 2 * number_of_projections 
-        nspin = 2 if self.inputs.spin_polarized else 1
-        # TODO check nospin, spin, soc
-        if self.inputs.only_valence:
-            nbnd = int(0.5 * number_of_electrons * nspin)
-        else:
-            # nbands must > num_projections = num_wann
-            factor = 1.2
-            nbnd = max(int(0.5 * number_of_electrons * nspin * factor), 
-                       int(0.5 * number_of_electrons * nspin + 4 * nspin), 
-                       int(number_of_projections * factor), 
-                       int(number_of_projections + 4))
-        # save variables and they will be used in wannier parameters
-        self.ctx.number_of_electrons = number_of_electrons
-        self.ctx.number_of_projections = number_of_projections
-
         # we need deepcopy for 'nbnd', otherwise scf_parameters will change as well
         nscf_parameters = deepcopy(self.ctx.scf_parameters.get_dict())
-        nscf_parameters['SYSTEM']['nbnd'] = nbnd
-        self.report(f'nscf number of bands set as {nbnd}')
+        nscf_parameters['SYSTEM']['nbnd'] = self.ctx.nscf_nbnd
+        self.report(f'nscf number of bands set as {self.ctx.nscf_nbnd}')
 
         if self.inputs.only_valence:
             nscf_parameters['SYSTEM']['occupations'] = 'fixed'
             # pop None to avoid KeyError
             nscf_parameters['SYSTEM'].pop('smearing', None)
             nscf_parameters['SYSTEM'].pop('degauss', None)
-        
+
         if not self.inputs.use_opengrid or self.inputs.spin_orbit_coupling:
             nscf_parameters['SYSTEM']['nosym'] = True
             nscf_parameters['SYSTEM']['noinv'] = True
@@ -442,6 +446,8 @@ class Wannier90BandsWorkChain(WorkChain):
         # if inputs.kpoints is a kmesh, mp_grid will be auto-set, 
         # otherwise we need to set it manually
         if self.inputs.use_opengrid:
+            # kpoints will be set dynamically after opengrid calculation,
+            # the self.ctx.nscf_kpoints won't be used.
             inputs.kpoints = self.ctx.nscf_kpoints
         else:
             inputs.kpoints = self.ctx.nscf_explicit_kpoints
@@ -469,6 +475,14 @@ class Wannier90BandsWorkChain(WorkChain):
         inputs.metadata.options = self.ctx.options
         return inputs
 
+    def prepare_opengrid_inputs(self):
+        inputs = AttributeDict({
+            'code': self.inputs.codes.opengrid,
+            'metadata': {},
+        })
+        inputs.metadata.options = self.ctx.options
+        return inputs
+
     def run_wannier_workchain(self):
         """Run the `PwBandsWorkChain` to compute the band structure."""
         inputs = AttributeDict({
@@ -483,7 +497,8 @@ class Wannier90BandsWorkChain(WorkChain):
 
         if self.inputs.use_opengrid:
             inputs['opengrid'] = {'code': self.inputs.codes.opengrid}
-            # running = self.submit(Wannier90OpengridWorkChain, **inputs)
+            inputs['opengrid_only_scf'] = self.inputs.opengrid_only_scf
+            running = self.submit(Wannier90OpengridWorkChain, **inputs)
             self.report('launching Wannier90OpengridWorkChain<{}>'.format(running.pk))
         else:
             running = self.submit(Wannier90WorkChain, **inputs)
@@ -562,7 +577,8 @@ class Wannier90BandsWorkChain(WorkChain):
         workchain_outputs = self.ctx.workchain_wannier.get_outgoing(link_type=LinkType.RETURN).nested()
 
         self.out('scf_parameters', workchain_outputs['scf']['output_parameters'])
-        self.out('nscf_parameters', workchain_outputs['nscf']['output_parameters'])
+        if 'nscf' in workchain_outputs:
+            self.out('nscf_parameters', workchain_outputs['nscf']['output_parameters'])
         if 'projwfc' in workchain_outputs:
             self.out('projwfc_bands', workchain_outputs['projwfc']['bands'])
             self.out('projwfc_projections', workchain_outputs['projwfc']['projections'])
