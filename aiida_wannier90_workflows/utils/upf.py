@@ -3,7 +3,8 @@ from aiida import orm
 import xml.etree.ElementTree as ET
 
 __all__ = ('parse_zvalence', 'get_number_of_electrons_from_upf', 'get_number_of_electrons',
-           'parse_number_of_pswfc', 'get_number_of_projections_from_upf', 'get_number_of_projections')
+           'parse_number_of_pswfc', 'get_number_of_projections_from_upf', 'get_number_of_projections',
+           'get_number_of_bands')
 
 Dict_of_Upf = typing.Dict[str, orm.UpfData]
 
@@ -234,3 +235,36 @@ def get_number_of_projections(structure: orm.StructureData, pseudos: Dict_of_Upf
         nprojs = get_number_of_projections_from_upf(upf)
         tot_nprojs += nprojs * composition[kind]
     return tot_nprojs
+
+def get_wannier_number_of_bands(structure, pseudos, only_valence=False, spin_polarized=False, spin_orbit_coupling=False):
+    """estimate number of bands for a Wannier90 calculation.
+
+    :param structure: crystal structure
+    :type structure: aiida.orm.StructureData
+    :param pseudos: dictionary of pseudopotentials
+    :type pseudos: dict of aiida.orm.UpfData
+    :param only_valence: return only occupied number of badns
+    :type only_valence: bool
+    :param spin_polarized: magnetic calculation?
+    :type spin_polarized: bool
+    :param spin_orbit_coupling: a spin-orbit-coupling calculation?
+    :type spin_orbit_coupling: bool
+    :return: number of bands for Wannier90 SCDM
+    :rtype: int
+    """
+    num_electrons = get_number_of_electrons(structure, pseudos)
+    num_projections = get_number_of_projections(structure, pseudos)
+    if spin_orbit_coupling:
+        num_projections *= 2
+    nspin = 2 if spin_polarized else 1
+    # TODO check nospin, spin, soc
+    if only_valence:
+        num_bands = int(0.5 * num_electrons * nspin)
+    else:
+        # nbands must > num_projections = num_wann
+        factor = 1.2
+        num_bands = max(int(0.5 * num_electrons * nspin * factor), 
+                    int(0.5 * num_electrons * nspin + 4 * nspin), 
+                    int(num_projections * factor), 
+                    int(num_projections + 4))
+    return num_bands

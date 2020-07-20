@@ -73,12 +73,13 @@ class Wannier90WorkChain(WorkChain):
             cls.inspect_pw2wannier90,
             cls.run_wannier90,
             cls.inspect_wannier90,
-            cls.results,
+            cls.results
         )
 
         spec.expose_outputs(PwRelaxWorkChain, namespace='relax', namespace_options={'required': False})
         spec.expose_outputs(PwBaseWorkChain, namespace='scf')
-        spec.expose_outputs(PwBaseWorkChain, namespace='nscf')
+        # here nscf is optional, since the subclass Wannier90OpengridWorkChain might skip nscf step.
+        spec.expose_outputs(PwBaseWorkChain, namespace='nscf', namespace_options={'required': False})
         spec.expose_outputs(ProjwfcCalculation, namespace='projwfc', namespace_options={'required': False})
         spec.expose_outputs(Pw2wannier90Calculation, namespace='pw2wannier90')
         spec.expose_outputs(Wannier90Calculation, namespace='wannier90_pp')
@@ -226,11 +227,17 @@ class Wannier90WorkChain(WorkChain):
             self.report(f'ProjwfcCalculation failed with exit status {calculation.exit_status}')
             return self.exit_codes.ERROR_SUB_PROCESS_FAILED_PROJWFC
 
-        self.ctx.current_folder = calculation.outputs.remote_folder
+        # no need to set current_folder, because the next place which needs a parent_folder
+        # is the pw2wannier90 calculation, which needs the remote_folder of the nscf calculation.
+        # So the current_folder is kept to the remote_folder of nscf calculation,
+        # or in the Wannier90OpengridWorkChain, the current_folder is set as the remote_folder
+        # of open_grid calculation.
+        # self.ctx.current_folder = calculation.outputs.remote_folder
         self.report("projwfc ProjwfcCalculation successfully finished")
 
-    def run_wannier90_pp(self):
-        """The input of wannier90 calculation is build here."""
+    def prepare_wannier90_inputs(self):
+        """The input of wannier90 calculation is build here.
+        Here it is separated out from `run_wannier90_pp`, so it can be overridden by subclasses."""
         inputs = AttributeDict(self.exposed_inputs(Wannier90Calculation, namespace='wannier90'))
         inputs.structure = self.ctx.current_structure
         inputs.metadata.call_link_label = 'wannier_pp'
@@ -251,7 +258,10 @@ class Wannier90WorkChain(WorkChain):
             settings = {}
         settings['postproc_setup'] = True
         inputs['settings'] = settings
+        return inputs
 
+    def run_wannier90_pp(self):
+        inputs = self.prepare_wannier90_inputs()
         inputs = prepare_process_inputs(Wannier90Calculation, inputs)
         running = self.submit(Wannier90Calculation, **inputs)
         self.report(f'wannier90 postproc step - launching Wannier90Calculation<{running.pk}>')
@@ -265,18 +275,22 @@ class Wannier90WorkChain(WorkChain):
             self.report(f'wannier90 postproc Wannier90Calculation failed with exit status {workchain.exit_status}')
             return self.exit_codes.ERROR_SUB_PROCESS_FAILED_WANNIER90PP
 
-        self.ctx.current_folder = workchain.outputs.remote_folder
+        # no need to set current_folder, because the following pw2wannier90 calculation
+        # relies on the remote_folder of nscf calculation,
+        # or that of opengrid calculation, which will be set by the `inspect_opengrid` method.
+        # self.ctx.current_folder = workchain.outputs.remote_folder
         self.report("wannier90 postproc Wannier90Calculation successfully finished")
 
     def run_pw2wannier90(self):
         inputs = AttributeDict(self.exposed_inputs(Pw2wannier90Calculation, namespace='pw2wannier90'))
         inputs.metadata.call_link_label = 'pw2wannier90'
 
-        if 'remote_folder' in self.ctx.workchain_nscf.outputs:
-            remote_folder = self.ctx.workchain_nscf.outputs.remote_folder
-        else:
-            self.report('the nscf workchain did not output a remote_folder node!')
-            return self.exit_codes.ERROR_SUB_PROCESS_FAILED_PW2WANNIER90
+        # if 'remote_folder' in self.ctx.workchain_nscf.outputs:
+        #     remote_folder = self.ctx.workchain_nscf.outputs.remote_folder
+        # else:
+        #     self.report('the nscf workchain did not output a remote_folder node!')
+        #     return self.exit_codes.ERROR_SUB_PROCESS_FAILED_PW2WANNIER90
+        remote_folder = self.ctx.current_folder
 
         inputs['parent_folder'] = remote_folder
         inputs['nnkp_file'] = self.ctx.calc_wannier90_pp.outputs.nnkp_file
@@ -315,13 +329,13 @@ class Wannier90WorkChain(WorkChain):
         inputs = AttributeDict(self.exposed_inputs(Wannier90Calculation, namespace='wannier90'))
         inputs.metadata.call_link_label = 'wannier90'
 
-        if 'remote_folder' in self.ctx.calc_pw2wannier90.outputs:
-            remote_folder = self.ctx.calc_pw2wannier90.outputs.remote_folder
-        else:
-            self.report('the Pw2wannier90Calculation did not output a remote_folder node!')
-            return self.exit_codes.ERROR_SUB_PROCESS_FAILED_WANNIER90
-
-        inputs['remote_input_folder'] = remote_folder
+        # if 'remote_folder' in self.ctx.calc_pw2wannier90.outputs:
+        #     remote_folder = self.ctx.calc_pw2wannier90.outputs.remote_folder
+        # else:
+        #     self.report('the Pw2wannier90Calculation did not output a remote_folder node!')
+        #     return self.exit_codes.ERROR_SUB_PROCESS_FAILED_WANNIER90
+        # inputs['remote_input_folder'] = remote_folder
+        inputs['remote_input_folder'] = self.ctx.current_folder
 
         # copy postproc inputs
         pp_inputs = self.ctx.calc_wannier90_pp.inputs
@@ -349,8 +363,8 @@ class Wannier90WorkChain(WorkChain):
             self.report(f'Wannier90Calculation failed with exit status {workchain.exit_status}')
             return self.exit_codes.ERROR_SUB_PROCESS_FAILED_WANNIER90
 
-        self.report("Wannier90Calculation successfully finished")
         self.ctx.current_folder = workchain.outputs.remote_folder
+        self.report("Wannier90Calculation successfully finished")
 
     def results(self):
         """Attach the desired output nodes directly as outputs of the workchain"""
@@ -358,7 +372,10 @@ class Wannier90WorkChain(WorkChain):
             self.out_many(self.exposed_outputs(self.ctx.workchain_relax, PwRelaxWorkChain, namespace='relax'))
 
         self.out_many(self.exposed_outputs(self.ctx.workchain_scf, PwBaseWorkChain, namespace='scf'))
-        self.out_many(self.exposed_outputs(self.ctx.workchain_nscf, PwBaseWorkChain, namespace='nscf'))
+
+        # here nscf is optional, since the subclass Wannier90OpengridWorkChain might skip nscf step.
+        if 'workchain_nscf' in self.ctx:
+            self.out_many(self.exposed_outputs(self.ctx.workchain_nscf, PwBaseWorkChain, namespace='nscf'))
 
         if 'calc_projwfc' in self.ctx:
             self.out_many(self.exposed_outputs(self.ctx.calc_projwfc, ProjwfcCalculation, namespace='projwfc'))
@@ -366,7 +383,7 @@ class Wannier90WorkChain(WorkChain):
         self.out_many(self.exposed_outputs(self.ctx.calc_pw2wannier90, Pw2wannier90Calculation, namespace='pw2wannier90'))
         self.out_many(self.exposed_outputs(self.ctx.calc_wannier90_pp, Wannier90Calculation, namespace='wannier90_pp'))
         self.out_many(self.exposed_outputs(self.ctx.calc_wannier90, Wannier90Calculation, namespace='wannier90'))
-        self.report('Wannier90WorkChain successfully completed')
+        self.report(f'{self.get_name()} successfully completed')
 
 def get_fermi_energy(output_parameters):
     """get Fermi energy from scf output parameters, unit is eV
