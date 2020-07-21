@@ -14,7 +14,7 @@ from aiida_quantumespresso.calculations.functions.create_kpoints_from_distance i
 
 from aiida_wannier90_workflows.workflows.wannier import Wannier90WorkChain
 from aiida_wannier90_workflows.workflows.opengrid import Wannier90OpengridWorkChain
-from aiida_wannier90_workflows.utils.upf import get_number_of_electrons, get_number_of_projections, get_wannier_number_of_bands
+from aiida_wannier90_workflows.utils.upf import get_number_of_electrons, get_number_of_projections, get_wannier_number_of_bands, _load_pseudo_metadata
 from aiida_wannier90_workflows.calculations.functions.kmesh import convert_kpoints_mesh_to_list
 
 __all__ = ['Wannier90BandsWorkChain']
@@ -125,8 +125,13 @@ class Wannier90BandsWorkChain(WorkChain):
         """
         protocol, protocol_modifiers = self._get_protocol()
         self.report('running the workchain with the "{}" protocol'.format(protocol.name))
-        self.ctx.protocol = protocol.get_protocol_data(modifiers=protocol_modifiers)
 
+        # For SOC case, if no user input, replace SSSP by pslibrary, which has SOC pseudos.
+        if protocol_modifiers == {} and self.inputs.spin_orbit_coupling:
+            pseudo_data = _load_pseudo_metadata('pslibrary_paw_relpbe_1.0.0.json')
+            protocol_modifiers = {'pseudo': 'custom', 'pseudo_data': pseudo_data}
+
+        self.ctx.protocol = protocol.get_protocol_data(modifiers=protocol_modifiers)
         checked_pseudos = protocol.check_pseudos(
             modifier_name=protocol_modifiers.get('pseudo', None),
             pseudo_data=protocol_modifiers.get('pseudo_data', None))
@@ -144,6 +149,10 @@ class Wannier90BandsWorkChain(WorkChain):
         self.setup_protocol()
 
         if self.inputs.use_opengrid:
+            if self.inputs.spin_orbit_coupling:
+                self.report('open_grid.x is not compatible with spin orbit coupling')
+                return self.exit_codes.ERROR_INVALID_INPUT_OPENGRID
+
             try:
                 self.inputs.codes.opengrid
             except AttributeError:
@@ -195,8 +204,7 @@ class Wannier90BandsWorkChain(WorkChain):
         self.ctx.number_of_projections = get_number_of_projections(**args)
         args.update({
             'only_valence': self.inputs.only_valence.value,
-            'spin_polarized': self.inputs.spin_polarized.value,
-            'spin_orbit_coupling': self.inputs.spin_orbit_coupling.value
+            'spin_polarized': self.inputs.spin_polarized.value
             })
         # nscf_nbnd will be used in
         # 1. setting nscf number of bands, or
@@ -246,6 +254,10 @@ class Wannier90BandsWorkChain(WorkChain):
         }
         if self.inputs.use_opengrid and self.inputs.opengrid_only_scf:
             pw_parameters['SYSTEM']['nbnd'] = self.ctx.nscf_nbnd
+
+        if self.inputs.spin_orbit_coupling:
+            pw_parameters['SYSTEM']['noncolin'] = True
+            pw_parameters['SYSTEM']['lspinorb'] = True
 
         self.ctx.scf_parameters = orm.Dict(dict=pw_parameters)
 

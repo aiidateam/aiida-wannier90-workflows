@@ -51,6 +51,7 @@ def parse_arugments():
         '-p',
         "--protocol",
         help="available protocols are 'theos-ht-1.0' and 'testing'",
+        # default="theos-ht-1.0"
         default="testing"
     )
     parser.add_argument(
@@ -138,7 +139,7 @@ def print_help(workchain, structure):
     '# To get a detailed state of the workflow, run:\n'
     f'verdi process report {workchain.pk}\n'
     '\n'
-    'Several tools for visualization, launch as:\n'
+    'Several tools for visualization, after workchain fished, launch as:\n'
     f'    ../../aiida_wannier90_workflows/tools/plot_projectabilities.py {workchain.pk}\n'
     f'    ../../aiida_wannier90_workflows/tools/compare_dft_wannier_bands.py {workchain.pk}\n'
     )
@@ -182,7 +183,8 @@ def submit_workchain(
         'retrieve_hamiltonian': orm.Bool(retrieve_hamiltonian),
         # optional
         'use_opengrid': orm.Bool(True),
-        'compare_dft_bands': orm.Bool(True)
+        'compare_dft_bands': orm.Bool(True),
+        'spin_orbit_coupling': orm.Bool(True)
     }
 
     workchain = submit(
