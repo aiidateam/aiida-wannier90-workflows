@@ -46,7 +46,7 @@ if __name__ == "__main__":
     projections = projwfccalculation.outputs.projections
 
     print("{:6s}:".format(formula))
-    print("        mu = {}, fermi = {}, sigma = {}".format(mu, fermi_energy, sigma))
+    print(f"        fermi_energy = {fermi_energy}, mu = {mu}, sigma = {sigma}")
 
     proj_bands = projwfccalculation.outputs.bands
     mu_fit, sigma_fit, data = fit_scdm_mu_sigma_aiida(proj_bands, projections, {'sigma_factor': 0}, True)
@@ -62,13 +62,11 @@ if __name__ == "__main__":
     plt.plot(sorted_bands, sorted_projwfc, 'o')
     plt.plot(sorted_bands, erfc_scdm(sorted_bands, mu_fit, sigma_fit))
     plt.axvline([mu_fit], color='red', label=r"$\mu$")
-    plt.axvline([mu_fit - sigma_factor * sigma_fit], color='orange', 
-                label=r"$\mu-"+str(sigma_factor)+"\sigma$")
+    plt.axvline([mu_fit - sigma_factor * sigma_fit], color='orange', label=r"$\mu-"+str(sigma_factor)+r"\sigma$")
     plt.axvline([fermi_energy], color='green', label=r"$E_f$")
-    plt.title(formula)
+    plt.title(f"workchain pk {wannier90bandsworkchain.pk}, {formula}")
     plt.xlabel('Energy [eV]')
     plt.ylabel('Projectability')
     plt.legend(loc='best')
     plt.show()
     # plt.savefig('{}_proj.png'.format(formula))
-
