@@ -75,10 +75,11 @@ class Wannier90OpengridWorkChain(Wannier90WorkChain):
         inputs = AttributeDict(self.exposed_inputs(OpengridCalculation, namespace='opengrid'))
         inputs.metadata.call_link_label = 'opengrid'
 
-        # ProjwfcCalculation requires the previous Calculation having
-        # a input StructureData to parse atomic orbitals.
         inputs.parent_folder = self.ctx.current_folder
+        # ProjwfcCalculation requires the previous Calculation having
+        # an input StructureData to parse atomic orbitals.
         inputs.structure = self.ctx.current_structure
+        # or do not rely on self.ctx.current_structure
         # if self.should_run_nscf():
         #     previous_workchain = self.ctx.workchain_nscf
         # else:
