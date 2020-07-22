@@ -2,7 +2,7 @@
 import argparse
 import json
 from aiida import orm
-from aiida_wannier90_workflows.calculations.functions.upf import get_number_of_electrons_from_upf, get_number_of_projections_from_upf
+from aiida_wannier90_workflows.utils.upf import get_number_of_electrons_from_upf, get_number_of_projections_from_upf
 
 if __name__ == '__main__':
     OUTPUT_FILENAME = 'sssp_nelec_nproj.json'

@@ -7,7 +7,7 @@ import hashlib
 
 __all__ = ('parse_zvalence', 'get_number_of_electrons_from_upf', 'get_number_of_electrons',
            'parse_number_of_pswfc', 'get_number_of_projections_from_upf', 'get_number_of_projections',
-           'get_number_of_bands')
+           'get_wannier_number_of_bands', '_load_pseudo_metadata')
 
 Dict_of_Upf = typing.Dict[str, orm.UpfData]
 
@@ -31,7 +31,11 @@ def parse_zvalence(upf_content: str) -> float:
             ppheader_block += line + '\n'
             if not found_begin:
                 found_begin = True
-                continue
+                if '/>' in line or '</PP_HEADER>' in line:
+                    # in the same line
+                    break
+                else:
+                    continue
         if found_begin and ('/>' in line or '</PP_HEADER>' in line):
             ppheader_block += line + '\n'
             if not found_end:
