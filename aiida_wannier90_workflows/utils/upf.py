@@ -11,16 +11,7 @@ __all__ = ('parse_zvalence', 'get_number_of_electrons_from_upf', 'get_number_of_
 
 Dict_of_Upf = typing.Dict[str, orm.UpfData]
 
-def parse_zvalence(upf_content: str) -> float:
-    """get z_valcence from a UPF file. No AiiDA dependencies.
-    Works for both UPF v1 & v2 format, non-relativistic & relativistic.
-    Tested on all the SSSP pseudos.
-
-    :param upf_content: the content of the UPF file
-    :type upf_content: str
-    :return: z_valence of the UPF file
-    :rtype: float
-    """
+def get_ppheader(upf_content: str) -> str:
     upf_content = upf_content.split('\n')
     # get PP_HEADER block
     ppheader_block = ''
@@ -44,7 +35,19 @@ def parse_zvalence(upf_content: str) -> float:
         if found_begin:
             ppheader_block += line + '\n'
     # print(ppheader_block)
+    return ppheader_block
 
+def parse_zvalence(upf_content: str) -> float:
+    """get z_valcence from a UPF file. No AiiDA dependencies.
+    Works for both UPF v1 & v2 format, non-relativistic & relativistic.
+    Tested on all the SSSP pseudos.
+
+    :param upf_content: the content of the UPF file
+    :type upf_content: str
+    :return: z_valence of the UPF file
+    :rtype: float
+    """
+    ppheader_block = get_ppheader(upf_content)
     num_electrons = 0
     # parse XML
     PP_HEADER = ET.XML(ppheader_block)
@@ -154,6 +157,78 @@ def parse_number_of_pswfc(upf_content: str) -> int:
     :param upf_content: the content of the UPF file
     :type upf_content: str
     :return: number of PSWFC 
+    :rtype: int
+    """
+    ppheader_block = get_ppheader(upf_content)
+    # parse XML
+    PP_HEADER = ET.XML(ppheader_block)
+    if len(PP_HEADER.attrib) == 0:
+        # old upf format, TODO check how to retrieve has_so of old upf format
+        has_so = False
+    else:
+        # upf format 2.0.1
+        has_so = PP_HEADER.get('has_so')[0].lower() == 't'
+    # print(has_so)
+    if has_so:
+        nproj = parse_number_of_pswfc_soc(upf_content)
+    else:
+        nproj = parse_number_of_pswfc_nosoc(upf_content)
+    return nproj
+
+def parse_number_of_pswfc_soc(upf_content: str) -> int:
+    """for relativistic pseudo
+
+    :param upf_content: [description]
+    :type upf_content: str
+    :raises ValueError: [description]
+    :return: [description]
+    :rtype: int
+    """
+    upf_content = upf_content.split('\n')
+    # get PP_SPIN_ORB block
+    pswfc_block = ''
+    found_begin = False
+    found_end = False
+    for line in upf_content:
+        if 'PP_SPIN_ORB' in line:
+            pswfc_block += line + '\n'
+            if not found_begin:
+                found_begin = True
+                continue
+            else:
+                if not found_end:
+                    found_end = True
+                    break
+        if found_begin:
+            pswfc_block += line + '\n'
+
+    num_projections = 0
+    # parse XML
+    PP_PSWFC = ET.XML(pswfc_block)
+    if len(PP_PSWFC.getchildren()) == 0:
+        # old upf format, TODO check
+        raise ValueError
+    else:
+        # upf format 2.0.1, see uspp.f90:n_atom_wfc
+        for child in PP_PSWFC:
+            if not 'PP_RELWFC' in child.tag:
+                continue
+            jchi = float(child.get('jchi'))
+            lchi = float(child.get('lchi'))
+            oc = float(child.get('oc'))
+            if oc < 0:
+                continue
+            num_projections += 2 * lchi
+            if abs(jchi - lchi - 0.5) < 1e-6:
+                num_projections += 2
+    return num_projections
+
+def parse_number_of_pswfc_nosoc(upf_content: str) -> int:
+    """for non-relativistic pseudo
+
+    :param upf_content: [description]
+    :type upf_content: str
+    :return: [description]
     :rtype: int
     """
     upf_content = upf_content.split('\n')
