@@ -21,6 +21,7 @@ def findLastNode(NodeType, NodeList):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="A script to plot the projectabilities distribution")
     parser.add_argument('pk', metavar='WORKCHAIN_PK', type=int, help="PK of Wannier90BandsWorkChain")
+    parser.add_argument('-s', '--save', action='store_true', help="save as png instead of showing matplotlib window")
     args =  parser.parse_args()
 
     wannier90bandsworkchain = orm.load_node(args.pk)
@@ -68,5 +69,8 @@ if __name__ == "__main__":
     plt.xlabel('Energy [eV]')
     plt.ylabel('Projectability')
     plt.legend(loc='best')
-    plt.show()
-    # plt.savefig('{}_proj.png'.format(formula))
+
+    if args.save:
+        plt.savefig(f'proj_{formula}_{wannier90bandsworkchain.pk}.png')
+    else:
+        plt.show()
