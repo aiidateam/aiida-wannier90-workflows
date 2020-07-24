@@ -58,7 +58,7 @@ class Wannier90BaseWorkChain(BaseRestartWorkChain):
     #     return
 
     @process_handler(exit_codes=Wannier90Calculation.exit_codes.ERROR_EXITING_MESSAGE_IN_STDOUT)
-    def handle_kemsh_tol(self, calc):
+    def handle_kmesh_tol(self, calc):
         """Try fixing wannier90 error message: Not enough bvectors found.
         Will try to reduce kmesh_tol to 1e-8.
 
