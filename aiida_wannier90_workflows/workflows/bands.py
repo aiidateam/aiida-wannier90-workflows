@@ -144,13 +144,13 @@ class Wannier90BandsWorkChain(WorkChain):
             valence_info = "valence bands"
         else:
             valence_info = "valence + conduction bands"
-        self.report(f'calculate Wannier functions for {valence_info}')
+        self.report(f'generate Wannier functions for {valence_info}')
 
         self.setup_protocol()
 
         if self.inputs.use_opengrid:
             if self.inputs.spin_orbit_coupling:
-                self.report('open_grid.x is not compatible with spin orbit coupling')
+                self.report('open_grid.x does not support spin orbit coupling')
                 return self.exit_codes.ERROR_INVALID_INPUT_OPENGRID
 
             try:
@@ -511,10 +511,9 @@ class Wannier90BandsWorkChain(WorkChain):
             inputs['opengrid'] = {'code': self.inputs.codes.opengrid}
             inputs['opengrid_only_scf'] = self.inputs.opengrid_only_scf
             running = self.submit(Wannier90OpengridWorkChain, **inputs)
-            self.report('launching Wannier90OpengridWorkChain<{}>'.format(running.pk))
         else:
             running = self.submit(Wannier90WorkChain, **inputs)
-            self.report('launching Wannier90WorkChain<{}>'.format(running.pk))
+        self.report(f'launching {running.process_label}<{running.pk}>')
 
         return ToContext(workchain_wannier=running)
 
@@ -522,7 +521,7 @@ class Wannier90BandsWorkChain(WorkChain):
         workchain = self.ctx.workchain_wannier
 
         if not workchain.is_finished_ok:
-            self.report(f'sub process Wannier90WorkChain<{workchain.pk}> failed')
+            self.report(f'sub process {workchain.process_label}<{workchain.pk}> failed')
             return self.exit_codes.ERROR_SUB_PROCESS_FAILED_WANNIER
 
         # check the calculated number of projections is consistent with QE projwfc.x
@@ -573,7 +572,7 @@ class Wannier90BandsWorkChain(WorkChain):
         inputs = self.prepare_bands_inputs()
         inputs = prepare_process_inputs(PwBaseWorkChain, inputs)
         running = self.submit(PwBaseWorkChain, **inputs)
-        self.report('launching PwBaseWorkChain<{}> in {} mode'.format(running.pk, 'bands'))
+        self.report(f'launching {running.process_label}<{running.pk}> in {"bands"} mode')
         return ToContext(workchain_bands=running)
 
     def inspect_bands(self):
@@ -581,7 +580,7 @@ class Wannier90BandsWorkChain(WorkChain):
         workchain = self.ctx.workchain_bands
 
         if not workchain.is_finished_ok:
-            self.report('bands PwBaseWorkChain failed with exit status {}'.format(workchain.exit_status))
+            self.report(f'bands {workchain.process_label} failed with exit status {workchain.exit_status}')
             return self.exit_codes.ERROR_SUB_PROCESS_FAILED_BANDS
 
     def results(self):
@@ -609,7 +608,7 @@ class Wannier90BandsWorkChain(WorkChain):
             self.out('dft_bands', dft_bands)
             self.report(f'DFT bands pk: {dft_bands.pk}')
 
-        self.report('Wannier90BandsWorkChain successfully completed')
+        self.report(f'{self.get_name()} successfully completed')
 
 def get_default_options(structure, with_mpi=False):
     """Increase wallclock to 5 hour, use mpi, set number of machines according to 

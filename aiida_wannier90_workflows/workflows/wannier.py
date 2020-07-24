@@ -11,6 +11,7 @@ from aiida_quantumespresso.calculations.projwfc import ProjwfcCalculation
 from aiida_quantumespresso.calculations.pw2wannier90 import Pw2wannier90Calculation
 from aiida_wannier90.calculations import Wannier90Calculation
 from aiida_wannier90_workflows.utils.scdm import fit_scdm_mu_sigma_aiida
+from aiida_wannier90_workflows.workflows.base import Wannier90BaseWorkChain
 
 __all__ = ['Wannier90WorkChain']
 
@@ -82,7 +83,7 @@ class Wannier90WorkChain(WorkChain):
         spec.expose_outputs(PwBaseWorkChain, namespace='nscf', namespace_options={'required': False})
         spec.expose_outputs(ProjwfcCalculation, namespace='projwfc', namespace_options={'required': False})
         spec.expose_outputs(Pw2wannier90Calculation, namespace='pw2wannier90')
-        spec.expose_outputs(Wannier90Calculation, namespace='wannier90_pp')
+        spec.expose_outputs(Wannier90BaseWorkChain, namespace='wannier90_pp')
         spec.expose_outputs(Wannier90Calculation, namespace='wannier90')
 
         spec.exit_code(401, 'ERROR_SUB_PROCESSS_FAILED_SETUP', message='setup failed, check your input')
@@ -123,7 +124,7 @@ class Wannier90WorkChain(WorkChain):
 
         inputs = prepare_process_inputs(PwRelaxWorkChain, inputs)
         running = self.submit(PwRelaxWorkChain, **inputs)
-        self.report(f'launching PwRelaxWorkChain<{running.pk}>')
+        self.report(f'launching {running.process_label}<{running.pk}>')
         return ToContext(workchain_relax=running)
 
     def inspect_relax(self):
@@ -131,7 +132,7 @@ class Wannier90WorkChain(WorkChain):
         workchain = self.ctx.workchain_relax
 
         if not workchain.is_finished_ok:
-            self.report(f'PwRelaxWorkChain failed with exit status {workchain.exit_status}')
+            self.report(f'{workchain.process_label} failed with exit status {workchain.exit_status}')
             return self.exit_codes.ERROR_SUB_PROCESS_FAILED_RELAX
 
         self.ctx.current_structure = workchain.outputs.output_structure
@@ -144,7 +145,7 @@ class Wannier90WorkChain(WorkChain):
 
         inputs = prepare_process_inputs(PwBaseWorkChain, inputs)
         running = self.submit(PwBaseWorkChain, **inputs)
-        self.report(f'scf step - launching PwBaseWorkChain<{running.pk}>')
+        self.report(f'scf step - launching {running.process_label}<{running.pk}>')
         return ToContext(workchain_scf=running)
 
     def inspect_scf(self):
@@ -152,11 +153,11 @@ class Wannier90WorkChain(WorkChain):
         workchain = self.ctx.workchain_scf
 
         if not workchain.is_finished_ok:
-            self.report(f'scf PwBaseWorkChain failed with exit status {workchain.exit_status}')
+            self.report(f'scf {workchain.process_label} failed with exit status {workchain.exit_status}')
             return self.exit_codes.ERROR_SUB_PROCESS_FAILED_SCF
 
         self.ctx.current_folder = workchain.outputs.remote_folder
-        self.report("scf PwBaseWorkChain successfully finished")
+        self.report(f"scf {workchain.process_label} successfully finished")
 
     def run_nscf(self):
         """Run the PwBaseWorkChain in nscf mode"""
@@ -167,7 +168,7 @@ class Wannier90WorkChain(WorkChain):
 
         inputs = prepare_process_inputs(PwBaseWorkChain, inputs)
         running = self.submit(PwBaseWorkChain, **inputs)
-        self.report(f'nscf step - launching PwBaseWorkChain<{running.pk}>')
+        self.report(f'nscf step - launching {running.process_label}<{running.pk}>')
         return ToContext(workchain_nscf=running)
 
     def inspect_nscf(self):
@@ -175,11 +176,11 @@ class Wannier90WorkChain(WorkChain):
         workchain = self.ctx.workchain_nscf
 
         if not workchain.is_finished_ok:
-            self.report(f'nscf PwBaseWorkChain failed with exit status {workchain.exit_status}')
+            self.report(f'nscf {workchain.process_label} failed with exit status {workchain.exit_status}')
             return self.exit_codes.ERROR_SUB_PROCESS_FAILED_NSCF
 
         self.ctx.current_folder = workchain.outputs.remote_folder
-        self.report("nscf PwBaseWorkChain successfully finished")
+        self.report(f"nscf {workchain.process_label} successfully finished")
 
     def should_run_projwfc(self):
         """If the 'auto_projections = true' && only_valence, we run projwfc calculation to extract SCDM mu & sigma."""
@@ -216,7 +217,7 @@ class Wannier90WorkChain(WorkChain):
 
         inputs = prepare_process_inputs(ProjwfcCalculation, inputs)
         running = self.submit(ProjwfcCalculation, **inputs)
-        self.report(f'projwfc step - launching ProjwfcCalculation<{running.pk}>')
+        self.report(f'projwfc step - launching {running.process_label}<{running.pk}>')
         return ToContext(calc_projwfc=running)
 
     def inspect_projwfc(self):
@@ -224,7 +225,7 @@ class Wannier90WorkChain(WorkChain):
         calculation = self.ctx.calc_projwfc
 
         if not calculation.is_finished_ok:
-            self.report(f'ProjwfcCalculation failed with exit status {calculation.exit_status}')
+            self.report(f'{calculation.process_label} failed with exit status {calculation.exit_status}')
             return self.exit_codes.ERROR_SUB_PROCESS_FAILED_PROJWFC
 
         # no need to set current_folder, because the next place which needs a parent_folder
@@ -233,7 +234,7 @@ class Wannier90WorkChain(WorkChain):
         # or in the Wannier90OpengridWorkChain, the current_folder is set as the remote_folder
         # of open_grid calculation.
         # self.ctx.current_folder = calculation.outputs.remote_folder
-        self.report("projwfc ProjwfcCalculation successfully finished")
+        self.report(f"projwfc {calculation.process_label} successfully finished")
 
     def prepare_wannier90_inputs(self):
         """The input of wannier90 calculation is build here.
@@ -262,24 +263,24 @@ class Wannier90WorkChain(WorkChain):
 
     def run_wannier90_pp(self):
         inputs = self.prepare_wannier90_inputs()
-        inputs = prepare_process_inputs(Wannier90Calculation, inputs)
-        running = self.submit(Wannier90Calculation, **inputs)
-        self.report(f'wannier90 postproc step - launching Wannier90Calculation<{running.pk}>')
-        return ToContext(calc_wannier90_pp=running)
+        inputs = prepare_process_inputs(Wannier90BaseWorkChain, {'wannier90': inputs})
+        running = self.submit(Wannier90BaseWorkChain, **inputs)
+        self.report(f'wannier90 postproc step - launching {running.process_label}<{running.pk}>')
+        return ToContext(workchain_wannier90_pp=running)
 
     def inspect_wannier90_pp(self):
         """Verify that the Wannier90Calculation for the wannier90 run successfully finished."""
-        workchain = self.ctx.calc_wannier90_pp
+        workchain = self.ctx.workchain_wannier90_pp
 
         if not workchain.is_finished_ok:
-            self.report(f'wannier90 postproc Wannier90Calculation failed with exit status {workchain.exit_status}')
+            self.report(f'wannier90 postproc {workchain.process_label} failed with exit status {workchain.exit_status}')
             return self.exit_codes.ERROR_SUB_PROCESS_FAILED_WANNIER90PP
 
         # no need to set current_folder, because the following pw2wannier90 calculation
         # relies on the remote_folder of nscf calculation,
         # or that of opengrid calculation, which will be set by the `inspect_opengrid` method.
         # self.ctx.current_folder = workchain.outputs.remote_folder
-        self.report("wannier90 postproc Wannier90Calculation successfully finished")
+        self.report(f"wannier90 postproc {workchain.process_label} successfully finished")
 
     def run_pw2wannier90(self):
         inputs = AttributeDict(self.exposed_inputs(Pw2wannier90Calculation, namespace='pw2wannier90'))
@@ -293,7 +294,7 @@ class Wannier90WorkChain(WorkChain):
         remote_folder = self.ctx.current_folder
 
         inputs['parent_folder'] = remote_folder
-        inputs['nnkp_file'] = self.ctx.calc_wannier90_pp.outputs.nnkp_file
+        inputs['nnkp_file'] = self.ctx.workchain_wannier90_pp.outputs.nnkp_file
 
         if 'calc_projwfc' in self.ctx:
             try:
@@ -311,7 +312,7 @@ class Wannier90WorkChain(WorkChain):
 
         inputs = prepare_process_inputs(Pw2wannier90Calculation, inputs)
         running = self.submit(Pw2wannier90Calculation, **inputs)
-        self.report(f'pw2wannier90 step - launching Pw2Wannier90Calculation<{running.pk}>')
+        self.report(f'pw2wannier90 step - launching {running.process_label}<{running.pk}>')
         return ToContext(calc_pw2wannier90=running)
 
     def inspect_pw2wannier90(self):
@@ -319,11 +320,11 @@ class Wannier90WorkChain(WorkChain):
         workchain = self.ctx.calc_pw2wannier90
 
         if not workchain.is_finished_ok:
-            self.report(f'Pw2wannier90Calculation failed with exit status {workchain.exit_status}')
+            self.report(f'{workchain.process_label} failed with exit status {workchain.exit_status}')
             return self.exit_codes.ERROR_SUB_PROCESS_FAILED_PW2WANNIER90
 
         self.ctx.current_folder = workchain.outputs.remote_folder
-        self.report("Pw2wannier90Calculation successfully finished")
+        self.report(f"{workchain.process_label} successfully finished")
 
     def run_wannier90(self):
         inputs = AttributeDict(self.exposed_inputs(Wannier90Calculation, namespace='wannier90'))
@@ -338,7 +339,7 @@ class Wannier90WorkChain(WorkChain):
         inputs['remote_input_folder'] = self.ctx.current_folder
 
         # copy postproc inputs
-        pp_inputs = self.ctx.calc_wannier90_pp.inputs
+        pp_inputs = self.ctx.workchain_wannier90_pp.get_incoming().nested()['wannier90']
         pp_keys = ['code', 'parameters', 'kpoint_path', 'structure', 'kpoints', 'settings']
         for key in pp_keys:
             inputs[key] = pp_inputs[key]
@@ -352,7 +353,7 @@ class Wannier90WorkChain(WorkChain):
 
         inputs = prepare_process_inputs(Wannier90Calculation, inputs)
         running = self.submit(Wannier90Calculation, **inputs)
-        self.report(f'wannier90 step - launching Wannier90Calculation<{running.pk}>')
+        self.report(f'wannier90 step - launching {running.process_label}<{running.pk}>')
         return ToContext(calc_wannier90=running)
 
     def inspect_wannier90(self):
@@ -360,11 +361,11 @@ class Wannier90WorkChain(WorkChain):
         workchain = self.ctx.calc_wannier90
 
         if not workchain.is_finished_ok:
-            self.report(f'Wannier90Calculation failed with exit status {workchain.exit_status}')
+            self.report(f'{workchain.process_label} failed with exit status {workchain.exit_status}')
             return self.exit_codes.ERROR_SUB_PROCESS_FAILED_WANNIER90
 
         self.ctx.current_folder = workchain.outputs.remote_folder
-        self.report("Wannier90Calculation successfully finished")
+        self.report(f"{workchain.process_label} successfully finished")
 
     def results(self):
         """Attach the desired output nodes directly as outputs of the workchain"""
@@ -381,7 +382,7 @@ class Wannier90WorkChain(WorkChain):
             self.out_many(self.exposed_outputs(self.ctx.calc_projwfc, ProjwfcCalculation, namespace='projwfc'))
 
         self.out_many(self.exposed_outputs(self.ctx.calc_pw2wannier90, Pw2wannier90Calculation, namespace='pw2wannier90'))
-        self.out_many(self.exposed_outputs(self.ctx.calc_wannier90_pp, Wannier90Calculation, namespace='wannier90_pp'))
+        self.out_many(self.exposed_outputs(self.ctx.workchain_wannier90_pp, Wannier90BaseWorkChain, namespace='wannier90_pp'))
         self.out_many(self.exposed_outputs(self.ctx.calc_wannier90, Wannier90Calculation, namespace='wannier90'))
         self.report(f'{self.get_name()} successfully completed')
 
