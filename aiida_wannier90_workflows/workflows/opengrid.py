@@ -98,7 +98,7 @@ class Wannier90OpengridWorkChain(Wannier90WorkChain):
 
         inputs = prepare_process_inputs(OpengridCalculation, inputs)
         running = self.submit(OpengridCalculation, **inputs)
-        self.report(f'open_grid step - launching OpengridCalculation<{running.pk}>')
+        self.report(f'open_grid step - launching {running.process_label}<{running.pk}>')
         return ToContext(calc_opengrid=running)
 
     def inspect_opengrid(self):
@@ -106,11 +106,11 @@ class Wannier90OpengridWorkChain(Wannier90WorkChain):
         workchain = self.ctx.calc_opengrid
 
         if not workchain.is_finished_ok:
-            self.report(f'OpengridCalculation failed with exit status {workchain.exit_status}')
+            self.report(f'{workchain.process_label} failed with exit status {workchain.exit_status}')
             return self.exit_codes.ERROR_SUB_PROCESS_FAILED_OPENGRID
 
         self.ctx.current_folder = workchain.outputs.remote_folder
-        self.report("OpengridCalculation successfully finished")
+        self.report(f"{workchain.process_label} successfully finished")
 
     def prepare_wannier90_inputs(self):
         """Override the parent method in Wannier90WorkChain.
