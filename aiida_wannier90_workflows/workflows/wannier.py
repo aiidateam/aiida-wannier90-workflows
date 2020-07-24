@@ -263,6 +263,7 @@ class Wannier90WorkChain(WorkChain):
 
     def run_wannier90_pp(self):
         inputs = self.prepare_wannier90_inputs()
+        # use Wannier90BaseWorkChain to automatically handle kmesh_tol related errors
         inputs = prepare_process_inputs(Wannier90BaseWorkChain, {'wannier90': inputs})
         running = self.submit(Wannier90BaseWorkChain, **inputs)
         self.report(f'wannier90 postproc step - launching {running.process_label}<{running.pk}>')
@@ -343,6 +344,11 @@ class Wannier90WorkChain(WorkChain):
         pp_keys = ['code', 'parameters', 'kpoint_path', 'structure', 'kpoints', 'settings']
         for key in pp_keys:
             inputs[key] = pp_inputs[key]
+        # use the Wannier90BaseWorkChain-corrected parameters
+        # sort by pk, since the last Wannier90Calculation in Wannier90BaseWorkChain
+        # should have the largest pk
+        last_calc = max(self.ctx.workchain_wannier90_pp.called, key=lambda calc: calc.pk)
+        inputs['parameters'] = last_calc.inputs.parameters
 
         if 'settings' in inputs:
             settings = inputs.settings.get_dict()
