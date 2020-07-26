@@ -1,10 +1,13 @@
 {
   "entry_points": {
     "aiida.calculations": [
+      "wannier90_workflows.convert_kpoints_mesh_to_list = aiida_wannier90_workflows.calculations.functions.kmesh:convert_kpoints_mesh_to_list"
     ],
     "aiida.workflows": [
       "wannier90_workflows.bands = aiida_wannier90_workflows.workflows.bands:Wannier90BandsWorkChain",
-      "wannier90_workflows.wannier90 = aiida_wannier90_workflows.workflows.wannier:Wannier90WorkChain"
+      "wannier90_workflows.wannier90 = aiida_wannier90_workflows.workflows.wannier:Wannier90WorkChain",
+      "wannier90_workflows.base = aiida_wannier90_workflows.workflows.base:Wannier90BaseWorkChain",
+      "wannier90_workflows.opengrid = aiida_wannier90_workflows.workflows.opengrid:Wannier90OpengridWorkChain"
     ],
     "aiida.parsers": [
     ]
