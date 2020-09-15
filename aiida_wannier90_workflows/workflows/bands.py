@@ -337,6 +337,9 @@ class Wannier90BandsWorkChain(WorkChain):
             projections_info = 'random'
         self.report(f"using {projections_info} projections")
 
+        if self.inputs.spin_orbit_coupling:
+            parameters['spinors'] = True
+
         parameters['bands_plot'] = True
 
         if self.inputs.plot_wannier_functions:
