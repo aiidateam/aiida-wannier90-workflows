@@ -13,7 +13,7 @@ from aiida_quantumespresso.workflows.pw.base import PwBaseWorkChain
 from aiida_quantumespresso.calculations.functions.create_kpoints_from_distance import create_kpoints_from_distance
 
 from aiida_wannier90_workflows.workflows.wannier import Wannier90WorkChain
-from aiida_wannier90_workflows.workflows.opengrid import Wannier90OpengridWorkChain
+#from aiida_wannier90_workflows.workflows.opengrid import Wannier90OpengridWorkChain
 from aiida_wannier90_workflows.utils.upf import get_number_of_electrons, get_number_of_projections, get_wannier_number_of_bands, _load_pseudo_metadata
 from aiida_wannier90_workflows.calculations.functions.kmesh import convert_kpoints_mesh_to_list
 

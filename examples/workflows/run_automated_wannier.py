@@ -182,7 +182,7 @@ def submit_workchain(
         'maximal_localisation': orm.Bool(do_mlwf),
         'retrieve_hamiltonian': orm.Bool(retrieve_hamiltonian),
         # optional
-        'use_opengrid': orm.Bool(True),
+        'use_opengrid': orm.Bool(False),
         'compare_dft_bands': orm.Bool(True),
         'spin_orbit_coupling': orm.Bool(True)
     }
