@@ -3,7 +3,7 @@ from aiida.common import AttributeDict
 from aiida.engine import WorkChain, ToContext
 from aiida.plugins import WorkflowFactory
 
-from aiida_quantumespresso.workflows.functions.seekpath_structure_analysis import seekpath_structure_analysis
+from aiida_quantumespresso.calculations.functions.seekpath_structure_analysis import seekpath_structure_analysis
 from aiida_quantumespresso.utils.protocols.pw import ProtocolManager
 from aiida_quantumespresso.utils.pseudopotential import get_pseudos_from_dict
 from .wannier import Wannier90WorkChain
