@@ -139,7 +139,7 @@ def print_help(workchain, structure):
     '# To get a detailed state of the workflow, run:\n'
     f'verdi process report {workchain.pk}\n'
     '\n'
-    'Several tools for visualization, after workchain fished, launch as:\n'
+    'Several tools for visualization, after workchain finished, launch as:\n'
     f'    ../../aiida_wannier90_workflows/tools/plot_projectabilities.py {workchain.pk}\n'
     f'    ../../aiida_wannier90_workflows/tools/compare_dft_wannier_bands.py {workchain.pk}\n'
     )
@@ -199,7 +199,7 @@ def submit_workchain(
 if __name__ == "__main__":
     args = parse_arugments()
 
-    args.xsf = orm.load_node(2562)
+    #args.xsf = orm.load_node(2562)
     submit_workchain(
         args.xsf, args.protocol, args.only_valence, args.do_disentanglement,
         args.do_mlwf, args.retrieve_hamiltonian, group_name
