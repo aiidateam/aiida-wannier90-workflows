@@ -214,7 +214,8 @@ def parse_number_of_pswfc_soc(upf_content: str) -> int:
             if not 'PP_RELWFC' in child.tag:
                 continue
             jchi = float(child.get('jchi'))
-            lchi = float(child.get('lchi'))
+            # use int, otherwise the returned num_projections is float
+            lchi = int(child.get('lchi'))
             oc = float(child.get('oc'))
             if oc < 0:
                 continue
