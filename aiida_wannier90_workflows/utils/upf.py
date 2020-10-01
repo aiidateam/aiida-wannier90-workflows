@@ -209,7 +209,7 @@ def parse_number_of_pswfc_soc(upf_content: str) -> int:
         # old upf format, TODO check
         raise ValueError
     else:
-        # upf format 2.0.1, see uspp.f90:n_atom_wfc
+        # upf format 2.0.1, see q-e/Modules/uspp.f90:n_atom_wfc
         for child in PP_PSWFC:
             if not 'PP_RELWFC' in child.tag:
                 continue
@@ -218,10 +218,17 @@ def parse_number_of_pswfc_soc(upf_content: str) -> int:
             lchi = int(child.get('lchi'))
             oc = child.get('oc')
             # pslibrary PP has 'oc' attribute, but pseudodojo does not have 'oc'
+            # e.g. in pslibrary Ag.rel-pbe-n-kjpaw_psl.1.0.0.UPF
+            # <PP_RELWFC.1 index="1" els="5S" nn="1" lchi="0" jchi="5.000000000000e-1" oc="1.500000000000e0"/>
+            # in pseudo-dojo Ag.upf
+            # <PP_RELWFC.1  index="1"  lchi="0" jchi="0.5" nn="1"/>
             if oc is not None:
                 oc = float(oc)
                 if oc < 0:
                     continue
+            # For a given quantum number l, there are 2 cases:
+            # 1. j = l - 1/2 then there are 2*j + 1 = 2l states
+            # 2. j = l + 1/2 then there are 2*j + 1 = 2l + 2 states so we have to add another 2
             num_projections += 2 * lchi
             if abs(jchi - lchi - 0.5) < 1e-6:
                 num_projections += 2
