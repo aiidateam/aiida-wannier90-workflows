@@ -389,8 +389,8 @@ def get_metadata(filename):
         result["dual"] = charge / wave
     return result
 
-def generate_pseudo_metadata(dirname=None):
-    """Scan the folder and generate a json file containing metainfo of pseudos.
+def generate_pslibrary_metadata(dirname=None):
+    """Scan the folder and generate a json file containing metainfo of pseudos of pslibrary.
 
     :param dirname: folder to be scanned, if None download from QE website
     :type dirname: str
@@ -523,5 +523,35 @@ Pu: Pu.$fct-spfn-*_psl.1.0.0"""
     with open(output_filename, 'w') as f:
         json.dump(result, f, indent=2)
 
+def generate_dojo_metadata():
+    """generate metadata for pseduo-dojo SOC pseudos, from
+    http://www.pseudo-dojo.org/nc-fr-04_pbe_stringent.json
+    """
+    dojo_json = 'nc-fr-04_pbe_standard.json'
+    with open(dojo_json) as f:
+        dojo = json.load(f)
+
+    result = {}
+    for element in dojo:
+        # in pseudo-dojo standard accurary, there is no UPF endswith '_r',
+        # in stringent accruray, there are UPF endswith '_r'.
+        # Not sure what '_r' means, but if a element endswith '_r', then
+        # its cutoff is not shown in the HTML page.
+        if element.endswith('_r'):
+            continue
+        filename = element + '.upf'
+        result[element] = {
+            "filename": filename,
+            "md5": md5(filename),
+            "pseudopotential": "Dojo",
+            # use normal accurary, and the original unit is Hartree - convert to Rydberg
+            "cutoff": 2.0 * dojo[element]['hn'],
+            "dual": 4.0
+        }
+
+    with open('dojo_nc_fr.json', 'w') as f:
+        json.dump(result, f, indent=2)
+
 if __name__ == '__main__':
-    generate_pseudo_metadata()
+    # generate_pslibrary_metadata()
+    generate_dojo_metadata()

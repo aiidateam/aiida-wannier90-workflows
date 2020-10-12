@@ -125,9 +125,11 @@ class Wannier90BandsWorkChain(WorkChain):
         protocol, protocol_modifiers = self._get_protocol()
         self.report('running the workchain with the "{}" protocol'.format(protocol.name))
 
-        # For SOC case, if no user input, replace SSSP by pslibrary, which has SOC pseudos.
+        # For SOC case, if no user input, replace SSSP by pslibrary/pseudo-dojo, which has SOC pseudos.
         if protocol_modifiers == {} and self.inputs.spin_orbit_coupling:
-            pseudo_data = _load_pseudo_metadata('pslibrary_paw_relpbe_1.0.0.json')
+            # pseudo_data = _load_pseudo_metadata('pslibrary_paw_relpbe_1.0.0.json')
+            # switch to pseudo-dojo
+            pseudo_data = _load_pseudo_metadata('dojo_nc_fr.json')
             protocol_modifiers = {'pseudo': 'custom', 'pseudo_data': pseudo_data}
 
         self.ctx.protocol = protocol.get_protocol_data(modifiers=protocol_modifiers)
