@@ -5,9 +5,22 @@ from aiida import orm
 import xml.etree.ElementTree as ET
 import hashlib
 
-__all__ = ('parse_zvalence', 'get_number_of_electrons_from_upf', 'get_number_of_electrons',
-           'parse_number_of_pswfc', 'get_number_of_projections_from_upf', 'get_number_of_projections',
-           'get_wannier_number_of_bands', '_load_pseudo_metadata')
+__all__ = (# for the content of UPF, i.e. these functions accept str as parameter
+           'parse_zvalence',
+           'parse_pswfc_nosoc', 'parse_pswfc_soc',
+           'parse_number_of_pswfc',
+           # for orm.UpfData, i.e. these functions accept orm.UpfData as parameter
+           'get_number_of_electrons_from_upf',
+           'get_projections_from_upf',
+           'get_number_of_projections_from_upf', 
+           # for orm.StructreData, i.e. these functions accept orm.StructreData as parameter
+           'get_number_of_electrons',
+           'get_projections',
+           'get_number_of_projections',
+           'get_wannier_number_of_bands',
+           # helper functions
+           'is_soc_pseudo',
+           '_load_pseudo_metadata')
 
 Dict_of_Upf = typing.Dict[str, orm.UpfData]
 
@@ -36,6 +49,25 @@ def get_ppheader(upf_content: str) -> str:
             ppheader_block += line + '\n'
     # print(ppheader_block)
     return ppheader_block
+
+def is_soc_pseudo(upf_content: str) -> bool:
+    """check if it is a SOC pseudo
+
+    :param upf_content: the content of the UPF file
+    :type upf_content: str
+    :return: [description]
+    :rtype: bool
+    """
+    ppheader_block = get_ppheader(upf_content)
+    # parse XML
+    PP_HEADER = ET.XML(ppheader_block)
+    if len(PP_HEADER.attrib) == 0:
+        # old upf format, TODO check how to retrieve has_so of old upf format
+        has_so = False
+    else:
+        # upf format 2.0.1
+        has_so = PP_HEADER.get('has_so')[0].lower() == 't'
+    return has_so
 
 def parse_zvalence(upf_content: str) -> float:
     """get z_valcence from a UPF file. No AiiDA dependencies.
@@ -102,6 +134,20 @@ def parse_zvalence(upf_content: str) -> float:
         num_electrons = float(PP_HEADER.get('z_valence'))
     return num_electrons
 
+def get_upf_content(upf: orm.UpfData) -> str:
+    """Retreive the content of the UpfData
+
+    :param upf: [description]
+    :type upf: orm.UpfData
+    :return: [description]
+    :rtype: str
+    """
+    if not isinstance(upf, orm.UpfData):
+        raise ValueError(f'The type of upf is {type(upf)}, only aiida.orm.UpfData is accepted')
+    upf_name = upf.list_object_names()[0]
+    upf_content = upf.get_object_content(upf_name)
+    return upf_content
+
 def get_number_of_electrons_from_upf(upf: orm.UpfData) -> float:
     """AiiDA wrapper for `parse_zvalence'
 
@@ -110,10 +156,7 @@ def get_number_of_electrons_from_upf(upf: orm.UpfData) -> float:
     :return: number of electrons
     :rtype: float
     """
-    if not isinstance(upf, orm.UpfData):
-        raise ValueError(f'The type of upf is {type(upf)}, only aiida.orm.UpfData is accepted')
-    upf_name = upf.list_object_names()[0]
-    upf_content = upf.get_object_content(upf_name)
+    upf_content = get_upf_content(upf)
     return parse_zvalence(upf_content)
 
 def get_number_of_electrons(structure: orm.StructureData, pseudos: Dict_of_Upf) -> float:
@@ -146,44 +189,20 @@ def get_number_of_electrons(structure: orm.StructureData, pseudos: Dict_of_Upf) 
         tot_nelecs += nelecs * composition[kind]
     return tot_nelecs
 
-def parse_number_of_pswfc(upf_content: str) -> int:
-    """get the number orbitals in the PSWFC block, 
-    i.e. number of occuppied atomic orbitals in the UPF file.
-    This is also the number of orbitals used for projections in projwfc.x.
+def parse_pswfc_soc(upf_content: str) -> list:
+    """parse the PP_SPIN_ORB block in SOC UPF.
+    This is also the orbitals used for projections in projwfc.x.
     No AiiDA dependencies.
-    Works for both UPF v1 & v2 format, non-relativistic & relativistic.
-    Tested on all the SSSP pseudos.
-
-    :param upf_content: the content of the UPF file
-    :type upf_content: str
-    :return: number of PSWFC 
-    :rtype: int
-    """
-    ppheader_block = get_ppheader(upf_content)
-    # parse XML
-    PP_HEADER = ET.XML(ppheader_block)
-    if len(PP_HEADER.attrib) == 0:
-        # old upf format, TODO check how to retrieve has_so of old upf format
-        has_so = False
-    else:
-        # upf format 2.0.1
-        has_so = PP_HEADER.get('has_so')[0].lower() == 't'
-    # print(has_so)
-    if has_so:
-        nproj = parse_number_of_pswfc_soc(upf_content)
-    else:
-        nproj = parse_number_of_pswfc_nosoc(upf_content)
-    return nproj
-
-def parse_number_of_pswfc_soc(upf_content: str) -> int:
-    """for relativistic pseudo
+    Works for both UPF v1 & v2 format.
 
     :param upf_content: [description]
     :type upf_content: str
     :raises ValueError: [description]
-    :return: [description]
-    :rtype: int
+    :return: list of dict, each dict contains 3 keys for quantum number n, l, j
+    :rtype: list
     """
+    if not is_soc_pseudo(upf_content):
+        raise ValueError('Only accept SOC pseudo')
     upf_content = upf_content.split('\n')
     # get PP_SPIN_ORB block
     pswfc_block = ''
@@ -202,7 +221,8 @@ def parse_number_of_pswfc_soc(upf_content: str) -> int:
         if found_begin:
             pswfc_block += line + '\n'
 
-    num_projections = 0
+    # contains element: {'n', 'l', 'j'} for 3 quantum numbers
+    projections = []
     # parse XML
     PP_PSWFC = ET.XML(pswfc_block)
     if len(PP_PSWFC.getchildren()) == 0:
@@ -213,9 +233,10 @@ def parse_number_of_pswfc_soc(upf_content: str) -> int:
         for child in PP_PSWFC:
             if not 'PP_RELWFC' in child.tag:
                 continue
-            jchi = float(child.get('jchi'))
+            nn = int(child.get('nn'))
             # use int, otherwise the returned num_projections is float
             lchi = int(child.get('lchi'))
+            jchi = float(child.get('jchi'))
             oc = child.get('oc')
             # pslibrary PP has 'oc' attribute, but pseudodojo does not have 'oc'
             # e.g. in pslibrary Ag.rel-pbe-n-kjpaw_psl.1.0.0.UPF
@@ -226,22 +247,19 @@ def parse_number_of_pswfc_soc(upf_content: str) -> int:
                 oc = float(oc)
                 if oc < 0:
                     continue
-            # For a given quantum number l, there are 2 cases:
-            # 1. j = l - 1/2 then there are 2*j + 1 = 2l states
-            # 2. j = l + 1/2 then there are 2*j + 1 = 2l + 2 states so we have to add another 2
-            num_projections += 2 * lchi
-            if abs(jchi - lchi - 0.5) < 1e-6:
-                num_projections += 2
-    return num_projections
+            projections.append({'n': nn, 'l': lchi, 'j': jchi})
+    return projections
 
-def parse_number_of_pswfc_nosoc(upf_content: str) -> int:
+def parse_pswfc_nosoc(upf_content: str) -> list:
     """for non-relativistic pseudo
 
     :param upf_content: [description]
     :type upf_content: str
-    :return: [description]
-    :rtype: int
+    :return: list of dict, each dict contains 1 key for quantum number l
+    :rtype: list
     """
+    if is_soc_pseudo(upf_content):
+        raise ValueError('Only accept non-SOC pseudo')
     upf_content = upf_content.split('\n')
     # get PP_PSWFC block
     pswfc_block = ''
@@ -260,7 +278,7 @@ def parse_number_of_pswfc_nosoc(upf_content: str) -> int:
         if found_begin:
             pswfc_block += line + '\n'
 
-    num_projections = 0
+    projections = []
     # parse XML
     PP_PSWFC = ET.XML(pswfc_block)
     if len(PP_PSWFC.getchildren()) == 0:
@@ -278,12 +296,148 @@ def parse_number_of_pswfc_nosoc(upf_content: str) -> int:
                 l = 2
             elif orbit == 'f':
                 l = 3
-            num_projections += 2 * l + 1
+            projections.append({'l': l})
     else:
         # upf format 2.0.1
         for child in PP_PSWFC:
             l = int(child.get('l'))
+            projections.append({'l': l})
+    return projections
+
+def get_projections_from_upf(upf: orm.UpfData):
+    """Return a list of strings for Wannier90 projection block
+
+    :param upf: the pseduo to be parsed
+    :type upf: orm.UpfData
+    :return: list of projections
+    :rtype: list
+    """
+    class Orbit:
+        """A simple class to help sorting/removing the orbitals in a list
+        """
+        def __init__(self, orbit_dict):
+            self.n = orbit_dict['n']
+            self.l = orbit_dict['l']
+            self.j = orbit_dict['j']
+
+        def __eq__(self, orbit):
+            return self.n == orbit.n and self.l == orbit.l and abs(self.j - orbit.j) < 1e-6
+
+        def __lt__(self, orbit):
+            if self.n < orbit.n:
+                return True
+            elif self.n == orbit.n:
+                if self.l < orbit.l:
+                    return True
+                elif self.l == orbit.l:
+                    return self.j < orbit.j
+                else:
+                    return False
+            else:
+                return False
+
+    orbit_map = {0: 's', 1: 'p', 2: 'd', 3: 'f'}
+    upf_content = get_upf_content(upf)
+    wannier_projections = []
+    has_so = is_soc_pseudo(upf_content)
+    if not has_so:
+        pswfc = parse_pswfc_nosoc(upf_content)
+        for wfc in pswfc:
+            wannier_projections.append(f'{upf.element}: {orbit_map[wfc["l"]]}')
+    else:
+        pswfc = []
+        for wfc in parse_pswfc_soc(upf_content):
+            pswfc.append(Orbit(wfc))
+        # First sort by n, then l, then j, in ascending order
+        sorted_pswfc = sorted(pswfc) # will use __lt__
+        # Check that for a given l (>0), there are two j: j = l - 1/2 and j = l + 1/2,
+        # then we can combine these two j and form a projection orbital for wannier90.
+        # e.g. {n = 1, l = 1, j = 0.5} and {n = 1, l = 1, j = 1.5} together correspond
+        # to a p orbital in wannier projection block.
+        is_equal = lambda x, y: abs(x - y) < 1e-6
+        i = 0
+        while i < len(sorted_pswfc):
+            wfc = sorted_pswfc[i]
+            n = wfc.n
+            l = wfc.l
+            j = wfc.j
+            if l == 0:
+                assert is_equal(j, 0.5)
+            else:
+                pair_orbit = Orbit({'n': n, 'l': l, 'j': j+1})
+                assert i+1 < len(sorted_pswfc)
+                assert sorted_pswfc[i+1] == pair_orbit # will use __eq__
+                pswfc.remove(pair_orbit) # remove uses __eq__, and remove the 1st matched element
+                assert not pair_orbit in pswfc # # in uses __eq__, pswfc should contain one and only one pair_orbit
+                i += 1 # skip next one
+            i += 1
+        # Now all the j = l + 1/2 orbitals have been removed
+        for wfc in pswfc:
+            wannier_projections.append(f'{upf.element}: {orbit_map[wfc.l]}')
+    return wannier_projections
+
+def get_projections(structure: orm.StructureData, pseudos: Dict_of_Upf):
+    """get wannier90 projection block for the crystal structure 
+    based on pseudopotential files.
+
+    Usage:
+        projs = get_projections(struct_MgO, {'Mg':UpfData_Mg, 'O':UpfData_O})
+
+    :param structure: crystal structure
+    :type structure: aiida.orm.StructureData
+    :param pseudos: a dictionary contains orm.UpfData of the structure
+    :type pseudos: dict
+    :return: wannier90 projection block
+    :rtype: list
+    """
+    if not isinstance(structure, orm.StructureData):
+        raise ValueError(f'The type of structure is {type(structure)}, only aiida.orm.StructureData is accepted')
+    if not isinstance(pseudos, dict):
+        raise ValueError(f'The type of pseudos is {type(pseudos)}, only dict is accepted')
+    for k, v in pseudos.items():
+        if not isinstance(k, str) or not isinstance(v, orm.UpfData):
+            raise ValueError(f'The type of <{k}, {v}> in pseudos is <{type(k)}, {type(v)}>, only <str, aiida.orm.UpfData> type is accepted')
+
+    projections = []
+    # e.g. composition = {'Ga': 1, 'As': 1}
+    composition = structure.get_composition()
+    for kind in composition:
+        upf = pseudos[kind]
+        projs = get_projections_from_upf(upf)
+        projections.extend(projs)
+    return projections
+
+def parse_number_of_pswfc(upf_content: str) -> int:
+    """Get the number of orbitals in the UPF file.
+    This is also the number of orbitals used for projections in projwfc.x.
+    No AiiDA dependencies.
+    Works for both UPF v1 & v2 format, non-relativistic & relativistic.
+    Tested on all the SSSP pseudos.
+
+    :param upf_content: the content of the UPF file
+    :type upf_content: str
+    :return: number of PSWFC 
+    :rtype: int
+    """
+    num_projections = 0
+    has_so = is_soc_pseudo(upf_content)
+    if not has_so:
+        pswfc = parse_pswfc_nosoc(upf_content)
+        for wfc in pswfc:
+            l = wfc['l']
             num_projections += 2 * l + 1
+    else:
+        pswfc = parse_pswfc_soc(upf_content)
+        # For a given quantum number l, there are 2 cases:
+        # 1. j = l - 1/2 then there are 2*j + 1 = 2l states
+        # 2. j = l + 1/2 then there are 2*j + 1 = 2l + 2 states so we have to add another 2
+        # This follows the logic in q-e/Modules/uspp.f90:n_atom_wfc
+        for wfc in pswfc:
+            l = wfc['l']
+            j = wfc['j']
+            num_projections += 2 * l
+            if abs(j - l - 0.5) < 1e-6:
+                num_projections += 2
     return num_projections
 
 def get_number_of_projections_from_upf(upf: orm.UpfData) -> int:
@@ -294,10 +448,7 @@ def get_number_of_projections_from_upf(upf: orm.UpfData) -> int:
     :return: number of projections in the UPF file
     :rtype: int
     """
-    if not isinstance(upf, orm.UpfData):
-        raise ValueError(f'The type of upf is {type(upf)}, only aiida.orm.UpfData is accepted')
-    upf_name = upf.list_object_names()[0]
-    upf_content = upf.get_object_content(upf_name)
+    upf_content = get_upf_content(upf)
     return parse_number_of_pswfc(upf_content)
 
 def get_number_of_projections(structure: orm.StructureData, pseudos: Dict_of_Upf) -> int:
