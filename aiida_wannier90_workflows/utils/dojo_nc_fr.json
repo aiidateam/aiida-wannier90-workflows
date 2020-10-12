@@ -1,0 +1,492 @@
+{
+  "H": {
+    "filename": "H.upf",
+    "md5": "418cee52d0c413ae40802e6cc37ab9e3",
+    "pseudopotential": "Dojo",
+    "cutoff": 72.0,
+    "dual": 4.0
+  },
+  "He": {
+    "filename": "He.upf",
+    "md5": "9272141eebead17f5d158a4ad954fadb",
+    "pseudopotential": "Dojo",
+    "cutoff": 90.0,
+    "dual": 4.0
+  },
+  "Li": {
+    "filename": "Li.upf",
+    "md5": "28e781596b69f367d040cb5d4c83ad5a",
+    "pseudopotential": "Dojo",
+    "cutoff": 74.0,
+    "dual": 4.0
+  },
+  "Be": {
+    "filename": "Be.upf",
+    "md5": "ac38f5498bd3766e938aa84f7619f26a",
+    "pseudopotential": "Dojo",
+    "cutoff": 88.0,
+    "dual": 4.0
+  },
+  "B": {
+    "filename": "B.upf",
+    "md5": "8d3529416d991d290d09c9d3752026a1",
+    "pseudopotential": "Dojo",
+    "cutoff": 76.0,
+    "dual": 4.0
+  },
+  "C": {
+    "filename": "C.upf",
+    "md5": "d80ec9912146af6c4c1760317d1f95e9",
+    "pseudopotential": "Dojo",
+    "cutoff": 82.0,
+    "dual": 4.0
+  },
+  "N": {
+    "filename": "N.upf",
+    "md5": "ff7f9f91e4136e6855b4906c31c1cc72",
+    "pseudopotential": "Dojo",
+    "cutoff": 84.0,
+    "dual": 4.0
+  },
+  "O": {
+    "filename": "O.upf",
+    "md5": "e357869f07dbe8d608261c380baea405",
+    "pseudopotential": "Dojo",
+    "cutoff": 84.0,
+    "dual": 4.0
+  },
+  "F": {
+    "filename": "F.upf",
+    "md5": "abe63f1f76c40dc8c91ba0a2d7d66777",
+    "pseudopotential": "Dojo",
+    "cutoff": 84.0,
+    "dual": 4.0
+  },
+  "Ne": {
+    "filename": "Ne.upf",
+    "md5": "18e1657b2a316ee86e5ac1f3532417a6",
+    "pseudopotential": "Dojo",
+    "cutoff": 68.0,
+    "dual": 4.0
+  },
+  "Na": {
+    "filename": "Na.upf",
+    "md5": "5cc9e3e9635f0b9e0056521f6116a380",
+    "pseudopotential": "Dojo",
+    "cutoff": 88.0,
+    "dual": 4.0
+  },
+  "Mg": {
+    "filename": "Mg.upf",
+    "md5": "750ff570619d62cb51988197239ea73b",
+    "pseudopotential": "Dojo",
+    "cutoff": 84.0,
+    "dual": 4.0
+  },
+  "Al": {
+    "filename": "Al.upf",
+    "md5": "4974d48a734c9d7d1eb6780a1419d19d",
+    "pseudopotential": "Dojo",
+    "cutoff": 40.0,
+    "dual": 4.0
+  },
+  "Si": {
+    "filename": "Si.upf",
+    "md5": "d8e8ea3dd55db7858206a05f373c9c65",
+    "pseudopotential": "Dojo",
+    "cutoff": 36.0,
+    "dual": 4.0
+  },
+  "P": {
+    "filename": "P.upf",
+    "md5": "04c1173e06a58ef69d00f9ee2aabe133",
+    "pseudopotential": "Dojo",
+    "cutoff": 44.0,
+    "dual": 4.0
+  },
+  "S": {
+    "filename": "S.upf",
+    "md5": "a7319d53700e7dada26ada44d0048388",
+    "pseudopotential": "Dojo",
+    "cutoff": 52.0,
+    "dual": 4.0
+  },
+  "Cl": {
+    "filename": "Cl.upf",
+    "md5": "b1ddb435c2952724bdf458cc656d2c80",
+    "pseudopotential": "Dojo",
+    "cutoff": 58.0,
+    "dual": 4.0
+  },
+  "Ar": {
+    "filename": "Ar.upf",
+    "md5": "ec1c412fe97526a8a49473797d4479ae",
+    "pseudopotential": "Dojo",
+    "cutoff": 66.0,
+    "dual": 4.0
+  },
+  "K": {
+    "filename": "K.upf",
+    "md5": "138c3bccb5218ec3316beae0c1f1e8fa",
+    "pseudopotential": "Dojo",
+    "cutoff": 74.0,
+    "dual": 4.0
+  },
+  "Ca": {
+    "filename": "Ca.upf",
+    "md5": "dc487c86beea18d9c6a1517259e81704",
+    "pseudopotential": "Dojo",
+    "cutoff": 68.0,
+    "dual": 4.0
+  },
+  "Sc": {
+    "filename": "Sc.upf",
+    "md5": "f613200ef442e369aae3332e14fc0a4a",
+    "pseudopotential": "Dojo",
+    "cutoff": 78.0,
+    "dual": 4.0
+  },
+  "Ti": {
+    "filename": "Ti.upf",
+    "md5": "4a66ab2547244c2167df87966c0752a5",
+    "pseudopotential": "Dojo",
+    "cutoff": 84.0,
+    "dual": 4.0
+  },
+  "V": {
+    "filename": "V.upf",
+    "md5": "f3eaf2f8b12999b28b8a4e139b19fe14",
+    "pseudopotential": "Dojo",
+    "cutoff": 84.0,
+    "dual": 4.0
+  },
+  "Cr": {
+    "filename": "Cr.upf",
+    "md5": "e4755fb39f753e55e5d2a46de4395b17",
+    "pseudopotential": "Dojo",
+    "cutoff": 94.0,
+    "dual": 4.0
+  },
+  "Mn": {
+    "filename": "Mn.upf",
+    "md5": "97486758464197a89522fc97795ad216",
+    "pseudopotential": "Dojo",
+    "cutoff": 96.0,
+    "dual": 4.0
+  },
+  "Fe": {
+    "filename": "Fe.upf",
+    "md5": "b9cfc4dc94fead0ebd2746b016929f5e",
+    "pseudopotential": "Dojo",
+    "cutoff": 90.0,
+    "dual": 4.0
+  },
+  "Co": {
+    "filename": "Co.upf",
+    "md5": "c7dc2adeeef937498ddd392dae826f35",
+    "pseudopotential": "Dojo",
+    "cutoff": 96.0,
+    "dual": 4.0
+  },
+  "Ni": {
+    "filename": "Ni.upf",
+    "md5": "14a7e289c5fff9cacaba393040e62f02",
+    "pseudopotential": "Dojo",
+    "cutoff": 98.0,
+    "dual": 4.0
+  },
+  "Cu": {
+    "filename": "Cu.upf",
+    "md5": "4cb9fe66fc25bd54f2aa8c9777a8800c",
+    "pseudopotential": "Dojo",
+    "cutoff": 92.0,
+    "dual": 4.0
+  },
+  "Zn": {
+    "filename": "Zn.upf",
+    "md5": "506e7667e9e4d2294b6195faf3386e92",
+    "pseudopotential": "Dojo",
+    "cutoff": 84.0,
+    "dual": 4.0
+  },
+  "Ga": {
+    "filename": "Ga.upf",
+    "md5": "007786bba85e1410450b90e7159d237a",
+    "pseudopotential": "Dojo",
+    "cutoff": 80.0,
+    "dual": 4.0
+  },
+  "Ge": {
+    "filename": "Ge.upf",
+    "md5": "88462bb932a16c32ceaf7b092c78b60a",
+    "pseudopotential": "Dojo",
+    "cutoff": 78.0,
+    "dual": 4.0
+  },
+  "As": {
+    "filename": "As.upf",
+    "md5": "92566e412f0eca4e698ac3407aa21570",
+    "pseudopotential": "Dojo",
+    "cutoff": 84.0,
+    "dual": 4.0
+  },
+  "Se": {
+    "filename": "Se.upf",
+    "md5": "cb2cefba1335ec1a0ef320de5a6fd81a",
+    "pseudopotential": "Dojo",
+    "cutoff": 86.0,
+    "dual": 4.0
+  },
+  "Br": {
+    "filename": "Br.upf",
+    "md5": "41f672ce76ec6f6480a05aabe46aac99",
+    "pseudopotential": "Dojo",
+    "cutoff": 46.0,
+    "dual": 4.0
+  },
+  "Kr": {
+    "filename": "Kr.upf",
+    "md5": "6d211bd84e170dbe44fcb9e23c857e21",
+    "pseudopotential": "Dojo",
+    "cutoff": 52.0,
+    "dual": 4.0
+  },
+  "Rb": {
+    "filename": "Rb.upf",
+    "md5": "1f418f1ed72b6579f8407a2dc217539d",
+    "pseudopotential": "Dojo",
+    "cutoff": 46.0,
+    "dual": 4.0
+  },
+  "Sr": {
+    "filename": "Sr.upf",
+    "md5": "35c616a94c00de6e6c519f87ccc4bf75",
+    "pseudopotential": "Dojo",
+    "cutoff": 68.0,
+    "dual": 4.0
+  },
+  "Y": {
+    "filename": "Y.upf",
+    "md5": "1c07ae898b396ab0948291dc189e371c",
+    "pseudopotential": "Dojo",
+    "cutoff": 72.0,
+    "dual": 4.0
+  },
+  "Zr": {
+    "filename": "Zr.upf",
+    "md5": "56dce08add83a74c8134698ad5f23cbc",
+    "pseudopotential": "Dojo",
+    "cutoff": 66.0,
+    "dual": 4.0
+  },
+  "Nb": {
+    "filename": "Nb.upf",
+    "md5": "c762db8da245f77f81a67bd8eb2832ec",
+    "pseudopotential": "Dojo",
+    "cutoff": 82.0,
+    "dual": 4.0
+  },
+  "Mo": {
+    "filename": "Mo.upf",
+    "md5": "4e1c3579de4f68baf863f15f5be96aa1",
+    "pseudopotential": "Dojo",
+    "cutoff": 80.0,
+    "dual": 4.0
+  },
+  "Tc": {
+    "filename": "Tc.upf",
+    "md5": "a68e1ec66280a56f246b117cfc93479e",
+    "pseudopotential": "Dojo",
+    "cutoff": 84.0,
+    "dual": 4.0
+  },
+  "Ru": {
+    "filename": "Ru.upf",
+    "md5": "90ff6e8e149ee22343b569aff5daab8f",
+    "pseudopotential": "Dojo",
+    "cutoff": 84.0,
+    "dual": 4.0
+  },
+  "Rh": {
+    "filename": "Rh.upf",
+    "md5": "241d26aaf374bcfaabd851d12f133a4e",
+    "pseudopotential": "Dojo",
+    "cutoff": 88.0,
+    "dual": 4.0
+  },
+  "Pd": {
+    "filename": "Pd.upf",
+    "md5": "be3bbc102036a849029d587ce4b31d2e",
+    "pseudopotential": "Dojo",
+    "cutoff": 82.0,
+    "dual": 4.0
+  },
+  "Ag": {
+    "filename": "Ag.upf",
+    "md5": "6efb3fe9a042916d98100170a843b995",
+    "pseudopotential": "Dojo",
+    "cutoff": 82.0,
+    "dual": 4.0
+  },
+  "Cd": {
+    "filename": "Cd.upf",
+    "md5": "fc9988adff5645b1bce1836ec33f834f",
+    "pseudopotential": "Dojo",
+    "cutoff": 102.0,
+    "dual": 4.0
+  },
+  "In": {
+    "filename": "In.upf",
+    "md5": "7332ee957fb300901b7fa3d5e49d0890",
+    "pseudopotential": "Dojo",
+    "cutoff": 70.0,
+    "dual": 4.0
+  },
+  "Sn": {
+    "filename": "Sn.upf",
+    "md5": "789b5e66fce167ac30fcdcb6618e706a",
+    "pseudopotential": "Dojo",
+    "cutoff": 72.0,
+    "dual": 4.0
+  },
+  "Sb": {
+    "filename": "Sb.upf",
+    "md5": "f524120fbd47438d62aeb3dc8eb03f3c",
+    "pseudopotential": "Dojo",
+    "cutoff": 80.0,
+    "dual": 4.0
+  },
+  "Te": {
+    "filename": "Te.upf",
+    "md5": "d198e370297ac1d7edee156d0fe975c4",
+    "pseudopotential": "Dojo",
+    "cutoff": 80.0,
+    "dual": 4.0
+  },
+  "I": {
+    "filename": "I.upf",
+    "md5": "301f7009ca0a2b18b0adf53dca02d42f",
+    "pseudopotential": "Dojo",
+    "cutoff": 70.0,
+    "dual": 4.0
+  },
+  "Xe": {
+    "filename": "Xe.upf",
+    "md5": "5bb07fb442a461471c178c2fcbb91b1b",
+    "pseudopotential": "Dojo",
+    "cutoff": 68.0,
+    "dual": 4.0
+  },
+  "Cs": {
+    "filename": "Cs.upf",
+    "md5": "0949d7fbeea01e664226101e754fa92a",
+    "pseudopotential": "Dojo",
+    "cutoff": 50.0,
+    "dual": 4.0
+  },
+  "Ba": {
+    "filename": "Ba.upf",
+    "md5": "c3493f42e3a3b2e6d8ad780f479f7165",
+    "pseudopotential": "Dojo",
+    "cutoff": 44.0,
+    "dual": 4.0
+  },
+  "Hf": {
+    "filename": "Hf.upf",
+    "md5": "bde2e012f831674a856dc5e85ca34ee8",
+    "pseudopotential": "Dojo",
+    "cutoff": 58.0,
+    "dual": 4.0
+  },
+  "Ta": {
+    "filename": "Ta.upf",
+    "md5": "d169f01d5844f7e04fd61951733e7fec",
+    "pseudopotential": "Dojo",
+    "cutoff": 58.0,
+    "dual": 4.0
+  },
+  "W": {
+    "filename": "W.upf",
+    "md5": "75b1d432d85d028982bb81b068264ebf",
+    "pseudopotential": "Dojo",
+    "cutoff": 74.0,
+    "dual": 4.0
+  },
+  "Re": {
+    "filename": "Re.upf",
+    "md5": "b5f6a4eed0c71b9177890aff2d2363a2",
+    "pseudopotential": "Dojo",
+    "cutoff": 72.0,
+    "dual": 4.0
+  },
+  "Os": {
+    "filename": "Os.upf",
+    "md5": "b5c40bb6643eb5d69e8181192c70fae9",
+    "pseudopotential": "Dojo",
+    "cutoff": 74.0,
+    "dual": 4.0
+  },
+  "Ir": {
+    "filename": "Ir.upf",
+    "md5": "850b2ad7e2193da95aa23560e3073a97",
+    "pseudopotential": "Dojo",
+    "cutoff": 68.0,
+    "dual": 4.0
+  },
+  "Pt": {
+    "filename": "Pt.upf",
+    "md5": "38b37cc9fce0bd1ebfe8ed3e237ab632",
+    "pseudopotential": "Dojo",
+    "cutoff": 84.0,
+    "dual": 4.0
+  },
+  "Au": {
+    "filename": "Au.upf",
+    "md5": "0f4c7ff4841ea3d6668dbbe9cc620d4d",
+    "pseudopotential": "Dojo",
+    "cutoff": 76.0,
+    "dual": 4.0
+  },
+  "Hg": {
+    "filename": "Hg.upf",
+    "md5": "d85b3e284848a6ef6fce73cef7b59184",
+    "pseudopotential": "Dojo",
+    "cutoff": 66.0,
+    "dual": 4.0
+  },
+  "Tl": {
+    "filename": "Tl.upf",
+    "md5": "0dec2a197a21ab96ff7b9bc3defb4998",
+    "pseudopotential": "Dojo",
+    "cutoff": 62.0,
+    "dual": 4.0
+  },
+  "Pb": {
+    "filename": "Pb.upf",
+    "md5": "73abbbd201951038fc1bdacebad68d2f",
+    "pseudopotential": "Dojo",
+    "cutoff": 56.0,
+    "dual": 4.0
+  },
+  "Bi": {
+    "filename": "Bi.upf",
+    "md5": "260977096fd1df4b879f04c556a28fcb",
+    "pseudopotential": "Dojo",
+    "cutoff": 66.0,
+    "dual": 4.0
+  },
+  "Po": {
+    "filename": "Po.upf",
+    "md5": "d75686d9dec8951092fb7be265ebbbe1",
+    "pseudopotential": "Dojo",
+    "cutoff": 64.0,
+    "dual": 4.0
+  },
+  "Rn": {
+    "filename": "Rn.upf",
+    "md5": "5b92fb1c94902cd74f9fa44376ed130a",
+    "pseudopotential": "Dojo",
+    "cutoff": 72.0,
+    "dual": 4.0
+  }
+}
