@@ -410,7 +410,8 @@ def get_fermi_energy(output_parameters):
 
 @calcfunction
 def update_fermi_energy(wannier_input_parameters, scf_output_parameters):
-    """extract Fermi energy from scf calculation and add it to Wannier input parameters
+    """Extract Fermi energy from scf calculation and add it to Wannier input parameters,
+    also update dis_froz_max if it exists.
 
     :param wannier_input_parameters: Wannier input parameters
     :type wannier_input_parameters: orm.Dict
@@ -420,6 +421,8 @@ def update_fermi_energy(wannier_input_parameters, scf_output_parameters):
     params = wannier_input_parameters.get_dict()
     fermi = get_fermi_energy(scf_output_parameters)
     params['fermi_energy'] = fermi
+    if 'dis_froz_max' in params:
+        params['dis_froz_max'] += fermi
     return orm.Dict(dict=params)
 
 @calcfunction
