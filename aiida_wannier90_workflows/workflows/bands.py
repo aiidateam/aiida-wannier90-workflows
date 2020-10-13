@@ -13,7 +13,7 @@ from aiida_quantumespresso.workflows.pw.base import PwBaseWorkChain
 from aiida_quantumespresso.calculations.functions.create_kpoints_from_distance import create_kpoints_from_distance
 
 from aiida_wannier90_workflows.workflows.wannier import Wannier90WorkChain
-from aiida_wannier90_workflows.utils.upf import get_number_of_electrons, get_number_of_projections, get_wannier_number_of_bands, _load_pseudo_metadata
+from aiida_wannier90_workflows.utils.upf import get_number_of_electrons, get_number_of_projections, get_wannier_number_of_bands, _load_pseudo_metadata, get_projections
 from aiida_wannier90_workflows.calculations.functions.kmesh import convert_kpoints_mesh_to_list
 
 __all__ = ['Wannier90BandsWorkChain']
@@ -40,7 +40,7 @@ class Wannier90BandsWorkChain(WorkChain):
 
         # control variables for the workchain
         spec.input('auto_projections', valid_type=orm.Bool, default=lambda: orm.Bool(True),
-            help='If True use SCDM projections, otherwise use random projections.')
+            help='If True use SCDM projections, otherwise use atomic-orbital projections.')
         spec.input('use_opengrid', valid_type=orm.Bool, default=lambda: orm.Bool(False),
             help='If True use open_grid.x to accelerate calculations.')
         spec.input('opengrid_only_scf', valid_type=orm.Bool, default=lambda: orm.Bool(True),
@@ -203,14 +203,17 @@ class Wannier90BandsWorkChain(WorkChain):
         # `inspect_wannier_workchain` against QE outputs, to ensure they are correct.
         self.ctx.number_of_electrons = get_number_of_electrons(**args)
         self.ctx.number_of_projections = get_number_of_projections(**args)
-        args.update({
-            'only_valence': self.inputs.only_valence.value,
-            'spin_polarized': self.inputs.spin_polarized.value
-            })
+        # if not using SCDM, then use atom-centred s,p,d orbitals
+        if not self.inputs.auto_projections:
+            self.ctx.wannier_projections = orm.List(list=get_projections(**args))
         # nscf_nbnd will be used in
         # 1. setting nscf number of bands, or
         # 2. setting nscf number of bands when opengrid is used & opengrid has nscf step
         # 3. setting scf number of bands when opengrid is used & opengrid only has scf step
+        args.update({
+            'only_valence': self.inputs.only_valence.value,
+            'spin_polarized': self.inputs.spin_polarized.value
+            })
         self.ctx.nscf_nbnd = get_wannier_number_of_bands(**args)
 
         self.setup_scf_parameters()
@@ -335,7 +338,9 @@ class Wannier90BandsWorkChain(WorkChain):
             projections_info = 'SCDM'
         else:
             # random_projections will be set in the settings input of Wannier90Calculation
-            projections_info = 'random'
+            # projections_info = 'random'
+            # random projections is rarely used, so if not SCDM then use atomic-orbital projections
+            projections_info = 'atom-centred orbitals'
         self.report(f"using {projections_info} projections")
 
         if self.inputs.spin_orbit_coupling:
@@ -471,10 +476,13 @@ class Wannier90BandsWorkChain(WorkChain):
             parameters['mp_grid'] = self.ctx.nscf_kpoints.get_kpoints_mesh()[0]
             inputs.parameters = orm.Dict(dict=parameters)
 
-        settings = {}
-        # ramdom_projections
         if not self.inputs.auto_projections:
-            settings['random_projections'] = True
+            inputs.projections = self.ctx.wannier_projections
+
+        settings = {}
+        # ramdom projections are rarely used, switch to atom-centred s,p,d orbitals
+        # if not self.inputs.auto_projections:
+        #     settings['random_projections'] = True
 
         if self.inputs.retrieve_hamiltonian:
             # settings['retrieve_hoppings'] = True
@@ -531,12 +539,12 @@ class Wannier90BandsWorkChain(WorkChain):
 
         # check the calculated number of projections is consistent with QE projwfc.x
         workchain_outputs = workchain.get_outgoing(link_type=LinkType.RETURN).nested()
-        if not self.inputs.only_valence:
+        if not self.inputs.only_valence and 'projwfc' in workchain_outputs:
             num_proj = len(workchain_outputs['projwfc']['projections'].get_orbitals())
             if self.ctx.number_of_projections != num_proj:
                 self.report(f'number of projections {self.ctx.number_of_projections} != projwfc.x output {num_proj}')
                 return self.exit_codes.ERROR_SUB_PROCESS_FAILED_WANNIER
-        # chec the number of electrons is consistent with QE output
+        # check that the number of electrons is consistent with QE output
         num_elec = workchain_outputs['scf']['output_parameters']['number_of_electrons']
         if self.ctx.number_of_electrons != num_elec:
             self.report(f'number of electrons {self.ctx.number_of_electrons} != QE output {num_elec}')
