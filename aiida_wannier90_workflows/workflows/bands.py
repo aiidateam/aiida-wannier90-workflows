@@ -40,7 +40,7 @@ class Wannier90BandsWorkChain(WorkChain):
 
         # control variables for the workchain
         spec.input('auto_projections', valid_type=orm.Bool, default=lambda: orm.Bool(True),
-            help='If True use SCDM projections, otherwise use atomic-orbital projections.')
+            help='If True use SCDM projections, otherwise use atom-centred s,p,d orbitals as projections.')
         spec.input('use_opengrid', valid_type=orm.Bool, default=lambda: orm.Bool(False),
             help='If True use open_grid.x to accelerate calculations.')
         spec.input('opengrid_only_scf', valid_type=orm.Bool, default=lambda: orm.Bool(True),
@@ -49,8 +49,12 @@ class Wannier90BandsWorkChain(WorkChain):
             help='If True only Wannierise valence bands.')
         spec.input('compare_dft_bands', valid_type=orm.Bool, default=lambda: orm.Bool(False),
             help='If True perform another DFT band structure calculation for comparing Wannier interpolated bands with DFT bands.')
-        spec.input('disentanglement', valid_type=orm.Bool, default=lambda: orm.Bool(False),
-            help='Used only if only_valence == False. Usually disentanglement worsens SCDM bands, keep it default to False.')
+        # TODO if no user input for disentanglement, we should set its default value according to 
+        # auto_projections; if user has specified disentanglement, we should not modify its value.
+        # I need a populate_defaults=False mechanism for this, but there is no one exist.
+        # Maybe later when I switched to InputGenerator mechansim, no need to play with this one.
+        spec.input('disentanglement', valid_type=orm.Bool, required=False,
+            help='Used only if only_valence == False. The default disentanglement depends on auto_projections: when auto_projections = True, disentanglement = False; when auto_projections = False, disentanglement = True. These improve the quality of Wannier interpolated bands for the two cases.')
         spec.input('maximal_localisation', valid_type=orm.Bool, default=lambda: orm.Bool(True),
             help='If true do maximal localisation of Wannier functions.')
         spec.input('spin_polarized', valid_type=orm.Bool, default=lambda: orm.Bool(False),
@@ -365,16 +369,23 @@ class Wannier90BandsWorkChain(WorkChain):
         if self.inputs.only_valence:
             parameters['dis_num_iter'] = 0
         else:
-            if self.inputs.disentanglement:
+            # if self.inputs.disentanglement:
+            if self.inputs.auto_projections:
+                # No disentanglement when using SCDM, otherwise the wannier interpolated bands are wrong
+                parameters.update({'dis_num_iter': 0})
+            else:
+                # Require disentanglement when using s,p,d projections, otherwise interpolated bands are wrong
                 parameters.update({
-                    'dis_num_iter': 200,
+                    'dis_num_iter': 400,
                     'dis_conv_tol': parameters['conv_tol'],
-                    # 'dis_froz_max': 1.0,  #TODO a better value??
+                    # Here +3 means Fermi+3 eV, however Fermi energy is calculated dynamically,
+                    # so later in Wannier90WorkChain, it will add Fermi energy on top of this dis_froz_max,
+                    # so this dis_froz_max is a relative value.
+                    #TODO +3 eV is a bit arbitrary, consider a better value?
+                    'dis_froz_max': +3.0,
                     #'dis_mix_ratio':1.d0,
                     #'dis_win_max':10.0,
                 })
-            else:
-                parameters.update({'dis_num_iter': 0})
 
         if self.inputs.retrieve_hamiltonian:
             parameters['write_tb'] = True
