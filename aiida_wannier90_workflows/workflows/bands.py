@@ -267,6 +267,18 @@ class Wannier90BandsWorkChain(WorkChain):
             pw_parameters['SYSTEM']['noncolin'] = True
             pw_parameters['SYSTEM']['lspinorb'] = True
 
+        # Currently only support magnetic with SOC
+        # for magnetic w/o SOC, needs 2 separate wannier90 calculations for spin up and down.
+        if self.inputs.spin_polarized and self.inputs.spin_orbit_coupling:
+            # Magnetization from Kittel, unit: Bohr magneton
+            magnetizations = {'Fe': 2.22, 'Co': 1.72, 'Ni': 0.606}
+            from aiida_wannier90_workflows.utils.upf import get_number_of_electrons_from_upf
+            for i, kind in enumerate(self.inputs.structure.kinds):
+                if kind.name in magnetizations:
+                    zvalence = get_number_of_electrons_from_upf(self.ctx.pseudos[kind.name])
+                    spin_polarization = magnetizations[kind.name] / zvalence
+                    pw_parameters['SYSTEM'][f"starting_magnetization({i+1})"] = spin_polarization
+
         self.ctx.scf_parameters = orm.Dict(dict=pw_parameters)
 
     def setup_nscf_parameters(self):
