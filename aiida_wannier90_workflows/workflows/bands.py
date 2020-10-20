@@ -37,6 +37,7 @@ class Wannier90BandsWorkChain(WorkChain):
         spec.input('structure', valid_type=orm.StructureData, help='The input structure.')
         spec.input('protocol', valid_type=orm.Dict, default=lambda: orm.Dict(dict={'name': 'theos-ht-1.0'}), help='The protocol to use for the workchain.', validator=validate_protocol)
         spec.input('options', valid_type=orm.Dict, required=False, help='Optional `options` to use for the workchain.')
+        spec.input('settings', valid_type=orm.Dict, required=False, help='Optional `settings` to use for the workchain.')
 
         # control variables for the workchain
         spec.input('auto_projections', valid_type=orm.Bool, default=lambda: orm.Bool(True),
@@ -190,11 +191,17 @@ class Wannier90BandsWorkChain(WorkChain):
         if 'options' in self.inputs:
             self.ctx.options = self.inputs.options.get_dict()
         else:
-            self.ctx.options = get_default_options(self.ctx.current_structure, with_mpi=True)
-            # or manually assign parallelizations here
-            # self.ctx.options = get_manual_options()
-        self.report('number of machines {} auto-set according to number of atoms'.
-            format(self.ctx.options['resources']['num_machines']))
+            self.ctx.options = {}
+        self.ctx.options_default = get_default_options(self.ctx.current_structure, with_mpi=True)
+        # or manually assign parallelizations here
+        # self.ctx.options = get_manual_options()
+        self.report('Default number of machines {} auto-set according to number of atoms'.
+            format(self.ctx.options_default['resources']['num_machines']))
+
+        if 'settings' in self.inputs:
+            self.ctx.settings = self.inputs.settings.get_dict()
+        else:
+            self.ctx.settings = {}
 
         # save variables to ctx because they maybe used in several difference methods
         args = {'structure': self.ctx.current_structure, 'pseudos': self.ctx.pseudos}
@@ -390,7 +397,9 @@ class Wannier90BandsWorkChain(WorkChain):
             }
         })
         inputs.kpoints_distance = orm.Float(self.ctx.protocol['kpoints_mesh_density'])
-        inputs.pw.metadata.options = self.ctx.options
+        inputs.pw.metadata.options = self.ctx.options.get('scf', self.ctx.options_default)
+        if 'scf' in self.ctx.settings:
+            inputs.pw.settings = orm.Dict(dict=self.ctx.settings['scf'])
         return inputs
 
     def prepare_nscf_inputs(self):
@@ -430,7 +439,9 @@ class Wannier90BandsWorkChain(WorkChain):
             # store it for setting wannier90 mp_grid
             self.ctx.nscf_explicit_kpoints = inputs.kpoints
 
-        inputs.pw.metadata.options = self.ctx.options
+        inputs.pw.metadata.options = self.ctx.options.get('nscf', self.ctx.options_default)
+        if 'nscf' in self.ctx.settings:
+            inputs.pw.settings = orm.Dict(dict=self.ctx.settings['nscf'])
         return inputs
 
     def prepare_projwfc_inputs(self):
@@ -439,7 +450,9 @@ class Wannier90BandsWorkChain(WorkChain):
             'parameters': self.ctx.projwfc_parameters,
             'metadata': {},
         })
-        inputs.metadata.options = self.ctx.options
+        inputs.metadata.options = self.ctx.options.get('projwfc', self.ctx.options_default)
+        if 'projwfc' in self.ctx.settings:
+            inputs.settings = orm.Dict(dict=self.ctx.settings['projwfc'])
         return inputs
 
     def prepare_pw2wannier90_inputs(self):
@@ -448,7 +461,9 @@ class Wannier90BandsWorkChain(WorkChain):
             'parameters': self.ctx.pw2wannier90_parameters,
             'metadata': {},
         })
-        inputs.metadata.options = self.ctx.options
+        inputs.metadata.options = self.ctx.options.get('pw2wannier90', self.ctx.options_default)
+        if 'pw2wannier90' in self.ctx.settings:
+            inputs.settings = orm.Dict(dict=self.ctx.settings['pw2wannier90'])
         return inputs
 
     def prepare_wannier90_inputs(self):
@@ -471,7 +486,7 @@ class Wannier90BandsWorkChain(WorkChain):
             parameters['mp_grid'] = self.ctx.nscf_kpoints.get_kpoints_mesh()[0]
             inputs.parameters = orm.Dict(dict=parameters)
 
-        settings = {}
+        settings = self.ctx.settings.get('wannier90', {})
         # ramdom_projections
         if not self.inputs.auto_projections:
             settings['random_projections'] = True
@@ -488,7 +503,7 @@ class Wannier90BandsWorkChain(WorkChain):
             # ]
 
         inputs['settings'] = orm.Dict(dict=settings)
-        inputs.metadata.options = self.ctx.options
+        inputs.metadata.options = self.ctx.options.get('wannier90', self.ctx.options_default)
         return inputs
 
     def prepare_opengrid_inputs(self):
@@ -496,7 +511,7 @@ class Wannier90BandsWorkChain(WorkChain):
             'code': self.inputs.codes.opengrid,
             'metadata': {},
         })
-        inputs.metadata.options = self.ctx.options
+        inputs.metadata.options = self.ctx.options.get('opengrid', self.ctx.options_default)
         return inputs
 
     def run_wannier_workchain(self):
@@ -555,7 +570,7 @@ class Wannier90BandsWorkChain(WorkChain):
                 'code': self.inputs.codes.pw,
                 'pseudos': self.ctx.pseudos,
                 'parameters': {},
-                'metadata': {'options': self.ctx.options}
+                'metadata': {'options': self.ctx.options.get('bands', self.ctx.options_default)}
             },
             'metadata': {'call_link_label': 'bands'}
         })
@@ -570,6 +585,8 @@ class Wannier90BandsWorkChain(WorkChain):
         inputs.pw.parameters['CONTROL']['calculation'] = 'bands'
         inputs.pw.parameters['ELECTRONS'].setdefault('diagonalization', 'cg')
         inputs.pw.parameters['ELECTRONS'].setdefault('diago_full_acc', True)
+        if 'bands' in self.ctx.settings:
+            inputs.pw.settings = orm.Dict(dict=self.ctx.settings['bands'])
         return inputs
 
     def run_bands(self):
