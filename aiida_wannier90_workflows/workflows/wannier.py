@@ -1,3 +1,4 @@
+import os
 from aiida import orm
 from aiida.common import AttributeDict
 from aiida.engine.processes import WorkChain, ToContext, if_
@@ -183,12 +184,16 @@ class Wannier90WorkChain(WorkChain):
         self.report(f"nscf {workchain.process_label} successfully finished")
 
     def should_run_projwfc(self):
-        """If the 'auto_projections = true' && only_valence, we run projwfc calculation to extract SCDM mu & sigma."""
+        """If the 'auto_projections = true', we run projwfc calculation for
+        1. generate AMN from atomic_proj.xml, or
+        2. extract SCDM mu & sigma."""
         inputs = AttributeDict(self.exposed_inputs(Pw2wannier90Calculation, namespace='pw2wannier90'))
         parameters = inputs.parameters.get_dict()
         scdm_entanglement = parameters.get('inputpp', {}).get('scdm_entanglement', None)
         scdm_mu = parameters.get('inputpp', {}).get('scdm_mu', None)
         scdm_sigma = parameters.get('inputpp', {}).get('scdm_sigma', None)
+
+        self.ctx.scdm_projections = scdm_entanglement is not None
 
         if not self.ctx.auto_projections:
             return False
@@ -208,6 +213,9 @@ class Wannier90WorkChain(WorkChain):
                 return self.exit_codes.ERROR_SUB_PROCESS_FAILED_PW2WANNIER90
             else:
                 return False
+        else:
+            # for atomic_proj.xml
+            return True
 
     def run_projwfc(self):
         """Projwfc step"""
@@ -298,18 +306,37 @@ class Wannier90WorkChain(WorkChain):
         inputs['nnkp_file'] = self.ctx.workchain_wannier90_pp.outputs.nnkp_file
 
         if 'calc_projwfc' in self.ctx:
-            try:
-                args = {
-                    'parameters': inputs.parameters,
-                    'bands': self.ctx.calc_projwfc.outputs.bands,
-                    'projections': self.ctx.calc_projwfc.outputs.projections,
-                    'thresholds': self.inputs.get('scdm_thresholds'),
-                    'metadata': {'call_link_label': 'update_scdm_mu_sigma'}
-                }
-                inputs.parameters = update_scdm_mu_sigma(**args)
-            except Exception as e:
-                self.report(f'update_scdm_mu_sigma failed! {e.args}')
-                return self.exit_codes.ERROR_SUB_PROCESS_FAILED_PW2WANNIER90
+            if self.ctx.scdm_projections:
+                try:
+                    args = {
+                        'parameters': inputs.parameters,
+                        'bands': self.ctx.calc_projwfc.outputs.bands,
+                        'projections': self.ctx.calc_projwfc.outputs.projections,
+                        'thresholds': self.inputs.get('scdm_thresholds'),
+                        'metadata': {'call_link_label': 'update_scdm_mu_sigma'}
+                    }
+                    inputs.parameters = update_scdm_mu_sigma(**args)
+                except Exception as e:
+                    self.report(f'update_scdm_mu_sigma failed! {e.args}')
+                    return self.exit_codes.ERROR_SUB_PROCESS_FAILED_PW2WANNIER90
+            else:
+                # inputs.parameters = update_write_amn(inputs.parameters)
+                # TODO if not use update_write_amn calcfunction, the provenance graph will be broken?
+                parameters_dict = inputs.parameters.get_dict()
+                parameters_dict['inputpp']['write_amn'] = False
+                inputs.parameters = orm.Dict(dict=parameters_dict)
+
+        # symlink amn file when using pswfc projections
+        if self.ctx.auto_projections and not self.ctx.scdm_projections:
+            settings = inputs.settings.get_dict() if 'settings' in inputs else {}
+            projwfc_folder_uuid = self.ctx.calc_projwfc.outputs.remote_folder.computer.uuid
+            projwfc_folder_path = self.ctx.calc_projwfc.outputs.remote_folder.get_remote_path()
+            seedname = self.ctx.calc_projwfc.inputs.parameters['PROJWFC']['seedname']
+            settings['additional_remote_symlink_list'] = [
+                (projwfc_folder_uuid, 
+                os.path.join(projwfc_folder_path, f"{seedname}.amn"), 
+                f"{seedname}.amn")]
+            inputs.settings = settings
 
         inputs = prepare_process_inputs(Pw2wannier90Calculation, inputs)
         running = self.submit(Pw2wannier90Calculation, **inputs)
@@ -355,6 +382,7 @@ class Wannier90WorkChain(WorkChain):
         else:
             settings = {}
         settings['postproc_setup'] = False
+
         inputs.settings = settings
 
         inputs = prepare_process_inputs(Wannier90Calculation, inputs)
