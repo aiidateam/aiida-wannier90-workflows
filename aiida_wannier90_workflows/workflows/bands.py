@@ -39,8 +39,12 @@ class Wannier90BandsWorkChain(WorkChain):
         spec.input('options', valid_type=orm.Dict, required=False, help='Optional `options` to use for the workchain.')
 
         # control variables for the workchain
-        spec.input('auto_projections', valid_type=orm.Bool, default=lambda: orm.Bool(True),
-            help='If True use SCDM projections, otherwise use atom-centred s,p,d orbitals as projections.')
+        spec.input('scdm_projections', valid_type=orm.Bool, default=lambda: orm.Bool(True),
+            help='If True use SCDM projections.')
+        spec.input('spdf_projections', valid_type=orm.Bool, default=lambda: orm.Bool(False),
+            help='If True use atom-centred s,p,d orbitals as projections.')
+        spec.input('pswfc_projections', valid_type=orm.Bool, default=lambda: orm.Bool(False),
+            help='If True use PP_PSWFC projections.')
         spec.input('use_opengrid', valid_type=orm.Bool, default=lambda: orm.Bool(False),
             help='If True use open_grid.x to accelerate calculations.')
         spec.input('opengrid_only_scf', valid_type=orm.Bool, default=lambda: orm.Bool(True),
@@ -50,11 +54,11 @@ class Wannier90BandsWorkChain(WorkChain):
         spec.input('compare_dft_bands', valid_type=orm.Bool, default=lambda: orm.Bool(False),
             help='If True perform another DFT band structure calculation for comparing Wannier interpolated bands with DFT bands.')
         # TODO if no user input for disentanglement, we should set its default value according to 
-        # auto_projections; if user has specified disentanglement, we should not modify its value.
+        # scdm_projections; if user has specified disentanglement, we should not modify its value.
         # I need a populate_defaults=False mechanism for this, but there is no one exist.
         # Maybe later when I switched to InputGenerator mechansim, no need to play with this one.
         spec.input('disentanglement', valid_type=orm.Bool, required=False,
-            help='Used only if only_valence == False. The default disentanglement depends on auto_projections: when auto_projections = True, disentanglement = False; when auto_projections = False, disentanglement = True. These improve the quality of Wannier interpolated bands for the two cases.')
+            help='Used only if only_valence == False. The default disentanglement depends on scdm_projections: when scdm_projections = True, disentanglement = False; when scdm_projections = False, disentanglement = True. These improve the quality of Wannier interpolated bands for the two cases.')
         spec.input('maximal_localisation', valid_type=orm.Bool, default=lambda: orm.Bool(True),
             help='If true do maximal localisation of Wannier functions.')
         spec.input('spin_polarized', valid_type=orm.Bool, default=lambda: orm.Bool(False),
@@ -153,6 +157,15 @@ class Wannier90BandsWorkChain(WorkChain):
 
         self.setup_protocol()
 
+        projections = [
+            self.inputs.scdm_projections.value, 
+            self.inputs.spdf_projections.value, 
+            self.inputs.pswfc_projections.value
+            ]
+        if projections.count(True) != 1:
+            self.report('Can only use 1 type of projection')
+            return self.exit_codes.ERROR_INVALID_INPUT_OPENGRID
+
         if self.inputs.use_opengrid:
             if self.inputs.spin_orbit_coupling:
                 self.report('open_grid.x does not support spin orbit coupling')
@@ -208,7 +221,7 @@ class Wannier90BandsWorkChain(WorkChain):
         self.ctx.number_of_electrons = get_number_of_electrons(**args)
         self.ctx.number_of_projections = get_number_of_projections(**args)
         # if not using SCDM, then use atom-centred s,p,d orbitals
-        if not self.inputs.auto_projections:
+        if self.inputs.spdf_projections:
             self.ctx.wannier_projections = orm.List(list=get_projections(**args))
         # nscf_nbnd will be used in
         # 1. setting nscf number of bands, or
@@ -308,6 +321,13 @@ class Wannier90BandsWorkChain(WorkChain):
 
     def setup_projwfc_parameters(self):
         projwfc_parameters = orm.Dict(dict={'PROJWFC': {'DeltaE': 0.2}})
+
+        if self.inputs.pswfc_projections:
+            from aiida_wannier90.calculations import Wannier90Calculation
+            projwfc_parameters['PROJWFC']['write_amn'] = True
+            seedname = Wannier90Calculation._DEFAULT_INPUT_FILE[:-len(Wannier90Calculation._REQUIRED_INPUT_SUFFIX)]
+            projwfc_parameters['PROJWFC']['seedname'] = seedname
+
         self.ctx.projwfc_parameters = projwfc_parameters
 
     def setup_pw2wannier90_parameters(self):
@@ -321,7 +341,7 @@ class Wannier90BandsWorkChain(WorkChain):
             parameters['write_unk'] = True
             self.report("UNK files will be written.")
 
-        if self.inputs.auto_projections:
+        if self.inputs.scdm_projections:
             parameters['scdm_proj'] = True
 
             if self.inputs.only_valence:
@@ -349,14 +369,17 @@ class Wannier90BandsWorkChain(WorkChain):
         parameters['num_wann'] = num_wann
         self.report(f'number of Wannier functions set as {num_wann}')
 
-        if self.inputs.auto_projections:
+        if self.inputs.scdm_projections:
             parameters['auto_projections'] = True
             projections_info = 'SCDM'
+        elif self.inputs.pswfc_projections:
+            parameters['auto_projections'] = True
+            projections_info = 'PSWFC'
         else:
             # random_projections will be set in the settings input of Wannier90Calculation
             # projections_info = 'random'
             # random projections is rarely used, so if not SCDM then use atomic-orbital projections
-            projections_info = 'atom-centred orbitals'
+            projections_info = 'SPDF'
         self.report(f"using {projections_info} projections")
 
         if self.inputs.spin_orbit_coupling:
@@ -382,7 +405,7 @@ class Wannier90BandsWorkChain(WorkChain):
             parameters['dis_num_iter'] = 0
         else:
             # if self.inputs.disentanglement:
-            if self.inputs.auto_projections:
+            if self.inputs.scdm_projections:
                 # No disentanglement when using SCDM, otherwise the wannier interpolated bands are wrong
                 parameters.update({'dis_num_iter': 0})
             else:
@@ -499,7 +522,7 @@ class Wannier90BandsWorkChain(WorkChain):
             parameters['mp_grid'] = self.ctx.nscf_kpoints.get_kpoints_mesh()[0]
             inputs.parameters = orm.Dict(dict=parameters)
 
-        if not self.inputs.auto_projections:
+        if self.inputs.spdf_projections:
             inputs.projections = self.ctx.wannier_projections
 
         settings = {}
