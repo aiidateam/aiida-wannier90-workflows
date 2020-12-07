@@ -181,7 +181,10 @@ def submit_workchain(
         'disentanglement': orm.Bool(do_disentanglement),
         'maximal_localisation': orm.Bool(do_mlwf),
         'retrieve_hamiltonian': orm.Bool(retrieve_hamiltonian),
-        'auto_projections': orm.Bool(True),
+        'scdm_projections': orm.Bool(False),
+        #'spdf_projections': orm.Bool(True),
+        'pswfc_projections': orm.Bool(True),
+        'auto_froz_max': orm.Bool(True),
         # optional
         'use_opengrid': orm.Bool(False),
         'compare_dft_bands': orm.Bool(True),

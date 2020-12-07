@@ -59,6 +59,8 @@ class Wannier90BandsWorkChain(WorkChain):
         # Maybe later when I switched to InputGenerator mechansim, no need to play with this one.
         spec.input('disentanglement', valid_type=orm.Bool, required=False,
             help='Used only if only_valence == False. The default disentanglement depends on scdm_projections: when scdm_projections = True, disentanglement = False; when scdm_projections = False, disentanglement = True. These improve the quality of Wannier interpolated bands for the two cases.')
+        spec.input('auto_froz_max', valid_type=orm.Bool, required=False,
+            help='Used only if pswfc_projections == True. If True use the energy corresponding to projectability = 0.9 as dis_froz_max for wannier90 disentanglement.')
         spec.input('maximal_localisation', valid_type=orm.Bool, default=lambda: orm.Bool(True),
             help='If true do maximal localisation of Wannier functions.')
         spec.input('spin_polarized', valid_type=orm.Bool, default=lambda: orm.Bool(False),
@@ -421,6 +423,9 @@ class Wannier90BandsWorkChain(WorkChain):
                     #'dis_mix_ratio':1.d0,
                     #'dis_win_max':10.0,
                 })
+                if self.inputs.pswfc_projections and 'auto_froz_max' in self.inputs and self.inputs.auto_froz_max:
+                    # Use None to represent automatically choose froz_max based on projectability
+                    parameters['dis_froz_max'] = None
 
         if self.inputs.retrieve_hamiltonian:
             parameters['write_tb'] = True
