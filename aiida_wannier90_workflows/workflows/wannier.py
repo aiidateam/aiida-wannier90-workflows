@@ -1,4 +1,5 @@
 import os
+import numpy as np
 from aiida import orm
 from aiida.common import AttributeDict
 from aiida.engine.processes import WorkChain, ToContext, if_
@@ -11,7 +12,7 @@ from aiida_quantumespresso.workflows.pw.relax import PwRelaxWorkChain
 from aiida_quantumespresso.calculations.projwfc import ProjwfcCalculation
 from aiida_quantumespresso.calculations.pw2wannier90 import Pw2wannier90Calculation
 from aiida_wannier90.calculations import Wannier90Calculation
-from aiida_wannier90_workflows.utils.scdm import fit_scdm_mu_sigma_aiida
+from aiida_wannier90_workflows.utils.scdm import fit_scdm_mu_sigma_aiida, get_energy_of_projectability
 from aiida_wannier90_workflows.workflows.base import Wannier90BaseWorkChain
 
 __all__ = ['Wannier90WorkChain']
@@ -261,6 +262,26 @@ class Wannier90WorkChain(WorkChain):
             }
             inputs.parameters = update_fermi_energy(**args)
 
+        # set dis_froz_max
+        if self.ctx.auto_projections and not self.ctx.scdm_projections:
+            params = inputs.parameters.get_dict()
+            if params['dis_froz_max'] == None:
+                bands = self.ctx.calc_projwfc.outputs.bands
+                projections = self.ctx.calc_projwfc.outputs.projections
+                dis_froz_max = get_energy_of_projectability(bands, projections)
+                # aiida.common.exceptions.ModificationNotAllowed: the attributes of a stored entity are immutable
+                # inputs.parameters['dis_froz_max'] = dis_froz_max
+                # TODO check provenance graph
+                # dis_windows: More states in the frozen window than target WFs
+                min_band_energy = np.min(bands.get_bands()[:, params['num_wann']-1])
+                dis_froz_max = min(min_band_energy, dis_froz_max)
+                params['dis_froz_max'] = dis_froz_max
+                inputs.parameters = orm.Dict(dict=params)
+            else:
+                # is set in update_fermi_energy():
+                # dis_froz_max = fermi_energy + params['dis_froz_max']
+                pass
+
         if 'settings' in inputs:
             settings = inputs['settings'].get_dict()
         else:
@@ -450,7 +471,11 @@ def update_fermi_energy(wannier_input_parameters, scf_output_parameters):
     fermi = get_fermi_energy(scf_output_parameters)
     params['fermi_energy'] = fermi
     if 'dis_froz_max' in params:
-        params['dis_froz_max'] += fermi
+        if params['dis_froz_max'] != None:
+            params['dis_froz_max'] += fermi
+        else:
+            # auto_froz_max: use projectability = 0.9
+            pass
     return orm.Dict(dict=params)
 
 @calcfunction

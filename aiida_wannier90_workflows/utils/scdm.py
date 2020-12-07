@@ -4,7 +4,7 @@ from scipy.special import erfc
 from scipy.optimize import curve_fit
 from aiida import orm
 
-__all__ = ('erfc_scdm', 'fit_scdm_mu_sigma', 'fit_scdm_mu_sigma_aiida')
+__all__ = ('erfc_scdm', 'fit_scdm_mu_sigma', 'fit_scdm_mu_sigma_aiida', 'get_energy_of_projectability')
 
 def erfc_scdm(x, mu, sigma):
     return 0.5 * erfc((x - mu) / sigma)
@@ -29,18 +29,7 @@ def fit_scdm_mu_sigma(bands: np.array, projections: np.array, thresholds: dict =
         Pass sigma_factor = 0 if you do not want to shift
     :return: scdm_mu, scdm_sigma,
         optional data (shape 2 * N, 0th row energy, 1st row projectability)'''
-    # Flattening (projection modulus squared according to QE, energies)
-    projwfc_flat = projections.flatten()
-    bands_flat = bands.flatten()
-
-    # sort by energy
-    #sorted_bands, sorted_projwfc = zip(*sorted(zip(bands_flat, projwfc_flat)))
-    # use numpy, faster
-    data = np.vstack((bands_flat, projwfc_flat)) # shape 2 * N
-    ind = np.argsort(data, axis=1)[0, :] # sort by energy
-    data = data[:, ind]
-    sorted_bands = data[0, :]
-    sorted_projwfc = data[1, :]
+    sorted_bands, sorted_projwfc = sort_projectability_arrays(bands, projections)
 
     popt, pcov = fit_erfc(erfc_scdm, sorted_bands, sorted_projwfc)
     mu = popt[0]
@@ -54,6 +43,9 @@ def fit_scdm_mu_sigma(bands: np.array, projections: np.array, thresholds: dict =
     scdm_mu = mu - sigma * sigma_factor
 
     if return_data:
+        data = np.zeros((2, len(sorted_bands)))
+        data[0, :] = sorted_bands
+        data[1, :] = sorted_projwfc
         return scdm_mu, scdm_sigma, data
     else:
         return scdm_mu, scdm_sigma
@@ -70,6 +62,18 @@ def fit_scdm_mu_sigma_aiida(bands: orm.BandsData, projections: orm.ProjectionDat
     :type projections: orm.ProjectionData
     :param thresholds: thresholds of SCDM
     :type thresholds: dict"""
+    bands_array, projections_array = get_projectability_arrays(bands, projections)
+    return fit_scdm_mu_sigma(bands_array, projections_array, thresholds, return_data)
+
+def get_projectability_arrays(bands: orm.BandsData, projections: orm.ProjectionData):
+    """accept aiida orm class, return numpy arrays: 
+            (bands_array, projections_array), where each array has shape (num_kpt, num_bands)
+
+    :param bands: [description]
+    :type bands: orm.BandsData
+    :param projections: [description]
+    :type projections: orm.ProjectionData
+    """
     # List of specifications of atomic orbitals in dictionary form
     orbitals_list = [i.get_orbital_dict() for i in projections.get_orbitals()]
     # Sum of the projections on all atomic orbitals, shape num_kpoints * num_bands
@@ -77,5 +81,41 @@ def fit_scdm_mu_sigma_aiida(bands: orm.BandsData, projections: orm.ProjectionDat
                     for orb_dict in orbitals_list])
     # shape num_kpoints * num_bands, TODO support spin
     bands_array = bands.get_bands()
+    return bands_array, projections_array
 
-    return fit_scdm_mu_sigma(bands_array, projections_array, thresholds, return_data)
+def sort_projectability_arrays(bands: np.array, projections: np.array):
+    """sort projectability arrays by energy in ascending order
+
+    :param bands: output of projwfc, it was computed in the nscf calc
+    :type bands: np.array, shape num_kpoints * num_bands
+    :param projections: output of projwfc
+    :type projections: np.array, shape num_kpoints * num_bands
+    """
+    # Flattening (projection modulus squared according to QE, energies)
+    projwfc_flat = projections.flatten()
+    bands_flat = bands.flatten()
+
+    # sort by energy
+    #sorted_bands, sorted_projwfc = zip(*sorted(zip(bands_flat, projwfc_flat)))
+    # use numpy, faster
+    data = np.vstack((bands_flat, projwfc_flat)) # shape 2 * N
+    ind = np.argsort(data, axis=1)[0, :] # sort by energy
+    data = data[:, ind]
+    sorted_bands = data[0, :]
+    sorted_projwfc = data[1, :]
+    return sorted_bands, sorted_projwfc
+
+def get_energy_of_projectability(bands: orm.BandsData, projections: orm.ProjectionData, thresholds: float = 0.9):
+    """return energy corresponds to projectability = thresholds
+
+    :param bands: [description]
+    :type bands: orm.BandsData
+    :param projections: [description]
+    :type projections: orm.ProjectionData
+    :param thresholds: [description]
+    :type thresholds: float
+    """
+    bands_array, projections_array = get_projectability_arrays(bands, projections)
+    sorted_bands, sorted_projwfc = sort_projectability_arrays(bands_array, projections_array)
+    max_ind = np.max(np.argwhere(sorted_projwfc >= thresholds).flatten())
+    return sorted_bands[max_ind]
