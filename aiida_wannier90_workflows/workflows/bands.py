@@ -618,8 +618,23 @@ class Wannier90BandsWorkChain(WorkChain):
             },
             'metadata': {'call_link_label': 'bands'}
         })
-        inputs.kpoints = self.ctx.explicit_kpoints_path
         wannier_outputs = self.ctx.workchain_wannier.get_outgoing(link_type=LinkType.RETURN).nested()
+        # should use wannier90 kpath, otherwise number of kpoints
+        # of DFT and w90 is not consistent
+        # inputs.kpoints = self.ctx.explicit_kpoints_path
+        wannier_bands = wannier_outputs['wannier90']['interpolated_bands']
+        wannier_kpoints = orm.KpointsData()
+        wannier_kpoints.set_kpoints(wannier_bands.get_kpoints())
+        wannier_kpoints.set_attribute_many({
+            'cell': wannier_bands.attributes['cell'],
+            'pbc1': wannier_bands.attributes['pbc1'],
+            'pbc2': wannier_bands.attributes['pbc2'],
+            'pbc3': wannier_bands.attributes['pbc3'],
+            'labels': wannier_bands.attributes['labels'],
+            # 'array|kpoints': ,
+            'label_numbers': wannier_bands.attributes['label_numbers']
+        })
+        inputs.kpoints = wannier_kpoints
         inputs.pw.parent_folder = wannier_outputs['scf']['remote_folder']
 
         inputs.pw.parameters = self.ctx.nscf_parameters.get_dict()
