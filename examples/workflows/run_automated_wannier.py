@@ -5,6 +5,9 @@ from aiida.engine import submit
 from aiida.common.exceptions import NotExistent
 from ase.io import read as aseread
 from aiida_wannier90_workflows.workflows import Wannier90BandsWorkChain
+from aiida import load_profile
+
+load_profile()
 
 # Please modify these according to your machine
 str_pw = 'qe-6.5-pw@localhost'
