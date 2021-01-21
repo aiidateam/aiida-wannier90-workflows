@@ -225,7 +225,7 @@ def parse_pswfc_soc(upf_content: str) -> list:
     projections = []
     # parse XML
     PP_PSWFC = ET.XML(pswfc_block)
-    if len(PP_PSWFC.getchildren()) == 0:
+    if len(list(PP_PSWFC)) == 0:
         # old upf format, TODO check
         raise ValueError
     else:
@@ -281,7 +281,7 @@ def parse_pswfc_nosoc(upf_content: str) -> list:
     projections = []
     # parse XML
     PP_PSWFC = ET.XML(pswfc_block)
-    if len(PP_PSWFC.getchildren()) == 0:
+    if len(list(PP_PSWFC)) == 0:
         # old upf format
         import re
         r = re.compile(r'[\d]([SPDF])')
