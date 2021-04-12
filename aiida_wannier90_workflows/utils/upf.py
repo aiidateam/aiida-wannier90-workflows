@@ -142,7 +142,8 @@ def get_upf_content(upf: orm.UpfData) -> str:
     :return: [description]
     :rtype: str
     """
-    if not isinstance(upf, orm.UpfData):
+    import aiida_pseudo.data.pseudo.upf
+    if not isinstance(upf, (orm.UpfData, aiida_pseudo.data.pseudo.upf.UpfData)):
         raise ValueError(f'The type of upf is {type(upf)}, only aiida.orm.UpfData is accepted')
     upf_name = upf.list_object_names()[0]
     upf_content = upf.get_object_content(upf_name)
@@ -172,12 +173,13 @@ def get_number_of_electrons(structure: orm.StructureData, pseudos: Dict_of_Upf) 
     :return: number of electrons
     :rtype: float
     """
+    import aiida_pseudo.data.pseudo.upf
     if not isinstance(structure, orm.StructureData):
         raise ValueError(f'The type of structure is {type(structure)}, only aiida.orm.StructureData is accepted')
     if not isinstance(pseudos, dict):
         raise ValueError(f'The type of pseudos is {type(pseudos)}, only dict is accepted')
     for k, v in pseudos.items():
-        if not isinstance(k, str) or not isinstance(v, orm.UpfData):
+        if not isinstance(k, str) or not isinstance(v, (orm.UpfData, aiida_pseudo.data.pseudo.upf.UpfData)):
             raise ValueError(f'The type of <{k}, {v}> in pseudos is <{type(k)}, {type(v)}>, only <str, aiida.orm.UpfData> type is accepted')
 
     tot_nelecs = 0
@@ -390,12 +392,13 @@ def get_projections(structure: orm.StructureData, pseudos: Dict_of_Upf):
     :return: wannier90 projection block
     :rtype: list
     """
+    import aiida_pseudo.data.pseudo.upf
     if not isinstance(structure, orm.StructureData):
         raise ValueError(f'The type of structure is {type(structure)}, only aiida.orm.StructureData is accepted')
     if not isinstance(pseudos, dict):
         raise ValueError(f'The type of pseudos is {type(pseudos)}, only dict is accepted')
     for k, v in pseudos.items():
-        if not isinstance(k, str) or not isinstance(v, orm.UpfData):
+        if not isinstance(k, str) or not isinstance(v, (orm.UpfData, aiida_pseudo.data.pseudo.upf.UpfData)):
             raise ValueError(f'The type of <{k}, {v}> in pseudos is <{type(k)}, {type(v)}>, only <str, aiida.orm.UpfData> type is accepted')
 
     projections = []
@@ -465,12 +468,13 @@ def get_number_of_projections(structure: orm.StructureData, pseudos: Dict_of_Upf
     :return: number of projections
     :rtype: int
     """
+    import aiida_pseudo.data.pseudo.upf
     if not isinstance(structure, orm.StructureData):
         raise ValueError(f'The type of structure is {type(structure)}, only aiida.orm.StructureData is accepted')
     if not isinstance(pseudos, dict):
         raise ValueError(f'The type of pseudos is {type(pseudos)}, only dict is accepted')
     for k, v in pseudos.items():
-        if not isinstance(k, str) or not isinstance(v, orm.UpfData):
+        if not isinstance(k, str) or not isinstance(v, (orm.UpfData, aiida_pseudo.data.pseudo.upf.UpfData)):
             raise ValueError(f'The type of <{k}, {v}> in pseudos is <{type(k)}, {type(v)}>, only <str, aiida.orm.UpfData> type is accepted')
 
     tot_nprojs = 0
