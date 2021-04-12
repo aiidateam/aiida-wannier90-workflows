@@ -51,6 +51,8 @@ class Wannier90BandsWorkChain(WorkChain):
             help='If True only one scf calculation will be performed in the OpengridWorkChain.')
         spec.input('only_valence', valid_type=orm.Bool, default=lambda: orm.Bool(False),
             help='If True only Wannierise valence bands.')
+        spec.input('exclude_semicore', valid_type=orm.Bool, default=lambda: orm.Bool(True),
+            help='If True do not Wannierise semicore states.')
         spec.input('compare_dft_bands', valid_type=orm.Bool, default=lambda: orm.Bool(False),
             help='If True perform another DFT band structure calculation for comparing Wannier interpolated bands with DFT bands.')
         # TODO if no user input for disentanglement, we should set its default value according to 
@@ -114,9 +116,11 @@ class Wannier90BandsWorkChain(WorkChain):
             message='Input `StructureData` contains an unsupported kind.')
         spec.exit_code(402, 'ERROR_INVALID_INPUT_OPENGRID',
             message='No open_grid.x Code provided.')
-        spec.exit_code(403, 'ERROR_SUB_PROCESS_FAILED_WANNIER',
+        spec.exit_code(403, 'ERROR_INVALID_INPUT_PSEUDOPOTENTIAL',
+            message='Invalid pseudopotentials.')
+        spec.exit_code(404, 'ERROR_SUB_PROCESS_FAILED_WANNIER',
             message='The `Wannier90WorkChain` sub process failed.')
-        spec.exit_code(404, 'ERROR_SUB_PROCESS_FAILED_BANDS',
+        spec.exit_code(405, 'ERROR_SUB_PROCESS_FAILED_BANDS',
             message='The bands PwBasexWorkChain sub process failed')
 
     def _get_protocol(self):
@@ -152,6 +156,16 @@ class Wannier90BandsWorkChain(WorkChain):
         # with aiida-pseudo plugin
         family = orm.load_group('SSSP/1.1/PBE/efficiency')
         self.ctx.pseudos = family.get_pseudos(elements=self.inputs.structure.get_kind_names())
+
+        if self.inputs.exclude_semicore:
+            # TODO now only consider SSSP
+            pseudo_data = _load_pseudo_metadata('semicore_sssp_efficiency_1.1.json')
+            pseudo_semicores = {}
+            for element in self.ctx.pseudos:
+                if pseudo_data[element]['md5'] != self.ctx.pseudos[element].md5:
+                    return self.exit_codes.ERROR_INVALID_INPUT_PSEUDOPOTENTIAL
+                pseudo_semicores[element] = pseudo_data[element]['semicores']
+            self.ctx.pseudo_semicores = pseudo_semicores
 
     def setup(self):
         """Check inputs"""
@@ -372,6 +386,25 @@ class Wannier90BandsWorkChain(WorkChain):
             num_wann = parameters['num_bands']
         else:
             num_wann = self.ctx.number_of_projections
+        if self.inputs.exclude_semicore:
+            num_exclude_bands = 0
+            for site in self.ctx.current_structure.sites:
+                for orb in self.ctx.pseudo_semicores[site.kind_name]:
+                    if 'S' in orb:
+                        num_exclude_bands += 1
+                    elif 'P' in orb:
+                        num_exclude_bands += 3
+                    elif 'D' in orb:
+                        num_exclude_bands += 5
+                    elif 'F' in orb:
+                        num_exclude_bands += 7
+                    else:
+                        return self.exit_codes.ERROR_SUB_PROCESS_FAILED_WANNIER
+            parameters['exclude_bands'] = range(1, num_exclude_bands+1)
+            num_wann -= num_exclude_bands
+            parameters['num_bands'] -= num_exclude_bands
+        if num_wann <= 0:
+            return self.exit_codes.ERROR_SUB_PROCESS_FAILED_WANNIER
         parameters['num_wann'] = num_wann
         self.report(f'number of Wannier functions set as {num_wann}')
 

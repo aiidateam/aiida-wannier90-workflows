@@ -707,6 +707,24 @@ def generate_dojo_metadata():
     with open('dojo_nc_fr.json', 'w') as f:
         json.dump(result, f, indent=2)
 
+def _print_exclude_semicores():
+    periodic_table = 'H He Li Be B C N O F Ne '
+    periodic_table += 'Na Mg Al Si P S Cl Ar '
+    periodic_table += 'K Ca Sc Ti V Cr Mn Fe Co Ni Cu Zn Ga Ge As Se Br Kr '
+    periodic_table += 'Rb Sr Y Zr Nb Mo Tc Ru Rh Pd Ag Cd In Sn Sb Te I Xe '
+    periodic_table += 'Cs Ba La Ce Pr Nd Pm Sm Eu Gd Tb Dy Ho Er Tm Yb Lu Hf Ta W Re Os Ir Pt Au Hg Tl Pb Bi Po At Rn '
+    periodic_table += 'Fr Ra Ac Th Pa U Np Pu Am Cm Bk Cf Es Fm Md No Lr Rf Db Sg Bh Hs Mt Ds Rg Cn Nh Fl Mc Lv Ts Og'
+    periodic_table = periodic_table.split()
+
+    with open('semicore_sssp_efficiency_1.1.json') as f:
+        data = json.load(f)
+
+    for kind in periodic_table:
+        if not kind in data:
+            continue
+        remaining = set(data[kind]['pswfcs']) - set(data[kind]['semicores'])
+        print(f"{kind:2s} {' '.join(remaining)}")
+
 if __name__ == '__main__':
     # generate_pslibrary_metadata()
     generate_dojo_metadata()
