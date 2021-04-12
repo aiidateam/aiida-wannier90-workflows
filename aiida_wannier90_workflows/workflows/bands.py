@@ -147,7 +147,11 @@ class Wannier90BandsWorkChain(WorkChain):
             modifier_name=protocol_modifiers.get('pseudo', None),
             pseudo_data=protocol_modifiers.get('pseudo_data', None))
         known_pseudos = checked_pseudos['found']
-        self.ctx.pseudos = get_pseudos_from_dict(self.inputs.structure, known_pseudos)
+        #self.ctx.pseudos = get_pseudos_from_dict(self.inputs.structure, known_pseudos)
+
+        # with aiida-pseudo plugin
+        family = orm.load_group('SSSP/1.1/PBE/efficiency')
+        self.ctx.pseudos = family.get_pseudos(elements=self.inputs.structure.get_kind_names())
 
     def setup(self):
         """Check inputs"""
