@@ -1,0 +1,1124 @@
+{
+    "Ag": {
+        "filename": "Ag_ONCV_PBE-1.0.oncvpsp.upf",
+        "md5": "94f47bd0669c641108e45594df92fabc",
+        "pswfcs": [
+            "4S",
+            "4P",
+            "5S",
+            "4D"
+        ],
+        "semicores": [
+            "4S",
+            "4P"
+        ]
+    },
+    "Al": {
+        "filename": "Al.pbe-n-kjpaw_psl.1.0.0.UPF",
+        "md5": "cfc449ca30b5f3223ec38ddd88ac046d",
+        "pswfcs": [
+            "3S",
+            "3P"
+        ],
+        "semicores": []
+    },
+    "Ar": {
+        "filename": "Ar_ONCV_PBE-1.1.oncvpsp.upf",
+        "md5": "46d28409cdd246843f76b7675277a949",
+        "pswfcs": [
+            "3S",
+            "3P"
+        ],
+        "semicores": []
+    },
+    "As": {
+        "filename": "As.pbe-n-rrkjus_psl.0.2.UPF",
+        "md5": "767315de957beeeb34f87d97bf945c8f",
+        "pswfcs": [
+            "4S",
+            "4P"
+        ],
+        "semicores": []
+    },
+    "Au": {
+        "filename": "Au_ONCV_PBE-1.0.oncvpsp.upf",
+        "md5": "d14007822ba0e19f0206237467fc06c2",
+        "pswfcs": [
+            "5S",
+            "5P",
+            "6S",
+            "5D"
+        ],
+        "semicores": [
+            "5S",
+            "5P"
+        ]
+    },
+    "B": {
+        "filename": "b_pbe_v1.4.uspp.F.UPF",
+        "md5": "cc6de2960df11db49a60e589f9ebb39b",
+        "pswfcs": [
+            "2S",
+            "2P"
+        ],
+        "semicores": []
+    },
+    "Ba": {
+        "filename": "Ba.pbe-spn-kjpaw_psl.1.0.0.UPF",
+        "md5": "c432291d3e53af55f19d5e8866385beb",
+        "pswfcs": [
+            "5S",
+            "6S",
+            "5P"
+        ],
+        "semicores": [
+            "5S",
+            "5P"
+        ]
+    },
+    "Be": {
+        "filename": "be_pbe_v1.4.uspp.F.UPF",
+        "md5": "5ecff1440924c7c98ad504bef30f5264",
+        "pswfcs": [
+            "1S",
+            "2S",
+            "2P"
+        ],
+        "semicores": [
+            "1S"
+        ]
+    },
+    "Bi": {
+        "filename": "Bi_pbe_v1.uspp.F.UPF",
+        "md5": "cceb9f28ec65b6d7ff33140f5b0b1758",
+        "pswfcs": [
+            "5D",
+            "6S",
+            "6P"
+        ],
+        "semicores": [
+            "5D"
+        ]
+    },
+    "Br": {
+        "filename": "br_pbe_v1.4.uspp.F.UPF",
+        "md5": "d3ffb7b29f6225aa16fe06858fb2a80b",
+        "pswfcs": [
+            "4S",
+            "4P"
+        ],
+        "semicores": []
+    },
+    "C": {
+        "filename": "C.pbe-n-kjpaw_psl.1.0.0.UPF",
+        "md5": "5d2aebdfa2cae82b50a7e79e9516da0f",
+        "pswfcs": [
+            "2S",
+            "2P"
+        ],
+        "semicores": []
+    },
+    "Ca": {
+        "filename": "Ca_pbe_v1.uspp.F.UPF",
+        "md5": "403a4c14b9e4d4dfdc3024c9a3812218",
+        "pswfcs": [
+            "3S",
+            "3P",
+            "4S",
+            "3D"
+        ],
+        "semicores": [
+            "3S",
+            "3P"
+        ]
+    },
+    "Cd": {
+        "filename": "Cd.pbe-dn-rrkjus_psl.0.3.1.UPF",
+        "md5": "558e9f355611b531a870a69ef6ace9e2",
+        "pswfcs": [
+            "5S",
+            "5P",
+            "4D"
+        ],
+        "semicores": []
+    },
+    "Ce": {
+        "filename": "Ce.GGA-PBE-paw-v1.0.UPF",
+        "md5": "c46c5ce91c1b1c29a1e5d4b97f9db5f7",
+        "pswfcs": [
+            "5S",
+            "6S",
+            "5P",
+            "6P",
+            "5D",
+            "6D",
+            "4F",
+            "5F"
+        ],
+        "semicores": [
+            "5S",
+            "5P"
+        ]
+    },
+    "Cl": {
+        "filename": "cl_pbe_v1.4.uspp.F.UPF",
+        "md5": "fc6f6913ecf08c9257cb748ef0700058",
+        "pswfcs": [
+            "3S",
+            "3P"
+        ],
+        "semicores": []
+    },
+    "Co": {
+        "filename": "Co_pbe_v1.2.uspp.F.UPF",
+        "md5": "5f91765df6ddd3222702df6e7b74a16d",
+        "pswfcs": [
+            "3S",
+            "3P",
+            "3D",
+            "4S",
+            "4P"
+        ],
+        "semicores": [
+            "3S",
+            "3P"
+        ]
+    },
+    "Cr": {
+        "filename": "cr_pbe_v1.5.uspp.F.UPF",
+        "md5": "0d52af634a40206e4dee301ad30da4bf",
+        "pswfcs": [
+            "3S",
+            "3P",
+            "4S",
+            "3D"
+        ],
+        "semicores": [
+            "3S",
+            "3P"
+        ]
+    },
+    "Cs": {
+        "filename": "Cs_pbe_v1.uspp.F.UPF",
+        "md5": "3476d69cb178dfad3ffaa59df4e07ca4",
+        "pswfcs": [
+            "5S",
+            "5P",
+            "5D",
+            "6S",
+            "6P"
+        ],
+        "semicores": [
+            "5S",
+            "5P"
+        ]
+    },
+    "Cu": {
+        "filename": "Cu_pbe_v1.2.uspp.F.UPF",
+        "md5": "6e991ff952a84172a2a52a1c1e996048",
+        "pswfcs": [
+            "3S",
+            "3P",
+            "3D",
+            "4S",
+            "4P"
+        ],
+        "semicores": [
+            "3S",
+            "3P"
+        ]
+    },
+    "Dy": {
+        "filename": "Dy.GGA-PBE-paw-v1.0.UPF",
+        "md5": "aaa222e85efa51d78e19b07c890454ab",
+        "pswfcs": [
+            "5S",
+            "6S",
+            "5P",
+            "6P",
+            "5D",
+            "6D",
+            "4F",
+            "5F"
+        ],
+        "semicores": [
+            "5S",
+            "5P"
+        ]
+    },
+    "Er": {
+        "filename": "Er.GGA-PBE-paw-v1.0.UPF",
+        "md5": "b08ffd41d90ff95dc07468a56b1546b7",
+        "pswfcs": [
+            "5S",
+            "6S",
+            "5P",
+            "6P",
+            "5D",
+            "6D",
+            "4F",
+            "5F"
+        ],
+        "semicores": [
+            "5S",
+            "5P"
+        ]
+    },
+    "Eu": {
+        "filename": "Eu.GGA-PBE-paw-v1.0.UPF",
+        "md5": "2f98cd20d76ba534504868fe92c99950",
+        "pswfcs": [
+            "5S",
+            "6S",
+            "5P",
+            "6P",
+            "5D",
+            "6D",
+            "4F",
+            "5F"
+        ],
+        "semicores": [
+            "5S",
+            "5P"
+        ]
+    },
+    "F": {
+        "filename": "f_pbe_v1.4.uspp.F.UPF",
+        "md5": "4c38b6a325caf53ec0e86aed9459de46",
+        "pswfcs": [
+            "2S",
+            "2P"
+        ],
+        "semicores": []
+    },
+    "Fe": {
+        "filename": "Fe.pbe-spn-kjpaw_psl.0.2.1.UPF",
+        "md5": "e86618425769142926afa95317d90200",
+        "pswfcs": [
+            "3S",
+            "4S",
+            "3P",
+            "4P",
+            "3D"
+        ],
+        "semicores": [
+            "3S",
+            "3P"
+        ]
+    },
+    "Ga": {
+        "filename": "Ga.pbe-dn-kjpaw_psl.1.0.0.UPF",
+        "md5": "a27b4342b1af7e5f338de752e9ed7044",
+        "pswfcs": [
+            "4S",
+            "4P",
+            "3D"
+        ],
+        "semicores": [
+            "3D"
+        ]
+    },
+    "Gd": {
+        "filename": "Gd.GGA-PBE-paw-v1.0.UPF",
+        "md5": "5be61ee804628d0d4564e5bf0c6b2d4d",
+        "pswfcs": [
+            "5S",
+            "6S",
+            "5P",
+            "6P",
+            "5D",
+            "6D",
+            "4F",
+            "5F"
+        ],
+        "semicores": [
+            "5S",
+            "5P"
+        ]
+    },
+    "Ge": {
+        "filename": "ge_pbe_v1.4.uspp.F.UPF",
+        "md5": "9c9eaa91e581c3f09632fb3098b2c6b2",
+        "pswfcs": [
+            "3D",
+            "4S",
+            "4P"
+        ],
+        "semicores": [
+            "3D"
+        ]
+    },
+    "H": {
+        "filename": "H.pbe-rrkjus_psl.1.0.0.UPF",
+        "md5": "f52b6d4d1c606e5624b1dc7b2218f220",
+        "pswfcs": [
+            "1S"
+        ],
+        "semicores": []
+    },
+    "He": {
+        "filename": "He_ONCV_PBE-1.0.oncvpsp.upf",
+        "md5": "e7160162b946020f132a727efeb32d00",
+        "pswfcs": [
+            "1S"
+        ],
+        "semicores": []
+    },
+    "Hf": {
+        "filename": "Hf-sp.oncvpsp.upf",
+        "md5": "417ed15784afe83d2e06dacf143de3f8",
+        "pswfcs": [
+            "5S",
+            "5P",
+            "5D",
+            "6S"
+        ],
+        "semicores": [
+            "5S",
+            "5P"
+        ]
+    },
+    "Hg": {
+        "filename": "Hg_ONCV_PBE-1.0.oncvpsp.upf",
+        "md5": "dd5a8773074bfcf4280086d4d95875c4",
+        "pswfcs": [
+            "5S",
+            "5P",
+            "6S",
+            "5D"
+        ],
+        "semicores": [
+            "5S",
+            "5P"
+        ]
+    },
+    "Ho": {
+        "filename": "Ho.GGA-PBE-paw-v1.0.UPF",
+        "md5": "180317b7bae2d95653b620b8c21968ce",
+        "pswfcs": [
+            "5S",
+            "6S",
+            "5P",
+            "6P",
+            "5D",
+            "6D",
+            "4F",
+            "5F"
+        ],
+        "semicores": [
+            "5S",
+            "5P"
+        ]
+    },
+    "I": {
+        "filename": "I.pbe-n-kjpaw_psl.0.2.UPF",
+        "md5": "d4ef18d9c8f18dc85e5843bca1e50dc0",
+        "pswfcs": [
+            "5S",
+            "5P"
+        ],
+        "semicores": []
+    },
+    "In": {
+        "filename": "In.pbe-dn-rrkjus_psl.0.2.2.UPF",
+        "md5": "25e7c42c3b55b68f4bf926be2e7201a4",
+        "pswfcs": [
+            "5S",
+            "5P",
+            "4D"
+        ],
+        "semicores": [
+            "4D"
+        ]
+    },
+    "Ir": {
+        "filename": "Ir_pbe_v1.2.uspp.F.UPF",
+        "md5": "8836f839c3459d2b385c504ce6d91f2c",
+        "pswfcs": [
+            "5P",
+            "5D",
+            "6S",
+            "6P"
+        ],
+        "semicores": [
+            "5P"
+        ]
+    },
+    "K": {
+        "filename": "K.pbe-spn-kjpaw_psl.1.0.0.UPF",
+        "md5": "7d58810084cac21f60fbe77ea2b688fd",
+        "pswfcs": [
+            "3S",
+            "4S",
+            "3P",
+            "4P"
+        ],
+        "semicores": [
+            "3S",
+            "3P"
+        ]
+    },
+    "Kr": {
+        "filename": "Kr_ONCV_PBE-1.0.oncvpsp.upf",
+        "md5": "f2280ecf57a6c8a47e066f0532d843fa",
+        "pswfcs": [
+            "4S",
+            "4P"
+        ],
+        "semicores": []
+    },
+    "La": {
+        "filename": "La.GGA-PBE-paw-v1.0.UPF",
+        "md5": "9bc570786a79c122988210fab848eb7f",
+        "pswfcs": [
+            "5S",
+            "6S",
+            "5P",
+            "6P",
+            "5D",
+            "6D",
+            "4F",
+            "5F"
+        ],
+        "semicores": [
+            "5S",
+            "5P"
+        ]
+    },
+    "Li": {
+        "filename": "li_pbe_v1.4.uspp.F.UPF",
+        "md5": "e912e257baa3777c20ea3d68f190483c",
+        "pswfcs": [
+            "1S",
+            "2S",
+            "2P"
+        ],
+        "semicores": [
+            "1S"
+        ]
+    },
+    "Lu": {
+        "filename": "Lu.GGA-PBE-paw-v1.0.UPF",
+        "md5": "cc59902dbb0747cc98260d4f1c8f461e",
+        "pswfcs": [
+            "5S",
+            "6S",
+            "5P",
+            "6P",
+            "5D",
+            "6D",
+            "4F",
+            "5F"
+        ],
+        "semicores": [
+            "5S",
+            "5P"
+        ]
+    },
+    "Mg": {
+        "filename": "Mg.pbe-n-kjpaw_psl.0.3.0.UPF",
+        "md5": "24ecedc7f3e3cbe212e682f4413594e4",
+        "pswfcs": [
+            "3S",
+            "3P"
+        ],
+        "semicores": []
+    },
+    "Mn": {
+        "filename": "mn_pbe_v1.5.uspp.F.UPF",
+        "md5": "82ef2b46521d7a7d9e736dc3972e4928",
+        "pswfcs": [
+            "3S",
+            "3P",
+            "4S",
+            "3D",
+            "4P"
+        ],
+        "semicores": [
+            "3S",
+            "3P"
+        ]
+    },
+    "Mo": {
+        "filename": "Mo_ONCV_PBE-1.0.oncvpsp.upf",
+        "md5": "1b5d28e075c9ccadda658a603575cd1f",
+        "pswfcs": [
+            "4S",
+            "4P",
+            "5S",
+            "4D"
+        ],
+        "semicores": [
+            "4S",
+            "4P"
+        ]
+    },
+    "N": {
+        "filename": "N.pbe-n-radius_5.UPF",
+        "md5": "16739722b17309cd8fe442a2ace49922",
+        "pswfcs": [
+            "2S",
+            "2P"
+        ],
+        "semicores": []
+    },
+    "Na": {
+        "filename": "na_pbe_v1.5.uspp.F.UPF",
+        "md5": "44600605ef58000f06b90626533354dc",
+        "pswfcs": [
+            "2S",
+            "2P",
+            "3S"
+        ],
+        "semicores": [
+            "2S",
+            "2P"
+        ]
+    },
+    "Nb": {
+        "filename": "Nb.pbe-spn-kjpaw_psl.0.3.0.UPF",
+        "md5": "411d72ad547312f8017e2943ceca08cc",
+        "pswfcs": [
+            "4S",
+            "5S",
+            "4P",
+            "4D"
+        ],
+        "semicores": [
+            "4S",
+            "4P"
+        ]
+    },
+    "Nd": {
+        "filename": "Nd.GGA-PBE-paw-v1.0.UPF",
+        "md5": "6ed08d5e4060cc1ad99b3d24ba8e637d",
+        "pswfcs": [
+            "5S",
+            "6S",
+            "5P",
+            "6P",
+            "5D",
+            "6D",
+            "4F",
+            "5F"
+        ],
+        "semicores": [
+            "5S",
+            "5P"
+        ]
+    },
+    "Ne": {
+        "filename": "Ne_ONCV_PBE-1.0.oncvpsp.upf",
+        "md5": "9b5acc4cb48b9d80e669eadd528e4e8f",
+        "pswfcs": [
+            "2S",
+            "2P"
+        ],
+        "semicores": []
+    },
+    "Ni": {
+        "filename": "ni_pbe_v1.4.uspp.F.UPF",
+        "md5": "1ee80287db30b12d2bc1f57a5b5d6409",
+        "pswfcs": [
+            "3S",
+            "3P",
+            "3D",
+            "4S",
+            "4P"
+        ],
+        "semicores": [
+            "3S",
+            "3P"
+        ]
+    },
+    "O": {
+        "filename": "O.pbe-n-kjpaw_psl.0.1.UPF",
+        "md5": "0234752ac141de4415c5fc33072bef88",
+        "pswfcs": [
+            "2S",
+            "2P"
+        ],
+        "semicores": []
+    },
+    "Os": {
+        "filename": "Os_pbe_v1.2.uspp.F.UPF",
+        "md5": "a3fb40a04f0c37c25c34bbc47164c9a8",
+        "pswfcs": [
+            "5S",
+            "5P",
+            "5D",
+            "6S",
+            "6P"
+        ],
+        "semicores": [
+            "5S",
+            "5P"
+        ]
+    },
+    "P": {
+        "filename": "P.pbe-n-rrkjus_psl.1.0.0.UPF",
+        "md5": "8b930f418f0a4573dca56cd030ffe088",
+        "pswfcs": [
+            "3S",
+            "3P"
+        ],
+        "semicores": []
+    },
+    "Pb": {
+        "filename": "Pb.pbe-dn-kjpaw_psl.0.2.2.UPF",
+        "md5": "9d431e6316058b74ade52399a6cf67da",
+        "pswfcs": [
+            "6S",
+            "6P",
+            "5D"
+        ],
+        "semicores": [
+            "5D"
+        ]
+    },
+    "Pd": {
+        "filename": "Pd_ONCV_PBE-1.0.oncvpsp.upf",
+        "md5": "eb77f42b51d86fb18e25f68156a31cf1",
+        "pswfcs": [
+            "4S",
+            "4P",
+            "5S",
+            "4D"
+        ],
+        "semicores": [
+            "4S",
+            "4P"
+        ]
+    },
+    "Pm": {
+        "filename": "Pm.GGA-PBE-paw-v1.0.UPF",
+        "md5": "19bca56110d8480befcb833617dbc7df",
+        "pswfcs": [
+            "5S",
+            "6S",
+            "5P",
+            "6P",
+            "5D",
+            "6D",
+            "4F",
+            "5F"
+        ],
+        "semicores": [
+            "5S",
+            "5P"
+        ]
+    },
+    "Po": {
+        "filename": "Po.pbe-dn-rrkjus_psl.1.0.0.UPF",
+        "md5": "3f8a5a8b7a531f42ca8381c21d3cd528",
+        "pswfcs": [
+            "6S",
+            "6P",
+            "5D"
+        ],
+        "semicores": [
+            "5D"
+        ]
+    },
+    "Pr": {
+        "filename": "Pr.GGA-PBE-paw-v1.0.UPF",
+        "md5": "8bd2f9d65236044fbf839895b9bd72c8",
+        "pswfcs": [
+            "5S",
+            "6S",
+            "5P",
+            "6P",
+            "5D",
+            "6D",
+            "4F",
+            "5F"
+        ],
+        "semicores": [
+            "5S",
+            "5P"
+        ]
+    },
+    "Pt": {
+        "filename": "pt_pbe_v1.4.uspp.F.UPF",
+        "md5": "f09d6de1a584b5a045c4fc126da2d0c4",
+        "pswfcs": [
+            "5P",
+            "5D",
+            "6S",
+            "6P"
+        ],
+        "semicores": [
+            "5P"
+        ]
+    },
+    "Rb": {
+        "filename": "Rb_ONCV_PBE-1.0.oncvpsp.upf",
+        "md5": "55a5172d6bfbce6759a58e35d43f6aa9",
+        "pswfcs": [
+            "4S",
+            "4P",
+            "5S"
+        ],
+        "semicores": [
+            "4S",
+            "4P"
+        ]
+    },
+    "Re": {
+        "filename": "Re_pbe_v1.2.uspp.F.UPF",
+        "md5": "85f993410f3e006da9d71c142b4ad953",
+        "pswfcs": [
+            "5S",
+            "5P",
+            "5D",
+            "6S",
+            "6P"
+        ],
+        "semicores": [
+            "5S",
+            "5P"
+        ]
+    },
+    "Rh": {
+        "filename": "Rh_ONCV_PBE-1.0.oncvpsp.upf",
+        "md5": "ba07c69523b14cacd10683cd4c4284c1",
+        "pswfcs": [
+            "4S",
+            "4P",
+            "5S",
+            "4D"
+        ],
+        "semicores": [
+            "4S",
+            "4P"
+        ]
+    },
+    "Rn": {
+        "filename": "Rn.pbe-dn-kjpaw_psl.1.0.0.UPF",
+        "md5": "03f6b960ab99273412830d0b4aa01365",
+        "pswfcs": [
+            "6S",
+            "6P",
+            "5D"
+        ],
+        "semicores": [
+            "5D"
+        ]
+    },
+    "Ru": {
+        "filename": "Ru_ONCV_PBE-1.0.oncvpsp.upf",
+        "md5": "be037bb81c227cfb9b1461a9f099f4bd",
+        "pswfcs": [
+            "4S",
+            "4P",
+            "5S",
+            "4D"
+        ],
+        "semicores": [
+            "4S",
+            "4P"
+        ]
+    },
+    "S": {
+        "filename": "s_pbe_v1.4.uspp.F.UPF",
+        "md5": "88d86576ff6df21479756cfb9bdac1df",
+        "pswfcs": [
+            "3S",
+            "3P"
+        ],
+        "semicores": []
+    },
+    "Sb": {
+        "filename": "sb_pbe_v1.4.uspp.F.UPF",
+        "md5": "9bc50dfb53373b713f5709b9110fe27f",
+        "pswfcs": [
+            "4D",
+            "5S",
+            "5P"
+        ],
+        "semicores": [
+            "4D"
+        ]
+    },
+    "Sc": {
+        "filename": "Sc_ONCV_PBE-1.0.oncvpsp.upf",
+        "md5": "e21af8023abb52e52cb7cd3133e4a229",
+        "pswfcs": [
+            "3S",
+            "3P",
+            "4S",
+            "3D"
+        ],
+        "semicores": [
+            "3S",
+            "3P"
+        ]
+    },
+    "Se": {
+        "filename": "Se_pbe_v1.uspp.F.UPF",
+        "md5": "1b3568f3a8ae88f9a2a0ad0698632c85",
+        "pswfcs": [
+            "4S",
+            "4P"
+        ],
+        "semicores": []
+    },
+    "Si": {
+        "filename": "Si.pbe-n-rrkjus_psl.1.0.0.UPF",
+        "md5": "0b0bb1205258b0d07b9f9672cf965d36",
+        "pswfcs": [
+            "3S",
+            "3P"
+        ],
+        "semicores": []
+    },
+    "Sm": {
+        "filename": "Sm.GGA-PBE-paw-v1.0.UPF",
+        "md5": "3ddcafad514a6ea7d14a52e8ca30603a",
+        "pswfcs": [
+            "5S",
+            "6S",
+            "5P",
+            "6P",
+            "5D",
+            "6D",
+            "4F",
+            "5F"
+        ],
+        "semicores": [
+            "5S",
+            "5P"
+        ]
+    },
+    "Sn": {
+        "filename": "Sn_pbe_v1.uspp.F.UPF",
+        "md5": "4cf58ce39ec5d5d420df3dd08604eb00",
+        "pswfcs": [
+            "4D",
+            "5S",
+            "5P"
+        ],
+        "semicores": [
+            "4D"
+        ]
+    },
+    "Sr": {
+        "filename": "Sr_pbe_v1.uspp.F.UPF",
+        "md5": "6b418c05fbe9db5448babca5e47b7a5b",
+        "pswfcs": [
+            "4S",
+            "4P",
+            "4D",
+            "5S",
+            "5P"
+        ],
+        "semicores": [
+            "4S",
+            "4P"
+        ]
+    },
+    "Ta": {
+        "filename": "Ta_pbe_v1.uspp.F.UPF",
+        "md5": "f8bbe9446314a3b8ea5d9f3e3836c939",
+        "pswfcs": [
+            "5S",
+            "5P",
+            "5D",
+            "6S",
+            "6P"
+        ],
+        "semicores": [
+            "5S",
+            "5P"
+        ]
+    },
+    "Tb": {
+        "filename": "Tb.GGA-PBE-paw-v1.0.UPF",
+        "md5": "37cc37188d4ce4bd414f4b03d8f3cab6",
+        "pswfcs": [
+            "5S",
+            "6S",
+            "5P",
+            "6P",
+            "5D",
+            "6D",
+            "4F",
+            "5F"
+        ],
+        "semicores": [
+            "5S",
+            "5P"
+        ]
+    },
+    "Tc": {
+        "filename": "Tc_ONCV_PBE-1.0.oncvpsp.upf",
+        "md5": "1c2b1e6c8b361b656073c0c20ed4f60a",
+        "pswfcs": [
+            "4S",
+            "4P",
+            "5S",
+            "4D"
+        ],
+        "semicores": [
+            "4S",
+            "4P"
+        ]
+    },
+    "Te": {
+        "filename": "Te_pbe_v1.uspp.F.UPF",
+        "md5": "c319670d6894cc26e93307826a071b75",
+        "pswfcs": [
+            "5S",
+            "5P"
+        ],
+        "semicores": []
+    },
+    "Ti": {
+        "filename": "ti_pbe_v1.4.uspp.F.UPF",
+        "md5": "88a00a6731bd790ddea75d31a80cb452",
+        "pswfcs": [
+            "3S",
+            "3P",
+            "4S",
+            "3D"
+        ],
+        "semicores": [
+            "3S",
+            "3P"
+        ]
+    },
+    "Tl": {
+        "filename": "Tl_pbe_v1.2.uspp.F.UPF",
+        "md5": "b76cf1f7e72655a2b2c53cf6385d7059",
+        "pswfcs": [
+            "5D",
+            "6S",
+            "6P"
+        ],
+        "semicores": [
+            "5D"
+        ]
+    },
+    "Tm": {
+        "filename": "Tm.GGA-PBE-paw-v1.0.UPF",
+        "md5": "5bf2bc9b2000dc366ce20ce5239c3999",
+        "pswfcs": [
+            "5S",
+            "6S",
+            "5P",
+            "6P",
+            "5D",
+            "6D",
+            "4F",
+            "5F"
+        ],
+        "semicores": [
+            "5S",
+            "5P"
+        ]
+    },
+    "V": {
+        "filename": "v_pbe_v1.4.uspp.F.UPF",
+        "md5": "22b79981416ebb76fdaf5b1b8640f6fb",
+        "pswfcs": [
+            "3S",
+            "3P",
+            "4S",
+            "3D"
+        ],
+        "semicores": [
+            "3S",
+            "3P"
+        ]
+    },
+    "W": {
+        "filename": "W_pbe_v1.2.uspp.F.UPF",
+        "md5": "9c083fa34c2a2ea0f02f1f893e16e1c8",
+        "pswfcs": [
+            "5S",
+            "5P",
+            "5D",
+            "6S",
+            "6P"
+        ],
+        "semicores": [
+            "5S",
+            "5P"
+        ]
+    },
+    "Xe": {
+        "filename": "Xe_ONCV_PBE-1.1.oncvpsp.upf",
+        "md5": "f6ea899d5a535d3f5731d9e48edfe3e3",
+        "pswfcs": [
+            "4D",
+            "5S",
+            "5P"
+        ],
+        "semicores": [
+            "4D"
+        ]
+    },
+    "Y": {
+        "filename": "Y_pbe_v1.uspp.F.UPF",
+        "md5": "2cf71db95cafeb975fc457bd7f14888e",
+        "pswfcs": [
+            "4S",
+            "4P",
+            "4D",
+            "5S",
+            "5P"
+        ],
+        "semicores": [
+            "4S",
+            "4P"
+        ]
+    },
+    "Yb": {
+        "filename": "Yb.GGA-PBE-paw-v1.0.UPF",
+        "md5": "c46ad346ad0f6b1727467da500789f7b",
+        "pswfcs": [
+            "5S",
+            "6S",
+            "5P",
+            "6P",
+            "5D",
+            "6D",
+            "4F",
+            "5F"
+        ],
+        "semicores": [
+            "5S",
+            "5P"
+        ]
+    },
+    "Zn": {
+        "filename": "Zn_pbe_v1.uspp.F.UPF",
+        "md5": "df62231357ef9e81f77b2b3087fa5675",
+        "pswfcs": [
+            "3S",
+            "3P",
+            "3D",
+            "4S",
+            "4P"
+        ],
+        "semicores": [
+            "3S",
+            "3P"
+        ]
+    },
+    "Zr": {
+        "filename": "Zr_pbe_v1.uspp.F.UPF",
+        "md5": "5db81b1e868ab7776c4564c113de050b",
+        "pswfcs": [
+            "4S",
+            "4P",
+            "4D",
+            "5S",
+            "5P"
+        ],
+        "semicores": [
+            "4S",
+            "4P"
+        ]
+    }
+}
