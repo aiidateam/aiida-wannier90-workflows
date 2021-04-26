@@ -400,9 +400,10 @@ class Wannier90BandsWorkChain(WorkChain):
                         num_exclude_bands += 7
                     else:
                         return self.exit_codes.ERROR_SUB_PROCESS_FAILED_WANNIER
-            parameters['exclude_bands'] = range(1, num_exclude_bands+1)
-            num_wann -= num_exclude_bands
-            parameters['num_bands'] -= num_exclude_bands
+            if num_exclude_bands != 0:
+                parameters['exclude_bands'] = range(1, num_exclude_bands+1)
+                num_wann -= num_exclude_bands
+                parameters['num_bands'] -= num_exclude_bands
         if num_wann <= 0:
             return self.exit_codes.ERROR_SUB_PROCESS_FAILED_WANNIER
         parameters['num_wann'] = num_wann
