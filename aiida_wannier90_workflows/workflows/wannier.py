@@ -186,7 +186,7 @@ class Wannier90WorkChain(WorkChain):
 
     def should_run_projwfc(self):
         """If the 'auto_projections = true', we run projwfc calculation for
-        1. generate AMN from atomic_proj.xml, or
+        1. No need anymore: pw2wan can do this. generate AMN from atomic_proj.xml, or
         2. extract SCDM mu & sigma."""
         inputs = AttributeDict(self.exposed_inputs(Pw2wannier90Calculation, namespace='pw2wannier90'))
         parameters = inputs.parameters.get_dict()
@@ -216,7 +216,8 @@ class Wannier90WorkChain(WorkChain):
                 return False
         else:
             # for atomic_proj.xml
-            return True
+            # return True
+            return False
 
     def run_projwfc(self):
         """Projwfc step"""
@@ -265,22 +266,25 @@ class Wannier90WorkChain(WorkChain):
         # set dis_froz_max
         if self.ctx.auto_projections and not self.ctx.scdm_projections:
             params = inputs.parameters.get_dict()
-            if params['dis_froz_max'] == None:
-                bands = self.ctx.calc_projwfc.outputs.bands
-                projections = self.ctx.calc_projwfc.outputs.projections
-                dis_froz_max = get_energy_of_projectability(bands, projections)
-                # aiida.common.exceptions.ModificationNotAllowed: the attributes of a stored entity are immutable
-                # inputs.parameters['dis_froz_max'] = dis_froz_max
-                # TODO check provenance graph
-                # dis_windows: More states in the frozen window than target WFs
-                min_band_energy = np.min(bands.get_bands()[:, params['num_wann']-1])
-                dis_froz_max = min(min_band_energy, dis_froz_max)
-                params['dis_froz_max'] = dis_froz_max
-                inputs.parameters = orm.Dict(dict=params)
-            else:
-                # is set in update_fermi_energy():
-                # dis_froz_max = fermi_energy + params['dis_froz_max']
+            if 'dis_proj_max' in params or 'dis_proj_min' in params:
                 pass
+            else:
+                if params['dis_froz_max'] == None:
+                    bands = self.ctx.calc_projwfc.outputs.bands
+                    projections = self.ctx.calc_projwfc.outputs.projections
+                    dis_froz_max = get_energy_of_projectability(bands, projections)
+                    # aiida.common.exceptions.ModificationNotAllowed: the attributes of a stored entity are immutable
+                    # inputs.parameters['dis_froz_max'] = dis_froz_max
+                    # TODO check provenance graph
+                    # dis_windows: More states in the frozen window than target WFs
+                    min_band_energy = np.min(bands.get_bands()[:, params['num_wann']-1])
+                    dis_froz_max = min(min_band_energy, dis_froz_max)
+                    params['dis_froz_max'] = dis_froz_max
+                    inputs.parameters = orm.Dict(dict=params)
+                else:
+                    # is set in update_fermi_energy():
+                    # dis_froz_max = fermi_energy + params['dis_froz_max']
+                    pass
 
         if 'settings' in inputs:
             settings = inputs['settings'].get_dict()
@@ -340,24 +344,24 @@ class Wannier90WorkChain(WorkChain):
                 except Exception as e:
                     self.report(f'update_scdm_mu_sigma failed! {e.args}')
                     return self.exit_codes.ERROR_SUB_PROCESS_FAILED_PW2WANNIER90
-            else:
-                # inputs.parameters = update_write_amn(inputs.parameters)
-                # TODO if not use update_write_amn calcfunction, the provenance graph will be broken?
-                parameters_dict = inputs.parameters.get_dict()
-                parameters_dict['inputpp']['write_amn'] = False
-                inputs.parameters = orm.Dict(dict=parameters_dict)
+            # else:
+            #     # inputs.parameters = update_write_amn(inputs.parameters)
+            #     # TODO if not use update_write_amn calcfunction, the provenance graph will be broken?
+            #     parameters_dict = inputs.parameters.get_dict()
+            #     parameters_dict['inputpp']['write_amn'] = False
+            #     inputs.parameters = orm.Dict(dict=parameters_dict)
 
         # symlink amn file when using pswfc projections
-        if self.ctx.auto_projections and not self.ctx.scdm_projections:
-            settings = inputs.settings.get_dict() if 'settings' in inputs else {}
-            projwfc_folder_uuid = self.ctx.calc_projwfc.outputs.remote_folder.computer.uuid
-            projwfc_folder_path = self.ctx.calc_projwfc.outputs.remote_folder.get_remote_path()
-            seedname = self.ctx.calc_projwfc.inputs.parameters['PROJWFC']['seedname']
-            settings['additional_remote_symlink_list'] = [
-                (projwfc_folder_uuid, 
-                os.path.join(projwfc_folder_path, f"{seedname}.amn"), 
-                f"{seedname}.amn")]
-            inputs.settings = settings
+        # if self.ctx.auto_projections and not self.ctx.scdm_projections:
+        #     settings = inputs.settings.get_dict() if 'settings' in inputs else {}
+        #     projwfc_folder_uuid = self.ctx.calc_projwfc.outputs.remote_folder.computer.uuid
+        #     projwfc_folder_path = self.ctx.calc_projwfc.outputs.remote_folder.get_remote_path()
+        #     seedname = self.ctx.calc_projwfc.inputs.parameters['PROJWFC']['seedname']
+        #     settings['additional_remote_symlink_list'] = [
+        #         (projwfc_folder_uuid, 
+        #         os.path.join(projwfc_folder_path, f"{seedname}.amn"), 
+        #         f"{seedname}.amn")]
+        #     inputs.settings = settings
 
         inputs = prepare_process_inputs(Pw2wannier90Calculation, inputs)
         running = self.submit(Pw2wannier90Calculation, **inputs)
