@@ -164,8 +164,8 @@ class Wannier90BandsWorkChain(WorkChain):
             for element in self.ctx.pseudos:
                 if pseudo_data[element]['md5'] != self.ctx.pseudos[element].md5:
                     return self.exit_codes.ERROR_INVALID_INPUT_PSEUDOPOTENTIAL
-                pseudo_semicores[element] = pseudo_data[element]['semicores']
-            self.ctx.pseudo_semicores = pseudo_semicores
+                pseudo_semicores[element] = pseudo_data[element]
+            self.ctx.pseudo_pswfcs = pseudo_semicores
 
     def setup(self):
         """Check inputs"""
@@ -342,11 +342,11 @@ class Wannier90BandsWorkChain(WorkChain):
     def setup_projwfc_parameters(self):
         projwfc_parameters = orm.Dict(dict={'PROJWFC': {'DeltaE': 0.2}})
 
-        if self.inputs.pswfc_projections:
-            from aiida_wannier90.calculations import Wannier90Calculation
-            projwfc_parameters['PROJWFC']['write_amn'] = True
-            seedname = Wannier90Calculation._DEFAULT_INPUT_FILE[:-len(Wannier90Calculation._REQUIRED_INPUT_SUFFIX)]
-            projwfc_parameters['PROJWFC']['seedname'] = seedname
+        # if self.inputs.pswfc_projections:
+        #     from aiida_wannier90.calculations import Wannier90Calculation
+        #     projwfc_parameters['PROJWFC']['write_amn'] = True
+        #     seedname = Wannier90Calculation._DEFAULT_INPUT_FILE[:-len(Wannier90Calculation._REQUIRED_INPUT_SUFFIX)]
+        #     projwfc_parameters['PROJWFC']['seedname'] = seedname
 
         self.ctx.projwfc_parameters = projwfc_parameters
 
@@ -369,6 +369,41 @@ class Wannier90BandsWorkChain(WorkChain):
             else:
                 parameters['scdm_entanglement'] = 'erfc'
                 # scdm_mu, scdm_sigma will be set after projwfc run
+        elif self.inputs.pswfc_projections:
+            parameters['use_pao'] = True
+            parameters['ortho_paos'] = True
+            if self.inputs.exclude_semicore:
+                # pw2wannier90.x/projwfc.x store pseudo-wavefunctions in the same order
+                # as ATOMIC_POSITIONS in pw.x input file; aiida-quantumespresso writes
+                # ATOMIC_POSITIONS in the order of StructureData.sites.
+                # Note sometimes the PSWFC in UPF files are not ordered, i.e. it's not
+                # always true that the first several PSWFC are semicores states, the
+                # json file which we loaded in the self.ctx.pseudo_pswfcs already
+                # consider this ordering, e.g.
+                # "Ce": {
+                #     "filename": "Ce.GGA-PBE-paw-v1.0.UPF",
+                #     "md5": "c46c5ce91c1b1c29a1e5d4b97f9db5f7",
+                #     "pswfcs": ["5S", "6S", "5P", "6P", "5D", "6D", "4F", "5F"],
+                #     "semicores": ["5S", "5P"]
+                # }
+                import copy
+                label2num = {'S': 1, 'P': 3, 'D': 5, 'F': 7}
+                exclude_paos = [] # index should start from 1
+                num_pswfcs = 0
+                for site in self.ctx.current_structure.sites:
+                    # here I use deepcopy to make sure list.remove() does not
+                    # interfere with the original list.
+                    site_pswfcs = copy.deepcopy(self.ctx.pseudo_pswfcs[site.kind_name]['pswfcs'])
+                    site_semicores = copy.deepcopy(self.ctx.pseudo_pswfcs[site.kind_name]['semicores'])
+                    for orb in site_pswfcs:
+                        num_orbs = label2num[orb[1]]
+                        if orb in site_semicores:
+                            site_semicores.remove(orb)
+                            exclude_paos.extend(range(num_pswfcs + 1, num_pswfcs + num_orbs + 1))
+                        num_pswfcs += num_orbs
+                    if len(site_semicores) != 0:
+                        return self.exit_codes.ERROR_SUB_PROCESS_FAILED_WANNIER
+                parameters['exclude_paos'] = exclude_paos
 
         pw2wannier90_parameters = orm.Dict(dict={'inputpp': parameters})
         self.ctx.pw2wannier90_parameters = pw2wannier90_parameters
@@ -389,7 +424,7 @@ class Wannier90BandsWorkChain(WorkChain):
         if self.inputs.exclude_semicore:
             num_exclude_bands = 0
             for site in self.ctx.current_structure.sites:
-                for orb in self.ctx.pseudo_semicores[site.kind_name]:
+                for orb in self.ctx.pseudo_pswfcs[site.kind_name]['semicores']:
                     if 'S' in orb:
                         num_exclude_bands += 1
                     elif 'P' in orb:
@@ -404,6 +439,7 @@ class Wannier90BandsWorkChain(WorkChain):
                 parameters['exclude_bands'] = range(1, num_exclude_bands+1)
                 num_wann -= num_exclude_bands
                 parameters['num_bands'] -= num_exclude_bands
+                self.report(f"number of semicore states excluded {num_exclude_bands}")
         if num_wann <= 0:
             return self.exit_codes.ERROR_SUB_PROCESS_FAILED_WANNIER
         parameters['num_wann'] = num_wann
@@ -453,17 +489,22 @@ class Wannier90BandsWorkChain(WorkChain):
                 parameters.update({
                     'dis_num_iter': 400,
                     'dis_conv_tol': parameters['conv_tol'],
+                })
+                if self.inputs.pswfc_projections and 'auto_froz_max' in self.inputs and self.inputs.auto_froz_max:
+                    # Use None to represent automatically choose froz_max based on projectability
+                    # parameters['dis_froz_max'] = None
+                    parameters['dis_proj_max'] = 0.9
+                    parameters['dis_proj_min'] = 0.1
+                else:
                     # Here +3 means Fermi+3 eV, however Fermi energy is calculated dynamically,
                     # so later in Wannier90WorkChain, it will add Fermi energy on top of this dis_froz_max,
                     # so this dis_froz_max is a relative value.
                     #TODO +3 eV is a bit arbitrary, consider a better value?
-                    'dis_froz_max': +3.0,
-                    #'dis_mix_ratio':1.d0,
-                    #'dis_win_max':10.0,
-                })
-                if self.inputs.pswfc_projections and 'auto_froz_max' in self.inputs and self.inputs.auto_froz_max:
-                    # Use None to represent automatically choose froz_max based on projectability
-                    parameters['dis_froz_max'] = None
+                    parameters.update({
+                        'dis_froz_max': +3.0,
+                        #'dis_mix_ratio':1.d0,
+                        #'dis_win_max':10.0,
+                    })
 
         if self.inputs.retrieve_hamiltonian:
             parameters['write_tb'] = True
