@@ -63,6 +63,9 @@ class Wannier90BandsWorkChain(WorkChain):
             help='Used only if only_valence == False. The default disentanglement depends on scdm_projections: when scdm_projections = True, disentanglement = False; when scdm_projections = False, disentanglement = True. These improve the quality of Wannier interpolated bands for the two cases.')
         spec.input('auto_froz_max', valid_type=orm.Bool, required=False,
             help='Used only if pswfc_projections == True. If True use the energy corresponding to projectability = 0.9 as dis_froz_max for wannier90 disentanglement.')
+        spec.input('dis_proj_threshold', valid_type=orm.List, required=False,
+            default=lambda: orm.List(list=[0.1, 0.9]),
+            help='Used only if pswfc_projections == True. Threshold for PAO disentanglement.')
         spec.input('maximal_localisation', valid_type=orm.Bool, default=lambda: orm.Bool(True),
             help='If true do maximal localisation of Wannier functions.')
         spec.input('spin_polarized', valid_type=orm.Bool, default=lambda: orm.Bool(False),
@@ -493,8 +496,8 @@ class Wannier90BandsWorkChain(WorkChain):
                 if self.inputs.pswfc_projections and 'auto_froz_max' in self.inputs and self.inputs.auto_froz_max:
                     # Use None to represent automatically choose froz_max based on projectability
                     # parameters['dis_froz_max'] = None
-                    parameters['dis_proj_max'] = 0.9
-                    parameters['dis_proj_min'] = 0.1
+                    parameters['dis_proj_min'] = self.inputs.dis_proj_threshold[0]
+                    parameters['dis_proj_max'] = self.inputs.dis_proj_threshold[1]
                 else:
                     # Here +3 means Fermi+3 eV, however Fermi energy is calculated dynamically,
                     # so later in Wannier90WorkChain, it will add Fermi energy on top of this dis_froz_max,
