@@ -75,7 +75,8 @@ if __name__ == '__main__':
         replacement += f"p.axhline(y=fermi_energy, color='blue', linestyle='--', label='Fermi', zorder=-1)\n"
         replacement += 'pl.legend()\npl.show()\n'
         mpl_code = mpl_code.replace(b'pl.show()', replacement.encode())
-        print(mpl_code.decode())
+
+    # print(mpl_code.decode())
 
     if not args.save:
         exec(mpl_code)
