@@ -13,7 +13,7 @@ def required_length(nmin, nmax):
             setattr(args, self.dest, values)
     return RequiredLength
 
-def get_mpl_code_for_bands(dft_bands, wan_bands, title=None, save=False, filename=None):
+def get_mpl_code_for_bands(dft_bands, wan_bands, fermi_energy=None, title=None, save=False, filename=None):
     # dft_bands.show_mpl()
     dft_mpl_code = dft_bands._exportcontent(fileformat='mpl_singlefile', legend=f'{dft_bands.pk}', main_file_name='')[0]
     wan_mpl_code = wan_bands._exportcontent(fileformat='mpl_singlefile', legend=f'{wan_bands.pk}', main_file_name='',
@@ -28,6 +28,12 @@ def get_mpl_code_for_bands(dft_bands, wan_bands, title=None, save=False, filenam
         title = f'1st bands pk {dft_bands.pk}, 2nd bands pk {wan_bands.pk}'
     replacement = f'p.set_title("{title}")\npl.show()'
     mpl_code = mpl_code.replace(b'pl.show()', replacement.encode())
+
+    if fermi_energy is not None:
+        replacement = f"\nfermi_energy =  {fermi_energy}\n"
+        replacement += f"p.axhline(y=fermi_energy, color='blue', linestyle='--', label='Fermi', zorder=-1)\n"
+        replacement += 'pl.legend()\npl.show()\n'
+        mpl_code = mpl_code.replace(b'pl.show()', replacement.encode())
 
     if save:
         if filename is None:
@@ -47,7 +53,10 @@ def get_mpl_code_for_workchain(workchain, title=None, save=False, filename=None)
 
     if save and (filename is None):
         filename = f'bandsdiff_{formula}_{workchain.pk}.py'
-    mpl_code = get_mpl_code_for_bands(dft_bands, wan_bands, title, save, filename)
+
+    fermi_energy = workchain.outputs.scf_parameters['fermi_energy']
+
+    mpl_code = get_mpl_code_for_bands(dft_bands, wan_bands, fermi_energy, title, save, filename)
 
     return mpl_code
 
@@ -63,18 +72,10 @@ if __name__ == '__main__':
     if input_is_workchain:
         workchain = orm.load_node(args.pk[0])
         mpl_code = get_mpl_code_for_workchain(workchain, save=args.save)
-        fermi_energy = workchain.outputs.scf_parameters['fermi_energy']
     else:
         dft_bands = orm.load_node(args.pk[0])
         wan_bands = orm.load_node(args.pk[1])
         mpl_code = get_mpl_code_for_bands(dft_bands, wan_bands, save=args.save)
-        fermi_energy = None
-
-    if fermi_energy is not None:
-        replacement = f"\nfermi_energy =  {fermi_energy}\n"
-        replacement += f"p.axhline(y=fermi_energy, color='blue', linestyle='--', label='Fermi', zorder=-1)\n"
-        replacement += 'pl.legend()\npl.show()\n'
-        mpl_code = mpl_code.replace(b'pl.show()', replacement.encode())
 
     # print(mpl_code.decode())
 
