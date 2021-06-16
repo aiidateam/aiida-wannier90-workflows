@@ -63,10 +63,19 @@ if __name__ == '__main__':
     if input_is_workchain:
         workchain = orm.load_node(args.pk[0])
         mpl_code = get_mpl_code_for_workchain(workchain, save=args.save)
+        fermi_energy = workchain.outputs.scf_parameters['fermi_energy']
     else:
         dft_bands = orm.load_node(args.pk[0])
         wan_bands = orm.load_node(args.pk[1])
         mpl_code = get_mpl_code_for_bands(dft_bands, wan_bands, save=args.save)
+        fermi_energy = None
+
+    if fermi_energy is not None:
+        replacement = f"\nfermi_energy =  {fermi_energy}\n"
+        replacement += f"p.axhline(y=fermi_energy, color='blue', linestyle='--', label='Fermi', zorder=-1)\n"
+        replacement += 'pl.legend()\npl.show()\n'
+        mpl_code = mpl_code.replace(b'pl.show()', replacement.encode())
+        print(mpl_code.decode())
 
     if not args.save:
         exec(mpl_code)
