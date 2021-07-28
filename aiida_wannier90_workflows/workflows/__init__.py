@@ -6,10 +6,10 @@ AiiDA Wannier90 Workchain
 
 """
 
-from .bands import Wannier90BandsWorkChain
+from .base import Wannier90BaseWorkChain
 from .wannier import Wannier90WorkChain
-from .band_structure import PwBandStructureWorkChain
+from .bands import Wannier90BandsWorkChain
 
 __all__ = (
-    "Wannier90BandsWorkChain", "Wannier90WorkChain", "PwBandStructureWorkChain"
+    "Wannier90BaseWorkChain", "Wannier90WorkChain", "Wannier90BandsWorkChain"
 )
