@@ -1,9 +1,8 @@
 import numpy as np
 from aiida import orm
-from aiida.engine import calcfunction
 
-@calcfunction
-def convert_kpoints_mesh_to_list(kmesh):
+
+def get_explicit_kpoints(kmesh):
     """works just like `kmesh.pl` in Wannier90
     
     :param kmesh: contains a N1 * N2 * N3 mesh
@@ -35,3 +34,20 @@ def convert_kpoints_mesh_to_list(kmesh):
         klist = orm.KpointsData()
         klist.set_kpoints(kpoints=kpoints, cartesian=False, weights=weights)
         return klist
+
+
+def create_kpoints_from_distance(structure, distance):
+    kpoints = orm.KpointsData()
+    kpoints.set_cell_from_structure(structure)
+    if isinstance(distance, orm.Float):
+        kpoints_distance = distance.value
+    kpoints.set_kpoints_mesh_from_density(distance, force_parity=False)
+
+    return kpoints
+
+
+def get_explicit_kpoints_from_distance(structure, distance):
+    kpoints = create_kpoints_from_distance(structure, distance)
+    kpoints = get_explicit_kpoints(kpoints)
+
+    return kpoints
