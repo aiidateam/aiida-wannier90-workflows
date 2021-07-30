@@ -12,7 +12,7 @@ __all__ = (# for the content of UPF, i.e. these functions accept str as paramete
            # for orm.UpfData, i.e. these functions accept orm.UpfData as parameter
            'get_number_of_electrons_from_upf',
            'get_projections_from_upf',
-           'get_number_of_projections_from_upf', 
+           'get_number_of_projections_from_upf',
            # for orm.StructreData, i.e. these functions accept orm.StructreData as parameter
            'get_number_of_electrons',
            'get_projections',
@@ -23,6 +23,7 @@ __all__ = (# for the content of UPF, i.e. these functions accept str as paramete
            '_load_pseudo_metadata')
 
 Dict_of_Upf = typing.Dict[str, orm.UpfData]
+
 
 def get_ppheader(upf_content: str) -> str:
     upf_content = upf_content.split('\n')
@@ -50,6 +51,7 @@ def get_ppheader(upf_content: str) -> str:
     # print(ppheader_block)
     return ppheader_block
 
+
 def is_soc_pseudo(upf_content: str) -> bool:
     """check if it is a SOC pseudo
 
@@ -68,6 +70,7 @@ def is_soc_pseudo(upf_content: str) -> bool:
         # upf format 2.0.1
         has_so = PP_HEADER.get('has_so')[0].lower() == 't'
     return has_so
+
 
 def parse_zvalence(upf_content: str) -> float:
     """get z_valcence from a UPF file. No AiiDA dependencies.
@@ -134,6 +137,7 @@ def parse_zvalence(upf_content: str) -> float:
         num_electrons = float(PP_HEADER.get('z_valence'))
     return num_electrons
 
+
 def get_upf_content(upf: orm.UpfData) -> str:
     """Retreive the content of the UpfData
 
@@ -143,11 +147,16 @@ def get_upf_content(upf: orm.UpfData) -> str:
     :rtype: str
     """
     import aiida_pseudo.data.pseudo.upf
-    if not isinstance(upf, (orm.UpfData, aiida_pseudo.data.pseudo.upf.UpfData)):
-        raise ValueError(f'The type of upf is {type(upf)}, only aiida.orm.UpfData is accepted')
+    if not isinstance(
+        upf, (orm.UpfData, aiida_pseudo.data.pseudo.upf.UpfData)
+    ):
+        raise ValueError(
+            f'The type of upf is {type(upf)}, only aiida.orm.UpfData is accepted'
+        )
     upf_name = upf.list_object_names()[0]
     upf_content = upf.get_object_content(upf_name)
     return upf_content
+
 
 def get_number_of_electrons_from_upf(upf: orm.UpfData) -> float:
     """AiiDA wrapper for `parse_zvalence'
@@ -160,7 +169,10 @@ def get_number_of_electrons_from_upf(upf: orm.UpfData) -> float:
     upf_content = get_upf_content(upf)
     return parse_zvalence(upf_content)
 
-def get_number_of_electrons(structure: orm.StructureData, pseudos: Dict_of_Upf) -> float:
+
+def get_number_of_electrons(
+    structure: orm.StructureData, pseudos: Dict_of_Upf
+) -> float:
     """get number of electrons for the structure based on pseudopotentials
 
     Usage:
@@ -175,12 +187,20 @@ def get_number_of_electrons(structure: orm.StructureData, pseudos: Dict_of_Upf) 
     """
     import aiida_pseudo.data.pseudo.upf
     if not isinstance(structure, orm.StructureData):
-        raise ValueError(f'The type of structure is {type(structure)}, only aiida.orm.StructureData is accepted')
+        raise ValueError(
+            f'The type of structure is {type(structure)}, only aiida.orm.StructureData is accepted'
+        )
     if not isinstance(pseudos, dict):
-        raise ValueError(f'The type of pseudos is {type(pseudos)}, only dict is accepted')
+        raise ValueError(
+            f'The type of pseudos is {type(pseudos)}, only dict is accepted'
+        )
     for k, v in pseudos.items():
-        if not isinstance(k, str) or not isinstance(v, (orm.UpfData, aiida_pseudo.data.pseudo.upf.UpfData)):
-            raise ValueError(f'The type of <{k}, {v}> in pseudos is <{type(k)}, {type(v)}>, only <str, aiida.orm.UpfData> type is accepted')
+        if not isinstance(k, str) or not isinstance(
+            v, (orm.UpfData, aiida_pseudo.data.pseudo.upf.UpfData)
+        ):
+            raise ValueError(
+                f'The type of <{k}, {v}> in pseudos is <{type(k)}, {type(v)}>, only <str, aiida.orm.UpfData> type is accepted'
+            )
 
     tot_nelecs = 0
     # e.g. composition = {'Ga': 1, 'As': 1}
@@ -190,6 +210,7 @@ def get_number_of_electrons(structure: orm.StructureData, pseudos: Dict_of_Upf) 
         nelecs = get_number_of_electrons_from_upf(upf)
         tot_nelecs += nelecs * composition[kind]
     return tot_nelecs
+
 
 def parse_pswfc_soc(upf_content: str) -> list:
     """parse the PP_SPIN_ORB block in SOC UPF.
@@ -252,6 +273,7 @@ def parse_pswfc_soc(upf_content: str) -> list:
             projections.append({'n': nn, 'l': lchi, 'j': jchi})
     return projections
 
+
 def parse_pswfc_nosoc(upf_content: str) -> list:
     """for non-relativistic pseudo
 
@@ -306,6 +328,7 @@ def parse_pswfc_nosoc(upf_content: str) -> list:
             projections.append({'l': l})
     return projections
 
+
 def get_projections_from_upf(upf: orm.UpfData):
     """Return a list of strings for Wannier90 projection block
 
@@ -323,7 +346,9 @@ def get_projections_from_upf(upf: orm.UpfData):
             self.j = orbit_dict['j']
 
         def __eq__(self, orbit):
-            return self.n == orbit.n and self.l == orbit.l and abs(self.j - orbit.j) < 1e-6
+            return self.n == orbit.n and self.l == orbit.l and abs(
+                self.j - orbit.j
+            ) < 1e-6
 
         def __lt__(self, orbit):
             if self.n < orbit.n:
@@ -351,7 +376,7 @@ def get_projections_from_upf(upf: orm.UpfData):
         for wfc in parse_pswfc_soc(upf_content):
             pswfc.append(Orbit(wfc))
         # First sort by n, then l, then j, in ascending order
-        sorted_pswfc = sorted(pswfc) # will use __lt__
+        sorted_pswfc = sorted(pswfc)  # will use __lt__
         # Check that for a given l (>0), there are two j: j = l - 1/2 and j = l + 1/2,
         # then we can combine these two j and form a projection orbital for wannier90.
         # e.g. {n = 1, l = 1, j = 0.5} and {n = 1, l = 1, j = 1.5} together correspond
@@ -366,17 +391,20 @@ def get_projections_from_upf(upf: orm.UpfData):
             if l == 0:
                 assert is_equal(j, 0.5)
             else:
-                pair_orbit = Orbit({'n': n, 'l': l, 'j': j+1})
-                assert i+1 < len(sorted_pswfc)
-                assert sorted_pswfc[i+1] == pair_orbit # will use __eq__
-                pswfc.remove(pair_orbit) # remove uses __eq__, and remove the 1st matched element
-                assert not pair_orbit in pswfc # # in uses __eq__, pswfc should contain one and only one pair_orbit
-                i += 1 # skip next one
+                pair_orbit = Orbit({'n': n, 'l': l, 'j': j + 1})
+                assert i + 1 < len(sorted_pswfc)
+                assert sorted_pswfc[i + 1] == pair_orbit  # will use __eq__
+                pswfc.remove(
+                    pair_orbit
+                )  # remove uses __eq__, and remove the 1st matched element
+                assert not pair_orbit in pswfc  # # in uses __eq__, pswfc should contain one and only one pair_orbit
+                i += 1  # skip next one
             i += 1
         # Now all the j = l + 1/2 orbitals have been removed
         for wfc in pswfc:
             wannier_projections.append(f'{upf.element}: {orbit_map[wfc.l]}')
     return wannier_projections
+
 
 def get_projections(structure: orm.StructureData, pseudos: Dict_of_Upf):
     """get wannier90 projection block for the crystal structure 
@@ -394,12 +422,20 @@ def get_projections(structure: orm.StructureData, pseudos: Dict_of_Upf):
     """
     import aiida_pseudo.data.pseudo.upf
     if not isinstance(structure, orm.StructureData):
-        raise ValueError(f'The type of structure is {type(structure)}, only aiida.orm.StructureData is accepted')
+        raise ValueError(
+            f'The type of structure is {type(structure)}, only aiida.orm.StructureData is accepted'
+        )
     if not isinstance(pseudos, dict):
-        raise ValueError(f'The type of pseudos is {type(pseudos)}, only dict is accepted')
+        raise ValueError(
+            f'The type of pseudos is {type(pseudos)}, only dict is accepted'
+        )
     for k, v in pseudos.items():
-        if not isinstance(k, str) or not isinstance(v, (orm.UpfData, aiida_pseudo.data.pseudo.upf.UpfData)):
-            raise ValueError(f'The type of <{k}, {v}> in pseudos is <{type(k)}, {type(v)}>, only <str, aiida.orm.UpfData> type is accepted')
+        if not isinstance(k, str) or not isinstance(
+            v, (orm.UpfData, aiida_pseudo.data.pseudo.upf.UpfData)
+        ):
+            raise ValueError(
+                f'The type of <{k}, {v}> in pseudos is <{type(k)}, {type(v)}>, only <str, aiida.orm.UpfData> type is accepted'
+            )
 
     projections = []
     # e.g. composition = {'Ga': 1, 'As': 1}
@@ -409,6 +445,7 @@ def get_projections(structure: orm.StructureData, pseudos: Dict_of_Upf):
         projs = get_projections_from_upf(upf)
         projections.extend(projs)
     return projections
+
 
 def parse_number_of_pswfc(upf_content: str) -> int:
     """Get the number of orbitals in the UPF file.
@@ -443,6 +480,7 @@ def parse_number_of_pswfc(upf_content: str) -> int:
                 num_projections += 2
     return num_projections
 
+
 def get_number_of_projections_from_upf(upf: orm.UpfData) -> int:
     """aiida wrapper for `parse_number_of_pswfc`.
 
@@ -454,7 +492,10 @@ def get_number_of_projections_from_upf(upf: orm.UpfData) -> int:
     upf_content = get_upf_content(upf)
     return parse_number_of_pswfc(upf_content)
 
-def get_number_of_projections(structure: orm.StructureData, pseudos: Dict_of_Upf) -> int:
+
+def get_number_of_projections(
+    structure: orm.StructureData, pseudos: Dict_of_Upf
+) -> int:
     """get number of projections for the crystal structure 
     based on pseudopotential files.
 
@@ -470,12 +511,20 @@ def get_number_of_projections(structure: orm.StructureData, pseudos: Dict_of_Upf
     """
     import aiida_pseudo.data.pseudo.upf
     if not isinstance(structure, orm.StructureData):
-        raise ValueError(f'The type of structure is {type(structure)}, only aiida.orm.StructureData is accepted')
+        raise ValueError(
+            f'The type of structure is {type(structure)}, only aiida.orm.StructureData is accepted'
+        )
     if not isinstance(pseudos, dict):
-        raise ValueError(f'The type of pseudos is {type(pseudos)}, only dict is accepted')
+        raise ValueError(
+            f'The type of pseudos is {type(pseudos)}, only dict is accepted'
+        )
     for k, v in pseudos.items():
-        if not isinstance(k, str) or not isinstance(v, (orm.UpfData, aiida_pseudo.data.pseudo.upf.UpfData)):
-            raise ValueError(f'The type of <{k}, {v}> in pseudos is <{type(k)}, {type(v)}>, only <str, aiida.orm.UpfData> type is accepted')
+        if not isinstance(k, str) or not isinstance(
+            v, (orm.UpfData, aiida_pseudo.data.pseudo.upf.UpfData)
+        ):
+            raise ValueError(
+                f'The type of <{k}, {v}> in pseudos is <{type(k)}, {type(v)}>, only <str, aiida.orm.UpfData> type is accepted'
+            )
 
     tot_nprojs = 0
     # e.g. composition = {'Ga': 1, 'As': 1}
@@ -486,7 +535,10 @@ def get_number_of_projections(structure: orm.StructureData, pseudos: Dict_of_Upf
         tot_nprojs += nprojs * composition[kind]
     return tot_nprojs
 
-def get_wannier_number_of_bands(structure, pseudos, only_valence=False, spin_polarized=False):
+
+def get_wannier_number_of_bands(
+    structure, pseudos, factor=1.2, only_valence=False, spin_polarized=False
+):
     """estimate number of bands for a Wannier90 calculation.
 
     :param structure: crystal structure
@@ -508,18 +560,22 @@ def get_wannier_number_of_bands(structure, pseudos, only_valence=False, spin_pol
         num_bands = int(0.5 * num_electrons * nspin)
     else:
         # nbands must > num_projections = num_wann
-        factor = 1.2
-        num_bands = max(int(0.5 * num_electrons * nspin * factor), 
-                    int(0.5 * num_electrons * nspin + 4 * nspin), 
-                    int(num_projections * factor), 
-                    int(num_projections + 4))
+        num_bands = max(
+            int(0.5 * num_electrons * nspin * factor),
+            int(0.5 * num_electrons * nspin + 4 * nspin),
+            int(num_projections * factor), int(num_projections + 4)
+        )
     return num_bands
+
 
 def _load_pseudo_metadata(filename):
     """Load from the current folder a json file containing metadata (incl. suggested cutoffs) for a library of pseudopotentials.
     """
-    with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), filename)) as handle:
+    with open(
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), filename)
+    ) as handle:
         return json.load(handle)
+
 
 def md5(filename):
     hash_md5 = hashlib.md5()
@@ -528,12 +584,13 @@ def md5(filename):
             hash_md5.update(chunk)
     return hash_md5.hexdigest()
 
+
 def get_metadata(filename):
     result = {
         "filename": filename,
         "md5": md5(filename),
         "pseudopotential": "100PAW"
-        }
+    }
     with open(filename) as f:
         for line in f:
             if "Suggested minimum cutoff for wavefunctions" in line:
@@ -543,6 +600,7 @@ def get_metadata(filename):
         result["cutoff"] = wave
         result["dual"] = charge / wave
     return result
+
 
 def generate_pslibrary_metadata(dirname=None):
     """Scan the folder and generate a json file containing metainfo of pseudos of pslibrary.
@@ -678,6 +736,7 @@ Pu: Pu.$fct-spfn-*_psl.1.0.0"""
     with open(output_filename, 'w') as f:
         json.dump(result, f, indent=2)
 
+
 def generate_dojo_metadata():
     """generate metadata for pseduo-dojo SOC pseudos, from
     http://www.pseudo-dojo.org/nc-fr-04_pbe_stringent.json
@@ -707,6 +766,7 @@ def generate_dojo_metadata():
     with open('dojo_nc_fr.json', 'w') as f:
         json.dump(result, f, indent=2)
 
+
 def _print_exclude_semicores():
     periodic_table = 'H He Li Be B C N O F Ne '
     periodic_table += 'Na Mg Al Si P S Cl Ar '
@@ -724,6 +784,7 @@ def _print_exclude_semicores():
             continue
         remaining = set(data[kind]['pswfcs']) - set(data[kind]['semicores'])
         print(f"{kind:2s} {' '.join(remaining)}")
+
 
 if __name__ == '__main__':
     # generate_pslibrary_metadata()
