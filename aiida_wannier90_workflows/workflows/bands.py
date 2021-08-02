@@ -11,6 +11,7 @@ from .opengrid import Wannier90OpengridWorkChain
 
 __all__ = ['Wannier90BandsWorkChain']
 
+
 def validate_inputs(inputs, ctx=None):  # pylint: disable=unused-argument
     """Validate the inputs of the entire input namespace."""
     # pylint: disable=no-member
@@ -18,6 +19,7 @@ def validate_inputs(inputs, ctx=None):  # pylint: disable=unused-argument
     # Cannot specify both `kpoint_path` and `kpoint_path_distance`
     if all([key in inputs for key in ['kpoint_path', 'kpoint_path_distance']]):
         return Wannier90BandsWorkChain.exit_codes.ERROR_INVALID_INPUT_KPOINTS.message
+
 
 class Wannier90BandsWorkChain(Wannier90WorkChain):
     """
@@ -27,10 +29,20 @@ class Wannier90BandsWorkChain(Wannier90WorkChain):
     def define(cls, spec):
         """Define the process specification."""
         super().define(spec)
-        spec.input('kpoint_path', valid_type=orm.KpointsData, required=False,
-            help='Explicit kpoints to use for the BANDS calculation. If not specified, the workchain will run seekpath to generate a primitive cell and a kpoint_path. Specify either this or `kpoint_path_distance`.')
-        spec.input('kpoint_path_distance', valid_type=orm.Float, required=False,
-            help='Minimum kpoints distance for the BANDS calculation. Specify either this or `kpoint_path`.')
+        spec.input(
+            'kpoint_path',
+            valid_type=orm.KpointsData,
+            required=False,
+            help=
+            'Explicit kpoints to use for the BANDS calculation. If not specified, the workchain will run seekpath to generate a primitive cell and a kpoint_path. Specify either this or `kpoint_path_distance`.'
+        )
+        spec.input(
+            'kpoint_path_distance',
+            valid_type=orm.Float,
+            required=False,
+            help=
+            'Minimum kpoints distance for the BANDS calculation. Specify either this or `kpoint_path`.'
+        )
 
         # We expose the in/output of Wannier90OpengridWorkChain since Wannier90WorkChain in/output
         # is a subset of Wannier90OpengridWorkChain,
@@ -46,9 +58,7 @@ class Wannier90BandsWorkChain(Wannier90WorkChain):
         spec.outline(
             cls.setup,
             cls.validate_parameters,
-            if_(cls.should_run_seekpath)(
-                cls.run_seekpath,
-            ),
+            if_(cls.should_run_seekpath)(cls.run_seekpath, ),
             if_(cls.should_run_relax)(
                 cls.run_relax,
                 cls.inspect_relax,
@@ -93,16 +103,23 @@ class Wannier90BandsWorkChain(Wannier90WorkChain):
             Wannier90WorkChain,
             namespace_options={'required': True}
         )
-        spec.output('band_structure', valid_type=orm.BandsData,
-            help='The Wannier interpolated band structure.')
+        spec.output(
+            'band_structure',
+            valid_type=orm.BandsData,
+            help='The Wannier interpolated band structure.'
+        )
 
         spec.exit_code(
             401,
             'ERROR_INVALID_INPUT_UNRECOGNIZED_KIND',
             message='Input `StructureData` contains an unsupported kind.'
         )
-        spec.exit_code(402, 'ERROR_INVALID_INPUT_KPOINTS',
-            message='Cannot specify both `kpoint_path` and `kpoint_path_distance`.')
+        spec.exit_code(
+            402,
+            'ERROR_INVALID_INPUT_KPOINTS',
+            message=
+            'Cannot specify both `kpoint_path` and `kpoint_path_distance`.'
+        )
         spec.exit_code(
             403,
             'ERROR_INVALID_INPUT_OPENGRID',
@@ -167,7 +184,7 @@ class Wannier90BandsWorkChain(Wannier90WorkChain):
     def setup(self):
         """Define the current structure in the context to be the input structure."""
         self.ctx.current_structure = self.inputs.structure
-        
+
         if not self.should_run_seekpath():
             self.ctx.current_kpoint_path = self.inputs.kpoint_path
 
@@ -178,9 +195,7 @@ class Wannier90BandsWorkChain(Wannier90WorkChain):
     def run_seekpath(self):
         """Run the structure through SeeKpath to get the primitive and normalized structure."""
         structure_formula = self.inputs.structure.get_formula()
-        self.report(
-            f'launching seekpath for: {structure_formula}'
-        )
+        self.report(f'launching seekpath for: {structure_formula}')
 
         args = {
             'structure': self.inputs.structure,
@@ -196,10 +211,12 @@ class Wannier90BandsWorkChain(Wannier90WorkChain):
         self.ctx.current_structure = result['primitive_structure']
 
         # add kpoint_path for Wannier bands
-        self.ctx.current_kpoint_path = orm.Dict(dict={
-            'path': result['parameters']['path'],
-            'point_coords': result['parameters']['point_coords']
-        })
+        self.ctx.current_kpoint_path = orm.Dict(
+            dict={
+                'path': result['parameters']['path'],
+                'point_coords': result['parameters']['point_coords']
+            }
+        )
 
         self.out('primitive_structure', result['primitive_structure'])
         self.out('seekpath_parameters', result['parameters'])
@@ -237,7 +254,8 @@ class Wannier90BandsWorkChain(Wannier90WorkChain):
         kpoint_path_distance: float = None,
         run_opengrid: bool = False,
         opengrid_only_scf: bool = True,
-        **kwargs) -> ProcessBuilder:
+        **kwargs
+    ) -> ProcessBuilder:
         """Return a builder prepopulated with inputs selected according to the specified arguments.
 
         :param codes: a dictionary of ``Code`` instance for pw.x, pw2wannier90.x, wannier90.x, (optionally) projwfc.x.
@@ -267,11 +285,17 @@ class Wannier90BandsWorkChain(Wannier90WorkChain):
         from aiida.tools import get_explicit_kpoints_path
 
         if kpoint_path is not None and kpoint_path_distance is not None:
-            raise ValueError("Cannot specify both `kpoint_path` and `kpoint_path_distance`")
+            raise ValueError(
+                "Cannot specify both `kpoint_path` and `kpoint_path_distance`"
+            )
 
-        if run_opengrid and kwargs.get('electronic_type', None) == SpinType.SPIN_ORBIT:
-            raise ValueError('open_grid.x does not support spin orbit coupling')
-        
+        if run_opengrid and kwargs.get(
+            'electronic_type', None
+        ) == SpinType.SPIN_ORBIT:
+            raise ValueError(
+                'open_grid.x does not support spin orbit coupling'
+            )
+
         if kpoint_path is None:
             # don't use `seekpath_structure_analysis`, since it's a calcfunction and will modify aiida database
             args = {'structure': structure}
@@ -281,29 +305,40 @@ class Wannier90BandsWorkChain(Wannier90WorkChain):
             primitive_structure = result['primitive_structure']
             # ase Atoms class can test if two structures are the same
             if structure.get_ase() == primitive_structure.get_ase():
-                builder = super().get_builder_from_protocol(codes, structure, **kwargs)
+                builder = super().get_builder_from_protocol(
+                    codes, structure, **kwargs
+                )
                 # set kpoint_path, so the workchain won't run seekpath
-                builder.kpoint_path = orm.Dict(dict={
-                    'path': result['path'],
-                    'point_coords': result['point_coords']
-                })
+                builder.kpoint_path = orm.Dict(
+                    dict={
+                        'path': result['path'],
+                        'point_coords': result['point_coords']
+                    }
+                )
             else:
                 message = f'The input structure {structure.get_formula()} is NOT a primitive cell, '
                 message += f'the generated parameters are for the primitive cell {primitive_structure.get_formula()}.\n'
                 print(message)
                 # I need to use primitive cell to generate all the input parameters, e.g. num_wann, num_bands, ...
-                builder = super().get_builder_from_protocol(codes, primitive_structure, **kwargs)
+                builder = super().get_builder_from_protocol(
+                    codes, primitive_structure, **kwargs
+                )
                 # don't set `kpoint_path` and `kpoint_path_distance`, so the workchain will run seekpath
                 # however I still need to use the original cell, so the `seekpath_structure_analysis` will
                 # store the provenance from original cell to primitive cell.
                 builder.structure = structure
         else:
-            builder = super().get_builder_from_protocol(codes, structure, **kwargs)
+            builder = super().get_builder_from_protocol(
+                codes, structure, **kwargs
+            )
             builder.kpoint_path = kpoint_path
 
         return builder
 
-def get_builder_for_pwbands(wannier_workchain: Wannier90BandsWorkChain) -> ProcessBuilder:
+
+def get_builder_for_pwbands(
+    wannier_workchain: Wannier90BandsWorkChain
+) -> ProcessBuilder:
     """Get a PwBaseWorkChain builder for calculating bands strcutre 
     from a finished Wannier90BandsWorkChain.
     Useful for compareing QE and Wannier90 interpolated bands structures.
@@ -324,7 +359,7 @@ def get_builder_for_pwbands(wannier_workchain: Wannier90BandsWorkChain) -> Proce
         if k in excluded_inputs:
             continue
         builder[k] = scf_inputs[k]
-        
+
     structure = wannier_workchain.inputs['structure']
     if 'primitive_structure' in wannier_workchain.outputs:
         structure = wannier_workchain.outputs['primitive_structure']
@@ -337,7 +372,8 @@ def get_builder_for_pwbands(wannier_workchain: Wannier90BandsWorkChain) -> Proce
 
     # should use wannier90 kpath, otherwise number of kpoints
     # of DFT and w90 is not consistent
-    wannier_bands = wannier_workchain.outputs['wannier90']['interpolated_bands']
+    wannier_bands = wannier_workchain.outputs['wannier90']['interpolated_bands'
+                                                           ]
     wannier_kpoints = orm.KpointsData()
     wannier_kpoints.set_kpoints(wannier_bands.get_kpoints())
     wannier_kpoints.set_attribute_many({
@@ -368,12 +404,14 @@ def get_builder_for_pwbands(wannier_workchain: Wannier90BandsWorkChain) -> Proce
     parameters['ELECTRONS'].setdefault('diago_full_acc', True)
 
     if 'nscf' in wannier_workchain.inputs:
-        nbnd = wannier_workchain.inputs['nscf']['pw']['parameters']['SYSTEM']['nbnd']
+        nbnd = wannier_workchain.inputs['nscf']['pw']['parameters']['SYSTEM'
+                                                                    ]['nbnd']
         parameters['SYSTEM']['nbnd'] = nbnd
-    
+
     builder.pw['parameters'] = orm.Dict(dict=parameters)
 
     return builder
+
 
 def get_default_options(structure, with_mpi=False):
     """Increase wallclock to 5 hour, use mpi, set number of machines according to 

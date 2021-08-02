@@ -135,13 +135,14 @@ def print_help(workchain, structure):
             workchain.pk, structure.get_formula()
         )
     )
-    print('\n'
-    '# To get a detailed state of the workflow, run:\n'
-    f'verdi process report {workchain.pk}\n'
-    '\n'
-    'Several tools for visualization, after workchain finished, launch as:\n'
-    f'    ../../aiida_wannier90_workflows/tools/plot_projectabilities.py {workchain.pk}\n'
-    f'    ../../aiida_wannier90_workflows/tools/compare_dft_wannier_bands.py {workchain.pk}\n'
+    print(
+        '\n'
+        '# To get a detailed state of the workflow, run:\n'
+        f'verdi process report {workchain.pk}\n'
+        '\n'
+        'Several tools for visualization, after workchain finished, launch as:\n'
+        f'    ../../aiida_wannier90_workflows/tools/plot_projectabilities.py {workchain.pk}\n'
+        f'    ../../aiida_wannier90_workflows/tools/compare_dft_wannier_bands.py {workchain.pk}\n'
     )
 
 
