@@ -60,6 +60,15 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
             help=
             'If True the dis_froz/win_min/max will be shifted by fermi_enerngy. False is the default behaviour of wannier90.'
         )
+        # TODO
+        spec.input(
+            'scdm_sigma_factor',
+            valid_type=orm.Float,
+            required=False,
+            default=lambda: orm.Float(3),
+            help=
+            'For SCDM projection.'
+        )
         spec.input(
             'auto_froz_max',
             valid_type=orm.Bool,
@@ -208,6 +217,11 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
             message='Invalid pseudopotentials.'
         )
         spec.exit_code(
+            404,
+            'ERROR_INVALID_INPUT_AUTOFROZMAX',
+            message='auto_froz_max is incompatible with SCDM'
+        )
+        spec.exit_code(
             410,
             'ERROR_SUB_PROCESS_FAILED_RELAX',
             message='the PwRelaxWorkChain sub process failed'
@@ -258,6 +272,12 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
             kpoint_path = wannier_inputs.get('kpoint_path', None)
             if kpoint_path is None:
                 return self.exit_codes.ERROR_INVALID_INPUT_KPOINT_PATH
+
+        # Cannot specify both `auto_froz_max` and `scdm_proj`
+        pw2wannier_inputs = AttributeDict(self.inputs['pw2wannier90'])
+        parameters = pw2wannier_inputs.parameters.get_dict()
+        if self.inputs.auto_froz_max and parameters['inputpp'].get('scdm_proj', False):
+            return self.exit_codes.ERROR_INVALID_INPUT_AUTOFROZMAX
 
     def should_run_relax(self):
         """If the 'relax' input namespace was specified, we relax the input structure."""
