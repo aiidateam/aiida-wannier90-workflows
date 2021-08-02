@@ -7,12 +7,19 @@ from aiida_wannier90_workflows.utils.upf import get_number_of_electrons_from_upf
 if __name__ == '__main__':
     OUTPUT_FILENAME = 'sssp_nelec_nproj.json'
 
-    parser = argparse.ArgumentParser(description=
-    f'Parse number of electrons and number of projection orbitals of SSSP pseudopotentials. '
-    'The script will read from a json file and search your AiiDA database for the pseudopotentials, '
-    'and write to a file `{OUTPUT_FILENAME}` which contains the number of electrons '
-    'and number of projection orbitals of SSSP pseudopotentials.')
-    parser.add_argument('file', metavar='JSON_FILE', type=str, help='the json file of SSSP, e.g. sssp_efficiency_1.1.json.')
+    parser = argparse.ArgumentParser(
+        description=
+        f'Parse number of electrons and number of projection orbitals of SSSP pseudopotentials. '
+        'The script will read from a json file and search your AiiDA database for the pseudopotentials, '
+        'and write to a file `{OUTPUT_FILENAME}` which contains the number of electrons '
+        'and number of projection orbitals of SSSP pseudopotentials.'
+    )
+    parser.add_argument(
+        'file',
+        metavar='JSON_FILE',
+        type=str,
+        help='the json file of SSSP, e.g. sssp_efficiency_1.1.json.'
+    )
     args = parser.parse_args()
 
     with open(args.file) as f:
@@ -22,7 +29,11 @@ if __name__ == '__main__':
     for element in sssp:
         md5 = sssp[element]['md5']
         builder = orm.QueryBuilder()
-        builder.append(orm.UpfData, filters={'attributes.md5': md5}, project=['uuid', 'attributes.element'])
+        builder.append(
+            orm.UpfData,
+            filters={'attributes.md5': md5},
+            project=['uuid', 'attributes.element']
+        )
         res = builder.all()
         if len(res) >= 1:
             this_uuid, this_element = res[0]
