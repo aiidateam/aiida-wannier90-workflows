@@ -1,11 +1,11 @@
-from copy import deepcopy
+import typing
 import enum
 import numpy as np
 
 from aiida import orm
-from aiida.common import AttributeDict, exceptions
+from aiida.common import AttributeDict
 from aiida.common.lang import type_check
-from aiida.engine.processes import WorkChain, ToContext, if_
+from aiida.engine.processes import WorkChain, ToContext, if_, ProcessBuilder
 from aiida.engine.processes import calcfunction
 from aiida.plugins import WorkflowFactory, CalculationFactory, GroupFactory
 
@@ -18,10 +18,12 @@ from aiida_wannier90.calculations import Wannier90Calculation
 from aiida_quantumespresso.common.types import ElectronicType, SpinType
 from aiida_quantumespresso.workflows.protocols.utils import ProtocolMixin
 
+from aiida_pseudo.data.pseudo import UpfData
+
 from .base import Wannier90BaseWorkChain
 from ..calculations.functions.kmesh import get_explicit_kpoints_from_distance, get_explicit_kpoints, create_kpoints_from_distance
 from ..utils.scdm import fit_scdm_mu_sigma_aiida, get_energy_of_projectability
-from ..utils.upf import get_number_of_electrons, get_number_of_projections, get_wannier_number_of_bands, get_projections, _load_pseudo_metadata
+from ..utils.upf import get_number_of_projections, get_wannier_number_of_bands, _load_pseudo_metadata
 
 __all__ = ['Wannier90WorkChain']
 
@@ -33,6 +35,27 @@ class WannierProjectionType(enum.Enum):
     NUMERIC = 'numeric'
     SCDM = 'scdm'
     RANDOM = 'random'
+
+class WannierDisentanglementType(enum.Enum):
+    """Enumeration to indicate the Wannier disentanglement type."""
+
+    # no disentanglement
+    NONE = 'none'
+    # a fixed dis_froz_max, default is fermi_energy + 2 eV
+    WINDOW_FIXED = 'window_fixed'
+    # automatically calculate dis_froz_max based on bands projectability, default projectability threshold is 0.9
+    WINDOW_AUTO = 'window_auto'
+    # disentaglement per kpoint based on projectability, default thresholds are min/max = 0.01/0.95
+    PROJECTABILITY = 'projectability'
+    # fixed window + projectability per kpoint, default is fermi_energy + 2 eV and min/max = 0.01/0.95
+    WINDOW_AND_PROJECTABILITY = 'window_and_projectability'
+    # automatically choose the best disentanglement according to WannierProjectionType and ElectronicType
+    # for ElectronicType.INSULATOR, use NONE
+    # for metals or insulators with conduction bands:
+    #   for WannierProjectionType.HYDROGEN/RANDOM, use WINDOW_FIXED
+    #   for WannierProjectionType.NUMERIC, use WINDOW_AND_PROJECTABILITY
+    #   for WannierProjectionType.SCDM, use NONE
+    AUTO = 'auto'
 
 
 class Wannier90WorkChain(ProtocolMixin, WorkChain):
@@ -61,10 +84,10 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
             valid_type=orm.StructureData,
             help='The input structure.'
         )
-        # TODO
         spec.input(
             'clean_workdir',
             valid_type=orm.Bool,
+            required=False,
             default=lambda: orm.Bool(False),
             help=
             'If `True`, work directories of all called calculation will be cleaned at the end of execution.'
@@ -72,19 +95,34 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
         spec.input(
             'relative_dis_windows',
             valid_type=orm.Bool,
+            required=False,
             default=lambda: orm.Bool(False),
             help=
             'If True the dis_froz/win_min/max will be shifted by fermi_enerngy. False is the default behaviour of wannier90.'
+        )
+        spec.input(
+            'auto_froz_max',
+            valid_type=orm.Bool,
+            required=False,
+            default=lambda: orm.Bool(False),
+            help=
+            'If True use the energy corresponding to projectability = 0.9 as dis_froz_max for wannier90 disentanglement.'
+        )
+        spec.input(
+            'auto_froz_max_threshold',
+            valid_type=orm.Float,
+            required=False,
+            default=lambda: orm.Float(0.9),
+            help=
+            'Threshold for auto_froz_max.'
         )
         spec.expose_inputs(
             PwRelaxWorkChain,
             namespace='relax',
             exclude=('clean_workdir', 'structure'),
             namespace_options={
-                'required':
-                False,
-                'populate_defaults':
-                False,
+                'required': False,
+                'populate_defaults': False,
                 'help':
                 'Inputs for the `PwRelaxWorkChain`, if not specified at all, the relaxation step is skipped.'
             }
@@ -260,9 +298,6 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
             if kpoint_path is None:
                 return self.exit_codes.ERROR_INVALID_INPUT_KPOINT_PATH
 
-        # TODO need to set context var? original in setup()
-        # self.ctx.auto_projections = parameters.get('auto_projections', False)
-
     def should_run_relax(self):
         """If the 'relax' input namespace was specified, we relax the input structure."""
         return 'relax' in self.inputs
@@ -386,6 +421,75 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
             )
             return self.exit_codes.ERROR_SUB_PROCESS_FAILED_PROJWFC
 
+    def prepare_wannier90_inputs(self):
+        """The input of wannier90 calculation is build here.
+        Here it is separated out from `run_wannier90_pp`, so it can be overridden by subclasses."""
+        inputs = AttributeDict(
+            self.exposed_inputs(Wannier90Calculation, namespace='wannier90')
+        )
+        inputs.structure = self.ctx.current_structure
+        parameters = inputs.parameters.get_dict()
+        
+        # Need fermi energy to shift the windows
+        fermi_energy = None
+        if self.inputs['relative_dis_windows']:
+            if 'workchain_scf' not in self.ctx:
+                raise ValueError(
+                    "relative_dis_windows = True but did not run scf calculation"
+                )
+            scf_output_parameters = self.ctx.workchain_scf.outputs.output_parameters
+            fermi_energy = get_fermi_energy(scf_output_parameters)
+            if fermi_energy is None:
+                raise ValueError(
+                    "relative_dis_windows = True but cannot retrieve Fermi energy from scf output"
+                )
+
+        # add scf Fermi energy
+        if 'workchain_scf' in self.ctx:
+            scf_output_parameters = self.ctx.workchain_scf.outputs.output_parameters
+            fermi_energy = get_fermi_energy(scf_output_parameters)
+            if fermi_energy is None:
+                raise ValueError(
+                    "relative_dis_windows = True but cannot retrieve Fermi energy from scf output"
+                )
+            if self.inputs.relative_dis_windows:
+                keys = [
+                    'dis_froz_min', 'dis_froz_max', 'dis_win_min',
+                    'dis_win_max'
+                ]
+                for k in keys:
+                    v = parameters.get(k, None)
+                    if v is not None:
+                        parameters[k] += fermi_energy
+
+        # set dis_froz_max
+        if 'auto_froz_max' in self.inputs:
+            bands = self.ctx.calc_projwfc.outputs.bands
+            projections = self.ctx.calc_projwfc.outputs.projections
+            args = {
+                'bands': bands,
+                'projections': projections
+            }
+            if 'auto_froz_max_threshold' in self.inputs:
+                args['thresholds'] = self.inputs.auto_froz_max_threshold.value
+            dis_froz_max = get_energy_of_projectability(**args)
+            parameters['dis_froz_max'] = dis_froz_max
+
+        if 'dis_froz_max' in parameters:
+            bands = self.ctx.calc_projwfc.outputs.bands
+            # TODO check provenance graph
+            # dis_windows: More states in the frozen window than target WFs
+            max_energy = np.min(
+                bands.get_bands()[:, parameters['num_wann'] - 1]
+            )
+            dis_froz_max = min(max_energy, parameters['dis_froz_max'])
+            if dis_froz_max != parameters['dis_froz_max']:
+                parameters['dis_froz_max'] = dis_froz_max
+        
+        inputs.parameters = orm.Dict(dict=parameters)
+
+        return inputs
+
     def run_wannier90_pp(self):
         inputs = self.prepare_wannier90_inputs()
 
@@ -400,7 +504,7 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
         inputs = {
             'wannier90': inputs,
             'metadata': {
-                'call_link_label': 'wannier_pp'
+                'call_link_label': 'wannier90_pp'
             }
         }
         inputs = prepare_process_inputs(Wannier90BaseWorkChain, inputs)
@@ -421,6 +525,63 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
                 f'wannier90 postproc {workchain.process_label} failed with exit status {workchain.exit_status}'
             )
             return self.exit_codes.ERROR_SUB_PROCESS_FAILED_WANNIER90PP
+
+    def prepare_pw2wannier90_inputs(self):
+        inputs = AttributeDict(
+            self.exposed_inputs(
+                Pw2wannier90Calculation, namespace='pw2wannier90'
+            )
+        )
+
+        inputs['parent_folder'] = self.ctx.current_folder
+        inputs['nnkp_file'] = self.ctx.workchain_wannier90_pp.outputs.nnkp_file
+
+        inputpp = inputs.parameters.get_dict().get('inputpp', {})
+        scdm_proj = inputpp.get('scdm_proj', False)
+        scdm_entanglement = inputpp.get('scdm_entanglement', None)
+        scdm_mu = inputpp.get('scdm_mu', None)
+        scdm_sigma = inputpp.get('scdm_sigma', None)
+
+        calc_scdm_params = scdm_proj and scdm_entanglement == 'erfc'
+        calc_scdm_params = calc_scdm_params and (
+            scdm_mu is None or scdm_sigma is None
+        )
+
+        if scdm_entanglement == 'gaussian':
+            if scdm_mu is None or scdm_sigma is None:
+                raise ValueError(
+                    "scdm_entanglement = gaussian but scdm_mu or scdm_sigma is empty."
+                )
+
+        if calc_scdm_params:
+            if 'calc_projwfc' not in self.ctx:
+                raise ValueError(
+                    'Needs to run projwfc before auto-generating scdm_mu/sigma'
+                )
+            try:
+                args = {
+                    'parameters':
+                    inputs.parameters,
+                    'bands':
+                    self.ctx.calc_projwfc.outputs.bands,
+                    'projections':
+                    self.ctx.calc_projwfc.outputs.projections,
+                    'thresholds':
+                    orm.Dict(
+                        dict={
+                            'max_projectability': 0.95,
+                            'sigma_factor': 3
+                        }
+                    ),
+                    'metadata': {
+                        'call_link_label': 'update_scdm_mu_sigma'
+                    }
+                }
+                inputs.parameters = update_scdm_mu_sigma(**args)
+            except Exception as e:
+                raise ValueError(f'update_scdm_mu_sigma failed! {e.args}')
+
+        return inputs
 
     def run_pw2wannier90(self):
         inputs = self.prepare_pw2wannier90_inputs()
@@ -452,19 +613,15 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
 
         inputs['remote_input_folder'] = self.ctx.current_folder
 
-        # copy postproc inputs
-        pp_inputs = self.ctx.workchain_wannier90_pp.get_incoming().nested(
-        )['wannier90']
-        for key in pp_inputs:
-            inputs[key] = pp_inputs[key]
-
         # use the Wannier90BaseWorkChain-corrected parameters
         # sort by pk, since the last Wannier90Calculation in Wannier90BaseWorkChain
         # should have the largest pk
         last_calc = max(
             self.ctx.workchain_wannier90_pp.called, key=lambda calc: calc.pk
         )
-        inputs['parameters'] = last_calc.inputs.parameters
+        # copy postproc inputs, especially the `kmesh_tol` might have been corrected
+        for key in last_calc.inputs:
+            inputs[key] = last_calc.inputs[key]
 
         if 'settings' in inputs:
             settings = inputs.settings.get_dict()
@@ -547,121 +704,55 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
                 namespace='wannier90'
             )
         )
+
+        # not necessary but it is good to do some sanity checks: 
+        # 1. the calculated number of projections is consistent with QE projwfc.x
+        from ..utils.upf import get_number_of_electrons, get_number_of_projections
+        args = {
+            'structure': self.ctx.current_structure,
+            # the type of `self.inputs['scf']['pw']['pseudos']` is plumpy.utils.AttributesFrozendict,
+            # we need to convert it to dict, otherwise get_number_of_projections will fail.
+            'pseudos': dict(self.inputs['scf']['pw']['pseudos'])
+        }
+        if 'calc_projwfc' in self.ctx:
+            num_proj = len(
+                self.ctx.calc_projwfc.outputs['projections'].get_orbitals()
+            )
+            number_of_projections = get_number_of_projections(**args)
+            if number_of_projections != num_proj:
+                raise ValueError(
+                    f'number of projections {number_of_projections} != projwfc.x output {num_proj}'
+                )
+        # 2. the number of electrons is consistent with QE output
+        num_elec = self.ctx.workchain_scf.outputs['output_parameters']['number_of_electrons']
+        number_of_electrons = get_number_of_electrons(**args)
+        if number_of_electrons != num_elec:
+            raise ValueError(
+                f'number of electrons {number_of_electrons} != QE output {num_elec}'
+            )
+
         self.report(f'{self.get_name()} successfully completed')
 
-    def prepare_wannier90_inputs(self):
-        """The input of wannier90 calculation is build here.
-        Here it is separated out from `run_wannier90_pp`, so it can be overridden by subclasses."""
-        inputs = AttributeDict(
-            self.exposed_inputs(Wannier90Calculation, namespace='wannier90')
-        )
-        inputs.structure = self.ctx.current_structure
+    def on_terminated(self):
+        """Clean the working directories of all child calculations if `clean_workdir=True` in the inputs."""
+        super().on_terminated()
 
-        # Need fermi energy to shift the windows
-        if self.inputs['relative_dis_windows']:
-            if 'workchain_scf' not in self.ctx:
-                raise ValueError(
-                    "relative_dis_windows = True but did not run scf calculation"
-                )
-            scf_output_parameters = self.ctx.workchain_scf.outputs.output_parameters
-            fermi_energy = get_fermi_energy(scf_output_parameters)
-            if fermi_energy is None:
-                raise ValueError(
-                    "relative_dis_windows = True but cannot retrieve Fermi energy from scf output"
-                )
+        if not self.inputs.clean_workdir:
+            self.report('remote folders will not be cleaned')
+            return
 
-        # add scf Fermi energy
-        if 'workchain_scf' in self.ctx:
-            scf_output_parameters = self.ctx.workchain_scf.outputs.output_parameters
-            fermi_energy = get_fermi_energy(scf_output_parameters)
+        cleaned_calcs = []
 
-            if self.inputs.relative_dis_windows:
-                params = inputs.parameters.get_dict()
-                keys = [
-                    'dis_froz_min', 'dis_froz_max', 'dis_win_min',
-                    'dis_win_max'
-                ]
-                for k in keys:
-                    v = params.get(k, None)
-                    if v is not None:
-                        params[k] += fermi_energy
-                if any([k in params for k in keys]):
-                    inputs.parameters = orm.Dict(dict=params)
+        for called_descendant in self.node.called_descendants:
+            if isinstance(called_descendant, orm.CalcJobNode):
+                try:
+                    called_descendant.outputs.remote_folder._clean()  # pylint: disable=protected-access
+                    cleaned_calcs.append(called_descendant.pk)
+                except (IOError, OSError, KeyError):
+                    pass
 
-        # set dis_froz_max
-        if 'dis_froz_max' in inputs.parameters.get_dict():
-            bands = self.ctx.calc_projwfc.outputs.bands
-            # projections = self.ctx.calc_projwfc.outputs.projections
-            # dis_froz_max = get_energy_of_projectability(bands, projections)
-            # TODO check provenance graph
-            # dis_windows: More states in the frozen window than target WFs
-            max_energy = np.min(
-                bands.get_bands()[:, inputs.parameters['num_wann'] - 1]
-            )
-            dis_froz_max = min(max_energy, inputs.parameters['dis_froz_max'])
-            if dis_froz_max != inputs.parameters['dis_froz_max']:
-                params = inputs.parameters.get_dict()
-                params['dis_froz_max'] = dis_froz_max
-                inputs.parameters = orm.Dict(dict=params)
-
-        return inputs
-
-    def prepare_pw2wannier90_inputs(self):
-        inputs = AttributeDict(
-            self.exposed_inputs(
-                Pw2wannier90Calculation, namespace='pw2wannier90'
-            )
-        )
-
-        inputs['parent_folder'] = self.ctx.current_folder
-        inputs['nnkp_file'] = self.ctx.workchain_wannier90_pp.outputs.nnkp_file
-
-        inputpp = inputs.parameters.get_dict().get('inputpp', {})
-        scdm_proj = inputpp.get('scdm_proj', False)
-        scdm_entanglement = inputpp.get('scdm_entanglement', None)
-        scdm_mu = inputpp.get('scdm_mu', None)
-        scdm_sigma = inputpp.get('scdm_sigma', None)
-
-        calc_scdm_params = scdm_proj and scdm_entanglement == 'erfc'
-        calc_scdm_params = calc_scdm_params and (
-            scdm_mu is None or scdm_sigma is None
-        )
-
-        if scdm_entanglement == 'gaussian':
-            if scdm_mu is None or scdm_sigma is None:
-                raise ValueError(
-                    "scdm_entanglement = gaussian but scdm_mu or scdm_sigma is empty."
-                )
-
-        if calc_scdm_params:
-            if 'calc_projwfc' not in self.ctx:
-                raise ValueError(
-                    'Needs to run projwfc before auto-generating scdm_mu/sigma'
-                )
-            try:
-                args = {
-                    'parameters':
-                    inputs.parameters,
-                    'bands':
-                    self.ctx.calc_projwfc.outputs.bands,
-                    'projections':
-                    self.ctx.calc_projwfc.outputs.projections,
-                    'thresholds':
-                    orm.Dict(
-                        dict={
-                            'max_projectability': 0.95,
-                            'sigma_factor': 3
-                        }
-                    ),
-                    'metadata': {
-                        'call_link_label': 'update_scdm_mu_sigma'
-                    }
-                }
-                inputs.parameters = update_scdm_mu_sigma(**args)
-            except Exception as e:
-                raise ValueError(f'update_scdm_mu_sigma failed! {e.args}')
-
-        return inputs
+        if cleaned_calcs:
+            self.report(f"cleaned remote folders of calculations: {' '.join(map(str, cleaned_calcs))}")
 
     @classmethod
     def get_protocol_filepath(cls):
@@ -701,6 +792,29 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
             code=code, overrides=overrides, **kwargs
         )
 
+        parameters = builder.pw['parameters'].get_dict()
+        if kwargs.get('spin_type', None) == SpinType.NON_COLLINEAR:
+            parameters['SYSTEM']['noncolin'] = True
+        if kwargs.get('spin_type', None) == SpinType.SPIN_ORBIT:
+            parameters['SYSTEM']['noncolin'] = True
+            parameters['SYSTEM']['lspinorb'] = True
+        builder.pw['parameters'] = orm.Dict(dict=parameters)
+
+        # Currently only support magnetic with SOC
+        # for magnetic w/o SOC, needs 2 separate wannier90 calculations for spin up and down.
+        # if self.inputs.spin_polarized and self.inputs.spin_orbit_coupling:
+        #     # Magnetization from Kittel, unit: Bohr magneton
+        #     magnetizations = {'Fe': 2.22, 'Co': 1.72, 'Ni': 0.606}
+        #     from aiida_wannier90_workflows.utils.upf import get_number_of_electrons_from_upf
+        #     for i, kind in enumerate(self.inputs.structure.kinds):
+        #         if kind.name in magnetizations:
+        #             zvalence = get_number_of_electrons_from_upf(
+        #                 self.ctx.pseudos[kind.name]
+        #             )
+        #             spin_polarization = magnetizations[kind.name] / zvalence
+        #             pw_parameters['SYSTEM'][f"starting_magnetization({i+1})"
+        #                                     ] = spin_polarization
+
         excluded_inputs = ['clean_workdir']
         inputs = {}
         for input in builder:
@@ -737,6 +851,13 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
 
         parameters['SYSTEM']['nosym'] = True
         parameters['SYSTEM']['noinv'] = True
+        
+        if kwargs.get('spin_type', None) == SpinType.NON_COLLINEAR:
+            parameters['SYSTEM']['noncolin'] = True
+        if kwargs.get('spin_type', None) == SpinType.SPIN_ORBIT:
+            parameters['SYSTEM']['noncolin'] = True
+            parameters['SYSTEM']['lspinorb'] = True
+        builder.pw['parameters'] = orm.Dict(dict=parameters)
 
         parameters['CONTROL']['restart_mode'] = 'restart'
         parameters['CONTROL']['calculation'] = 'nscf'
@@ -755,7 +876,10 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
         # structure is in the pw namespace, I need to pop it
         inputs['pw'].pop('structure', None)
 
-        # use explicit list of kpoints
+        # use explicit list of kpoints, since auto generated kpoints
+        # maybe different between QE & Wannier90. Here we explicitly
+        # generate a list of kpoint to avoid discrepencies between
+        # QE's & Wannier90's automatically generated kpoints.
         kpoints = get_explicit_kpoints_from_distance(
             kwargs['structure'], kpoints_distance
         )
@@ -835,10 +959,10 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
         code,
         *,
         projection_type,
+        disentanglement_type,
         kpoints_distance,
         nbands,
         pseudos,
-        disentanglement=None,
         maximal_localisation=None,
         exclude_semicores=True,
         plot_wannier_functions=False,
@@ -890,6 +1014,10 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
             parameters['auto_projections'] = True
         elif projection_type == WannierProjectionType.HYDROGEN:
             projections = []
+            # TODO
+            # self.ctx.wannier_projections = orm.List(
+            #     list=get_projections(**args)
+            # )
             for site in structure.sites:
                 for orb in pseudo_orbitals[site.kind_name]['pswfcs']:
                     if exclude_semicores:
@@ -910,47 +1038,51 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
         if plot_wannier_functions:
             parameters['wannier_plot'] = True
 
+        default_num_iter = 4000
         num_atoms = len(structure.sites)
         if maximal_localisation:
             parameters.update({
-                'num_iter': 4000,
+                'num_iter': default_num_iter,
                 'conv_tol': 1e-7 * num_atoms,
                 'conv_window': 3,
             })
         else:
-            parameters.update({'num_iter': 0})
+            parameters['num_iter'] = 0
 
-        if kwargs['electronic_type'] == ElectronicType.INSULATOR:
+        default_dis_num_iter = 4000
+        if disentanglement_type == WannierDisentanglementType.NONE:
             parameters['dis_num_iter'] = 0
+        elif disentanglement_type == WannierDisentanglementType.WINDOW_FIXED:
+            parameters.update({
+                'dis_num_iter': default_dis_num_iter,
+                'dis_conv_tol': parameters['conv_tol'],
+                # Here +2 means fermi_energy + 2 eV, however Fermi energy is calculated when Wannier90WorkChain is running,
+                # so it will add Fermi energy with this dis_froz_max dynamically.
+                'dis_froz_max': +2.0,
+            })
+        elif disentanglement_type == WannierDisentanglementType.WINDOW_AUTO:
+            # WINDOW_AUTO needs projectability, will be set dynamically when workchain is running
+            parameters.update({
+                'dis_num_iter': default_dis_num_iter,
+                'dis_conv_tol': parameters['conv_tol'],
+            })
+        elif disentanglement_type == WannierDisentanglementType.PROJECTABILITY:
+            parameters.update({
+                'dis_num_iter': default_dis_num_iter,
+                'dis_conv_tol': parameters['conv_tol'],
+                'dis_proj_min': 0.01,
+                'dis_proj_min': 0.95,
+            })
+        elif disentanglement_type == WannierDisentanglementType.WINDOW_AND_PROJECTABILITY:
+            parameters.update({
+                'dis_num_iter': default_dis_num_iter,
+                'dis_conv_tol': parameters['conv_tol'],
+                'dis_proj_min': 0.01,
+                'dis_proj_min': 0.95,
+                'dis_froz_max': +2.0, # relative to fermi_energy
+            })
         else:
-            if disentanglement is not None:
-                parameters.update({
-                    'dis_num_iter': 4000,
-                    'dis_conv_tol': parameters['conv_tol'],
-                })
-            else:
-                if projection_type == WannierProjectionType.SCDM:
-                    # No disentanglement when using SCDM, otherwise the wannier interpolated bands are wrong
-                    parameters.update({'dis_num_iter': 0})
-                else:
-                    # Require disentanglement in other cases, otherwise interpolated bands are wrong
-                    parameters.update({
-                        'dis_num_iter': 4000,
-                        'dis_conv_tol': parameters['conv_tol'],
-                    })
-                    # Use projectability disentanglement with PSWFC projection
-                    if projection_type == WannierProjectionType.NUMERIC:
-                        parameters['dis_proj_min'] = 0.01
-                        parameters['dis_proj_max'] = 0.95
-
-                    # Here +2 means Fermi+2 eV, however Fermi energy is calculated dynamically,
-                    # so later in Wannier90WorkChain, it will add Fermi energy on top of this dis_froz_max,
-                    # so this dis_froz_max is a relative value.
-                    parameters.update({
-                        'dis_froz_max': +2.0,
-                        #'dis_mix_ratio':1.d0,
-                        #'dis_win_max':10.0,
-                    })
+            raise ValueError(f"Not supported disentanglement type: {disentanglement_type}")
 
         if retrieve_hamiltonian:
             parameters['write_tb'] = True
@@ -992,36 +1124,48 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
     @classmethod
     def get_builder_from_protocol(
         cls,
-        codes,
-        structure,
+        codes: dict,
+        structure: orm.StructureData,
         *,
-        protocol=None,
-        overrides=None,
-        wannier_projection_type=WannierProjectionType.SCDM,
-        disentanglement=None,
-        maximal_localisation=True,
-        exclude_semicores=True,
-        plot_wannier_functions=False,
-        retrieve_hamiltonian=False,
-        retrieve_matrices=False,
-        electronic_type=ElectronicType.METAL,
-        spin_type=SpinType.NONE,
-        initial_magnetic_moments=None,
+        protocol: str = None,
+        overrides: dict = None,
+        projection_type: WannierProjectionType = WannierProjectionType.SCDM,
+        disentanglement_type: WannierDisentanglementType = WannierDisentanglementType.AUTO,
+        maximal_localisation: bool = True,
+        exclude_semicores: bool = True,
+        plot_wannier_functions: bool = False,
+        retrieve_hamiltonian: bool = False,
+        retrieve_matrices: bool = False,
+        electronic_type: ElectronicType = ElectronicType.METAL,
+        spin_type: SpinType = SpinType.NONE,
+        initial_magnetic_moments: dict = None,
+        print_summary: bool = True,
         **_
-    ):
+    ) -> ProcessBuilder:
         """Return a builder prepopulated with inputs selected according to the chosen protocol.
 
         :param codes: a dictionary of ``Code`` instance for pw.x, pw2wannier90.x, wannier90.x, (optionally) projwfc.x.
+        :type codes: dict
         :param structure: the ``StructureData`` instance to use.
+        :type structure: orm.StructureData
         :param protocol: protocol to use, if not specified, the default will be used.
+        :type protocol: str
         :param overrides: optional dictionary of inputs to override the defaults of the protocol.
-        :param wannier_projection_type: indicate the Wannier initial projection type of the system through ``WannierProjectionType`` instance.
+        :param projection_type: indicate the Wannier initial projection type of the system through ``WannierProjectionType`` instance.
+        :param disentanglement_type: indicate the Wannier disentanglement type of the system through ``WannierDisentanglementType`` instance.
+        :param maximal_localisation: if true do maximal localisation of Wannier functions.
+        :param exclude_semicores: if True do not Wannierise semicore states.
+        :param plot_wannier_functions: if True plot Wannier functions as xsf files.
+        :param retrieve_hamiltonian: if True retrieve Wannier Hamiltonian.
+        :param retrieve_matrices: if True retrieve amn/mmn/eig/chk/spin files.
         :param electronic_type: indicate the electronic character of the system through ``ElectronicType`` instance.
         :param spin_type: indicate the spin polarization type to use through a ``SpinType`` instance.
         :param initial_magnetic_moments: optional dictionary that maps the initial magnetic moment of each kind to a
             desired value for a spin polarized calculation. Note that for ``spin_type == SpinType.COLLINEAR`` an initial
             guess for the magnetic moment is automatically set in case this argument is not provided.
-        :return: a process builder instance with all inputs defined ready for launch.
+        :param print_summary: if True print a summary of key input parameters
+        :return: a process builder instance with all inputs defined and ready for launch.
+        :rtype: ProcessBuilder
         """
         from aiida_quantumespresso.workflows.protocols.utils import get_starting_magnetization
 
@@ -1076,7 +1220,7 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
         summary['Formula'] = structure.get_formula()
         summary['ElectronicType'] = electronic_type
         summary['SpinType'] = spin_type
-        summary['WannierProjectionType'] = wannier_projection_type
+        summary['WannierProjectionType'] = projection_type
 
         inputs = cls.get_protocol_inputs(protocol, overrides)
         inputs = AttributeDict(inputs)
@@ -1107,32 +1251,37 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
         #     ) from exception
 
         # relax
-        if inputs.relax:
+        if inputs.get('relax', False):
             builder.relax = cls.get_relax_inputs(
                 codes['pw'], kpoints_distance, **keywordargs
             )
 
         # scf
-        if inputs.scf:
+        if inputs.get('scf', True):
             builder.scf = cls.get_scf_inputs(
                 codes['pw'], kpoints_distance, **keywordargs
             )
 
         # nscf
-        if inputs.nscf:
+        if inputs.get('nscf', True):
             builder.nscf = cls.get_nscf_inputs(
                 codes['pw'], kpoints_distance, nbands_factor, **keywordargs
             )
 
         # projwfc
-        if inputs.projwfc:
+        run_projwfc = inputs.get('projwfc', False)
+        if projection_type == WannierProjectionType.SCDM:
+            run_projwfc = True
+        if disentanglement_type == WannierDisentanglementType.WINDOW_AUTO:
+            run_projwfc = True
+        if run_projwfc:
             builder.projwfc = cls.get_projwfc_inputs(
                 codes['projwfc'], **keywordargs
             )
 
         # pw2wannier90
-        if inputs.pw2wannier90:
-            exclude_bands = None
+        if inputs.get('pw2wannier90', True):
+            exclude_pswfcs = None
             if exclude_semicores:
                 pseudo_orbitals = get_pseudo_orbitals(
                     builder.scf['pw']['pseudos']
@@ -1140,7 +1289,7 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
                 exclude_pswfcs = get_semicore_list(structure, pseudo_orbitals)
             pw2wannier_inputs = cls.get_pw2wannier90_inputs(
                 code=codes['pw2wannier90'],
-                projection_type=wannier_projection_type,
+                projection_type=projection_type,
                 exclude_pswfcs=exclude_pswfcs,
                 plot_wannier_functions=plot_wannier_functions,
                 **keywordargs
@@ -1148,14 +1297,28 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
             builder.pw2wannier90 = pw2wannier_inputs
 
         # wannier90
-        if inputs.wannier90:
+        if inputs.get('wannier90', True):
+            if disentanglement_type == WannierDisentanglementType.AUTO:
+                if electronic_type == ElectronicType.INSULATOR:
+                    disentanglement_type = WannierDisentanglementType.NONE
+                else:
+                    if projection_type in [WannierProjectionType.HYDROGEN, WannierProjectionType.RANDOM]:
+                        disentanglement_type = WannierDisentanglementType.WINDOW_FIXED
+                    elif projection_type == WannierProjectionType.NUMERIC:
+                        disentanglement_type = WannierDisentanglementType.WINDOW_AND_PROJECTABILITY
+                    elif projection_type == WannierProjectionType.SCDM:
+                        # No disentanglement when using SCDM, otherwise the wannier interpolated bands are wrong
+                        disentanglement_type = WannierDisentanglementType.NONE
+                    else:
+                        raise ValueError(f"Cannot automatically guess disentanglement type from projection type: {projection_type}")
+            summary['WannierDisentanglementType'] = disentanglement_type
             wannier_inputs = cls.get_wannier90_inputs(
                 code=codes['wannier90'],
-                projection_type=wannier_projection_type,
+                projection_type=projection_type,
                 kpoints_distance=kpoints_distance,
                 nbands=builder.nscf['pw']['parameters']['SYSTEM']['nbnd'],
                 pseudos=builder.scf['pw']['pseudos'],
-                disentanglement=disentanglement,
+                disentanglement_type=disentanglement_type,
                 maximal_localisation=maximal_localisation,
                 exclude_semicores=exclude_semicores,
                 plot_wannier_functions=plot_wannier_functions,
@@ -1165,29 +1328,33 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
             )
             builder.wannier90 = wannier_inputs
             builder.relative_dis_windows = orm.Bool(True)
+        
+        builder.clean_workdir = orm.Bool(inputs.get('clean_workdir', False))
 
         summary['num_bands'] = builder.wannier90['parameters']['num_bands']
         summary['num_wann'] = builder.wannier90['parameters']['num_wann']
         summary['exclude_bands'] = builder.wannier90['parameters'
                                                      ]['exclude_bands']
         summary['mp_grid'] = builder.wannier90['parameters']['mp_grid']
-        # try to pretty print
-        print("Summary of key input parameters:")
-        for k, v in summary.items():
-            print(f'  {k}: {v}')
-        print('')
-        print('Notes:')
-        print(
-            '  1. The `relative_dis_windows` = True, meaning the `dis_froz/win_min/max` in the wannier90 input parameters will be shifted by Fermi energy from scf output parameters.'
-        )
-        print(
-            '  2. If you set `scdm_mu` and/or `scdm_sigma` in the pw2wannier90 input parameters, the WorkChain will directly use the provided mu and/or sigma. The missing one will be generated from projectability.'
-        )
+
+        if print_summary:
+            # try to pretty print
+            print("Summary of key input parameters:")
+            for k, v in summary.items():
+                print(f'  {k}: {v}')
+            print('')
+            print('Notes:')
+            print(
+                '  1. The `relative_dis_windows` = True, meaning the `dis_froz/win_min/max` in the wannier90 input parameters will be shifted by Fermi energy from scf output parameters.'
+            )
+            print(
+                '  2. If you set `scdm_mu` and/or `scdm_sigma` in the pw2wannier90 input parameters, the WorkChain will directly use the provided mu and/or sigma. The missing one will be generated from projectability.'
+            )
 
         return builder
 
 
-def get_fermi_energy(output_parameters):
+def get_fermi_energy(output_parameters: orm.Dict) -> typing.Optional[float]:
     """get Fermi energy from scf output parameters, unit is eV
 
     :param output_parameters: scf output parameters
@@ -1205,7 +1372,8 @@ def get_fermi_energy(output_parameters):
 
 
 @calcfunction
-def update_scdm_mu_sigma(parameters, bands, projections, thresholds):
+def update_scdm_mu_sigma(parameters: orm.Dict, bands: orm.BandsData, 
+projections: orm.ProjectionData, thresholds: orm.Dict) -> orm.Dict:
     """Use erfc fitting to extract scdm_mu & scdm_sigma, and update the pw2wannier90 input parameters.
     If scdm_mu/sigma is provided in the input, then it will not be updated, only the missing one(s) will be updated.
 
@@ -1231,7 +1399,7 @@ def update_scdm_mu_sigma(parameters, bands, projections, thresholds):
     return orm.Dict(dict=parameters_dict)
 
 
-def get_pseudo_orbitals(pseudos):
+def get_pseudo_orbitals(pseudos: dict[str, UpfData]) -> dict:
     pseudo_data = _load_pseudo_metadata('semicore_sssp_efficiency_1.1.json')
     pseudo_orbitals = {}
     for element in pseudos:
@@ -1243,7 +1411,7 @@ def get_pseudo_orbitals(pseudos):
     return pseudo_orbitals
 
 
-def get_semicore_list(structure, pseudo_orbitals):
+def get_semicore_list(structure: orm.StructureData, pseudo_orbitals: dict) -> list:
     # pw2wannier90.x/projwfc.x store pseudo-wavefunctions in the same order
     # as ATOMIC_POSITIONS in pw.x input file; aiida-quantumespresso writes
     # ATOMIC_POSITIONS in the order of StructureData.sites.

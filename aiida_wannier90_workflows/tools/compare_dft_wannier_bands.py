@@ -2,6 +2,9 @@
 """compare DFT and Wannier band structures
 """
 from aiida import orm
+from aiida_quantumespresso.workflows.pw.base import PwBaseWorkChain
+from aiida_wannier90_workflows.workflows.bands import Wannier90BandsWorkChain
+from aiida_wannier90.calculations import Wannier90Calculation
 
 def required_length(nmin, nmax):
     class RequiredLength(argparse.Action):
@@ -43,18 +46,30 @@ def get_mpl_code_for_bands(dft_bands, wan_bands, fermi_energy=None, title=None, 
 
     return mpl_code
 
-def get_mpl_code_for_workchain(workchain, title=None, save=False, filename=None):
-    dft_bands = workchain.outputs.dft_bands
-    wan_bands = workchain.outputs.wannier90_interpolated_bands
+def get_mpl_code_for_workchains(workchain0, workchain1, title=None, save=False, filename=None):
+    def get_output_bands(workchain):
+        if workchain.process_class == PwBaseWorkChain:
+            return workchain0.outputs.output_band
+        elif workchain.process_class == Wannier90BandsWorkChain:
+            return workchain.outputs.band_structure
+        elif workchain.process_class == Wannier90Calculation:
+            return workchain.outputs.interpolated_bands
+        else:
+            raise ValueError(f"Unrecognized workchain type: {workchain}")
+            
+    # assume workchain0 is pw, workchain1 is wannier
+    dft_bands = get_output_bands(workchain0)
+    wan_bands = get_output_bands(workchain1)
 
-    formula = workchain.inputs.structure.get_formula()
+    formula = workchain1.inputs.structure.get_formula()
     if title is None:
-        title = f'workchain pk {workchain.pk}, {formula}, dft_bands pk {dft_bands.pk}, wan_bands pk {wan_bands.pk}'
+        title = f'{formula}, {workchain0.process_label}<{workchain0.pk}> bands<{dft_bands.pk}>, '
+        title += f'{workchain1.process_label}<{workchain1.pk}> bands<{wan_bands.pk}>'
 
     if save and (filename is None):
-        filename = f'bandsdiff_{formula}_{workchain.pk}.py'
+        filename = f'bandsdiff_{formula}_{workchain0.pk}_{workchain1.pk}.py'
 
-    fermi_energy = workchain.outputs.scf_parameters['fermi_energy']
+    fermi_energy = workchain1.outputs['scf']['output_parameters']['fermi_energy']
 
     mpl_code = get_mpl_code_for_bands(dft_bands, wan_bands, fermi_energy, title, save, filename)
 
@@ -64,18 +79,17 @@ if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser(description=
     f'Plot DFT and Wannier bands for comparison.')
-    parser.add_argument('pk', metavar='PK', type=int, nargs='+', action=required_length(1,2), help='The PK of a Wannier90BandsWorkChain, the `compare_dft_bands` inputs of the Wannier90BandsWorkChain should be True; or PKs of 2 BandsData to be compared.')
+    parser.add_argument('pk', metavar='PK', type=int, nargs='+', action=required_length(2,2), help='The PKs of a PwBaseWorkChain and a Wannier90BandsWorkChain, or PKs of 2 BandsData to be compared.')
     parser.add_argument('-s', '--save', action='store_true', help="save as a python plotting script instead of showing matplotlib window")
     args = parser.parse_args()
 
-    input_is_workchain = len(args.pk) == 1
+    pk0 = orm.load_node(args.pk[0])
+    pk1 = orm.load_node(args.pk[1])
+    input_is_workchain = isinstance(pk0, orm.WorkChainNode) and isinstance(pk1, orm.WorkChainNode)
     if input_is_workchain:
-        workchain = orm.load_node(args.pk[0])
-        mpl_code = get_mpl_code_for_workchain(workchain, save=args.save)
+        mpl_code = get_mpl_code_for_workchains(pk0, pk1, save=args.save)
     else:
-        dft_bands = orm.load_node(args.pk[0])
-        wan_bands = orm.load_node(args.pk[1])
-        mpl_code = get_mpl_code_for_bands(dft_bands, wan_bands, save=args.save)
+        mpl_code = get_mpl_code_for_bands(pk0, pk1, save=args.save)
 
     # print(mpl_code.decode())
 
