@@ -183,7 +183,7 @@ class Wannier90BandsWorkChain(Wannier90WorkChain):
 
     def setup(self):
         """Define the current structure in the context to be the input structure."""
-        self.ctx.current_structure = self.inputs.structure
+        super().setup()
 
         if not self.should_run_seekpath():
             self.ctx.current_kpoint_path = self.inputs.kpoint_path
