@@ -4,12 +4,12 @@ from aiida import orm
 from aiida.engine import if_, ProcessBuilder
 
 from aiida_quantumespresso.calculations.functions.seekpath_structure_analysis import seekpath_structure_analysis
-from aiida_quantumespresso.common.types import ElectronicType, SpinType
+from aiida_quantumespresso.common.types import SpinType
 
 from .wannier import Wannier90WorkChain
 from .opengrid import Wannier90OpengridWorkChain
 
-__all__ = ['Wannier90BandsWorkChain']
+__all__ = ['Wannier90BandsWorkChain', 'get_builder_for_pwbands']
 
 
 def validate_inputs(inputs, ctx=None):  # pylint: disable=unused-argument
@@ -348,6 +348,13 @@ def get_builder_for_pwbands(
     """
     # from aiida_quantumespresso.workflows.pw.bands import PwBandsWorkChain
     from aiida_quantumespresso.workflows.pw.base import PwBaseWorkChain
+
+    if not wannier_workchain.is_finished_ok:
+        msg = f'The {wannier_workchain.process_label}<{wannier_workchain.pk}> has not finished, '
+        msg += f'current status: {wannier_workchain.process_state}, '
+        msg += f'please retry after workchain has successfully finished.'
+        print(msg)
+        return
 
     scf_inputs = wannier_workchain.inputs['scf']
     scf_outputs = wannier_workchain.outputs['scf']
