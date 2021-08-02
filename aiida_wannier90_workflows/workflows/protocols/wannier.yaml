@@ -19,4 +19,4 @@ protocols:
     fast:
         description: 'Protocol to perform the computation at low precision at minimal computational cost for testing purposes.'
         kpoints_distance: 0.50
-        nbands_factor: 2.0
+        nbands_factor: 1.2
