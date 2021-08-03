@@ -1,16 +1,3 @@
 # -*- coding: utf-8 -*-
-"""
-AiiDA Wannier90 Workchain
-======================
-
-
-"""
-
-__authors__ = "Antimo Marrazzo, Giovanni Pizzi, Junfeng Qiao"
-## If upgraded, remember to change it also in setup.json (for pip)
-__version__ = "1.0.1"
-
-from . import calculations
-from . import workflows
-
-__all__ = ("calculations", "workflows")
+"""A set of advanced AiiDA Wannier90 Workchain"""
+__version__ = "2.0.0"

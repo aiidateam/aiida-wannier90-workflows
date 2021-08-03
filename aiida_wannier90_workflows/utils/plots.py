@@ -1,24 +1,65 @@
-#!/usr/bin/env runaiida
-"""compare DFT and Wannier band structures
-"""
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
 from aiida import orm
 from aiida_quantumespresso.workflows.pw.base import PwBaseWorkChain
-from aiida_wannier90_workflows.workflows.bands import Wannier90BandsWorkChain
 from aiida_wannier90.calculations import Wannier90Calculation
+from aiida_wannier90_workflows.workflows import Wannier90BandsWorkChain, Wannier90WorkChain
+from aiida_wannier90_workflows.utils.scdm import erfc_scdm, fit_scdm_mu_sigma_aiida
+import matplotlib.pyplot as plt
 
+def plot_scdm_fit(workchain: int, save: bool = False):
+    """A function to plot the projectabilities distribution"""
+    
+    if workchain.process_class not in [
+        Wannier90BandsWorkChain,
+        Wannier90WorkChain
+    ]:
+        raise ValueError(f"Input workchain type should be {Wannier90BandsWorkChain}")
 
-def required_length(nmin, nmax):
-    class RequiredLength(argparse.Action):
-        def __call__(self, parser, args, values, option_string=None):
-            if not nmin <= len(values) <= nmax:
-                msg = 'argument "{f}" requires between {nmin} and {nmax} arguments'.format(
-                    f=self.dest, nmin=nmin, nmax=nmax
-                )
-                raise argparse.ArgumentTypeError(msg)
-            setattr(args, self.dest, values)
+    formula = workchain.inputs.structure.get_formula()
 
-    return RequiredLength
+    w90calc = workchain.get_outgoing(link_label_filter='wannier90').one().node
+    p2wcalc = workchain.get_outgoing(link_label_filter='pw2wannier90').one().node
+    projcalc = workchain.get_outgoing(link_label_filter='projwfc').one().node
 
+    fermi_energy = w90calc.inputs.parameters['fermi_energy']
+    sigma = p2wcalc.inputs.parameters['inputpp']['scdm_sigma']
+    mu = p2wcalc.inputs.parameters['inputpp']['scdm_mu']
+    projections = projcalc.outputs.projections
+    bands = projcalc.outputs.bands
+
+    mu_fit, sigma_fit, data = fit_scdm_mu_sigma_aiida(
+        bands, projections, sigma_factor=orm.Float(0), return_data=True
+    )
+
+    print(f"{formula:6s}:")
+    print(f"        fermi_energy = {fermi_energy}, mu = {mu}, sigma = {sigma}")
+
+    # check the fitting are consistent
+    eps = 1e-6
+    assert abs(sigma - sigma_fit) < eps
+    sigma_factor = workchain.inputs.scdm_sigma_factor.value
+    assert abs(mu - (mu_fit - sigma_fit * sigma_factor)) < eps
+    sorted_bands = data[0, :]
+    sorted_projwfc = data[1, :]
+
+    plt.figure()
+    plt.plot(sorted_bands, sorted_projwfc, 'o')
+    plt.plot(sorted_bands, erfc_scdm(sorted_bands, mu_fit, sigma_fit))
+    plt.axvline([mu_fit], color='red', label=r"$\mu$")
+    plt.axvline([mu_fit - sigma_factor * sigma_fit],
+                color='orange',
+                label=r"$\mu-" + str(sigma_factor) + r"\sigma$")
+    plt.axvline([fermi_energy], color='green', label=r"$E_f$")
+    plt.title(f"{workchain.process_label}<{workchain.pk}>: {formula}")
+    plt.xlabel('Energy [eV]')
+    plt.ylabel('Projectability')
+    plt.legend(loc='best')
+
+    if save:
+        plt.savefig(f'scdmfit_{formula}_{workchain.pk}.png')
+    else:
+        plt.show()
 
 def get_mpl_code_for_bands(
     dft_bands,
@@ -100,41 +141,3 @@ def get_mpl_code_for_workchains(
     )
 
     return mpl_code
-
-
-if __name__ == '__main__':
-    import argparse
-    parser = argparse.ArgumentParser(
-        description=f'Plot DFT and Wannier bands for comparison.'
-    )
-    parser.add_argument(
-        'pk',
-        metavar='PK',
-        type=int,
-        nargs='+',
-        action=required_length(2, 2),
-        help=
-        'The PKs of a PwBaseWorkChain and a Wannier90BandsWorkChain, or PKs of 2 BandsData to be compared.'
-    )
-    parser.add_argument(
-        '-s',
-        '--save',
-        action='store_true',
-        help=
-        "save as a python plotting script instead of showing matplotlib window"
-    )
-    args = parser.parse_args()
-
-    pk0 = orm.load_node(args.pk[0])
-    pk1 = orm.load_node(args.pk[1])
-    input_is_workchain = isinstance(pk0, orm.WorkChainNode
-                                    ) and isinstance(pk1, orm.WorkChainNode)
-    if input_is_workchain:
-        mpl_code = get_mpl_code_for_workchains(pk0, pk1, save=args.save)
-    else:
-        mpl_code = get_mpl_code_for_bands(pk0, pk1, save=args.save)
-
-    # print(mpl_code.decode())
-
-    if not args.save:
-        exec(mpl_code)
