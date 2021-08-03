@@ -21,7 +21,7 @@ def fit_erfc(f, xdata, ydata):
 def fit_scdm_mu_sigma(
     bands: np.array,
     projections: np.array,
-    thresholds: dict = {'sigma_factor', 3},
+    sigma_factor: float = 3.0,
     return_data: bool = False
 ) -> typing.Union[typing.Tuple[float, float], typing.Tuple[float, float, np.
                                                            array]]:
@@ -36,7 +36,7 @@ def fit_scdm_mu_sigma(
 
     :param bands: output of projwfc, it was computed in the nscf calc
     :param projections: output of projwfc
-    :param thresholds: must contain 'sigma_factor'; scdm_mu will be set to::
+    :param sigma_factor: scdm_mu will be set to::
         scdm_mu = E(projectability==max_projectability) - sigma_factor * scdm_sigma
         Pass sigma_factor = 0 if you do not want to shift
     :return: scdm_mu, scdm_sigma,
@@ -48,12 +48,8 @@ def fit_scdm_mu_sigma(
     popt, pcov = fit_erfc(erfc_scdm, sorted_bands, sorted_projwfc)
     mu = popt[0]
     sigma = popt[1]
-    # TODO maybe check the quality of the fitting
 
     scdm_sigma = sigma
-    sigma_factor = thresholds.get('sigma_factor', None)
-    if sigma_factor is None:
-        raise ValueError(f'no sigma_factor in input thresholds {thresholds}')
     scdm_mu = mu - sigma * sigma_factor
 
     if return_data:
@@ -68,7 +64,7 @@ def fit_scdm_mu_sigma(
 def fit_scdm_mu_sigma_aiida(
     bands: orm.BandsData,
     projections: orm.ProjectionData,
-    thresholds: dict,
+    sigma_factor: orm.Float = orm.Float(3.0),
     return_data: bool = False
 ) -> typing.Union[typing.Tuple[float, float], typing.Tuple[float, float, np.
                                                            array]]:
@@ -81,13 +77,13 @@ def fit_scdm_mu_sigma_aiida(
     :type bands: orm.BandsData
     :param projections: projectability of the projwfc output
     :type projections: orm.ProjectionData
-    :param thresholds: thresholds of SCDM
-    :type thresholds: dict"""
+    :param sigma_factor: sigma_factor of SCDM
+    :type sigma_factor: orm.Float"""
     bands_array, projections_array = get_projectability_arrays(
         bands, projections
     )
     return fit_scdm_mu_sigma(
-        bands_array, projections_array, thresholds, return_data
+        bands_array, projections_array, sigma_factor.value, return_data
     )
 
 

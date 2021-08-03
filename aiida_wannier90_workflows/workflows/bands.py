@@ -131,56 +131,6 @@ class Wannier90BandsWorkChain(Wannier90WorkChain):
             message='Invalid pseudopotentials.'
         )
 
-    # def setup_protocol(self):
-    #     """Set up context variables and inputs for the `PwBandsWorkChain`.
-
-    #     Based on the specified protocol, we define values for variables that affect the execution of the calculations.
-    #     """
-    #     protocol, protocol_modifiers = self._get_protocol()
-    #     self.report(
-    #         'running the workchain with the "{}" protocol'.format(
-    #             protocol.name
-    #         )
-    #     )
-
-    #     # For SOC case, if no user input, replace SSSP by pslibrary/pseudo-dojo, which has SOC pseudos.
-    #     if protocol_modifiers == {} and self.inputs.spin_orbit_coupling:
-    #         # pseudo_data = _load_pseudo_metadata('pslibrary_paw_relpbe_1.0.0.json')
-    #         # switch to pseudo-dojo
-    #         pseudo_data = _load_pseudo_metadata('dojo_nc_fr.json')
-    #         protocol_modifiers = {
-    #             'pseudo': 'custom',
-    #             'pseudo_data': pseudo_data
-    #         }
-
-    #     self.ctx.protocol = protocol.get_protocol_data(
-    #         modifiers=protocol_modifiers
-    #     )
-    #     checked_pseudos = protocol.check_pseudos(
-    #         modifier_name=protocol_modifiers.get('pseudo', None),
-    #         pseudo_data=protocol_modifiers.get('pseudo_data', None)
-    #     )
-    #     known_pseudos = checked_pseudos['found']
-    #     #self.ctx.pseudos = get_pseudos_from_dict(self.inputs.structure, known_pseudos)
-
-    #     # with aiida-pseudo plugin
-    #     family = orm.load_group('SSSP/1.1/PBE/efficiency')
-    #     self.ctx.pseudos = family.get_pseudos(
-    #         elements=self.inputs.structure.get_kind_names()
-    #     )
-
-    #     if self.inputs.exclude_semicore:
-    #         # TODO now only consider SSSP
-    #         pseudo_data = _load_pseudo_metadata(
-    #             'semicore_sssp_efficiency_1.1.json'
-    #         )
-    #         pseudo_semicores = {}
-    #         for element in self.ctx.pseudos:
-    #             if pseudo_data[element]['md5'] != self.ctx.pseudos[element].md5:
-    #                 return self.exit_codes.ERROR_INVALID_INPUT_PSEUDOPOTENTIAL
-    #             pseudo_semicores[element] = pseudo_data[element]
-    #         self.ctx.pseudo_pswfcs = pseudo_semicores
-
     def setup(self):
         """Define the current structure in the context to be the input structure."""
         super().setup()
@@ -346,7 +296,6 @@ def get_builder_for_pwbands(
     :param wannier_workchain: [description]
     :type wannier_workchain: Wannier90BandsWorkChain
     """
-    # from aiida_quantumespresso.workflows.pw.bands import PwBandsWorkChain
     from aiida_quantumespresso.workflows.pw.base import PwBaseWorkChain
 
     if not wannier_workchain.is_finished_ok:
@@ -375,12 +324,11 @@ def get_builder_for_pwbands(
     pw_inputs['structure'] = structure
     builder['pw'] = pw_inputs
 
-    # TODO soc, pseudos
-
     # should use wannier90 kpath, otherwise number of kpoints
-    # of DFT and w90 is not consistent
-    wannier_bands = wannier_workchain.outputs['wannier90']['interpolated_bands'
-                                                           ]
+    # of DFT and w90 are not consistent
+    wannier_outputs = wannier_workchain.outputs['wannier90']
+    wannier_bands = wannier_outputs['interpolated_bands']
+
     wannier_kpoints = orm.KpointsData()
     wannier_kpoints.set_kpoints(wannier_bands.get_kpoints())
     wannier_kpoints.set_attribute_many({
@@ -411,8 +359,8 @@ def get_builder_for_pwbands(
     parameters['ELECTRONS'].setdefault('diago_full_acc', True)
 
     if 'nscf' in wannier_workchain.inputs:
-        nbnd = wannier_workchain.inputs['nscf']['pw']['parameters']['SYSTEM'
-                                                                    ]['nbnd']
+        nscf_inputs = wannier_workchain.inputs['nscf']
+        nbnd = nscf_inputs['pw']['parameters']['SYSTEM']['nbnd']
         parameters['SYSTEM']['nbnd'] = nbnd
 
     builder.pw['parameters'] = orm.Dict(dict=parameters)
