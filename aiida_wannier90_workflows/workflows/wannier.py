@@ -1,4 +1,6 @@
+from inspect import Parameter
 import typing
+from copy import deepcopy
 import numpy as np
 
 from aiida import orm
@@ -60,12 +62,11 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
             help=
             'If True the dis_froz/win_min/max will be shifted by fermi_enerngy. False is the default behaviour of wannier90.'
         )
-        # TODO
         spec.input(
             'scdm_sigma_factor',
             valid_type=orm.Float,
             required=False,
-            default=lambda: orm.Float(3),
+            default=lambda: orm.Float(3.0),
             help=
             'For SCDM projection.'
         )
@@ -555,13 +556,8 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
                     self.ctx.calc_projwfc.outputs.bands,
                     'projections':
                     self.ctx.calc_projwfc.outputs.projections,
-                    'thresholds':
-                    orm.Dict(
-                        dict={
-                            'max_projectability': 0.95,
-                            'sigma_factor': 3
-                        }
-                    ),
+                    'sigma_factor':
+                    self.inputs.scdm_sigma_factor,
                     'metadata': {
                         'call_link_label': 'update_scdm_mu_sigma'
                     }
@@ -754,16 +750,36 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
         return files(wannier_protocols) / 'wannier.yaml'
 
     @classmethod
-    def get_relax_inputs(cls, code, kpoints_distance, **kwargs):
+    def get_relax_inputs(cls, code, kpoints_distance, pseudo_family=None, **kwargs):
         overrides = {
             'clean_workdir': False,
             'base': {
                 'kpoints_distance': kpoints_distance
             }
         }
+        if pseudo_family is not None:
+            overrides['pseudo_family'] = pseudo_family
+
+        # PwBaseWorkChain.get_builder_from_protocol() does not support SOC, I have to
+        # pretend that I am doing an non-SOC calculation and add SOC parameters later.
+        spin_type = kwargs.get('spin_type', SpinType.NONE)
+        filtered_kwargs = deepcopy(kwargs)
+        if spin_type == SpinType.SPIN_ORBIT:
+            filtered_kwargs['spin_type'] = SpinType.NONE
+            if pseudo_family is None:
+                raise ValueError("`pseudo_family` should be explicitly set for SOC")
+
         builder = PwRelaxWorkChain.get_builder_from_protocol(
-            code=code, overrides=overrides, **kwargs
+            code=code, overrides=overrides, **filtered_kwargs
         )
+
+        parameters = builder.base['pw']['parameters'].get_dict()
+        if spin_type == SpinType.NON_COLLINEAR:
+            parameters['SYSTEM']['noncolin'] = True
+        if spin_type == SpinType.SPIN_ORBIT:
+            parameters['SYSTEM']['noncolin'] = True
+            parameters['SYSTEM']['lspinorb'] = True
+        builder.base['pw']['parameters'] = orm.Dict(dict=parameters)
 
         excluded_inputs = ['clean_workdir', 'structure']
         inputs = {}
@@ -780,14 +796,24 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
             'clean_workdir': False,
             'kpoints_distance': kpoints_distance
         }
+
+        # PwBaseWorkChain.get_builder_from_protocol() does not support SOC, I have to
+        # pretend that I am doing an non-SOC calculation and add SOC parameters later.
+        spin_type = kwargs.get('spin_type', SpinType.NONE)
+        filtered_kwargs = deepcopy(kwargs)
+        if spin_type == SpinType.SPIN_ORBIT:
+            # I use pseudo-dojo for SOC
+            overrides['pseudo_family'] = 'PseudoDojo/0.4/PBE/FR/standard/upf'
+            filtered_kwargs['spin_type'] = SpinType.NONE
+
         builder = PwBaseWorkChain.get_builder_from_protocol(
-            code=code, overrides=overrides, **kwargs
+            code=code, overrides=overrides, **filtered_kwargs
         )
 
         parameters = builder.pw['parameters'].get_dict()
-        if kwargs.get('spin_type', None) == SpinType.NON_COLLINEAR:
+        if spin_type == SpinType.NON_COLLINEAR:
             parameters['SYSTEM']['noncolin'] = True
-        if kwargs.get('spin_type', None) == SpinType.SPIN_ORBIT:
+        if spin_type == SpinType.SPIN_ORBIT:
             parameters['SYSTEM']['noncolin'] = True
             parameters['SYSTEM']['lspinorb'] = True
         builder.pw['parameters'] = orm.Dict(dict=parameters)
@@ -820,36 +846,24 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
 
     @classmethod
     def get_nscf_inputs(cls, code, kpoints_distance, nbands_factor, **kwargs):
-        overrides = {
-            'clean_workdir': False,
-            'kpoints_distance': kpoints_distance
-        }
-        builder = PwBaseWorkChain.get_builder_from_protocol(
-            code=code, overrides=overrides, **kwargs
-        )
+        
+        inputs = cls.get_scf_inputs(code, kpoints_distance, **kwargs)
 
-        parameters = builder.pw.parameters.get_dict()
-
-        only_valence = kwargs['electronic_type'] == ElectronicType.INSULATOR
-        spin_polarized = kwargs['spin_type'] == SpinType.COLLINEAR
+        only_valence = kwargs.get('electronic_type', None) == ElectronicType.INSULATOR
+        spin_polarized = kwargs.get('spin_type', SpinType.NONE) == SpinType.COLLINEAR
         nbnd = get_wannier_number_of_bands(
             structure=kwargs['structure'],
-            pseudos=builder.pw.pseudos,
+            pseudos=inputs['pw']['pseudos'],
             factor=nbands_factor,
             only_valence=only_valence,
             spin_polarized=spin_polarized
         )
+
+        parameters = inputs['pw']['parameters'].get_dict()
         parameters['SYSTEM']['nbnd'] = nbnd
 
         parameters['SYSTEM']['nosym'] = True
         parameters['SYSTEM']['noinv'] = True
-
-        if kwargs.get('spin_type', None) == SpinType.NON_COLLINEAR:
-            parameters['SYSTEM']['noncolin'] = True
-        if kwargs.get('spin_type', None) == SpinType.SPIN_ORBIT:
-            parameters['SYSTEM']['noncolin'] = True
-            parameters['SYSTEM']['lspinorb'] = True
-        builder.pw['parameters'] = orm.Dict(dict=parameters)
 
         parameters['CONTROL']['restart_mode'] = 'restart'
         parameters['CONTROL']['calculation'] = 'nscf'
@@ -857,14 +871,11 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
         parameters['ELECTRONS']['diagonalization'] = 'cg'
         parameters['ELECTRONS']['diago_full_acc'] = True
 
-        builder.pw.parameters = orm.Dict(dict=parameters)
+        inputs['pw']['parameters'] = orm.Dict(dict=parameters)
 
         excluded_inputs = ['clean_workdir', 'structure']
-        inputs = {}
-        for input in builder:
-            if input in excluded_inputs:
-                continue
-            inputs[input] = builder[input]
+        for k in excluded_inputs:
+            inputs.pop(k, None)
         # structure is in the pw namespace, I need to pop it
         inputs['pw'].pop('structure', None)
 
@@ -990,8 +1001,8 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
         else:
             num_wann = num_projs
 
-        pseudo_orbitals = get_pseudo_orbitals(pseudos)
         if exclude_semicores:
+            pseudo_orbitals = get_pseudo_orbitals(pseudos)
             # TODO now only consider SSSP
             semicore_list = get_semicore_list(structure, pseudo_orbitals)
             num_excludes = len(semicore_list)
@@ -1014,6 +1025,7 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
         ]:
             parameters['auto_projections'] = True
         elif projection_type == WannierProjectionType.ANALYTIC:
+            pseudo_orbitals = get_pseudo_orbitals(pseudos)
             projections = []
             # TODO
             # self.ctx.wannier_projections = orm.List(
@@ -1224,7 +1236,7 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
                 f'electronic type `{electronic_type}` is not supported.'
             )
 
-        if spin_type not in [SpinType.NONE]:  #, SpinType.COLLINEAR]:
+        if spin_type not in [SpinType.NONE, SpinType.SPIN_ORBIT]:
             raise NotImplementedError(
                 f'spin type `{spin_type}` is not supported.'
             )
@@ -1305,32 +1317,21 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
                 f"Not supported electronic type {electronic_type}"
             )
 
-        # TODO
-        # pseudo_family = 's'
-        # try:
-        #     SsspFamily = GroupFactory('pseudo.family.sssp')
-        #     PseudoDojoFamily = GroupFactory('pseudo.family.pseudo_dojo')
-        #     CutoffsPseudoPotentialFamily = GroupFactory('pseudo.family.cutoffs')
-        #     pseudo_set = (PseudoDojoFamily, SsspFamily, CutoffsPseudoPotentialFamily)
-        #     pseudo_family = orm.QueryBuilder().append(pseudo_set, filters={'label': pseudo_family}).one()[0]
-        # except exceptions.NotExistent as exception:
-        #     raise ValueError(
-        #         f'required pseudo family `{pseudo_family}` is not installed. Please use `aiida-pseudo install` to'
-        #         'install it.'
-        #     ) from exception
-
-        # try:
-        #     cutoff_wfc, cutoff_rho = pseudo_family.get_recommended_cutoffs(structure=structure, unit='Ry')
-        # except ValueError as exception:
-        #     raise ValueError(
-        #         f'failed to obtain recommended cutoffs for pseudo family `{pseudo_family}`: {exception}'
-        #     ) from exception
+        if pseudo_family is None:
+            if spin_type == SpinType.SPIN_ORBIT:
+                # I use pseudo-dojo for SOC
+                pseudo_family = 'PseudoDojo/0.4/PBE/FR/standard/upf'
+            else:
+                # I use aiida-qe default
+                pseudo_family = PwBaseWorkChain.get_protocol_inputs(
+                    protocol=protocol)['pseudo_family']
 
         # A dictionary containing key info of Wannierisation and will be printed when the function returns.
         summary = {}
         summary['Formula'] = structure.get_formula()
         summary['ElectronicType'] = electronic_type
         summary['SpinType'] = spin_type
+        summary['PseudoFamily'] = pseudo_family
         summary['WannierProjectionType'] = projection_type
         summary['WannierDisentanglementType'] = disentanglement_type
         summary['WannierFrozenType'] = frozen_type
@@ -1421,11 +1422,12 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
 
         builder.clean_workdir = orm.Bool(inputs.get('clean_workdir', False))
 
-        summary['num_bands'] = builder.wannier90['parameters']['num_bands']
-        summary['num_wann'] = builder.wannier90['parameters']['num_wann']
-        summary['exclude_bands'] = builder.wannier90['parameters'
-                                                     ]['exclude_bands']
-        summary['mp_grid'] = builder.wannier90['parameters']['mp_grid']
+        wannier_params = builder.wannier90['parameters'].get_dict()
+        summary['num_bands'] = wannier_params['num_bands']
+        summary['num_wann'] = wannier_params['num_wann']
+        if 'exclude_bands' in wannier_params:
+            summary['exclude_bands'] = wannier_params['exclude_bands']
+        summary['mp_grid'] = wannier_params['mp_grid']
 
         if print_summary:
             # try to pretty print
@@ -1464,7 +1466,7 @@ def get_fermi_energy(output_parameters: orm.Dict) -> typing.Optional[float]:
 @calcfunction
 def update_scdm_mu_sigma(
     parameters: orm.Dict, bands: orm.BandsData,
-    projections: orm.ProjectionData, thresholds: orm.Dict
+    projections: orm.ProjectionData, sigma_factor: orm.Float
 ) -> orm.Dict:
     """Use erfc fitting to extract scdm_mu & scdm_sigma, and update the pw2wannier90 input parameters.
     If scdm_mu/sigma is provided in the input, then it will not be updated, only the missing one(s) will be updated.
@@ -1475,12 +1477,12 @@ def update_scdm_mu_sigma(
     :type bands: aiida.orm.BandsData
     :param projections: projectability from projwfc.x
     :type projections: aiida.orm.ProjectionData
-    :param thresholds: sigma shift factor
-    :type thresholds: aiida.orm.Dict
+    :param sigma_factor: sigma shift factor
+    :type sigma_factor: aiida.orm.Float
     """
     parameters_dict = parameters.get_dict()
     mu_new, sigma_new = fit_scdm_mu_sigma_aiida(
-        bands, projections, thresholds.get_dict()
+        bands, projections, sigma_factor
     )
     scdm_parameters = {}
     if 'scdm_mu' not in parameters_dict['inputpp']:
