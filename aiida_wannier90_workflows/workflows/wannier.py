@@ -1,4 +1,3 @@
-from inspect import Parameter
 import typing
 from copy import deepcopy
 import numpy as np
@@ -23,7 +22,7 @@ from aiida_pseudo.data.pseudo import UpfData
 
 from ..common.types import WannierProjectionType, WannierDisentanglementType, WannierFrozenType
 from .base import Wannier90BaseWorkChain
-from ..calculations.functions.kmesh import get_explicit_kpoints_from_distance, get_explicit_kpoints, create_kpoints_from_distance
+from ..utils.kmesh import get_explicit_kpoints_from_distance, get_explicit_kpoints, create_kpoints_from_distance
 from ..utils.scdm import fit_scdm_mu_sigma_aiida, get_energy_of_projectability
 from ..utils.upf import get_number_of_projections, get_wannier_number_of_bands, _load_pseudo_metadata
 
@@ -437,6 +436,7 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
                 raise ValueError(
                     "relative_dis_windows = True but cannot retrieve Fermi energy from scf output"
                 )
+            parameters['fermi_energy'] = fermi_energy
             if self.inputs.relative_dis_windows:
                 keys = [
                     'dis_froz_min', 'dis_froz_max', 'dis_win_min',
