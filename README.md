@@ -46,25 +46,9 @@ aiida_wannier90_workflows/
 2. `wannier.py` contains `Wannier90WorkChain`, a basic workflow that requires input parameters of every step: scf, nscf, pw2wan, projwfc, w90 pp, w90
 3. `band_structure.py` customized QE `PwBandStructureWorkChain`, remove relax step, used for comparing band structure with `Wannier90BandsWorkChain`
 
-## Examplary launch script
-
-```
-examples/workflows/run_automated_wannier.py
-```
-
 ## Installation
 
-1. I subclassed the `BaseRestartWorkChain` to a `Wannier90BaseWorkChain`, which can automatically handle Wannier90 error e.g. `Not enough bvectors found after several trials of kmesh_tol`, `Unable to satisfy B1`. So please first install this branch `https://github.com/qiaojunfeng/aiida-wannier90.git` before using this workflow
-
-   ```bash
-   git clone https://github.com/qiaojunfeng/aiida-wannier90.git
-   cd aiida-wannier90/
-   git checkout restart_workchain
-   pip uninstall aiida-wannier90
-   pip install -e .
-   ```
-
-2. then install this repository
+2. install this repository
 
    ```
    git clone https://github.com/aiidateam/aiida-wannier90-workflows.git

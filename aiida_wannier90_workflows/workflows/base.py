@@ -1,12 +1,4 @@
 # -*- coding: utf-8 -*-
-################################################################################
-# Copyright (c), AiiDA team and individual contributors.                       #
-#  All rights reserved.                                                        #
-# This file is part of the AiiDA-wannier90 code.                               #
-#                                                                              #
-# The code is hosted on GitHub at https://github.com/aiidateam/aiida-wannier90 #
-# For further information on the license, see the LICENSE.txt file             #
-################################################################################
 from aiida import orm
 from aiida.common import AttributeDict
 from aiida.engine import while_
@@ -24,23 +16,22 @@ class Wannier90BaseWorkChain(BaseRestartWorkChain):
 
     @classmethod
     def define(cls, spec):
-        super(Wannier90BaseWorkChain, cls).define(spec)
+        super().define(spec)
         spec.expose_inputs(Wannier90Calculation, namespace='wannier90')
+
         spec.outline(
             cls.setup,
             while_(cls.should_run_process)(
-                # cls.prepare_inputs,
                 cls.run_process,
                 cls.inspect_process,
             ),
-            cls.results
+            cls.results,
         )
+
         spec.expose_outputs(Wannier90Calculation)
 
         spec.exit_code(
-            400,
-            'ERROR_KMESH_TOL_FAILED',
-            message='Not enough bvectors found even after reducing kmesh_tol.'
+            400, 'ERROR_BVECTORS', message='Unrecoverable bvectors error.'
         )
 
     def setup(self):
@@ -49,64 +40,38 @@ class Wannier90BaseWorkChain(BaseRestartWorkChain):
         This `self.ctx.inputs` dictionary will be used by the `BaseRestartWorkChain` to submit the calculations in the
         internal loop.
         """
-        super(Wannier90BaseWorkChain, self).setup()
+        super().setup()
         self.ctx.inputs = AttributeDict(
             self.exposed_inputs(Wannier90Calculation, 'wannier90')
         )
-        self.ctx.kmesh_tol_trails = [
-            self._WANNIER90_DEFAULT_KMESH_TOL, 1e-8, 1e-4
-        ]
+        self.ctx.kmeshtol_new = [self._WANNIER90_DEFAULT_KMESH_TOL, 1e-8, 1e-4]
 
-    # def prepare_inputs(self):
-    # if self.ctx.iteration == 0:
-    #     return
-    # elif self.ctx.iteration == 1:
-    #     # fix: Not enough bvectors found
-    #     self.ctx.inputs.parameters['kmesh_tol'] = 1e-8
-    #     return
-
-    @process_handler(
-        exit_codes=Wannier90Calculation.exit_codes.
-        ERROR_EXITING_MESSAGE_IN_STDOUT
-    )
-    def handle_kemsh_tol(self, calc):
-        """Try fixing wannier90 error message: Not enough bvectors found.
-        Will try to reduce kmesh_tol to 1e-8.
-        
-        :param calc: This is the process node that finished and is to be investigated
-        :type calc: 
-        :return: [description]
-        :rtype: [type]
+    @process_handler(exit_codes=Wannier90Calculation.exit_codes.ERROR_BVECTORS)
+    def handle_bvectors(self, calculation):
+        """Try to fix Wannier90 bvectors errors by tunning `kmesh_tol`.
+        The handler will try to use kmesh_tol = 1e-6, 1e-8, 1e-4.
         """
-        kmesh_tol_key = 'kmesh_tol'
-        error_msg = calc.outputs.output_parameters['error_msg']
-        kmesh_tol_error_msg = 'kmesh_get_bvector: Not enough bvectors found'
-        is_kmesh_tol = any(kmesh_tol_error_msg in line for line in error_msg)
-        too_many_bvec_msg = 'kmesh_get: something wrong, found too many nearest neighbours'
-        is_kmesh_tol |= any(too_many_bvec_msg in line for line in error_msg)
-        b1_error_msg = 'Unable to satisfy B1'
-        is_kmesh_tol |= any(b1_error_msg in line for line in error_msg)
-        if is_kmesh_tol:
-            parameters = self.ctx.inputs.parameters.get_dict()
-            if kmesh_tol_key in parameters:
-                current_kmesh_tol = parameters[kmesh_tol_key]
-            else:
-                current_kmesh_tol = self._WANNIER90_DEFAULT_KMESH_TOL
-            if current_kmesh_tol in self.ctx.kmesh_tol_trails:
-                self.ctx.kmesh_tol_trails.remove(current_kmesh_tol)
-            if len(self.ctx.kmesh_tol_trails) == 0:
-                self.report(
-                    'Not enough bvectors found after several trials of kmesh_tol'
-                )
-                return ProcessHandlerReport(
-                    exit_code=self.exit_codes.ERROR_KMESH_TOL_FAILED
-                )
-            new_kmesh_tol = self.ctx.kmesh_tol_trails.pop(0)
-            parameters[kmesh_tol_key] = new_kmesh_tol
-            self.report(
-                'Not enough bvectors found, previous kmesh_tol: {}, trying a new kmesh_tol: {}'
-                .format(current_kmesh_tol, new_kmesh_tol)
-            )
-            self.ctx.inputs.parameters = orm.Dict(dict=parameters)
-            return ProcessHandlerReport()
-        return None
+        KMESHTOL_KEY = 'kmesh_tol'
+        parameters = self.ctx.inputs.parameters.get_dict()
+
+        # If the user has specified `kmesh_tol` in the input parameters and it is different
+        # from the default, we will first try to use the default `kmesh_tol`.
+        if KMESHTOL_KEY in parameters:
+            kmeshtol_cur = parameters[KMESHTOL_KEY]
+        else:
+            kmeshtol_cur = self._WANNIER90_DEFAULT_KMESH_TOL
+        if kmeshtol_cur in self.ctx.kmeshtol_new:
+            self.ctx.kmeshtol_new.remove(kmeshtol_cur)
+
+        if len(self.ctx.kmeshtol_new) == 0:
+            action = 'Unrecoverable bvectors error after several trials of kmesh_tol'
+            self.report_error_handled(calculation, action)
+            return ProcessHandlerReport(True, self.exit_codes.ERROR_BVECTORS)
+
+        kmeshtol_new = self.ctx.kmeshtol_new.pop(0)
+        parameters[KMESHTOL_KEY] = kmeshtol_new
+        action = f'Bvectors error, current kmesh_tol = {kmeshtol_cur}, new kmesh_tol = {kmeshtol_new}'
+        self.report_error_handled(calculation, action)
+        self.ctx.inputs.parameters = orm.Dict(dict=parameters)
+
+        return ProcessHandlerReport(True)
