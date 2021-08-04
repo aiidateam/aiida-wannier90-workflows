@@ -7,7 +7,7 @@ from aiida_quantumespresso.calculations.opengrid import OpengridCalculation
 
 from .wannier import Wannier90WorkChain
 
-__all__ = ['Wannier90OpengridWorkChain']
+__all__ = ('Wannier90OpengridWorkChain', )
 
 
 class Wannier90OpengridWorkChain(Wannier90WorkChain):
@@ -20,9 +20,6 @@ class Wannier90OpengridWorkChain(Wannier90WorkChain):
        -> pw2wannier90 -> wannier90
     2. scf w/ symmetry, default nbnd -> nscf w/ symm, more nbnd 
        -> open_grid -> pw2wannier90 -> wannier90
-
-    :param Wannier90WorkChain: [description]
-    :type Wannier90WorkChain: [type]
     """
     @classmethod
     def define(cls, spec):
@@ -34,7 +31,9 @@ class Wannier90OpengridWorkChain(Wannier90WorkChain):
             exclude=('parent_folder', 'structure'),
             namespace_options={
                 'required': False,
-                'help': 'Inputs for the `OpengridCalculation`.'
+                'populate_defaults':
+                False,
+                'help': 'Inputs for the `OpengridCalculation`, if not specified the opengrid step is skipped.'
             }
         )
 
@@ -57,7 +56,10 @@ class Wannier90OpengridWorkChain(Wannier90WorkChain):
                 cls.run_opengrid,
                 cls.inspect_opengrid,
             ),
-            if_(cls.should_run_projwfc)(cls.run_projwfc, cls.inspect_projwfc),
+            if_(cls.should_run_projwfc)(
+                cls.run_projwfc, 
+                cls.inspect_projwfc
+            ),
             cls.run_wannier90_pp,
             cls.inspect_wannier90_pp,
             cls.run_pw2wannier90,
@@ -121,17 +123,11 @@ class Wannier90OpengridWorkChain(Wannier90WorkChain):
         inputs = super().prepare_wannier90_inputs()
 
         if self.should_run_opengrid():
-            inputs.kpoints = self.ctx.calc_opengrid.outputs.kpoints
+            opengrid_outputs = self.ctx.calc_opengrid.outputs
+            inputs.kpoints = opengrid_outputs.kpoints
             parameters = inputs.parameters.get_dict()
-            parameters[
-                'mp_grid'
-            ] = self.ctx.calc_opengrid.outputs.kpoints_mesh.get_kpoints_mesh(
-            )[0]
+            parameters['mp_grid'] = opengrid_outputs.kpoints_mesh.get_kpoints_mesh()[0]
             inputs.parameters = orm.Dict(dict=parameters)
-
-            self.report(
-                'The open_grid.x output kmesh is used as Wannier90 kpoints'
-            )
 
         return inputs
 
@@ -169,7 +165,14 @@ class Wannier90OpengridWorkChain(Wannier90WorkChain):
         :param opengrid_only_scf: If True first do a scf with symmetry and increased number of bands, then open_grid to unfold kmesh; If False first do a scf with symmetry and default number of bands, then a nscf with symmetry and increased number of bands, followed by open_grid.
         :type opengrid_only_scf: [type]
         """
-        builder = super().get_builder_from_protocol(codes, structure, **kwargs)
+        
+        summary = kwargs.pop('summary', {})
+        print_summary = kwargs.pop('print_summary', True)
+
+        builder = super().get_builder_from_protocol(
+            codes, structure, **kwargs,
+            summary=summary, print_summary=False
+        )
 
         if opengrid_only_scf:
             nbnd = builder.nscf['pw']['parameters'].get_dict()['SYSTEM'].get(
@@ -201,12 +204,26 @@ class Wannier90OpengridWorkChain(Wannier90WorkChain):
 
         builder.opengrid = {
             'code': codes['opengrid'],
-            # open_grid.x should not append '_open' to the prefix of QE
-            'parameters': {
+            'parameters': orm.Dict(dict={
                 'inputpp': {
-                    'overwrite_outdir': True
+                    # open_grid.x should not append '_open' to the prefix of QE
+                    'overwrite_prefix': True
                 }
-            },
+            }),
+            'metadata': {
+                'options': {
+                    'resources': {
+                        'num_machines': 1
+                    }
+                },
+            }
         }
+
+        notes = summary.get('notes', [])
+        notes.append('The open_grid.x unfolded kmesh will be used as wannier90 input kpoints.')
+        summary['notes'] = notes
+
+        if print_summary:
+            cls.print_summary(summary)
 
         return builder

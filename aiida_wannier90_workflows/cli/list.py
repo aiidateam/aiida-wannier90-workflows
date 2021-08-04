@@ -45,6 +45,10 @@ def cmd_list(project, raw):
             row.append(projected)
 
         rows.append(row)
+    
+    # sort by PK
+    pk_idx = project.index('pk')
+    rows.sort(key=lambda i: i[pk_idx])
 
     if not rows:
         echo.echo_info('no `Wannier90BandsWorkChain` found that match the filtering criteria.')

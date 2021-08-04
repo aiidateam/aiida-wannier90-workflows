@@ -2,6 +2,7 @@ import typing
 
 from aiida import orm
 from aiida.engine import if_, ProcessBuilder
+from aiida.engine.launch import run
 
 from aiida_quantumespresso.calculations.functions.seekpath_structure_analysis import seekpath_structure_analysis
 from aiida_quantumespresso.common.types import SpinType
@@ -21,7 +22,7 @@ def validate_inputs(inputs, ctx=None):  # pylint: disable=unused-argument
         return Wannier90BandsWorkChain.exit_codes.ERROR_INVALID_INPUT_KPOINTS.message
 
 
-class Wannier90BandsWorkChain(Wannier90WorkChain):
+class Wannier90BandsWorkChain(Wannier90OpengridWorkChain):
     """
     A high level workchain which can automatically compute a Wannier band structure for a given structure. Can also output Wannier Hamiltonian.
     """
@@ -48,8 +49,7 @@ class Wannier90BandsWorkChain(Wannier90WorkChain):
         # is a subset of Wannier90OpengridWorkChain,
         # this allow us to launch either Wannier90WorkChain or Wannier90OpengridWorkChain.
         spec.expose_inputs(
-            # Wannier90OpengridWorkChain,
-            Wannier90WorkChain,
+            Wannier90OpengridWorkChain,
             exclude=('wannier90.kpoint_path', ),
             namespace_options={'required': True}
         )
@@ -58,7 +58,9 @@ class Wannier90BandsWorkChain(Wannier90WorkChain):
         spec.outline(
             cls.setup,
             cls.validate_parameters,
-            if_(cls.should_run_seekpath)(cls.run_seekpath, ),
+            if_(cls.should_run_seekpath)(
+                cls.run_seekpath,
+            ),
             if_(cls.should_run_relax)(
                 cls.run_relax,
                 cls.inspect_relax,
@@ -70,6 +72,10 @@ class Wannier90BandsWorkChain(Wannier90WorkChain):
             if_(cls.should_run_nscf)(
                 cls.run_nscf,
                 cls.inspect_nscf,
+            ),
+            if_(cls.should_run_opengrid)(
+                cls.run_opengrid,
+                cls.inspect_opengrid,
             ),
             if_(cls.should_run_projwfc)(
                 cls.run_projwfc,
@@ -99,8 +105,7 @@ class Wannier90BandsWorkChain(Wannier90WorkChain):
             'The parameters used in the SeeKpath call to normalize the input or relaxed structure.'
         )
         spec.expose_outputs(
-            # Wannier90OpengridWorkChain,
-            Wannier90WorkChain,
+            Wannier90OpengridWorkChain,
             namespace_options={'required': True}
         )
         spec.output(
@@ -245,6 +250,18 @@ class Wannier90BandsWorkChain(Wannier90WorkChain):
             raise ValueError(
                 'open_grid.x does not support spin orbit coupling'
             )
+        
+        # I will call different parent_class.get_builder_from_protocl()
+        if run_opengrid:
+            # i.e. Wannier90OpengridWorkChain
+            parent_class = super(Wannier90BandsWorkChain, cls)
+            kwargs['opengrid_only_scf'] = opengrid_only_scf
+        else:
+            # i.e. Wannier90WorkChain
+            parent_class = super(Wannier90OpengridWorkChain, cls)
+
+        summary = kwargs.pop('summary', {})
+        print_summary = kwargs.pop('print_summary', True)
 
         if kpoint_path is None:
             # don't use `seekpath_structure_analysis`, since it's a calcfunction and will modify aiida database
@@ -255,8 +272,9 @@ class Wannier90BandsWorkChain(Wannier90WorkChain):
             primitive_structure = result['primitive_structure']
             # ase Atoms class can test if two structures are the same
             if structure.get_ase() == primitive_structure.get_ase():
-                builder = super().get_builder_from_protocol(
-                    codes, structure, **kwargs
+                builder = parent_class.get_builder_from_protocol(
+                    codes, structure, **kwargs,
+                    summary=summary, print_summary=False
                 )
                 # set kpoint_path, so the workchain won't run seekpath
                 builder.kpoint_path = orm.Dict(
@@ -266,22 +284,29 @@ class Wannier90BandsWorkChain(Wannier90WorkChain):
                     }
                 )
             else:
-                message = f'The input structure {structure.get_formula()} is NOT a primitive cell, '
-                message += f'the generated parameters are for the primitive cell {primitive_structure.get_formula()}.\n'
-                print(message)
+                msg = f'The input structure {structure.get_formula()}<{structure.pk}> is NOT a primitive cell, '
+                msg += f'the generated parameters are for the primitive cell {primitive_structure.get_formula()} found by seekpath.'
+                notes = summary.get('notes', [])
+                notes.append(msg)
+                summary['notes'] = notes
                 # I need to use primitive cell to generate all the input parameters, e.g. num_wann, num_bands, ...
-                builder = super().get_builder_from_protocol(
-                    codes, primitive_structure, **kwargs
+                builder = parent_class.get_builder_from_protocol(
+                    codes, primitive_structure, **kwargs,
+                    summary=summary, print_summary=False
                 )
                 # don't set `kpoint_path` and `kpoint_path_distance`, so the workchain will run seekpath
                 # however I still need to use the original cell, so the `seekpath_structure_analysis` will
                 # store the provenance from original cell to primitive cell.
                 builder.structure = structure
         else:
-            builder = super().get_builder_from_protocol(
-                codes, structure, **kwargs
+            builder = parent_class.get_builder_from_protocol(
+                codes, structure, **kwargs,
+                summary=summary, print_summary=False
             )
             builder.kpoint_path = kpoint_path
+
+        if print_summary:
+            cls.print_summary(summary)
 
         return builder
 
