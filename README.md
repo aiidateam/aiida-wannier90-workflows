@@ -1,5 +1,5 @@
 # aiida-wannier90-workflows
-Advanced AiiDA workflows developed in the THEOS group for QE+Wannier90
+Advanced AiiDA workflows for automated Wannierisation.
 
 The protocol for automating the construction of Wannier functions is discussed in the following article
 
@@ -17,19 +17,6 @@ which leverages the SCDM method that was introduced in:
   *Disentanglement via entanglement: A unified method for wannier localization*,
   Multiscale Modeling & Simulation 16, 1392–1410 (2018).
 
-The initial workflow was written by Antimo Marrazzo (EPFL) and Giovanni Pizzi (EPFL), it was later substantially improved and upgraded to AiiDA v1.1.1 by Junfeng Qiao (EFPL). The SCDM implementation in Quantum ESPRESSO was done by Valerio Vitale (Imperial College London and University of Cambridge).
-
-## Note
-
-There are 2 repositories with branches
-
-* https://github.com/epfl-theos/aiida-wannier90-theosworkflows
-  * master
-  * develop
-* https://github.com/aiidateam/aiida-wannier90-workflows
-  * master
-
-The `aiidateam` repo is for public release, the `epfl-theos` repo is for internal development. `aiidateam/master` is identical with `epfl-theos/master`, for now which does not contain `Wannier90BaseWorkChain` for automatically handling `kmesh_tol` errors. The `epfl-theos/develop` uses `Wannier90BaseWorkChain`.
 
 ## Available workflows
 
@@ -37,14 +24,12 @@ The `aiidateam` repo is for public release, the `epfl-theos` repo is for interna
 aiida_wannier90_workflows/
 └── workflows
     ├── bands.py
-    ├── band_structure.py
     ├── __init__.py
     └── wannier.py
 ```
 
 1. `bands.py` contains `Wannier90BandsWorkChain`, the automatic workflow that handles everything
 2. `wannier.py` contains `Wannier90WorkChain`, a basic workflow that requires input parameters of every step: scf, nscf, pw2wan, projwfc, w90 pp, w90
-3. `band_structure.py` customized QE `PwBandStructureWorkChain`, remove relax step, used for comparing band structure with `Wannier90BandsWorkChain`
 
 ## Installation
 
