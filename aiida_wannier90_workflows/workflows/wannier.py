@@ -1,72 +1,88 @@
+import typing
+from copy import deepcopy
+import numpy as np
+
 from aiida import orm
 from aiida.common import AttributeDict
-from aiida.engine.processes import WorkChain, ToContext, if_
+from aiida.common.lang import type_check
+from aiida.engine.processes import WorkChain, ToContext, if_, ProcessBuilder
 from aiida.engine.processes import calcfunction
+from aiida.plugins import WorkflowFactory, CalculationFactory, GroupFactory
+
 from aiida_quantumespresso.utils.mapping import prepare_process_inputs
 from aiida_quantumespresso.workflows.pw.base import PwBaseWorkChain
 from aiida_quantumespresso.workflows.pw.relax import PwRelaxWorkChain
 from aiida_quantumespresso.calculations.projwfc import ProjwfcCalculation
 from aiida_quantumespresso.calculations.pw2wannier90 import Pw2wannier90Calculation
 from aiida_wannier90.calculations import Wannier90Calculation
+from aiida_quantumespresso.common.types import ElectronicType, SpinType
+from aiida_quantumespresso.workflows.protocols.utils import ProtocolMixin
+
+from aiida_pseudo.data.pseudo import UpfData
+
+from ..common.types import WannierProjectionType, WannierDisentanglementType, WannierFrozenType
 from .base import Wannier90BaseWorkChain
+from ..utils.kmesh import get_explicit_kpoints_from_distance, get_explicit_kpoints, create_kpoints_from_distance
+from ..utils.scdm import fit_scdm_mu_sigma_aiida, get_energy_of_projectability
+from ..utils.upf import get_number_of_projections, get_wannier_number_of_bands, _load_pseudo_metadata
+
+__all__ = ['Wannier90WorkChain']
 
 
-class Wannier90WorkChain(WorkChain):
+class Wannier90WorkChain(ProtocolMixin, WorkChain):
     """
     Workchain to obtain maximally localised Wannier functions (MLWF)
-    Authors: Antimo Marrazzo (antimo.marrazzo@epfl.ch), Giovanni Pizzi (giovanni.pizzi@epfl.ch), Junfeng Qiao(junfeng.qiao@epfl.ch)
-    
-    MIT License - Copyright (c), 2018, ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE
-    (Theory and Simulation of Materials (THEOS) and National Centre for 
-    Computational Design and Discovery of Novel Materials (NCCR MARVEL)).
-    All rights reserved.
 
     Scheme: setup --> relax(optional) --> scf --> nscf --> projwfc 
-            -> wannier90_postproc --> pw2wannier90 --> wannier90 --> results
-    
-    This is a very basic workchain, in that user needs to specify 
-    inputs of every step. Please consider using Wannier90BandsWorkChain, 
-    which automatically generates inputs.
+            -> wannier90_postproc --> pw2wannier90 --> wannier90
     """
     @classmethod
     def define(cls, spec):
         super().define(spec)
+
         spec.input(
             'structure',
             valid_type=orm.StructureData,
-            help='The inputs structure.'
+            help='The input structure.'
         )
         spec.input(
             'clean_workdir',
             valid_type=orm.Bool,
-            default=orm.Bool(False),
+            required=False,
+            default=lambda: orm.Bool(False),
             help=
             'If `True`, work directories of all called calculation will be cleaned at the end of execution.'
         )
         spec.input(
-            'only_valence',
+            'relative_dis_windows',
             valid_type=orm.Bool,
-            default=orm.Bool(False),
-            help='Whether only wannierise valence band or not'
-        )
-        spec.input(
-            'wannier_energies_relative_to_fermi',
-            valid_type=orm.Bool,
-            default=orm.Bool(False),
+            required=False,
+            default=lambda: orm.Bool(False),
             help=
-            'determines if the energies(dis_froz_min/max, dis_win_min/max) defined in the input parameters '
-            + 'are relative to scf Fermi energy or not.'
+            'If True the dis_froz/win_min/max will be shifted by fermi_enerngy. False is the default behaviour of wannier90.'
         )
         spec.input(
-            'scdm_thresholds',
-            valid_type=orm.Dict,
-            default=orm.Dict(
-                dict={
-                    'max_projectability': 0.95,
-                    'sigma_factor': 3
-                }
-            ),
-            help='can contain two keyword: max_projectability, sigma_factor'
+            'scdm_sigma_factor',
+            valid_type=orm.Float,
+            required=False,
+            default=lambda: orm.Float(3.0),
+            help=
+            'For SCDM projection.'
+        )
+        spec.input(
+            'auto_froz_max',
+            valid_type=orm.Bool,
+            required=False,
+            default=lambda: orm.Bool(False),
+            help=
+            'If True use the energy corresponding to projectability = 0.9 as dis_froz_max for wannier90 disentanglement.'
+        )
+        spec.input(
+            'auto_froz_max_threshold',
+            valid_type=orm.Float,
+            required=False,
+            default=lambda: orm.Float(0.9),
+            help='Threshold for auto_froz_max.'
         )
         spec.expose_inputs(
             PwRelaxWorkChain,
@@ -95,6 +111,10 @@ class Wannier90WorkChain(WorkChain):
             namespace='nscf',
             exclude=('clean_workdir', 'pw.structure'),
             namespace_options={
+                'required':
+                False,
+                'populate_defaults':
+                False,
                 'help':
                 'Inputs for the `PwBaseWorkChain` for the NSCF calculation.'
             }
@@ -122,23 +142,29 @@ class Wannier90WorkChain(WorkChain):
         spec.expose_inputs(
             Wannier90Calculation,
             namespace='wannier90',
-            exclude=('structure', 'kpoints'),
+            exclude=('structure', ),
             namespace_options={
                 'help':
                 'Inputs for the `Wannier90Calculation` for the Wannier90 calculation.'
             }
         )
+
         spec.outline(
             cls.setup,
-            if_(cls.should_do_relax)(
+            cls.validate_parameters,
+            if_(cls.should_run_relax)(
                 cls.run_relax,
                 cls.inspect_relax,
             ),
-            cls.run_scf,
-            cls.inspect_scf,
-            cls.run_nscf,
-            cls.inspect_nscf,
-            if_(cls.should_do_projwfc)(
+            if_(cls.should_run_scf)(
+                cls.run_scf,
+                cls.inspect_scf,
+            ),
+            if_(cls.should_run_nscf)(
+                cls.run_nscf,
+                cls.inspect_nscf,
+            ),
+            if_(cls.should_run_projwfc)(
                 cls.run_projwfc,
                 cls.inspect_projwfc,
             ),
@@ -156,148 +182,149 @@ class Wannier90WorkChain(WorkChain):
             namespace='relax',
             namespace_options={'required': False}
         )
-        spec.expose_outputs(PwBaseWorkChain, namespace='scf')
-        spec.expose_outputs(PwBaseWorkChain, namespace='nscf')
+        spec.expose_outputs(
+            PwBaseWorkChain,
+            namespace='scf',
+            namespace_options={'required': False}
+        )
+        spec.expose_outputs(
+            PwBaseWorkChain,
+            namespace='nscf',
+            namespace_options={'required': False}
+        )
         spec.expose_outputs(
             ProjwfcCalculation,
             namespace='projwfc',
             namespace_options={'required': False}
         )
         spec.expose_outputs(Pw2wannier90Calculation, namespace='pw2wannier90')
-        # spec.expose_outputs(Wannier90Calculation, namespace='wannier90_pp')
         spec.expose_outputs(Wannier90BaseWorkChain, namespace='wannier90_pp')
         spec.expose_outputs(Wannier90Calculation, namespace='wannier90')
 
         spec.exit_code(
             401,
-            'ERROR_SUB_PROCESSS_FAILED_SETUP',
-            message='setup failed, check your input'
+            'ERROR_INVALID_INPUT_KPOINT_PATH',
+            message='bands_plot is True but no kpoint_path provided'
         )
         spec.exit_code(
             402,
+            'ERROR_INVALID_INPUT_RELATIVE_DIS_WINDOWS',
+            message='relative_dis_windows is True but no fermi_energy provided'
+        )
+        spec.exit_code(
+            403,
+            'ERROR_INVALID_INPUT_PSEUDOPOTENTIAL',
+            message='Invalid pseudopotentials.'
+        )
+        spec.exit_code(
+            404,
+            'ERROR_INVALID_INPUT_AUTOFROZMAX',
+            message='auto_froz_max is incompatible with SCDM'
+        )
+        spec.exit_code(
+            410,
             'ERROR_SUB_PROCESS_FAILED_RELAX',
             message='the PwRelaxWorkChain sub process failed'
         )
         spec.exit_code(
-            403,
+            420,
             'ERROR_SUB_PROCESS_FAILED_SCF',
             message='the scf PwBasexWorkChain sub process failed'
         )
         spec.exit_code(
-            404,
+            430,
             'ERROR_SUB_PROCESS_FAILED_NSCF',
             message='the nscf PwBasexWorkChain sub process failed'
         )
         spec.exit_code(
-            405,
+            440,
             'ERROR_SUB_PROCESS_FAILED_PROJWFC',
             message='the ProjwfcCalculation sub process failed'
         )
         spec.exit_code(
-            406,
+            450,
             'ERROR_SUB_PROCESS_FAILED_WANNIER90PP',
             message='the postproc Wannier90Calculation sub process failed'
         )
         spec.exit_code(
-            407,
+            460,
             'ERROR_SUB_PROCESS_FAILED_PW2WANNIER90',
             message='the Pw2wannier90Calculation sub process failed'
         )
         spec.exit_code(
-            408,
+            470,
             'ERROR_SUB_PROCESS_FAILED_WANNIER90',
             message='the Wannier90Calculation sub process failed'
         )
 
     def setup(self):
-        """
-        Define the current structure in the context to be the input structure.
-        """
+        """Define the current structure in the context to be the input structure."""
         self.ctx.current_structure = self.inputs.structure
 
-        inputs = AttributeDict(
-            self.exposed_inputs(Wannier90Calculation, namespace='wannier90')
-        )
-        parameters = inputs.parameters.get_dict()
+    def validate_parameters(self):
+        """Validate the input parameters."""
+        wannier_inputs = AttributeDict(self.inputs['wannier90'])
+        parameters = wannier_inputs.parameters.get_dict()
 
-        self.ctx.bands_plot = parameters.get('bands_plot', False)
-        self.ctx.auto_projections = parameters.get('auto_projections', False)
-
-        # check bands_plot kpoint_path
-        if self.ctx.bands_plot:
-            kpoint_path = inputs.get('kpoint_path', None)
+        # Check bands_plot and kpoint_path
+        bands_plot = parameters.get('bands_plot', False)
+        if bands_plot:
+            kpoint_path = wannier_inputs.get('kpoint_path', None)
             if kpoint_path is None:
-                self.report(
-                    'bands_plot is required but no kpoint_path provided'
-                )
-                return self.exit_codes.ERROR_SUB_PROCESSS_FAILED_SETUP
+                return self.exit_codes.ERROR_INVALID_INPUT_KPOINT_PATH
 
-        # debug
-        # self.ctx.workchain_scf = orm.load_node(13623) # CsH
-        # self.ctx.workchain_nscf = orm.load_node(13643)
-        # self.ctx.calc_projwfc = orm.load_node(13652)
-        # self.ctx.nscf_kmesh = orm.KpointsData()
-        # self.ctx.nscf_kmesh.set_kpoints_mesh([9, 9, 9])
-        # self.ctx.workchain_wannier90_pp = orm.load_node(13712)
-        # self.ctx.calc_pw2wannier90 = orm.load_node(13726)
-        # self.ctx.calc_wannier90 = orm.load_node(13798)
+        # Cannot specify both `auto_froz_max` and `scdm_proj`
+        pw2wannier_inputs = AttributeDict(self.inputs['pw2wannier90'])
+        parameters = pw2wannier_inputs.parameters.get_dict()
+        if self.inputs.auto_froz_max and parameters['inputpp'].get('scdm_proj', False):
+            return self.exit_codes.ERROR_INVALID_INPUT_AUTOFROZMAX
 
-    def should_do_relax(self):
-        """
-        If the 'relax' input namespace was specified, we relax the input structure.
-        """
+    def should_run_relax(self):
+        """If the 'relax' input namespace was specified, we relax the input structure."""
         return 'relax' in self.inputs
 
     def run_relax(self):
-        """
-        Run the PwRelaxWorkChain to run a relax calculation
-        """
+        """Run the PwRelaxWorkChain to run a relax calculation"""
         inputs = AttributeDict(
             self.exposed_inputs(PwRelaxWorkChain, namespace='relax')
         )
         inputs.structure = self.ctx.current_structure
+        inputs.metadata.call_link_label = 'relax'
 
+        inputs = prepare_process_inputs(PwRelaxWorkChain, inputs)
         running = self.submit(PwRelaxWorkChain, **inputs)
-
-        self.report('launching PwRelaxWorkChain<{}>'.format(running.pk))
+        self.report(f'launching {running.process_label}<{running.pk}>')
 
         return ToContext(workchain_relax=running)
 
     def inspect_relax(self):
-        """
-        verify that the PwRelaxWorkChain successfully finished.
-        """
+        """verify that the PwRelaxWorkChain successfully finished."""
         workchain = self.ctx.workchain_relax
 
         if not workchain.is_finished_ok:
             self.report(
-                'PwRelaxWorkChain failed with exit status {}'.format(
-                    workchain.exit_status
-                )
+                f'{workchain.process_label} failed with exit status {workchain.exit_status}'
             )
             return self.exit_codes.ERROR_SUB_PROCESS_FAILED_RELAX
 
         self.ctx.current_structure = workchain.outputs.output_structure
 
+    def should_run_scf(self):
+        """If the 'scf' input namespace was specified, we run the scf workchain."""
+        return 'scf' in self.inputs
+
     def run_scf(self):
-        """
-        Run the PwBaseWorkChain in scf mode on the primitive cell of (optionally relaxed) input structure.
-        """
+        """Run the PwBaseWorkChain in scf mode on the (optionally relaxed) input structure."""
         inputs = AttributeDict(
             self.exposed_inputs(PwBaseWorkChain, namespace='scf')
         )
         inputs.pw.structure = self.ctx.current_structure
-        inputs.pw.parameters = inputs.pw.parameters.get_dict()
-        inputs.pw.parameters.setdefault('CONTROL', {})
-        inputs.pw.parameters['CONTROL']['calculation'] = 'scf'
+        inputs.metadata.call_link_label = 'scf'
 
         inputs = prepare_process_inputs(PwBaseWorkChain, inputs)
         running = self.submit(PwBaseWorkChain, **inputs)
-
         self.report(
-            'scf step - launching PwBaseWorkChain<{}> in {} mode'.format(
-                running.pk, 'scf'
-            )
+            f'launching {running.process_label}<{running.pk}> in scf mode'
         )
 
         return ToContext(workchain_scf=running)
@@ -308,93 +335,29 @@ class Wannier90WorkChain(WorkChain):
 
         if not workchain.is_finished_ok:
             self.report(
-                'scf PwBaseWorkChain failed with exit status {}'.format(
-                    workchain.exit_status
-                )
+                f'scf {workchain.process_label} failed with exit status {workchain.exit_status}'
             )
             return self.exit_codes.ERROR_SUB_PROCESS_FAILED_SCF
 
         self.ctx.current_folder = workchain.outputs.remote_folder
-        self.report("scf PwBaseWorkChain successfully finished")
+
+    def should_run_nscf(self):
+        """If the 'nscf' input namespace was specified, we run the nscf workchain."""
+        return 'nscf' in self.inputs
 
     def run_nscf(self):
-        """
-        Run the PwBaseWorkChain in nscf mode
-        """
+        """Run the PwBaseWorkChain in nscf mode"""
         inputs = AttributeDict(
             self.exposed_inputs(PwBaseWorkChain, namespace='nscf')
         )
         inputs.pw.structure = self.ctx.current_structure
         inputs.pw.parent_folder = self.ctx.current_folder
-        inputs.pw.parameters = inputs.pw.parameters.get_dict()
-        inputs.pw.parameters.setdefault('CONTROL', {})
-        inputs.pw.parameters.setdefault('SYSTEM', {})
-        inputs.pw.parameters.setdefault('ELECTRONS', {})
-        inputs.pw.parameters['CONTROL']['restart_mode'] = 'from_scratch'
-        inputs.pw.parameters['CONTROL']['calculation'] = 'nscf'
-        inputs.pw.parameters['SYSTEM']['nosym'] = True
-        inputs.pw.parameters['SYSTEM']['noinv'] = True
-        inputs.pw.parameters['ELECTRONS']['diagonalization'] = 'cg'
-        inputs.pw.parameters['ELECTRONS']['diago_full_acc'] = True
-
-        if self.inputs.only_valence:
-            inputs.pw.parameters['SYSTEM']['occupations'] = 'fixed'
-            inputs.pw.parameters['SYSTEM'].pop(
-                'smearing', None
-            )  # pop None to avoid KeyError
-            inputs.pw.parameters['SYSTEM'].pop(
-                'degauss', None
-            )  # pop None to avoid KeyError
-
-        # inputs.pw.pseudos is an AttributeDict, but calcfunction only accepts
-        # orm.Data, so we unpack it to pass in orm.UpfData
-        inputs.pw.parameters = update_nscf_num_bands(
-            orm.Dict(dict=inputs.pw.parameters),
-            self.ctx.workchain_scf.outputs.output_parameters,
-            self.ctx.current_structure, self.inputs.only_valence,
-            **inputs.pw.pseudos
-        )
-        self.report(
-            'nscf number of bands set as ' +
-            str(inputs.pw.parameters['SYSTEM']['nbnd'])
-        )
-
-        # check kmesh
-        try:
-            inputs.kpoints
-        except AttributeError:
-            # then kpoints_distance must exists, since this is ensured by inputs check of this workchain
-            from aiida_quantumespresso.workflows.functions.create_kpoints_from_distance import create_kpoints_from_distance
-            force_parity = inputs.get('kpoints_force_parity', orm.Bool(False))
-            kmesh = create_kpoints_from_distance(
-                self.ctx.current_structure, inputs.kpoints_distance,
-                force_parity
-            )
-            #kpoints_data = orm.KpointsData()
-            # kpoints_data.set_cell_from_structure(self.ctx.current_structure)
-            # kmesh = kpoints_data.set_kpoints_mesh_from_density(inputs.kpoints_distance.value)
-        else:
-            try:
-                inputs.kpoints.get_kpoints_mesh()
-            except AttributeError:
-                self.report("nscf only support `mesh' type KpointsData")
-                return self.exit_codes.ERROR_SUB_PROCESS_FAILED_NSCF
-            else:
-                kmesh = inputs.kpoints
-        # convert kmesh to explicit list, since auto generated kpoints
-        # maybe different between QE & Wannier90. Here we explicitly
-        # generate a list of kpoint to avoid discrepencies between
-        # QE's & Wannier90's automatically generated kpoints.
-        self.ctx.nscf_kmesh = kmesh  # store it since it will be used by w90
-        inputs.kpoints = convert_kpoints_mesh_to_list(kmesh)
+        inputs.metadata.call_link_label = 'nscf'
 
         inputs = prepare_process_inputs(PwBaseWorkChain, inputs)
         running = self.submit(PwBaseWorkChain, **inputs)
-
         self.report(
-            'nscf step - launching PwBaseWorkChain<{}> in {} mode'.format(
-                running.pk, 'nscf'
-            )
+            f'launching {running.process_label}<{running.pk}> in nscf mode'
         )
 
         return ToContext(workchain_nscf=running)
@@ -405,41 +368,27 @@ class Wannier90WorkChain(WorkChain):
 
         if not workchain.is_finished_ok:
             self.report(
-                'nscf PwBaseWorkChain failed with exit status {}'.format(
-                    workchain.exit_status
-                )
+                f'nscf {workchain.process_label} failed with exit status {workchain.exit_status}'
             )
             return self.exit_codes.ERROR_SUB_PROCESS_FAILED_NSCF
 
         self.ctx.current_folder = workchain.outputs.remote_folder
-        self.report("nscf PwBaseWorkChain successfully finished")
 
-    def should_do_projwfc(self):
-        """
-        If the 'auto_projections = true' && only_valence, we 
-        run projwfc calculation to extract SCDM mu & sigma.
-        """
-        self.report("SCDM mu & sigma are auto-set using projectability")
-        return self.ctx.auto_projections and not self.inputs.only_valence.value
+    def should_run_projwfc(self):
+        """If the 'projwfc' input namespace was specified, we run the projwfc calculation."""
+        return 'projwfc' in self.inputs
 
     def run_projwfc(self):
-        """
-        Projwfc step
-        :return:
-        """
+        """Projwfc step"""
         inputs = AttributeDict(
             self.exposed_inputs(ProjwfcCalculation, namespace='projwfc')
         )
         inputs.parent_folder = self.ctx.current_folder
+        inputs.metadata.call_link_label = 'projwfc'
 
         inputs = prepare_process_inputs(ProjwfcCalculation, inputs)
         running = self.submit(ProjwfcCalculation, **inputs)
-
-        self.report(
-            'projwfc step - launching ProjwfcCalculation<{}>'.format(
-                running.pk
-            )
-        )
+        self.report(f'launching {running.process_label}<{running.pk}>')
 
         return ToContext(calc_projwfc=running)
 
@@ -449,171 +398,184 @@ class Wannier90WorkChain(WorkChain):
 
         if not calculation.is_finished_ok:
             self.report(
-                'ProjwfcCalculation failed with exit status {}'.format(
-                    calculation.exit_status
-                )
+                f'{calculation.process_label} failed with exit status {calculation.exit_status}'
             )
             return self.exit_codes.ERROR_SUB_PROCESS_FAILED_PROJWFC
 
-        self.ctx.current_folder = calculation.outputs.remote_folder
-        self.report("projwfc ProjwfcCalculation successfully finished")
-
-    def run_wannier90_pp(self):
-        """The input of wannier90 calculation is build here.
-        
-        :return: [description]
-        :rtype: [type]
-        """
+    def prepare_wannier90_inputs(self):
+        """The inputs of wannier90 calculation is built here.
+        This is different from the classmethod `get_wannier90_inputs`, which statically generates inputs and is used by
+        the `get_builder_from_protocol`. Here this method will be called by the running workchain, so it can dynamically
+        add/modify inputs based on outputs of previous calculations, e.g. adding Fermi energy, etc. 
+        Also, this method can be overridden in derived classes."""
         inputs = AttributeDict(
             self.exposed_inputs(Wannier90Calculation, namespace='wannier90')
         )
         inputs.structure = self.ctx.current_structure
         parameters = inputs.parameters.get_dict()
 
-        # get nscf kmesh
-        inputs.kpoints = self.ctx.workchain_nscf.inputs.kpoints
-        # the input kpoints of nscf is an explicitly generated list of kpoints,
-        # we mush retrieve the original kmesh, and explicitly set w90 mp_grid keyword
-        parameters['mp_grid'] = self.ctx.nscf_kmesh.get_kpoints_mesh()[0]
+        # Need fermi energy to shift the windows
+        fermi_energy = None
+        if self.inputs['relative_dis_windows']:
+            if 'workchain_scf' not in self.ctx:
+                raise ValueError(
+                    "relative_dis_windows = True but did not run scf calculation"
+                )
+            scf_output_parameters = self.ctx.workchain_scf.outputs.output_parameters
+            fermi_energy = get_fermi_energy(scf_output_parameters)
+            if fermi_energy is None:
+                raise ValueError(
+                    "relative_dis_windows = True but cannot retrieve Fermi energy from scf output"
+                )
 
-        # check num_bands, exclude_bands, nscf nbnd
-        nbnd = self.ctx.workchain_nscf.outputs.output_parameters.get_dict(
-        )['number_of_bands']
-        num_ex_bands = len(get_exclude_bands(inputs.parameters.get_dict()))
-        parameters['num_bands'] = nbnd - num_ex_bands
+        # add scf Fermi energy
+        if 'workchain_scf' in self.ctx:
+            scf_output_parameters = self.ctx.workchain_scf.outputs.output_parameters
+            fermi_energy = get_fermi_energy(scf_output_parameters)
+            if fermi_energy is None:
+                raise ValueError(
+                    "relative_dis_windows = True but cannot retrieve Fermi energy from scf output"
+                )
+            parameters['fermi_energy'] = fermi_energy
+            if self.inputs.relative_dis_windows:
+                keys = [
+                    'dis_froz_min', 'dis_froz_max', 'dis_win_min',
+                    'dis_win_max'
+                ]
+                for k in keys:
+                    if k in parameters:
+                        parameters[k] += fermi_energy
 
-        # set num_wann for auto_projections
-        if self.ctx.auto_projections:
-            if self.inputs.only_valence:
-                parameters['num_wann'] = parameters['num_bands']
-                inputs.parameters = orm.Dict(dict=parameters)
+        # set dis_froz_max
+        if 'auto_froz_max' in self.inputs:
+            bands = self.ctx.calc_projwfc.outputs.bands
+            projections = self.ctx.calc_projwfc.outputs.projections
+            args = {'bands': bands, 'projections': projections}
+            if 'auto_froz_max_threshold' in self.inputs:
+                args['thresholds'] = self.inputs.auto_froz_max_threshold.value
+            dis_froz_max = get_energy_of_projectability(**args)
+            parameters['dis_froz_max'] = dis_froz_max
+
+        # Prevent error:
+        #   dis_windows: More states in the frozen window than target WFs
+        if 'dis_froz_max' in parameters:
+            if 'workchain_nscf' in self.ctx:
+                bands = self.ctx.workchain_nscf.outputs.output_band
             else:
-                inputs.parameters = orm.Dict(dict=parameters)
-                inputs.parameters = update_w90_params_numwann(
-                    inputs.parameters,
-                    self.ctx.calc_projwfc.outputs.projections
-                )
-                self.report(
-                    'number of Wannier functions extracted from projections: '
-                    + str(inputs.parameters['num_wann'])
-                )
+                bands = self.ctx.workchain_scf.outputs.output_band
+            # TODO check provenance graph
+            max_energy = np.min(
+                bands.get_bands()[:, parameters['num_wann'] - 1]
+            )
+            dis_froz_max = min(max_energy, parameters['dis_froz_max'])
+            if dis_froz_max != parameters['dis_froz_max']:
+                parameters['dis_froz_max'] = dis_froz_max
 
-        # get scf Fermi energy
-        try:
-            energies_relative_to_fermi = self.inputs.get(
-                'wannier_energies_relative_to_fermi'
-            )
-            inputs.parameters = update_w90_params_fermi(
-                inputs.parameters,
-                self.ctx.workchain_scf.outputs.output_parameters,
-                energies_relative_to_fermi
-            )
-        except TypeError:
-            self.report(
-                "Error in retriving the SCF Fermi energy "
-                "from pk: {}".format(self.ctx.workchain_scf)
-            )
-            return self.exit_codes.ERROR_SUB_PROCESS_FAILED_WANNIER90PP
+        inputs.parameters = orm.Dict(dict=parameters)
 
-        #Check if settings is given in input
-        try:
+        return inputs
+
+    def run_wannier90_pp(self):
+        inputs = self.prepare_wannier90_inputs()
+
+        # add postproc
+        if 'settings' in inputs:
             settings = inputs['settings'].get_dict()
-        except KeyError:
+        else:
             settings = {}
         settings['postproc_setup'] = True
         inputs['settings'] = settings
 
-        # note here we submit Wannier90BaseWorkChain instead, since it
-        # can automatically handle kmesh_tol related errors
-        # inputs = prepare_process_inputs(Wannier90Calculation, inputs)
-        # running = self.submit(Wannier90Calculation, **inputs)
-        inputs = prepare_process_inputs(
-            Wannier90BaseWorkChain, {'wannier90': inputs}
-        )
+        inputs = {
+            'wannier90': inputs,
+            'metadata': {
+                'call_link_label': 'wannier90_pp'
+            }
+        }
+        inputs = prepare_process_inputs(Wannier90BaseWorkChain, inputs)
+
         running = self.submit(Wannier90BaseWorkChain, **inputs)
-
         self.report(
-            # 'wannier90 postproc step - launching Wannier90Calculation<{}> in postproc mode'
-            'wannier90 postproc step - launching Wannier90BaseWorkChain<{}> in postproc mode'
-            .format(running.pk)
+            f'launching {running.process_label}<{running.pk}> in postproc mode'
         )
 
-        # return ToContext(calc_wannier90_pp=running)
         return ToContext(workchain_wannier90_pp=running)
 
     def inspect_wannier90_pp(self):
         """Verify that the Wannier90Calculation for the wannier90 run successfully finished."""
-        # workchain = self.ctx.calc_wannier90_pp
         workchain = self.ctx.workchain_wannier90_pp
 
         if not workchain.is_finished_ok:
             self.report(
-                'wannier90 postproc Wannier90Calculation failed with exit status {}'
-                .format(workchain.exit_status)
+                f'wannier90 postproc {workchain.process_label} failed with exit status {workchain.exit_status}'
             )
             return self.exit_codes.ERROR_SUB_PROCESS_FAILED_WANNIER90PP
 
-        self.ctx.current_folder = workchain.outputs.remote_folder
-        self.report(
-            "wannier90 postproc Wannier90Calculation successfully finished"
-        )
-
-    def run_pw2wannier90(self):
+    def prepare_pw2wannier90_inputs(self):
+        """The inputs of pw2wannier90 calculation is built here.
+        This is different from the classmethod `get_pw2wannier90_inputs`, which statically generates inputs and is used by
+        the `get_builder_from_protocol`. Here this method will be called by the running workchain, so it can dynamically
+        add/modify inputs based on outputs of previous calculations, e.g. calculating scdm_mu/sigma from projectability, etc.
+        Also, this method can be overridden in derived classes."""
         inputs = AttributeDict(
             self.exposed_inputs(
                 Pw2wannier90Calculation, namespace='pw2wannier90'
             )
         )
 
-        try:
-            remote_folder = self.ctx.workchain_nscf.outputs.remote_folder
-        except AttributeError:
-            return self.exit_codes.ERROR_SUB_PROCESS_FAILED_PW2WANNIER90(
-                'the nscf WorkChain did not output a remote_folder node'
-            )
-
-        inputs['parent_folder'] = remote_folder
-        # inputs['nnkp_file'] = self.ctx.calc_wannier90_pp.outputs.nnkp_file
+        inputs['parent_folder'] = self.ctx.current_folder
         inputs['nnkp_file'] = self.ctx.workchain_wannier90_pp.outputs.nnkp_file
-        inputs.parameters = inputs.parameters.get_dict()
-        inputs.parameters['inputpp'].update({
-            'write_mmn': True,
-            'write_amn': True,
-        })
 
-        if self.ctx.auto_projections:
-            inputs.parameters['inputpp']['scdm_proj'] = True
+        inputpp = inputs.parameters.get_dict().get('inputpp', {})
+        scdm_proj = inputpp.get('scdm_proj', False)
+        scdm_entanglement = inputpp.get('scdm_entanglement', None)
+        scdm_mu = inputpp.get('scdm_mu', None)
+        scdm_sigma = inputpp.get('scdm_sigma', None)
 
-            # TODO: if exclude_band: gaussian
-            # TODO: auto check if is insulator?
-            if self.inputs.only_valence:
-                inputs.parameters['inputpp']['scdm_entanglement'] = 'isolated'
-            else:
-                inputs.parameters['inputpp']['scdm_entanglement'] = 'erfc'
-                try:
-                    inputs.parameters = update_pw2wan_params_mu_sigma(
-                        parameters=orm.Dict(dict=inputs.parameters),
-                        # wannier_parameters=self.ctx.calc_wannier90_pp.inputs.parameters,
-                        wannier_parameters=self.ctx.workchain_wannier90_pp.
-                        inputs.wannier90__parameters,
-                        bands=self.ctx.calc_projwfc.outputs.bands,
-                        projections=self.ctx.calc_projwfc.outputs.projections,
-                        thresholds=self.inputs.get('scdm_thresholds')
-                    )
-                except ValueError:
-                    self.report(
-                        'WARNING: update_pw2wan_params_mu_sigma failed!'
-                    )
-                    return self.exit_codes.ERROR_SUB_PROCESS_FAILED_PW2WANNIER90
+        calc_scdm_params = scdm_proj and scdm_entanglement == 'erfc'
+        calc_scdm_params = calc_scdm_params and (
+            scdm_mu is None or scdm_sigma is None
+        )
+
+        if scdm_entanglement == 'gaussian':
+            if scdm_mu is None or scdm_sigma is None:
+                raise ValueError(
+                    "scdm_entanglement = gaussian but scdm_mu or scdm_sigma is empty."
+                )
+
+        if calc_scdm_params:
+            if 'calc_projwfc' not in self.ctx:
+                raise ValueError(
+                    'Needs to run projwfc before auto-generating scdm_mu/sigma'
+                )
+            try:
+                args = {
+                    'parameters':
+                    inputs.parameters,
+                    'bands':
+                    self.ctx.calc_projwfc.outputs.bands,
+                    'projections':
+                    self.ctx.calc_projwfc.outputs.projections,
+                    'sigma_factor':
+                    self.inputs.scdm_sigma_factor,
+                    'metadata': {
+                        'call_link_label': 'update_scdm_mu_sigma'
+                    }
+                }
+                inputs.parameters = update_scdm_mu_sigma(**args)
+            except Exception as e:
+                raise ValueError(f'update_scdm_mu_sigma failed! {e.args}')
+
+        return inputs
+
+    def run_pw2wannier90(self):
+        inputs = self.prepare_pw2wannier90_inputs()
+        inputs.metadata.call_link_label = 'pw2wannier90'
 
         inputs = prepare_process_inputs(Pw2wannier90Calculation, inputs)
         running = self.submit(Pw2wannier90Calculation, **inputs)
+        self.report(f'launching {running.process_label}<{running.pk}>')
 
-        self.report(
-            'pw2wannier90 step - launching Pw2Wannier90Calculation<{}>'.format(
-                running.pk
-            )
-        )
         return ToContext(calc_pw2wannier90=running)
 
     def inspect_pw2wannier90(self):
@@ -622,55 +584,41 @@ class Wannier90WorkChain(WorkChain):
 
         if not workchain.is_finished_ok:
             self.report(
-                'Pw2wannier90Calculation failed with exit status {}'.format(
-                    workchain.exit_status
-                )
+                f'{workchain.process_label} failed with exit status {workchain.exit_status}'
             )
             return self.exit_codes.ERROR_SUB_PROCESS_FAILED_PW2WANNIER90
 
         self.ctx.current_folder = workchain.outputs.remote_folder
-        self.report("Pw2wannier90Calculation successfully finished")
 
     def run_wannier90(self):
-        try:
-            remote_folder = self.ctx.calc_pw2wannier90.outputs.remote_folder
-        except AttributeError:
-            self.report(
-                'the Pw2wannier90Calculation did not output a remote_folder node'
-            )
-            return self.exit_codes.ERROR_SUB_PROCESS_FAILED_WANNIER90
-
-        # we need metadata in exposed_inputs
         inputs = AttributeDict(
             self.exposed_inputs(Wannier90Calculation, namespace='wannier90')
         )
-        # pp_inputs = self.ctx.calc_wannier90_pp.inputs
-        # this is annoying cause some times the last of called is not the newest one,
-        # so I need to sort it
-        pp_inputs = max(
-            self.ctx.workchain_wannier90_pp.called, key=lambda x: x.pk
-        ).inputs
-        pp_keys = [
-            'code', 'parameters', 'kpoint_path', 'structure', 'kpoints',
-            'settings'
-        ]
-        for key in pp_keys:
-            inputs[key] = pp_inputs[key]
+        inputs.metadata.call_link_label = 'wannier90'
 
-        inputs['remote_input_folder'] = remote_folder
+        inputs['remote_input_folder'] = self.ctx.current_folder
 
-        settings = inputs.settings.get_dict()
+        # use the Wannier90BaseWorkChain-corrected parameters
+        # sort by pk, since the last Wannier90Calculation in Wannier90BaseWorkChain
+        # should have the largest pk
+        last_calc = max(
+            self.ctx.workchain_wannier90_pp.called, key=lambda calc: calc.pk
+        )
+        # copy postproc inputs, especially the `kmesh_tol` might have been corrected
+        for key in last_calc.inputs:
+            inputs[key] = last_calc.inputs[key]
+
+        if 'settings' in inputs:
+            settings = inputs.settings.get_dict()
+        else:
+            settings = {}
         settings['postproc_setup'] = False
+
         inputs.settings = settings
 
         inputs = prepare_process_inputs(Wannier90Calculation, inputs)
         running = self.submit(Wannier90Calculation, **inputs)
-
-        self.report(
-            'wannier90 step - launching Wannier90Calculation<{}>'.format(
-                running.pk
-            )
-        )
+        self.report(f'launching {running.process_label}<{running.pk}>')
 
         return ToContext(calc_wannier90=running)
 
@@ -680,64 +628,15 @@ class Wannier90WorkChain(WorkChain):
 
         if not workchain.is_finished_ok:
             self.report(
-                'Wannier90Calculation failed with exit status {}'.format(
-                    workchain.exit_status
-                )
+                f'{workchain.process_label} failed with exit status {workchain.exit_status}'
             )
             return self.exit_codes.ERROR_SUB_PROCESS_FAILED_WANNIER90
 
-        self.report("Wannier90Calculation successfully finished")
         self.ctx.current_folder = workchain.outputs.remote_folder
 
-    # def run_bands(self):  # pylint: disable=inconsistent-return-statements
-    #     """
-    #     Run the PwBaseWorkChain to run a bands PwCalculation
-    #     """
-    #     try:
-    #         remote_folder = self.ctx.workchain_scf.out.remote_folder
-    #     except AttributeError:
-    #         self.abort_nowait(
-    #             'the scf workchain did not output a remote_folder node')
-    #         return
-
-    #     inputs = dict(self.ctx.inputs)
-    #     structure = self.ctx.structure_relaxed_primitive
-    #     restart_mode = 'restart'
-    #     calculation_mode = 'bands'
-
-    #     # Set the correct pw.x input parameters
-    #     inputs['parameters']['CONTROL']['restart_mode'] = restart_mode
-    #     inputs['parameters']['CONTROL']['calculation'] = calculation_mode
-
-    #     # Tell the plugin to retrieve the bands
-    #     settings = inputs['settings'].get_dict()
-    #     settings['also_bands'] = True
-
-    #     # Final input preparation, wrapping dictionaries in Dict nodes
-    #     inputs['kpoints'] = self.ctx.kpoints_path
-    #     inputs['structure'] = structure
-    #     inputs['parent_folder'] = remote_folder
-    #     inputs['parameters'] = Dict(dict=inputs['parameters'])
-    #     inputs['settings'] = Dict(dict=settings)
-    #     inputs['pseudo_family'] = self.inputs.pseudo_family
-
-    #     running = submit(PwBaseWorkChain, **inputs)
-
-    #     self.report('launching PwBaseWorkChain<{}> in {} mode'.format(
-    #         running.pk, calculation_mode))
-
-    #     return ToContext(workchain_bands=running)
-
     def results(self):
-        """
-        Attach the desired output nodes directly as outputs of the workchain
-        """
-        self.report('final step - preparing outputs')
-        try:
-            self.ctx.workchain_relax
-        except AttributeError:
-            pass
-        else:
+        """Attach the desired output nodes directly as outputs of the workchain"""
+        if 'workchain_relax' in self.ctx:
             self.out_many(
                 self.exposed_outputs(
                     self.ctx.workchain_relax,
@@ -745,21 +644,22 @@ class Wannier90WorkChain(WorkChain):
                     namespace='relax'
                 )
             )
-        self.out_many(
-            self.exposed_outputs(
-                self.ctx.workchain_scf, PwBaseWorkChain, namespace='scf'
+
+        if 'workchain_scf' in self.ctx:
+            self.out_many(
+                self.exposed_outputs(
+                    self.ctx.workchain_scf, PwBaseWorkChain, namespace='scf'
+                )
             )
-        )
-        self.out_many(
-            self.exposed_outputs(
-                self.ctx.workchain_nscf, PwBaseWorkChain, namespace='nscf'
+
+        if 'workchain_nscf' in self.ctx:
+            self.out_many(
+                self.exposed_outputs(
+                    self.ctx.workchain_nscf, PwBaseWorkChain, namespace='nscf'
+                )
             )
-        )
-        try:
-            self.ctx.calc_projwfc
-        except AttributeError:
-            pass
-        else:
+
+        if 'calc_projwfc' in self.ctx:
             self.out_many(
                 self.exposed_outputs(
                     self.ctx.calc_projwfc,
@@ -767,6 +667,7 @@ class Wannier90WorkChain(WorkChain):
                     namespace='projwfc'
                 )
             )
+
         self.out_many(
             self.exposed_outputs(
                 self.ctx.calc_pw2wannier90,
@@ -776,8 +677,6 @@ class Wannier90WorkChain(WorkChain):
         )
         self.out_many(
             self.exposed_outputs(
-                # self.ctx.calc_wannier90_pp,
-                # Wannier90Calculation,
                 self.ctx.workchain_wannier90_pp,
                 Wannier90BaseWorkChain,
                 namespace='wannier90_pp'
@@ -790,336 +689,857 @@ class Wannier90WorkChain(WorkChain):
                 namespace='wannier90'
             )
         )
-        self.report('Wannier90WorkChain successfully completed')
 
-
-@calcfunction
-def convert_kpoints_mesh_to_list(kmesh):
-    """works just like kmesh.pl in Wannier90
-    
-    :param kmesh: [description]
-    :type kmesh: KpointsData
-    :raises ValueError: [description]
-    :return: [description]
-    :rtype: [type]
-    """
-    import numpy as np
-    try:  # test if it is a mesh
-        results = kmesh.get_kpoints_mesh()
-    except AttributeError:
-        try:
-            kmesh.get_kpoints()
-        except AttributeError as e:  # an empty input
-            e.args = ('input kmesh is empty!', )
-            raise e
-        else:
-            return kmesh
-    else:
-        # currently we ignore offset
-        mesh = results[0]
-
-        # following is similar to wannier90/kmesh.pl
-        totpts = np.prod(mesh)
-        weights = np.ones([totpts]) / totpts
-
-        kpoints = np.zeros([totpts, 3])
-        ind = 0
-        for x in range(mesh[0]):
-            for y in range(mesh[1]):
-                for z in range(mesh[2]):
-                    kpoints[ind, :] = [x / mesh[0], y / mesh[1], z / mesh[2]]
-                    ind += 1
-        klist = orm.KpointsData()
-        klist.set_kpoints(kpoints=kpoints, cartesian=False, weights=weights)
-        return klist
-
-
-@calcfunction
-def update_nscf_num_bands(
-    nscf_input_parameters, scf_output_parameters, structure, only_valence,
-    **pseudos
-):
-    '''
-    this calcfunction does 2 works:
-        1. calculate nbnd based on scf output_parameters
-        2. calculate number of projections based on pseudos
-    The resulting nbnd is the max of the two.
-    '''
-    def get_num_projections_from_pseudos(structure, **pseudos):
-        def get_nprojs_from_upf(upf):
-            upf_name = upf.list_object_names()[0]
-            upf_content = upf.get_object_content(upf_name)
-            upf_content = upf_content.split('\n')
-            # get PP_PSWFC block
-            pswfc_block = ''
-            found_begin = False
-            found_end = False
-            for line in upf_content:
-                if 'PP_PSWFC' in line:
-                    pswfc_block += line + '\n'
-                    if not found_begin:
-                        found_begin = True
-                        continue
-                    else:
-                        if not found_end:
-                            found_end = True
-                            break
-                if found_begin:
-                    pswfc_block += line + '\n'
-
-            num_projections = 0
-            # parse XML
-            import xml.etree.ElementTree as ET
-            PP_PSWFC = ET.XML(pswfc_block)
-            if len(PP_PSWFC.getchildren()) == 0:
-                # old upf format
-                import re
-                r = re.compile(r'[\d]([SPDF])')
-                spdf = r.findall(PP_PSWFC.text)
-                for orbit in spdf:
-                    orbit = orbit.lower()
-                    if orbit == 's':
-                        l = 0
-                    elif orbit == 'p':
-                        l = 1
-                    elif orbit == 'd':
-                        l = 2
-                    elif orbit == 'f':
-                        l = 3
-                    num_projections += 2 * l + 1
-            else:
-                # upf format 2.0.1
-                for child in PP_PSWFC:
-                    l = int(child.get('l'))
-                    num_projections += 2 * l + 1
-            return num_projections
-
-        tot_nprojs = 0
-        composition = structure.get_composition()
-        for kind in pseudos:
-            upf = pseudos[kind]
-            nprojs = get_nprojs_from_upf(upf)
-            tot_nprojs += nprojs * composition[kind]
-        return tot_nprojs
-
-    # Get info from SCF on number of electrons and number of spin components
-    scf_out_dict = scf_output_parameters.get_dict()
-    nelectron = int(scf_out_dict['number_of_electrons'])
-    nspin = int(scf_out_dict['number_of_spin_components'])
-    if only_valence:
-        nbands = int(nelectron / 2)
-    else:
-        nbands = int(0.5 * nelectron * nspin + 4 * nspin)
-        # nbands must > num_projections = num_wann
-        nprojs = get_num_projections_from_pseudos(structure, **pseudos)
-        nbands = max(nbands, nprojs + 10)
-    nscf_in_dict = nscf_input_parameters.get_dict()
-    nscf_in_dict['SYSTEM']['nbnd'] = nbands
-    return orm.Dict(dict=nscf_in_dict)
-
-
-def get_exclude_bands(parameters):
-    """get exclude_bands from Wannier90 parameters
-    
-    :param parameters: Wannier90Calculation input parameters
-    :type parameters: dict, NOT Dict, this is not a calcfunction
-    :return: the indices of the bands to be excluded
-    :rtype: list
-    """
-    exclude_bands = parameters.get('exclude_bands', [])
-    return exclude_bands
-
-
-def get_keep_bands(parameters):
-    """get keep_bands from Wannier90 parameters
-    
-    :param parameters: Wannier90Calculation input parameters
-    :type parameters: dict, NOT Dict, this is not a calcfunction
-    :return: the indices of the bands to be kept
-    :rtype: list
-    """
-    import numpy as np
-    exclude_bands = get_exclude_bands(parameters)
-    xb_startzero_set = set([idx - 1 for idx in exclude_bands]
-                           )  # in Fortran/W90: 1-based; in py: 0-based
-    keep_bands = np.array([
-        idx for idx in range(parameters['num_bands'] + len(exclude_bands))
-        if idx not in xb_startzero_set
-    ])
-    return keep_bands
-
-
-@calcfunction
-def update_w90_params_fermi(
-    parameters, scf_output_parameters, relative_to_fermi
-):
-    """
-    Updated W90 windows with the specified Fermi energy.
-    
-    :param parameters: Wannier90Calculation input parameters
-    :type parameters: Dict
-    :param fermi_energy: [description]
-    :type fermi_energy: Float
-    :param relative_to_fermi: if energies in input parameters are defined relative 
-    scf Fermi energy.
-    :type relative_to_fermi: Bool
-    :return: updated parameters
-    :rtype: Dict
-    """
-    def get_fermi_energy():
-        """get Fermi energy from scf output parameters, unit is eV
-        """
-        try:
-            scf_out_dict = scf_output_parameters.get_dict()
-            efermi = scf_out_dict['fermi_energy']
-            efermi_units = scf_out_dict['fermi_energy_units']
-            if efermi_units != 'eV':
-                raise TypeError(
-                    "Error: Fermi energy is not in eV!"
-                    "it is {}".format(efermi_units)
-                )
-        except AttributeError:
-            raise TypeError(
-                "Error in retriving the SCF Fermi energy from pk: {}".format(
-                    scf_output_parameters.pk
-                )
-            )
-        return efermi
-
-    params = parameters.get_dict()
-    fermi = get_fermi_energy()
-    params['fermi_energy'] = fermi
-
-    if relative_to_fermi:
-        try:
-            dwmax = params['dis_win_max']
-            dwmax += fermi
-            params['dis_win_max'] = dwmax
-        except KeyError:
-            pass
-        try:
-            dfmax = params['dis_froz_max']
-            dfmax += fermi
-            params['dis_froz_max'] = dfmax
-        except KeyError:
-            pass
-        try:
-            dwmin = params['dis_win_min']
-            dwmin += fermi
-            params['dis_win_min'] = dwmin
-        except KeyError:
-            pass
-        try:
-            dfmin = params['dis_froz_min']
-            dfmin += fermi
-            params['dis_froz_min'] = dfmin
-        except KeyError:
-            pass
-    return orm.Dict(dict=params)
-
-
-@calcfunction
-def update_w90_params_numwann(parameters, projections):
-    def get_numwann_from_projections():
-        """
-        Calculate num_wann from projections, also consider exclude_bands
-        :param
-        :return:
-        """
-        num_wann = len(projections.get_orbitals())
-        num_wann -= len(get_exclude_bands(parameters.get_dict()))
-        return num_wann
-
-    parameters_dict = parameters.get_dict()
-    parameters_dict['num_wann'] = get_numwann_from_projections()
-    return orm.Dict(dict=parameters_dict)
-
-
-@calcfunction
-def update_pw2wan_params_mu_sigma(
-    parameters, wannier_parameters, bands, projections, thresholds
-):
-    """[summary]
-    
-    :param pw2wan_parameters: [description]
-    :type pw2wan_parameters: Dict
-    :param mu_sigma: [description]
-    :type mu_sigma: Dict
-    :return: [description]
-    :rtype: Dict
-    """
-    def get_mu_and_sigma_from_projections(
-        wannier_parameters,
-        bands,
-        projections,  # pylint: disable=too-many-locals
-        thresholds
-    ):
-        '''
-        Setting mu parameter for the SCDM-k method:
-        The projectability of all orbitals is fitted using an erfc(x)
-        function. Mu and sigma are extracted from the fitted distribution,
-        with mu = mu_fit - k * sigma, sigma = sigma_fit and
-        k a parameter with default k = 3.
-
-        :param bands: output of projwfc, it was computed in the nscf calc
-        :param parameters: wannier90 input params (the one to update with this calcfunction)
-        :param projections: output of projwfc
-        :param thresholds: must contain 'sigma_factor'; scdm_mu will be set to::
-            scdm_mu = E(projectability==max_projectability) - sigma_factor * scdm_sigma
-            Pass sigma_factor = 0 if you do not want to shift
-        :return: a modified Dict in output_parameters, with the proper value for scdm_mu set,
-                and a Bool called 'success' that tells if the algorithm could find the energy at which
-                the required projectability is achieved.
-        '''
-        def erfc_scdm(x, mu, sigma):
-            from scipy.special import erfc  # pylint: disable=E0611
-            return 0.5 * erfc((x - mu) / sigma)
-
-        def fit_erfc(f, xdata, ydata):
-            from scipy.optimize import curve_fit
-            return curve_fit(f, xdata, ydata, bounds=([-50, 0], [50, 50]))
-
-        # List of specifications of atomic orbitals in dictionary form
-        dict_list = [i.get_orbital_dict() for i in projections.get_orbitals()]
-
-        keep_bands = get_keep_bands(wannier_parameters.get_dict())
-        # Sum of the projections on all atomic orbitals (shape kpoints x nbands)
-        # WITHOUT EXCLUDE BANDS out_array = sum([sum([x[1] for x in projections.get_projections(
-        #    **get_dict)]) for get_dict in dict_list])
-        out_array = sum([
-            sum([
-                x[1][:, keep_bands]
-                for x in projections.get_projections(**get_dict)
-            ]) for get_dict in dict_list
-        ])
-
-        # Flattening (projection modulus squared according to QE, energies)
-        projwfc_flat, bands_flat = out_array.flatten(), bands.get_bands(
-        )[:, keep_bands].flatten()
-        # Sorted by energy
-        sorted_bands, sorted_projwfc = zip(
-            *sorted(zip(bands_flat, projwfc_flat))
-        )
-        popt, pcov = fit_erfc(erfc_scdm, sorted_bands, sorted_projwfc)
-        mu = popt[0]
-        sigma = popt[1]
-        # Temporary, TODO add check on interpolation
-        success = True
-        params = {}
-        params['scdm_sigma'] = sigma
-        sigma_factor = thresholds.get_dict().get('sigma_factor', 3)
-        params['scdm_mu'] = mu - sigma * sigma_factor
-        result = {
-            'success': orm.Bool(success),
-            'scdm_parameters': orm.Dict(dict=params)
+        # not necessary but it is good to do some sanity checks:
+        # 1. the calculated number of projections is consistent with QE projwfc.x
+        from ..utils.upf import get_number_of_electrons, get_number_of_projections
+        args = {
+            'structure': self.ctx.current_structure,
+            # the type of `self.inputs['scf']['pw']['pseudos']` is plumpy.utils.AttributesFrozendict,
+            # we need to convert it to dict, otherwise get_number_of_projections will fail.
+            'pseudos': dict(self.inputs['scf']['pw']['pseudos'])
         }
-        return result
+        if 'calc_projwfc' in self.ctx:
+            num_proj = len(
+                self.ctx.calc_projwfc.outputs['projections'].get_orbitals()
+            )
+            number_of_projections = get_number_of_projections(**args)
+            if number_of_projections != num_proj:
+                raise ValueError(
+                    f'number of projections {number_of_projections} != projwfc.x output {num_proj}'
+                )
+        # 2. the number of electrons is consistent with QE output
+        num_elec = self.ctx.workchain_scf.outputs['output_parameters'
+                                                  ]['number_of_electrons']
+        number_of_electrons = get_number_of_electrons(**args)
+        if number_of_electrons != num_elec:
+            raise ValueError(
+                f'number of electrons {number_of_electrons} != QE output {num_elec}'
+            )
 
-    results = get_mu_and_sigma_from_projections(
-        wannier_parameters, bands, projections, thresholds
-    )
-    if not results['success']:
-        raise ValueError('mu and sigma failed')
+        self.report(f'{self.get_name()} successfully completed')
+
+    def on_terminated(self):
+        """Clean the working directories of all child calculations if `clean_workdir=True` in the inputs."""
+        super().on_terminated()
+
+        if not self.inputs.clean_workdir:
+            self.report('remote folders will not be cleaned')
+            return
+
+        cleaned_calcs = []
+
+        for called_descendant in self.node.called_descendants:
+            if isinstance(called_descendant, orm.CalcJobNode):
+                try:
+                    called_descendant.outputs.remote_folder._clean()  # pylint: disable=protected-access
+                    cleaned_calcs.append(called_descendant.pk)
+                except (IOError, OSError, KeyError):
+                    pass
+
+        if cleaned_calcs:
+            self.report(
+                f"cleaned remote folders of calculations: {' '.join(map(str, cleaned_calcs))}"
+            )
+
+    @classmethod
+    def get_protocol_filepath(cls):
+        """Return ``pathlib.Path`` to the ``.yaml`` file that defines the protocols."""
+        from importlib_resources import files
+        from . import protocols as wannier_protocols
+        return files(wannier_protocols) / 'wannier.yaml'
+
+    @classmethod
+    def get_relax_inputs(cls, code, kpoints_distance, pseudo_family=None, **kwargs):
+        overrides = {
+            'clean_workdir': False,
+            'base': {
+                'kpoints_distance': kpoints_distance
+            }
+        }
+        if pseudo_family is not None:
+            overrides['pseudo_family'] = pseudo_family
+
+        # PwBaseWorkChain.get_builder_from_protocol() does not support SOC, I have to
+        # pretend that I am doing an non-SOC calculation and add SOC parameters later.
+        spin_type = kwargs.get('spin_type', SpinType.NONE)
+        filtered_kwargs = deepcopy(kwargs)
+        if spin_type == SpinType.SPIN_ORBIT:
+            filtered_kwargs['spin_type'] = SpinType.NONE
+            if pseudo_family is None:
+                raise ValueError("`pseudo_family` should be explicitly set for SOC")
+
+        builder = PwRelaxWorkChain.get_builder_from_protocol(
+            code=code, overrides=overrides, **filtered_kwargs
+        )
+
+        parameters = builder.base['pw']['parameters'].get_dict()
+        if spin_type == SpinType.NON_COLLINEAR:
+            parameters['SYSTEM']['noncolin'] = True
+        if spin_type == SpinType.SPIN_ORBIT:
+            parameters['SYSTEM']['noncolin'] = True
+            parameters['SYSTEM']['lspinorb'] = True
+        builder.base['pw']['parameters'] = orm.Dict(dict=parameters)
+
+        excluded_inputs = ['clean_workdir', 'structure']
+        inputs = {}
+        for input in builder:
+            if input in excluded_inputs:
+                continue
+            inputs[input] = builder[input]
+
+        return inputs
+
+    @classmethod
+    def get_scf_inputs(cls, code, kpoints_distance, **kwargs):
+        overrides = {
+            'clean_workdir': False,
+            'kpoints_distance': kpoints_distance
+        }
+
+        # PwBaseWorkChain.get_builder_from_protocol() does not support SOC, I have to
+        # pretend that I am doing an non-SOC calculation and add SOC parameters later.
+        spin_type = kwargs.get('spin_type', SpinType.NONE)
+        filtered_kwargs = deepcopy(kwargs)
+        if spin_type == SpinType.SPIN_ORBIT:
+            # I use pseudo-dojo for SOC
+            overrides['pseudo_family'] = 'PseudoDojo/0.4/PBE/FR/standard/upf'
+            filtered_kwargs['spin_type'] = SpinType.NONE
+
+        builder = PwBaseWorkChain.get_builder_from_protocol(
+            code=code, overrides=overrides, **filtered_kwargs
+        )
+
+        parameters = builder.pw['parameters'].get_dict()
+        if spin_type == SpinType.NON_COLLINEAR:
+            parameters['SYSTEM']['noncolin'] = True
+        if spin_type == SpinType.SPIN_ORBIT:
+            parameters['SYSTEM']['noncolin'] = True
+            parameters['SYSTEM']['lspinorb'] = True
+        builder.pw['parameters'] = orm.Dict(dict=parameters)
+
+        # Currently only support magnetic with SOC
+        # for magnetic w/o SOC, needs 2 separate wannier90 calculations for spin up and down.
+        # if self.inputs.spin_polarized and self.inputs.spin_orbit_coupling:
+        #     # Magnetization from Kittel, unit: Bohr magneton
+        #     magnetizations = {'Fe': 2.22, 'Co': 1.72, 'Ni': 0.606}
+        #     from aiida_wannier90_workflows.utils.upf import get_number_of_electrons_from_upf
+        #     for i, kind in enumerate(self.inputs.structure.kinds):
+        #         if kind.name in magnetizations:
+        #             zvalence = get_number_of_electrons_from_upf(
+        #                 self.ctx.pseudos[kind.name]
+        #             )
+        #             spin_polarization = magnetizations[kind.name] / zvalence
+        #             pw_parameters['SYSTEM'][f"starting_magnetization({i+1})"
+        #                                     ] = spin_polarization
+
+        excluded_inputs = ['clean_workdir']
+        inputs = {}
+        for input in builder:
+            if input in excluded_inputs:
+                continue
+            inputs[input] = builder[input]
+        # structure is in the pw namespace, I need to pop it
+        inputs['pw'].pop('structure', None)
+
+        return inputs
+
+    @classmethod
+    def get_nscf_inputs(cls, code, kpoints_distance, nbands_factor, **kwargs):
+        
+        inputs = cls.get_scf_inputs(code, kpoints_distance, **kwargs)
+
+        only_valence = kwargs.get('electronic_type', None) == ElectronicType.INSULATOR
+        spin_polarized = kwargs.get('spin_type', SpinType.NONE) == SpinType.COLLINEAR
+        nbnd = get_wannier_number_of_bands(
+            structure=kwargs['structure'],
+            pseudos=inputs['pw']['pseudos'],
+            factor=nbands_factor,
+            only_valence=only_valence,
+            spin_polarized=spin_polarized
+        )
+
+        parameters = inputs['pw']['parameters'].get_dict()
+        parameters['SYSTEM']['nbnd'] = nbnd
+
+        parameters['SYSTEM']['nosym'] = True
+        parameters['SYSTEM']['noinv'] = True
+
+        parameters['CONTROL']['restart_mode'] = 'restart'
+        parameters['CONTROL']['calculation'] = 'nscf'
+        # TODO switch to david?
+        parameters['ELECTRONS']['diagonalization'] = 'cg'
+        parameters['ELECTRONS']['diago_full_acc'] = True
+
+        inputs['pw']['parameters'] = orm.Dict(dict=parameters)
+
+        excluded_inputs = ['clean_workdir', 'structure']
+        for k in excluded_inputs:
+            inputs.pop(k, None)
+        # structure is in the pw namespace, I need to pop it
+        inputs['pw'].pop('structure', None)
+
+        # use explicit list of kpoints, since auto generated kpoints
+        # maybe different between QE & Wannier90. Here we explicitly
+        # generate a list of kpoint to avoid discrepencies between
+        # QE's & Wannier90's automatically generated kpoints.
+        kpoints = get_explicit_kpoints_from_distance(
+            kwargs['structure'], kpoints_distance
+        )
+        inputs.pop('kpoints_distance', None)
+        inputs['kpoints'] = kpoints
+
+        return inputs
+
+    @classmethod
+    def get_projwfc_inputs(cls, code, **kwargs):
+        parameters = orm.Dict(dict={'PROJWFC': {'DeltaE': 0.2}})
+
+        inputs = {
+            'code': code,
+            'parameters': parameters,
+            'metadata': {
+                'options': {
+                    'resources': {
+                        'num_machines': 1
+                    }
+                },
+            }
+        }
+
+        return inputs
+
+    @classmethod
+    def get_pw2wannier90_inputs(
+        cls,
+        code,
+        *,
+        projection_type,
+        exclude_pswfcs=None,
+        write_unk=False,
+        **kwargs
+    ):
+        """Here no need to set scdm_mu, scdm_sigma"""
+        parameters = {
+            'write_mmn': True,
+            'write_amn': True,
+        }
+        # write UNK files (to plot WFs)
+        if write_unk:
+            parameters['write_unk'] = True
+
+        if projection_type == WannierProjectionType.SCDM:
+            parameters['scdm_proj'] = True
+
+            if kwargs['electronic_type'] == ElectronicType.INSULATOR:
+                parameters['scdm_entanglement'] = 'isolated'
+            else:
+                parameters['scdm_entanglement'] = 'erfc'
+                # scdm_mu, scdm_sigma will be set after projwfc run
+        elif projection_type in [
+            WannierProjectionType.ATOMIC_PROJECTORS_QE,
+            WannierProjectionType.ATOMIC_PROJECTORS_OPENMX,
+        ]:
+            parameters['use_pao'] = True
+            parameters['ortho_paos'] = True
+            if exclude_pswfcs is not None:
+                parameters['exclude_paos'] = list(exclude_pswfcs)
+            if projection_type == WannierProjectionType.ATOMIC_PROJECTORS_OPENMX:
+                # TODO
+                parameters['pao_dir'] = ""
+
+        parameters = orm.Dict(dict={'inputpp': parameters})
+        inputs = {
+            'code': code,
+            'parameters': parameters,
+            'metadata': {
+                'options': {
+                    'resources': {
+                        'num_machines': 1
+                    }
+                },
+            }
+        }
+        return inputs
+
+    @classmethod
+    def get_wannier90_inputs(
+        cls,
+        code,
+        *,
+        projection_type,
+        disentanglement_type,
+        frozen_type,
+        kpoints_distance,
+        nbands,
+        pseudos,
+        maximal_localisation=None,
+        exclude_semicores=True,
+        plot_wannier_functions=False,
+        retrieve_hamiltonian=False,
+        retrieve_matrices=False,
+        **kwargs
+    ):
+
+        inputs = {
+            'code': code,
+            'settings': {},
+        }
+        parameters = {
+            'use_ws_distance': True,
+        }
+
+        structure = kwargs['structure']
+
+        # Set num_bands, num_wann, also take care of semicore states
+        parameters['num_bands'] = nbands
+        num_projs = get_number_of_projections(structure, pseudos)
+
+        # TODO check nospin, spin, soc
+        if kwargs['electronic_type'] == ElectronicType.INSULATOR:
+            num_wann = parameters['num_bands']
+        else:
+            num_wann = num_projs
+
+        if exclude_semicores:
+            pseudo_orbitals = get_pseudo_orbitals(pseudos)
+            # TODO now only consider SSSP
+            semicore_list = get_semicore_list(structure, pseudo_orbitals)
+            num_excludes = len(semicore_list)
+            # I assume all the semicore bands are the lowest
+            exclude_pswfcs = range(1, num_excludes + 1)
+            if num_excludes != 0:
+                parameters['exclude_bands'] = exclude_pswfcs
+                num_wann -= num_excludes
+                parameters['num_bands'] -= num_excludes
+
+        if num_wann <= 0:
+            raise ValueError(f"Wrong num_wann {num_wann}")
+        parameters['num_wann'] = num_wann
+
+        # Set projections
+        if projection_type in [
+            WannierProjectionType.SCDM,
+            WannierProjectionType.ATOMIC_PROJECTORS_QE,
+            WannierProjectionType.ATOMIC_PROJECTORS_OPENMX
+        ]:
+            parameters['auto_projections'] = True
+        elif projection_type == WannierProjectionType.ANALYTIC:
+            pseudo_orbitals = get_pseudo_orbitals(pseudos)
+            projections = []
+            # TODO
+            # self.ctx.wannier_projections = orm.List(
+            #     list=get_projections(**args)
+            # )
+            for site in structure.sites:
+                for orb in pseudo_orbitals[site.kind_name]['pswfcs']:
+                    if exclude_semicores:
+                        if orb in pseudo_orbitals[site.kind_name]['semicores']:
+                            continue
+                    projections.append(f'{site.kind_name}:{orb[-1].lower()}')
+            inputs['projections'] = projections
+        elif projection_type == WannierProjectionType.RANDOM:
+            inputs['settings'].update({'random_projections': True})
+        else:
+            raise ValueError(f"Unrecognized projection type {projection_type}")
+
+        if kwargs['spin_type'] in [
+            SpinType.NON_COLLINEAR, SpinType.SPIN_ORBIT
+        ]:
+            parameters['spinors'] = True
+
+        if plot_wannier_functions:
+            parameters['wannier_plot'] = True
+
+        default_num_iter = 4000
+        num_atoms = len(structure.sites)
+        if maximal_localisation:
+            parameters.update({
+                'num_iter': default_num_iter,
+                'conv_tol': 1e-7 * num_atoms,
+                'conv_window': 3,
+            })
+        else:
+            parameters['num_iter'] = 0
+
+        default_dis_num_iter = 4000
+        if disentanglement_type == WannierDisentanglementType.NONE:
+            parameters['dis_num_iter'] = 0
+        elif disentanglement_type == WannierDisentanglementType.SMV:
+            if frozen_type == WannierFrozenType.ENERGY_FIXED:
+                parameters.update({
+                    'dis_num_iter': default_dis_num_iter,
+                    'dis_conv_tol': parameters['conv_tol'],
+                    # Here +2 means fermi_energy + 2 eV, however Fermi energy is calculated when Wannier90WorkChain
+                    # is running, so it will add Fermi energy with this dis_froz_max dynamically.
+                    'dis_froz_max': +2.0,
+                })
+            elif frozen_type == WannierFrozenType.ENERGY_AUTO:
+                # ENERGY_AUTO needs projectability, will be set dynamically when workchain is running
+                parameters.update({
+                    'dis_num_iter': default_dis_num_iter,
+                    'dis_conv_tol': parameters['conv_tol'],
+                })
+            elif frozen_type == WannierFrozenType.PROJECTABILITY:
+                parameters.update({
+                    'dis_num_iter': default_dis_num_iter,
+                    'dis_conv_tol': parameters['conv_tol'],
+                    'dis_proj_min': 0.01,
+                    'dis_proj_max': 0.95,
+                })
+            elif frozen_type == WannierFrozenType.FIXED_PLUS_PROJECTABILITY:
+                parameters.update({
+                    'dis_num_iter': default_dis_num_iter,
+                    'dis_conv_tol': parameters['conv_tol'],
+                    'dis_proj_min': 0.01,
+                    'dis_proj_max': 0.95,
+                    'dis_froz_max': +2.0, # relative to fermi_energy
+                })
+            else:
+                raise ValueError(
+                    f"Not supported frozen type: {frozen_type}"
+                )
+        else:
+            raise ValueError(
+                f"Not supported disentanglement type: {disentanglement_type}"
+            )
+
+        if retrieve_hamiltonian:
+            parameters['write_tb'] = True
+            parameters['write_hr'] = True
+            parameters['write_xyz'] = True
+
+        # if inputs.kpoints is a kmesh, mp_grid will be auto-set,
+        # otherwise we need to set it manually
+        # if self.inputs.use_opengrid:
+        # kpoints will be set dynamically after opengrid calculation,
+        # the self.ctx.nscf_kpoints won't be used.
+        # inputs['kpoints'] = self.ctx.nscf_kpoints
+        # else:
+        kpoints = create_kpoints_from_distance(structure, kpoints_distance)
+        inputs['kpoints'] = get_explicit_kpoints(kpoints)
+        parameters['mp_grid'] = kpoints.get_kpoints_mesh()[0]
+
+        inputs['parameters'] = orm.Dict(dict=parameters)
+        inputs['metadata'] = {'options': {'resources': {'num_machines': 1}}}
+
+        if retrieve_hamiltonian:
+            # tbmodels needs aiida.win file
+            inputs['settings'].update({'additional_retrieve_list': ['*.win']})
+
+        if retrieve_matrices:
+            # also retrieve .chk file in case we need it later
+            seedname = Wannier90Calculation._DEFAULT_INPUT_FILE.split('.')[0]
+            retrieve_list = inputs['settings']['additional_retrieve_list']
+            retrieve_list += [
+                '{}.{}'.format(seedname, ext)
+                for ext in ['chk', 'eig', 'amn', 'mmn', 'spn']
+            ]
+            inputs['settings']['additional_retrieve_list'] = retrieve_list
+        # I need to convert settings into orm.Dict
+        inputs['settings'] = orm.Dict(dict=inputs['settings'])
+
+        return inputs
+
+    @classmethod
+    def get_builder_from_protocol(
+        cls,
+        codes: dict,
+        structure: orm.StructureData,
+        *,
+        protocol: str = None,
+        overrides: dict = None,
+        pseudo_family: str = None,
+        electronic_type: ElectronicType = ElectronicType.METAL,
+        spin_type: SpinType = SpinType.NONE,
+        initial_magnetic_moments: dict = None,
+        projection_type: WannierProjectionType = WannierProjectionType.SCDM,
+        disentanglement_type: WannierDisentanglementType = None,
+        frozen_type: WannierFrozenType = None,
+        maximal_localisation: bool = True,
+        exclude_semicores: bool = True,
+        plot_wannier_functions: bool = False,
+        retrieve_hamiltonian: bool = False,
+        retrieve_matrices: bool = False,
+        print_summary: bool = True,
+        **kwargs
+    ) -> ProcessBuilder:
+        """Return a builder prepopulated with inputs selected according to the chosen protocol.
+        The builder can be submitted directly by `aiida.engine.submit(builder)`.
+
+        :param codes: a dictionary of ``Code`` instance for pw.x, pw2wannier90.x, wannier90.x, (optionally) projwfc.x.
+        :type codes: dict
+        :param structure: the ``StructureData`` instance to use.
+        :type structure: orm.StructureData
+        :param protocol: protocol to use, if not specified, the default will be used.
+        :type protocol: str
+        :param overrides: optional dictionary of inputs to override the defaults of the protocol.
+        :param electronic_type: indicate the electronic character of the system through ``ElectronicType`` instance.
+        :param spin_type: indicate the spin polarization type to use through a ``SpinType`` instance.
+        :param initial_magnetic_moments: optional dictionary that maps the initial magnetic moment of
+        each kind to a desired value for a spin polarized calculation. Note that for ``spin_type == SpinType.COLLINEAR`` an initial
+        guess for the magnetic moment is automatically set in case this argument is not provided.
+        :param projection_type: indicate the Wannier initial projection type of the system through ``WannierProjectionType`` instance.
+        Default to SCDM.
+        :param disentanglement_type: indicate the Wannier disentanglement type of the system through 
+        ``WannierDisentanglementType`` instance. Default to None, which will choose the best type based on `projection_type`:
+            For WannierProjectionType.SCDM, use WannierDisentanglementType.NONE
+            For other WannierProjectionType, use WannierDisentanglementType.SMV
+        :param frozen_type: indicate the Wannier disentanglement type of the system through ``WannierFrozenType`` instance.
+        Default to None, which will choose the best frozen type based on `electronic_type` and `projection_type`.
+            for ElectronicType.INSULATOR, use WannierFrozenType.NONE
+            for metals or insulators with conduction bands:
+                for WannierProjectionType.ANALYTIC/RANDOM, use WannierFrozenType.ENERGY_FIXED
+                for WannierProjectionType.ATOMIC_PROJECTORS_QE/OPENMX, use WannierFrozenType.FIXED_PLUS_PROJECTABILITY
+                for WannierProjectionType.SCDM, use WannierFrozenType.NONE
+        :param maximal_localisation: if true do maximal localisation of Wannier functions.
+        :param exclude_semicores: if True do not Wannierise semicore states.
+        :param plot_wannier_functions: if True plot Wannier functions as xsf files.
+        :param retrieve_hamiltonian: if True retrieve Wannier Hamiltonian.
+        :param retrieve_matrices: if True retrieve amn/mmn/eig/chk/spin files.
+        :param print_summary: if True print a summary of key input parameters
+        :return: a process builder instance with all inputs defined and ready for launch.
+        :rtype: ProcessBuilder
+        """
+        from aiida_quantumespresso.workflows.protocols.utils import get_starting_magnetization
+
+        # check function arguments
+        CODES_REQUIRED_KEYS = ['pw', 'pw2wannier90', 'wannier90']
+        CODES_OPTIONAL_KEYS = ['projwfc', 'opengrid']
+        if not isinstance(codes, dict):
+            msg = f"`codes` must be a dict with the following required keys: `{'`, `'.join(CODES_REQUIRED_KEYS)}` "
+            msg += f"and optional keys: `{'`, `'.join(CODES_OPTIONAL_KEYS)}`"
+            raise ValueError(msg)
+        for k in CODES_REQUIRED_KEYS:
+            if k not in codes.keys():
+                raise ValueError(
+                    f"`codes` does not contain the required key: {k}"
+                )
+        for k, code in codes.items():
+            if isinstance(code, str):
+                code = orm.load_code(code)
+                type_check(code, orm.Code)
+                codes[k] = code
+
+        type_check(electronic_type, ElectronicType)
+        type_check(spin_type, SpinType)
+        type_check(projection_type, WannierProjectionType)
+        if disentanglement_type is not None:
+            type_check(disentanglement_type, WannierDisentanglementType)
+        if frozen_type is not None:
+            type_check(frozen_type, WannierFrozenType)
+
+        if electronic_type not in [
+            ElectronicType.METAL, ElectronicType.INSULATOR
+        ]:
+            raise NotImplementedError(
+                f'electronic type `{electronic_type}` is not supported.'
+            )
+
+        if spin_type not in [SpinType.NONE, SpinType.SPIN_ORBIT]:
+            raise NotImplementedError(
+                f'spin type `{spin_type}` is not supported.'
+            )
+
+        if initial_magnetic_moments is not None and spin_type is not SpinType.COLLINEAR:
+            raise ValueError(
+                f'`initial_magnetic_moments` is specified but spin type `{spin_type}` is incompatible.'
+            )
+
+        # automatically set disentanglement and frozen types
+        if electronic_type == ElectronicType.INSULATOR:
+            if disentanglement_type is None:
+                disentanglement_type = WannierDisentanglementType.NONE
+            elif disentanglement_type == WannierDisentanglementType.NONE:
+                pass
+            else:
+                raise ValueError(
+                    f"For insulators there should be no disentanglement, current disentanglement type: {disentanglement_type}"
+                )
+            if frozen_type is None:
+                frozen_type = WannierFrozenType.NONE
+            elif frozen_type == WannierFrozenType.NONE:
+                pass
+            else:
+                raise ValueError(
+                    f"For insulators there should be no frozen states, current frozen type: {frozen_type}"
+                )
+        elif electronic_type == ElectronicType.METAL:
+            if projection_type == WannierProjectionType.SCDM:
+                if disentanglement_type is None:
+                    # No disentanglement when using SCDM, otherwise the wannier interpolated bands are wrong
+                    disentanglement_type = WannierDisentanglementType.NONE
+                elif disentanglement_type == WannierDisentanglementType.NONE:
+                    pass
+                else:
+                    raise ValueError(
+                        f"For SCDM there should be no disentanglement, current disentanglement type: {disentanglement_type}"
+                    )
+                if frozen_type is None:
+                    frozen_type = WannierFrozenType.NONE
+                elif frozen_type == WannierFrozenType.NONE:
+                    pass
+                else:
+                    raise ValueError(
+                        f"For SCDM there should be no frozen states, current frozen type: {frozen_type}"
+                    )
+            elif projection_type in [
+                    WannierProjectionType.ANALYTIC,
+                    WannierProjectionType.RANDOM
+                ]:
+                if disentanglement_type is None:
+                    disentanglement_type = WannierDisentanglementType.SMV
+                if frozen_type is None:
+                    frozen_type = WannierFrozenType.ENERGY_FIXED
+                if disentanglement_type == WannierDisentanglementType.NONE and frozen_type != WannierFrozenType.NONE:
+                    raise ValueError(
+                        f"Disentanglement is explicitly disabled but frozen type {frozen_type} is required"
+                    )
+            elif projection_type in [
+                    WannierProjectionType.ATOMIC_PROJECTORS_QE,
+                    WannierProjectionType.ATOMIC_PROJECTORS_OPENMX
+                ]:
+                if disentanglement_type is None:
+                    disentanglement_type = WannierDisentanglementType.SMV
+                if frozen_type is None:
+                    frozen_type = WannierFrozenType.FIXED_PLUS_PROJECTABILITY
+                if disentanglement_type == WannierDisentanglementType.NONE and frozen_type != WannierFrozenType.NONE:
+                    raise ValueError(
+                        f"Disentanglement is explicitly disabled but frozen type {frozen_type} is required"
+                    )
+            else:
+                if disentanglement_type is None or frozen_type is None:
+                    raise ValueError(
+                        f"Cannot automatically guess disentanglement and frozen types from projection type: {projection_type}"
+                    )
+        else:
+            raise ValueError(
+                f"Not supported electronic type {electronic_type}"
+            )
+
+        if pseudo_family is None:
+            if spin_type == SpinType.SPIN_ORBIT:
+                # I use pseudo-dojo for SOC
+                pseudo_family = 'PseudoDojo/0.4/PBE/FR/standard/upf'
+            else:
+                # I use aiida-qe default
+                pseudo_family = PwBaseWorkChain.get_protocol_inputs(
+                    protocol=protocol)['pseudo_family']
+
+        # A dictionary containing key info of Wannierisation and will be printed when the function returns.
+        summary = {}
+        summary['Formula'] = structure.get_formula()
+        summary['ElectronicType'] = electronic_type
+        summary['SpinType'] = spin_type
+        summary['PseudoFamily'] = pseudo_family
+        summary['WannierProjectionType'] = projection_type
+        summary['WannierDisentanglementType'] = disentanglement_type
+        summary['WannierFrozenType'] = frozen_type
+
+        inputs = cls.get_protocol_inputs(protocol, overrides)
+        inputs = AttributeDict(inputs)
+
+        kpoints_distance = inputs.pop('kpoints_distance')
+        nbands_factor = inputs.pop('nbands_factor')
+
+        builder = cls.get_builder()
+        builder.structure = structure
+
+        # This will be used in various WorkChain.get_builder_from_protocol(...)
+        filtered_kwargs = dict(
+            structure=structure,
+            protocol=protocol,
+            electronic_type=electronic_type,
+            spin_type=spin_type,
+            initial_magnetic_moments=initial_magnetic_moments
+        )
+
+        # relax
+        if inputs.get('relax', False):
+            builder.relax = cls.get_relax_inputs(
+                codes['pw'], kpoints_distance, **filtered_kwargs
+            )
+
+        # scf
+        if inputs.get('scf', True):
+            builder.scf = cls.get_scf_inputs(
+                codes['pw'], kpoints_distance, **filtered_kwargs
+            )
+
+        # nscf
+        if inputs.get('nscf', True):
+            builder.nscf = cls.get_nscf_inputs(
+                codes['pw'], kpoints_distance, nbands_factor, **filtered_kwargs
+            )
+
+        # projwfc
+        run_projwfc = inputs.get('projwfc', False)
+        if projection_type == WannierProjectionType.SCDM:
+            run_projwfc = True
+        if frozen_type == WannierFrozenType.ENERGY_AUTO:
+            run_projwfc = True
+        if run_projwfc:
+            builder.projwfc = cls.get_projwfc_inputs(
+                codes['projwfc'], **filtered_kwargs
+            )
+
+        # pw2wannier90
+        if inputs.get('pw2wannier90', True):
+            exclude_pswfcs = None
+            if exclude_semicores:
+                pseudo_orbitals = get_pseudo_orbitals(
+                    builder.scf['pw']['pseudos']
+                )
+                exclude_pswfcs = get_semicore_list(structure, pseudo_orbitals)
+            pw2wannier_inputs = cls.get_pw2wannier90_inputs(
+                code=codes['pw2wannier90'],
+                projection_type=projection_type,
+                exclude_pswfcs=exclude_pswfcs,
+                plot_wannier_functions=plot_wannier_functions,
+                **filtered_kwargs
+            )
+            builder.pw2wannier90 = pw2wannier_inputs
+
+        # wannier90
+        if inputs.get('wannier90', True):
+            wannier_inputs = cls.get_wannier90_inputs(
+                code=codes['wannier90'],
+                projection_type=projection_type,
+                disentanglement_type=disentanglement_type,
+                frozen_type=frozen_type,
+                kpoints_distance=kpoints_distance,
+                nbands=builder.nscf['pw']['parameters']['SYSTEM']['nbnd'],
+                pseudos=builder.scf['pw']['pseudos'],
+                maximal_localisation=maximal_localisation,
+                exclude_semicores=exclude_semicores,
+                plot_wannier_functions=plot_wannier_functions,
+                retrieve_hamiltonian=retrieve_hamiltonian,
+                retrieve_matrices=retrieve_matrices,
+                **filtered_kwargs
+            )
+            builder.wannier90 = wannier_inputs
+            builder.relative_dis_windows = orm.Bool(True)
+
+        builder.clean_workdir = orm.Bool(inputs.get('clean_workdir', False))
+
+        wannier_params = builder.wannier90['parameters'].get_dict()
+        summary['num_bands'] = wannier_params['num_bands']
+        summary['num_wann'] = wannier_params['num_wann']
+        if 'exclude_bands' in wannier_params:
+            summary['exclude_bands'] = wannier_params['exclude_bands']
+        summary['mp_grid'] = wannier_params['mp_grid']
+
+        if print_summary:
+            # try to pretty print
+            print("Summary of key input parameters:")
+            for k, v in summary.items():
+                print(f'  {k}: {v}')
+            print('')
+            print('Notes:')
+            print(
+                '  1. The `relative_dis_windows` = True, meaning the `dis_froz/win_min/max` in the wannier90 input parameters will be shifted by Fermi energy from scf output parameters.'
+            )
+            print(
+                '  2. If you set `scdm_mu` and/or `scdm_sigma` in the pw2wannier90 input parameters, the WorkChain will directly use the provided mu and/or sigma. The missing one will be generated from projectability.'
+            )
+
+        return builder
+
+
+def get_fermi_energy(output_parameters: orm.Dict) -> typing.Optional[float]:
+    """get Fermi energy from scf output parameters, unit is eV
+
+    :param output_parameters: scf output parameters
+    :type output_parameters: orm.Dict
+    :return: if found return Fermi energy, else None
+    :rtype: float, None
+    """
+    out_dict = output_parameters.get_dict()
+    fermi = out_dict.get('fermi_energy', None)
+    fermi_units = out_dict.get('fermi_energy_units', None)
+    if fermi_units != 'eV':
+        return None
+    else:
+        return fermi
+
+
+@calcfunction
+def update_scdm_mu_sigma(
+    parameters: orm.Dict, bands: orm.BandsData,
+    projections: orm.ProjectionData, sigma_factor: orm.Float
+) -> orm.Dict:
+    """Use erfc fitting to extract scdm_mu & scdm_sigma, and update the pw2wannier90 input parameters.
+    If scdm_mu/sigma is provided in the input, then it will not be updated, only the missing one(s) will be updated.
+
+    :param parameters: pw2wannier90 input parameters
+    :type parameters: aiida.orm.Dict
+    :param bands: band structure
+    :type bands: aiida.orm.BandsData
+    :param projections: projectability from projwfc.x
+    :type projections: aiida.orm.ProjectionData
+    :param sigma_factor: sigma shift factor
+    :type sigma_factor: aiida.orm.Float
+    """
     parameters_dict = parameters.get_dict()
-    parameters_dict['inputpp'].update(results['scdm_parameters'].get_dict())
+    mu_new, sigma_new = fit_scdm_mu_sigma_aiida(
+        bands, projections, sigma_factor
+    )
+    scdm_parameters = {}
+    if 'scdm_mu' not in parameters_dict['inputpp']:
+        scdm_parameters['scdm_mu'] = mu_new
+    if 'scdm_sigma' not in parameters_dict['inputpp']:
+        scdm_parameters['scdm_sigma'] = sigma_new
+    parameters_dict['inputpp'].update(scdm_parameters)
     return orm.Dict(dict=parameters_dict)
+
+
+def get_pseudo_orbitals(pseudos: dict[str, UpfData]) -> dict:
+    pseudo_data = _load_pseudo_metadata('semicore_sssp_efficiency_1.1.json')
+    pseudo_orbitals = {}
+    for element in pseudos:
+        if pseudo_data[element]['md5'] != pseudos[element].md5:
+            raise ValueError(
+                f"Cannot find pseudopotential {element} with md5 {pseudo_data[element]['md5']}"
+            )
+        pseudo_orbitals[element] = pseudo_data[element]
+    return pseudo_orbitals
+
+
+def get_semicore_list(
+    structure: orm.StructureData, pseudo_orbitals: dict
+) -> list:
+    # pw2wannier90.x/projwfc.x store pseudo-wavefunctions in the same order
+    # as ATOMIC_POSITIONS in pw.x input file; aiida-quantumespresso writes
+    # ATOMIC_POSITIONS in the order of StructureData.sites.
+    # Note some times the PSWFC in UPF files are not ordered, i.e. it's not
+    # always true that the first several PSWFC are semicores states, the
+    # json file which we loaded in the self.ctx.pseudo_pswfcs already
+    # consider this ordering, e.g.
+    # "Ce": {
+    #     "filename": "Ce.GGA-PBE-paw-v1.0.UPF",
+    #     "md5": "c46c5ce91c1b1c29a1e5d4b97f9db5f7",
+    #     "pswfcs": ["5S", "6S", "5P", "6P", "5D", "6D", "4F", "5F"],
+    #     "semicores": ["5S", "5P"]
+    # }
+    from copy import deepcopy
+    label2num = {'S': 1, 'P': 3, 'D': 5, 'F': 7}
+    semicore_list = []  # index should start from 1
+    num_pswfcs = 0
+    for site in structure.sites:
+        # here I use deepcopy to make sure list.remove() does not
+        # interfere with the original list.
+        site_pswfcs = deepcopy(pseudo_orbitals[site.kind_name]['pswfcs'])
+        site_semicores = deepcopy(pseudo_orbitals[site.kind_name]['semicores'])
+        for orb in site_pswfcs:
+            num_orbs = label2num[orb[-1]]
+            if orb in site_semicores:
+                site_semicores.remove(orb)
+                semicore_list.extend(
+                    list(range(num_pswfcs + 1, num_pswfcs + num_orbs + 1))
+                )
+            num_pswfcs += num_orbs
+        if len(site_semicores) != 0:
+            return ValueError(
+                f"Error when processing pseudo {site.kind_name} with orbitals {pseudo_orbitals}"
+            )
+    return semicore_list

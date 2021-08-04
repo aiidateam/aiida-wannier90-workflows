@@ -7,10 +7,11 @@ from ase.io import read as aseread
 from aiida_wannier90_workflows.workflows import Wannier90BandsWorkChain
 
 # Please modify these according to your machine
-str_pw = 'qe-6.5-pw@localhost'
-str_pw2wan = 'qe-6.5-pw2wannier90@localhost'
-str_projwfc = 'qe-6.5-projwfc@localhost'
-str_wan = 'wannier90-3.1.0-wannier@localhost'
+str_pw = 'qe-git-pw@localhost'
+str_pw2wan = 'qe-git-pw2wannier90@localhost'
+str_projwfc = 'qe-git-projwfc@localhost'
+str_wan = 'wannier90-git-wannier90@localhost'
+str_opengrid = 'qe-git-opengrid@localhost'
 
 group_name = 'scdm_workflow'
 
@@ -19,10 +20,10 @@ def check_codes():
     # will raise NotExistent error
     try:
         codes = dict(
-            pw_code=orm.Code.get_from_string(str_pw),
-            pw2wannier90_code=orm.Code.get_from_string(str_pw2wan),
-            projwfc_code=orm.Code.get_from_string(str_projwfc),
-            wannier90_code=orm.Code.get_from_string(str_wan),
+            pw=orm.Code.get_from_string(str_pw),
+            pw2wannier90=orm.Code.get_from_string(str_pw2wan),
+            projwfc=orm.Code.get_from_string(str_projwfc),
+            wannier90=orm.Code.get_from_string(str_wan),
         )
     except NotExistent as e:
         print(e)
@@ -30,6 +31,11 @@ def check_codes():
             'Please modify the code labels in this script according to your machine'
         )
         exit(1)
+    # optional code
+    try:
+        codes['opengrid'] = orm.Code.get_from_string(str_opengrid)
+    except NotExistent:
+        pass
     return codes
 
 
@@ -45,6 +51,7 @@ def parse_arugments():
         '-p',
         "--protocol",
         help="available protocols are 'theos-ht-1.0' and 'testing'",
+        # default="theos-ht-1.0"
         default="testing"
     )
     parser.add_argument(
@@ -81,7 +88,7 @@ def read_structure(xsf_file):
     structure = orm.StructureData(ase=aseread(xsf_file))
     structure.store()
     print(
-        'Structure {} read and stored with pk {}.'.format(
+        'Structure {} read and stored with pk {}'.format(
             structure.get_formula(), structure.pk
         )
     )
@@ -128,9 +135,15 @@ def print_help(workchain, structure):
             workchain.pk, structure.get_formula()
         )
     )
-    print('')
-    print('# To get a detailed state of the workflow, run:')
-    print('verdi process report {}'.format(workchain.pk))
+    print(
+        '\n'
+        '# To get a detailed state of the workflow, run:\n'
+        f'verdi process report {workchain.pk}\n'
+        '\n'
+        'Several tools for visualization, after workchain finished, launch as:\n'
+        f'    ../../aiida_wannier90_workflows/tools/plot_projectabilities.py {workchain.pk}\n'
+        f'    ../../aiida_wannier90_workflows/tools/compare_dft_wannier_bands.py {workchain.pk}\n'
+    )
 
 
 def submit_workchain(
@@ -148,13 +161,6 @@ def submit_workchain(
     else:
         structure = read_structure(xsf_file)
 
-    controls = {
-        'retrieve_hamiltonian': orm.Bool(retrieve_hamiltonian),
-        'only_valence': orm.Bool(only_valence),
-        'do_disentanglement': orm.Bool(do_disentanglement),
-        'do_mlwf': orm.Bool(do_mlwf)
-    }
-
     if only_valence:
         print(
             "Running only_valence/insulating for {}".format(
@@ -169,15 +175,22 @@ def submit_workchain(
         )
 
     wannier90_workchain_parameters = {
-        "code": {
-            'pw': codes['pw_code'],
-            'pw2wannier90': codes['pw2wannier90_code'],
-            'projwfc': codes['projwfc_code'],
-            'wannier90': codes['wannier90_code']
-        },
-        "protocol": orm.Dict(dict={'name': protocol}),
+        "codes": codes,
         "structure": structure,
-        "controls": controls
+        "protocol": orm.Dict(dict={'name': protocol}),
+        'only_valence': orm.Bool(only_valence),
+        #'disentanglement': orm.Bool(do_disentanglement),
+        'disentanglement': orm.Bool(True),
+        'maximal_localisation': orm.Bool(do_mlwf),
+        'retrieve_hamiltonian': orm.Bool(retrieve_hamiltonian),
+        'scdm_projections': orm.Bool(False),
+        #'spdf_projections': orm.Bool(True),
+        'pswfc_projections': orm.Bool(True),
+        'auto_froz_max': orm.Bool(False),
+        # optional
+        'use_opengrid': orm.Bool(False),
+        'compare_dft_bands': orm.Bool(True),
+        'spin_orbit_coupling': orm.Bool(False)
     }
 
     workchain = submit(
@@ -192,6 +205,7 @@ def submit_workchain(
 if __name__ == "__main__":
     args = parse_arugments()
 
+    #args.xsf = orm.load_node(2562)
     submit_workchain(
         args.xsf, args.protocol, args.only_valence, args.do_disentanglement,
         args.do_mlwf, args.retrieve_hamiltonian, group_name
