@@ -2,7 +2,7 @@ default_inputs:
     clean_workdir: False
     relative_dis_windows: True
     kpoints_distance: 0.20
-    nbands_factor: 3.0
+    nbands_factor: 2.0
     relax: False
     scf: True
     nscf: True
@@ -16,6 +16,7 @@ protocols:
     precise:
         description: 'Protocol to perform the computation at high precision at higher computational cost.'
         kpoints_distance: 0.10
+        nbands_factor: 3.0
     fast:
         description: 'Protocol to perform the computation at low precision at minimal computational cost for testing purposes.'
         kpoints_distance: 0.50
