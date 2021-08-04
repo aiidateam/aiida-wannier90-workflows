@@ -126,6 +126,8 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
             namespace_options={
                 'required':
                 False,
+                'populate_defaults':
+                False,
                 'help':
                 'Inputs for the `ProjwfcCalculation` for the Projwfc calculation.'
             }
@@ -1162,6 +1164,7 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
         retrieve_hamiltonian: bool = False,
         retrieve_matrices: bool = False,
         print_summary: bool = True,
+        summary: dict = {},
         **kwargs
     ) -> ProcessBuilder:
         """Return a builder prepopulated with inputs selected according to the chosen protocol.
@@ -1198,6 +1201,11 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
         :param retrieve_hamiltonian: if True retrieve Wannier Hamiltonian.
         :param retrieve_matrices: if True retrieve amn/mmn/eig/chk/spin files.
         :param print_summary: if True print a summary of key input parameters
+        :param summary: A dict containing key input parameters and can be printed out 
+        when the `get_builder_from_protocol` returns, to let user have a quick check of the
+        generated inputs. Since in python dict is pass-by-reference, the input dict can be
+        modified in the method and used by the invoking function. This allows printing the
+        summary only by the last overriding method.
         :return: a process builder instance with all inputs defined and ready for launch.
         :rtype: ProcessBuilder
         """
@@ -1327,7 +1335,6 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
                     protocol=protocol)['pseudo_family']
 
         # A dictionary containing key info of Wannierisation and will be printed when the function returns.
-        summary = {}
         summary['Formula'] = structure.get_formula()
         summary['ElectronicType'] = electronic_type
         summary['SpinType'] = spin_type
@@ -1428,22 +1435,37 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
         if 'exclude_bands' in wannier_params:
             summary['exclude_bands'] = wannier_params['exclude_bands']
         summary['mp_grid'] = wannier_params['mp_grid']
+        
+        notes = summary.get('notes', [])
+        notes.extend([
+            'The `relative_dis_windows` = True, meaning the `dis_froz/win_min/max` in the wannier90 input parameters will be shifted by Fermi energy from scf output parameters.',
+            'If you set `scdm_mu` and/or `scdm_sigma` in the pw2wannier90 input parameters, the WorkChain will directly use the provided mu and/or sigma. The missing one will be generated from projectability.'
+        ])
+        summary['notes'] = notes
 
         if print_summary:
-            # try to pretty print
-            print("Summary of key input parameters:")
-            for k, v in summary.items():
-                print(f'  {k}: {v}')
-            print('')
-            print('Notes:')
-            print(
-                '  1. The `relative_dis_windows` = True, meaning the `dis_froz/win_min/max` in the wannier90 input parameters will be shifted by Fermi energy from scf output parameters.'
-            )
-            print(
-                '  2. If you set `scdm_mu` and/or `scdm_sigma` in the pw2wannier90 input parameters, the WorkChain will directly use the provided mu and/or sigma. The missing one will be generated from projectability.'
-            )
+            cls.print_summary(summary)
 
         return builder
+    
+    @classmethod
+    def print_summary(cls, summary):
+        """Try to pretty print the summary when the `get_builder_from_protocol` returns."""
+        notes = summary.pop('notes', [])
+
+        print("Summary of key input parameters:")
+        for k, v in summary.items():
+            print(f'  {k}: {v}')
+        print('')
+
+        if len(notes) == 0:
+            return
+        
+        print('Notes:')
+        for n in notes:
+            print(f'  * {n}')
+
+        return
 
 
 def get_fermi_energy(output_parameters: orm.Dict) -> typing.Optional[float]:
