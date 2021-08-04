@@ -793,20 +793,22 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
         return inputs
 
     @classmethod
-    def get_scf_inputs(cls, code, kpoints_distance, **kwargs):
+    def get_scf_inputs(cls, code, kpoints_distance, pseudo_family=None, **kwargs):
         overrides = {
             'clean_workdir': False,
             'kpoints_distance': kpoints_distance
         }
+        if pseudo_family is not None:
+            overrides['pseudo_family'] = pseudo_family
 
         # PwBaseWorkChain.get_builder_from_protocol() does not support SOC, I have to
         # pretend that I am doing an non-SOC calculation and add SOC parameters later.
         spin_type = kwargs.get('spin_type', SpinType.NONE)
         filtered_kwargs = deepcopy(kwargs)
         if spin_type == SpinType.SPIN_ORBIT:
-            # I use pseudo-dojo for SOC
-            overrides['pseudo_family'] = 'PseudoDojo/0.4/PBE/FR/standard/upf'
             filtered_kwargs['spin_type'] = SpinType.NONE
+            if pseudo_family is None:
+                raise ValueError("`pseudo_family` should be explicitly set for SOC")
 
         builder = PwBaseWorkChain.get_builder_from_protocol(
             code=code, overrides=overrides, **filtered_kwargs
@@ -847,9 +849,9 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
         return inputs
 
     @classmethod
-    def get_nscf_inputs(cls, code, kpoints_distance, nbands_factor, **kwargs):
+    def get_nscf_inputs(cls, code, kpoints_distance, nbands_factor, pseudo_family=None, **kwargs):
         
-        inputs = cls.get_scf_inputs(code, kpoints_distance, **kwargs)
+        inputs = cls.get_scf_inputs(code, kpoints_distance, pseudo_family, **kwargs)
 
         only_valence = kwargs.get('electronic_type', None) == ElectronicType.INSULATOR
         spin_polarized = kwargs.get('spin_type', SpinType.NONE) == SpinType.COLLINEAR
@@ -1358,6 +1360,7 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
             protocol=protocol,
             electronic_type=electronic_type,
             spin_type=spin_type,
+            pseudo_family=pseudo_family,
             initial_magnetic_moments=initial_magnetic_moments
         )
 
@@ -1515,7 +1518,7 @@ def update_scdm_mu_sigma(
     return orm.Dict(dict=parameters_dict)
 
 
-def get_pseudo_orbitals(pseudos: dict[str, UpfData]) -> dict:
+def get_pseudo_orbitals(pseudos: typing.Mapping[str, UpfData]) -> dict:
     pseudo_data = _load_pseudo_metadata('semicore_sssp_efficiency_1.1.json')
     pseudo_orbitals = {}
     for element in pseudos:
