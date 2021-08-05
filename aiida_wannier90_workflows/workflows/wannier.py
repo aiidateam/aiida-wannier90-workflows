@@ -1383,11 +1383,14 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
             )
 
         # projwfc
-        run_projwfc = inputs.get('projwfc', False)
+        run_projwfc = inputs.get('projwfc', True)
         if projection_type == WannierProjectionType.SCDM:
             run_projwfc = True
-        if frozen_type == WannierFrozenType.ENERGY_AUTO:
-            run_projwfc = True
+        else:
+            if frozen_type == WannierFrozenType.ENERGY_AUTO:
+                run_projwfc = True
+            else:
+                run_projwfc = False
         if run_projwfc:
             builder.projwfc = cls.get_projwfc_inputs(
                 codes['projwfc'], **filtered_kwargs
