@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 from aiida import orm
 from aiida_quantumespresso.workflows.pw.base import PwBaseWorkChain
+from aiida_quantumespresso.workflows.pw.bands import PwBandsWorkChain
 from aiida_wannier90.calculations import Wannier90Calculation
 from aiida_wannier90_workflows.workflows import Wannier90BandsWorkChain, Wannier90WorkChain
 from aiida_wannier90_workflows.utils.scdm import erfc_scdm, fit_scdm_mu_sigma_aiida
@@ -114,6 +115,8 @@ def get_mpl_code_for_workchains(
     def get_output_bands(workchain):
         if workchain.process_class == PwBaseWorkChain:
             return workchain0.outputs.output_band
+        if workchain.process_class == PwBandsWorkChain:
+            return workchain0.outputs.band_structure
         elif workchain.process_class == Wannier90BandsWorkChain:
             return workchain.outputs.band_structure
         elif workchain.process_class == Wannier90Calculation:
