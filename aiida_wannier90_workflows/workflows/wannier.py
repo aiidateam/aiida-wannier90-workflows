@@ -449,7 +449,7 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
                         parameters[k] += fermi_energy
 
         # set dis_froz_max
-        if 'auto_froz_max' in self.inputs:
+        if 'auto_froz_max' in self.inputs and self.inputs.auto_froz_max:
             bands = self.ctx.calc_projwfc.outputs.bands
             projections = self.ctx.calc_projwfc.outputs.projections
             args = {'bands': bands, 'projections': projections}
