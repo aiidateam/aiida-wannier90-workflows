@@ -46,6 +46,17 @@ class Wannier90BaseWorkChain(BaseRestartWorkChain):
         )
         self.ctx.kmeshtol_new = [self._WANNIER90_DEFAULT_KMESH_TOL, 1e-8, 1e-4]
 
+    def report_error_handled(self, calculation, action):
+        """Report an action taken for a calculation that has failed.
+
+        This should be called in a registered error handler if its condition is met and an action was taken.
+
+        :param calculation: the failed calculation node
+        :param action: a string message with the action taken
+        """
+        arguments = [calculation.process_label, calculation.pk, calculation.exit_status, calculation.exit_message]        self.report('{}<{}> failed with exit status {}: {}'.format(*arguments))
+        self.report(f'Action taken: {action}')
+
     @process_handler(exit_codes=Wannier90Calculation.exit_codes.ERROR_BVECTORS)
     def handle_bvectors(self, calculation):
         """Try to fix Wannier90 bvectors errors by tunning `kmesh_tol`.
