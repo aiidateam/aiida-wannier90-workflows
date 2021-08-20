@@ -9,6 +9,7 @@ from aiida_quantumespresso.common.types import SpinType
 
 from .wannier import Wannier90WorkChain
 from .opengrid import Wannier90OpengridWorkChain
+from ..utils.kmesh import get_path_from_kpoints
 
 __all__ = ['Wannier90BandsWorkChain', 'get_builder_for_pwbands']
 
@@ -20,6 +21,11 @@ def validate_inputs(inputs, ctx=None):  # pylint: disable=unused-argument
     # Cannot specify both `kpoint_path` and `kpoint_path_distance`
     if all([key in inputs for key in ['kpoint_path', 'kpoint_path_distance']]):
         return Wannier90BandsWorkChain.exit_codes.ERROR_INVALID_INPUT_KPOINTS.message
+
+    # `kpoint_path` must contain `labels`
+    if 'kpoint_path' in inputs:
+        if inputs['kpoint_path'].labels is None:
+            return Wannier90BandsWorkChain.exit_codes.ERROR_INVALID_INPUT_KPOINT_PATH.message
 
 
 class Wannier90BandsWorkChain(Wannier90OpengridWorkChain):
@@ -127,11 +133,17 @@ class Wannier90BandsWorkChain(Wannier90OpengridWorkChain):
         )
         spec.exit_code(
             403,
+            'ERROR_INVALID_INPUT_KPOINT_PATH',
+            message=
+            '`kpoint_path` must contain `labels`.'
+        )
+        spec.exit_code(
+            410,
             'ERROR_INVALID_INPUT_OPENGRID',
             message='No open_grid.x Code provided.'
         )
         spec.exit_code(
-            404,
+            420,
             'ERROR_INVALID_INPUT_PSEUDOPOTENTIAL',
             message='Invalid pseudopotentials.'
         )
@@ -141,7 +153,7 @@ class Wannier90BandsWorkChain(Wannier90OpengridWorkChain):
         super().setup()
 
         if not self.should_run_seekpath():
-            self.ctx.current_kpoint_path = self.inputs.kpoint_path
+            self.ctx.current_kpoint_path = get_path_from_kpoints(self.inputs.kpoint_path)
 
     def should_run_seekpath(self):
         """Seekpath should only be run if the `kpoint_path` input is not specified."""
@@ -277,12 +289,13 @@ class Wannier90BandsWorkChain(Wannier90OpengridWorkChain):
                     summary=summary, print_summary=False
                 )
                 # set kpoint_path, so the workchain won't run seekpath
-                builder.kpoint_path = orm.Dict(
-                    dict={
-                        'path': result['path'],
-                        'point_coords': result['point_coords']
-                    }
-                )
+                #builder.kpoint_path = orm.Dict(
+                #    dict={
+                #        'path': result['parameters']['path'],
+                #        'point_coords': result['parameters']['point_coords']
+                #    }
+                #)
+                builder.kpoint_path = result['explicit_kpoints']
             else:
                 msg = f'The input structure {structure.get_formula()}<{structure.pk}> is NOT a primitive cell, '
                 msg += f'the generated parameters are for the primitive cell {primitive_structure.get_formula()} found by seekpath.'
