@@ -54,7 +54,8 @@ class Wannier90BaseWorkChain(BaseRestartWorkChain):
         :param calculation: the failed calculation node
         :param action: a string message with the action taken
         """
-        arguments = [calculation.process_label, calculation.pk, calculation.exit_status, calculation.exit_message]        self.report('{}<{}> failed with exit status {}: {}'.format(*arguments))
+        arguments = [calculation.process_label, calculation.pk, calculation.exit_status, calculation.exit_message]
+        self.report('{}<{}> failed with exit status {}: {}'.format(*arguments))
         self.report(f'Action taken: {action}')
 
     @process_handler(exit_codes=Wannier90Calculation.exit_codes.ERROR_BVECTORS)
