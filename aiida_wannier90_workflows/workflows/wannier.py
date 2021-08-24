@@ -29,6 +29,32 @@ from ..utils.upf import get_number_of_projections, get_wannier_number_of_bands, 
 __all__ = ['Wannier90WorkChain']
 
 
+def validate_inputs(inputs, ctx=None):  # pylint: disable=unused-argument
+    """Validate the inputs of the entire input namespace."""
+    # pylint: disable=no-member
+
+    # If no scf inputs, the nscf must have a `parent_folder`
+    nscf_inputs = AttributeDict(inputs['nscf'])
+    if 'scf' not in inputs and 'parent_folder' not in nscf_inputs['pw']:
+        return Wannier90WorkChain.exit_codes.ERROR_INVALID_INPUT_NSCF_PARENT_FOLDER.message
+
+    wannier_inputs = AttributeDict(inputs['wannier90'])
+    wannier_parameters = wannier_inputs.parameters.get_dict()
+
+    # Check bands_plot and kpoint_path
+    bands_plot = wannier_parameters.get('bands_plot', False)
+    if bands_plot:
+        kpoint_path = wannier_inputs.get('kpoint_path', None)
+        if kpoint_path is None:
+            return Wannier90WorkChain.exit_codes.ERROR_INVALID_INPUT_KPOINT_PATH.message
+
+    # Cannot specify both `auto_froz_max` and `scdm_proj`
+    pw2wannier_inputs = AttributeDict(inputs['pw2wannier90'])
+    pw2wannier_parameters = pw2wannier_inputs.parameters.get_dict()
+    if inputs.get('auto_froz_max', False) and pw2wannier_parameters['inputpp'].get('scdm_proj', False):
+        return Wannier90WorkChain.exit_codes.ERROR_INVALID_INPUT_AUTOFROZMAX.message
+
+
 class Wannier90WorkChain(ProtocolMixin, WorkChain):
     """
     Workchain to obtain maximally localised Wannier functions (MLWF)
@@ -102,6 +128,10 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
             namespace='scf',
             exclude=('clean_workdir', 'pw.structure'),
             namespace_options={
+                'required':
+                False,
+                'populate_defaults':
+                False,
                 'help':
                 'Inputs for the `PwBaseWorkChain` for the SCF calculation.'
             }
@@ -150,10 +180,10 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
                 'Inputs for the `Wannier90Calculation` for the Wannier90 calculation.'
             }
         )
+        spec.inputs.validator = validate_inputs
 
         spec.outline(
             cls.setup,
-            cls.validate_parameters,
             if_(cls.should_run_relax)(
                 cls.run_relax,
                 cls.inspect_relax,
@@ -224,6 +254,11 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
             message='auto_froz_max is incompatible with SCDM'
         )
         spec.exit_code(
+            405,
+            'ERROR_INVALID_INPUT_NSCF_PARENT_FOLDER',
+            message='If skipping scf step, nscf inputs must have a `parent_folder`'
+        )
+        spec.exit_code(
             410,
             'ERROR_SUB_PROCESS_FAILED_RELAX',
             message='the PwRelaxWorkChain sub process failed'
@@ -262,24 +297,9 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
     def setup(self):
         """Define the current structure in the context to be the input structure."""
         self.ctx.current_structure = self.inputs.structure
-
-    def validate_parameters(self):
-        """Validate the input parameters."""
-        wannier_inputs = AttributeDict(self.inputs['wannier90'])
-        parameters = wannier_inputs.parameters.get_dict()
-
-        # Check bands_plot and kpoint_path
-        bands_plot = parameters.get('bands_plot', False)
-        if bands_plot:
-            kpoint_path = wannier_inputs.get('kpoint_path', None)
-            if kpoint_path is None:
-                return self.exit_codes.ERROR_INVALID_INPUT_KPOINT_PATH
-
-        # Cannot specify both `auto_froz_max` and `scdm_proj`
-        pw2wannier_inputs = AttributeDict(self.inputs['pw2wannier90'])
-        parameters = pw2wannier_inputs.parameters.get_dict()
-        if self.inputs.auto_froz_max and parameters['inputpp'].get('scdm_proj', False):
-            return self.exit_codes.ERROR_INVALID_INPUT_AUTOFROZMAX
+        
+        if not self.should_run_scf():
+            self.ctx.current_folder = self.inputs['nscf']['pw']['parent_folder']
 
     def should_run_relax(self):
         """If the 'relax' input namespace was specified, we relax the input structure."""

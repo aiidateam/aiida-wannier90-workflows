@@ -9,6 +9,14 @@ from .wannier import Wannier90WorkChain
 
 __all__ = ('Wannier90OpengridWorkChain', )
 
+def validate_inputs(inputs, ctx=None):  # pylint: disable=unused-argument
+    """Validate the inputs of the entire input namespace."""
+    # pylint: disable=no-member
+    from aiida_wannier90_workflows.workflows.wannier import validate_inputs as parent_validator
+    result = parent_validator(inputs)
+    if result is not None:
+        return result
+
 
 class Wannier90OpengridWorkChain(Wannier90WorkChain):
     """This WorkChain uses open_grid.x to unfold the 
@@ -36,10 +44,10 @@ class Wannier90OpengridWorkChain(Wannier90WorkChain):
                 'help': 'Inputs for the `OpengridCalculation`, if not specified the opengrid step is skipped.'
             }
         )
+        spec.inputs.validator = validate_inputs
 
         spec.outline(
             cls.setup,
-            cls.validate_parameters,
             if_(cls.should_run_relax)(
                 cls.run_relax,
                 cls.inspect_relax,
@@ -193,7 +201,7 @@ class Wannier90OpengridWorkChain(Wannier90WorkChain):
                 builder.scf['pw']['parameters'] = orm.Dict(dict=params)
             builder.nscf.clear()
         else:
-            params = builder.scf['pw']['parameters'].get_dict()
+            params = builder.nscf['pw']['parameters'].get_dict()
             has_modified = False
             nosym = params['SYSTEM'].pop('nosym', None)
             noinv = params['SYSTEM'].pop('noinv', None)
@@ -201,6 +209,9 @@ class Wannier90OpengridWorkChain(Wannier90WorkChain):
                 has_modified = True
             if has_modified:
                 builder.nscf['pw']['parameters'] = orm.Dict(dict=params)
+            builder.nscf.pop('kpoints', None)
+            builder.nscf['kpoints_distance'] = builder.scf['kpoints_distance']
+            builder.nscf['kpoints_force_parity'] = builder.scf['kpoints_force_parity']
 
         builder.opengrid = {
             'code': codes['opengrid'],
