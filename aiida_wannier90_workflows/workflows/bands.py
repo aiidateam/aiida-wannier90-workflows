@@ -7,7 +7,6 @@ from aiida.engine.launch import run
 from aiida_quantumespresso.calculations.functions.seekpath_structure_analysis import seekpath_structure_analysis
 from aiida_quantumespresso.common.types import SpinType
 
-from .wannier import Wannier90WorkChain
 from .opengrid import Wannier90OpengridWorkChain
 from ..utils.kmesh import get_path_from_kpoints
 
@@ -17,6 +16,10 @@ __all__ = ['Wannier90BandsWorkChain', 'get_builder_for_pwbands']
 def validate_inputs(inputs, ctx=None):  # pylint: disable=unused-argument
     """Validate the inputs of the entire input namespace."""
     # pylint: disable=no-member
+    from aiida_wannier90_workflows.workflows.opengrid import validate_inputs as parent_validator
+    result = parent_validator(inputs)
+    if result is not None:
+        return result
 
     # Cannot specify both `kpoint_path` and `kpoint_path_distance`
     if all([key in inputs for key in ['kpoint_path', 'kpoint_path_distance']]):
@@ -63,7 +66,6 @@ class Wannier90BandsWorkChain(Wannier90OpengridWorkChain):
 
         spec.outline(
             cls.setup,
-            cls.validate_parameters,
             if_(cls.should_run_seekpath)(
                 cls.run_seekpath,
             ),
