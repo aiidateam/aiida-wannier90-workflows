@@ -22,8 +22,6 @@ __all__ = (# for the content of UPF, i.e. these functions accept str as paramete
            'is_soc_pseudo',
            '_load_pseudo_metadata')
 
-Dict_of_Upf = typing.Dict[str, orm.UpfData]
-
 
 def get_ppheader(upf_content: str) -> str:
     upf_content = upf_content.split('\n')
@@ -171,7 +169,7 @@ def get_number_of_electrons_from_upf(upf: orm.UpfData) -> float:
 
 
 def get_number_of_electrons(
-    structure: orm.StructureData, pseudos: Dict_of_Upf
+    structure: orm.StructureData, pseudos: typing.Mapping[str, orm.UpfData]
 ) -> float:
     """get number of electrons for the structure based on pseudopotentials
 
@@ -190,7 +188,7 @@ def get_number_of_electrons(
         raise ValueError(
             f'The type of structure is {type(structure)}, only aiida.orm.StructureData is accepted'
         )
-    if not isinstance(pseudos, dict):
+    if not isinstance(pseudos, typing.Mapping):
         raise ValueError(
             f'The type of pseudos is {type(pseudos)}, only dict is accepted'
         )
@@ -406,7 +404,7 @@ def get_projections_from_upf(upf: orm.UpfData):
     return wannier_projections
 
 
-def get_projections(structure: orm.StructureData, pseudos: Dict_of_Upf):
+def get_projections(structure: orm.StructureData, pseudos: typing.Mapping[str, orm.UpfData]):
     """get wannier90 projection block for the crystal structure 
     based on pseudopotential files.
 
@@ -425,7 +423,7 @@ def get_projections(structure: orm.StructureData, pseudos: Dict_of_Upf):
         raise ValueError(
             f'The type of structure is {type(structure)}, only aiida.orm.StructureData is accepted'
         )
-    if not isinstance(pseudos, dict):
+    if not isinstance(pseudos, typing.Mapping):
         raise ValueError(
             f'The type of pseudos is {type(pseudos)}, only dict is accepted'
         )
@@ -494,7 +492,7 @@ def get_number_of_projections_from_upf(upf: orm.UpfData) -> int:
 
 
 def get_number_of_projections(
-    structure: orm.StructureData, pseudos: Dict_of_Upf
+    structure: orm.StructureData, pseudos: typing.Mapping[str, orm.UpfData]
 ) -> int:
     """get number of projections for the crystal structure 
     based on pseudopotential files.
@@ -514,7 +512,7 @@ def get_number_of_projections(
         raise ValueError(
             f'The type of structure is {type(structure)}, only aiida.orm.StructureData is accepted'
         )
-    if not isinstance(pseudos, dict):
+    if not isinstance(pseudos, typing.Mapping):
         raise ValueError(
             f'The type of pseudos is {type(pseudos)}, only dict is accepted'
         )
