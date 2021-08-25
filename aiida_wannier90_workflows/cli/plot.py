@@ -37,6 +37,7 @@ def cmd_plot_scdm(workchain, save):
 @click.option(
     '-s',
     '--save',
+    is_flag=True,
     default=False,
     help="save as a python plotting script instead of showing matplotlib window"
 )
