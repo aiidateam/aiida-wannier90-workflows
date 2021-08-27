@@ -25,7 +25,7 @@ def cmd_plot_scdm(workchain, save):
     """Plot SCDM projectability fitting.
     
     WORKCHAIN is the PK of a Wannier90WorkChain."""
-    from ..utils.plots import plot_scdm_fit
+    from ..utils.plot import plot_scdm_fit
 
     wc = orm.load_node(workchain)
     plot_scdm_fit(wc, save)
@@ -51,7 +51,8 @@ def cmd_plot_bands(pw, wannier, save):
     If only WANNIER is passed, I will invoke QueryBuilder to search for corresponding PW bands.
     """
     from pprint import pprint
-    from ..utils.plots import get_mpl_code_for_bands, get_mpl_code_for_workchains
+    from aiida_wannier90_workflows.utils.nodes import find_pwbands
+    from aiida_wannier90_workflows.utils.plot import get_mpl_code_for_bands, get_mpl_code_for_workchains
 
     pk1 = orm.load_node(wannier)
 
@@ -59,21 +60,7 @@ def cmd_plot_bands(pw, wannier, save):
         print('Only accept at most 1 PW bands')
         sys.exit()
     elif len(pw) == 0:
-        from aiida_quantumespresso.workflows.pw.bands import PwBaseWorkChain, PwBandsWorkChain
-        qb = orm.QueryBuilder()
-        if 'primitive_structure' in pk1.outputs:
-            structure = pk1.outputs['primitive_structure']
-        else:
-            structure = pk1.inputs['structure']
-        qb.append(
-            orm.StructureData, tag='structure', filters={'id': structure.pk}
-        )
-        qb.append((PwBaseWorkChain, PwBandsWorkChain),
-                  with_incoming='structure',
-                  tag='pw_wc',
-                  filters={'attributes.exit_status': 0})
-        pw_workchains = [i[0] for i in qb.all()]
-        pw_workchains.sort(key=lambda i: i.pk)
+        pw_workchains = find_pwbands(pk1)
         if len(pw_workchains) == 0:
             print('Did not find a PW band structrue for comparison')
             sys.exit()
