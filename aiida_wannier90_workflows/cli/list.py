@@ -1,61 +1,103 @@
 # -*- coding: utf-8 -*-
 """Commands to list instances of `PseudoPotentialFamily`."""
+from pprint import pprint
 import click
+from aiida import orm
 from aiida.cmdline.params import options as options_core
 from aiida.cmdline.utils import decorators, echo
+from aiida.cmdline.utils.query.calculation import CalculationQueryBuilder
+from aiida.cmdline.commands.cmd_process import process_list
 
 from .root import cmd_root
 
-PROJECTIONS_VALID = ('pk', 'ctime', 'process_state', 'process_status', 'exit_status', 'process_label', 'process_type')
-PROJECTIONS_DEFAULT = ('pk', 'ctime', 'process_state', 'process_status', 'exit_status')
-
-def get_workchains_builder():
-    """Return a query builder that will query for instances of `Wannier90BandsWorkChain` or its subclasses.
-
-    :return: `QueryBuilder` instance
-    """
-    from aiida.orm import QueryBuilder
-    from aiida_wannier90_workflows.workflows import Wannier90BandsWorkChain
-
-    builder = QueryBuilder().append(Wannier90BandsWorkChain)
-
-    return builder
-
-
 @cmd_root.command('list')
-@options_core.PROJECT(type=click.Choice(PROJECTIONS_VALID), default=PROJECTIONS_DEFAULT)
+@options_core.GROUP(help='Only include entries that are a member of this group.')
+@options_core.PROJECT(
+    type=click.Choice(CalculationQueryBuilder.valid_projections), default=CalculationQueryBuilder.default_projections
+)
 @options_core.RAW()
 @decorators.with_dbenv()
-def cmd_list(project, raw):
+@click.pass_context
+def cmd_list(ctx, group, project, raw):
     """List all instances of `Wannier90BandsWorkChain`."""
     from tabulate import tabulate
 
-    if get_workchains_builder().count() == 0:
-        echo.echo_info('no `Wannier90BandsWorkChain` has been submitted yet.')
-        return
+    process_label = 'Wannier90BandsWorkChain'
 
-    rows = []
+    result = ctx.invoke(
+        process_list,
+        all_entries=True,
+        group=group,
+        process_label=process_label,
+        project=project,
+        raw=raw,
+        )
 
-    for wc, in get_workchains_builder().iterall():
+    # Collect statistics of failed workflows
+    # similar to aiida.cmdline.commands.cmd_process.process_list
+    relationships = {}
 
-        row = []
+    if group:
+        relationships['with_node'] = group
 
-        for projection in project:
-            projected = getattr(wc, projection)
-            row.append(projected)
+    builder = CalculationQueryBuilder()
+    filters = builder.get_filters(
+        all_entries=True,
+        process_state=None,
+        process_label=process_label,
+        paused=False,
+        exit_status=None, 
+        failed=False
+        )
+    query_set = builder.get_query_set(
+        relationships=relationships, filters=filters, 
+        order_by={'ctime': 'asc'}, past_days=None, limit=None
+    )
+    state_projections = ('pk', 'state', 
+        'process_state', 'process_status', 'exit_status', 'job_state', 'scheduler_state', 'exception')
+    projected = builder.get_projected(query_set, projections=state_projections)
+    headers = projected.pop(0)
+    # pprint(projected)
 
-        rows.append(row)
+    state_projections_idx = {state_projections[i]:i for i in range(len(state_projections))}
+    excepted_workflows = {}
+    num_normal = 0
+    num_excepted = 0
+    for wc in projected:
+        pk = str(wc[state_projections_idx['pk']])
+        process_state = wc[state_projections_idx['process_state']]
+        exit_status = str(wc[state_projections_idx['exit_status']])
+
+        if process_state == 'Finished':
+            if exit_status == '0':
+                num_normal += 1
+                continue
+            elif exit_status is None:
+                raise Exception(f'{process_label}<{pk}> process_state = Finished but exit_status is None?')
+            
+            if exit_status not in excepted_workflows:
+                excepted_workflows[exit_status] = []
+            excepted_workflows[exit_status].append(pk)
+        else:
+            if process_state is None:
+                raise Exception(f'{process_label}<{pk}> process_state is None?')
+            
+            if process_state not in excepted_workflows:
+                excepted_workflows[process_state] = []
+            excepted_workflows[process_state].append(pk)
+        
+        num_excepted += 1
     
-    # sort by PK
-    pk_idx = project.index('pk')
-    rows.sort(key=lambda i: i[pk_idx])
+    # print(excepted_workflows)
+    data = [[k, str(len(v)), ' '.join(v)] for k, v in excepted_workflows.items()]
+    data.append(['-'*8, None, None])
+    data.append(['Total excepted', num_excepted, None])
+    data.append(['Total normal', num_normal , None])
+    data.append(['Total', num_normal+num_excepted, None])
+    headers = ['exit_status', 'count', 'pk']
+    tabulated = tabulate(data, headers=headers)
 
-    if not rows:
-        echo.echo_info('no `Wannier90BandsWorkChain` found that match the filtering criteria.')
-        return
+    tabulated = f'\n{tabulated}'
+    echo.echo(tabulated)
 
-    if raw:
-        echo.echo(tabulate(rows, disable_numparse=True, tablefmt='plain'))
-    else:
-        headers = [projection.replace('_', ' ').capitalize() for projection in project]
-        echo.echo(tabulate(rows, headers=headers, disable_numparse=True))
+    return result
