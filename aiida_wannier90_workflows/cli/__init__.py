@@ -8,4 +8,5 @@ click_completion.init()
 
 from .root import cmd_root
 from .list import cmd_list
-from .plot import cmd_plot, cmd_plot_bands, cmd_plot_scdm
+from .plot import cmd_plot
+from .node import cmd_node
