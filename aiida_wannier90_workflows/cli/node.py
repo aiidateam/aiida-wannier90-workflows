@@ -46,6 +46,15 @@ def cmd_node_gotocomputer(ctx, node):
         # Sort by PK to get latest calcjob
         calcs.sort(key=lambda x: x.pk)
         last_calcjob = calcs[-1]
+
+        # Get call link label
+        link_triples = node.get_outgoing().link_triples
+        link = list(filter(lambda x: x.node == last_calcjob, link_triples))[0]
+        link_label = link.link_label
+        msg = f"Parent WorkChain: {node.process_label}<{node.pk}>\n"
+        msg += f" Lastest CalcJob: {last_calcjob.process_label}<{last_calcjob.pk}>\n"
+        msg += f" Call link label: {link_label}\n"
+        echo.echo(msg)
     else:
         echo.echo(f'Unsupported type of node: {node}')
 
