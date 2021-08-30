@@ -34,9 +34,10 @@ def validate_inputs(inputs, ctx=None):  # pylint: disable=unused-argument
     # pylint: disable=no-member
 
     # If no scf inputs, the nscf must have a `parent_folder`
-    nscf_inputs = AttributeDict(inputs['nscf'])
-    if 'scf' not in inputs and 'parent_folder' not in nscf_inputs['pw']:
-        return Wannier90WorkChain.exit_codes.ERROR_INVALID_INPUT_NSCF_PARENT_FOLDER.message
+    if 'scf' not in inputs:
+        nscf_inputs = AttributeDict(inputs['nscf'])
+        if 'parent_folder' not in nscf_inputs['pw']:
+            return Wannier90WorkChain.exit_codes.ERROR_INVALID_INPUT_NSCF_PARENT_FOLDER.message
 
     wannier_inputs = AttributeDict(inputs['wannier90'])
     wannier_parameters = wannier_inputs.parameters.get_dict()
