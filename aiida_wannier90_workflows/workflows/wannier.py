@@ -965,13 +965,13 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
             WannierProjectionType.ATOMIC_PROJECTORS_QE,
             WannierProjectionType.ATOMIC_PROJECTORS_OPENMX,
         ]:
-            parameters['use_pao'] = True
-            parameters['ortho_paos'] = True
+            parameters['atom_proj'] = True
             if exclude_pswfcs is not None:
-                parameters['exclude_paos'] = list(exclude_pswfcs)
+                parameters['atom_proj_exclude'] = list(exclude_pswfcs)
             if projection_type == WannierProjectionType.ATOMIC_PROJECTORS_OPENMX:
                 # TODO
-                parameters['pao_dir'] = ""
+                parameters['atom_proj_ext'] = True
+                parameters['atom_proj_dir'] = "./"
 
         parameters = orm.Dict(dict={'inputpp': parameters})
         inputs = {
