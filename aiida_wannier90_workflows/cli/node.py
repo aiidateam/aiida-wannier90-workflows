@@ -58,26 +58,42 @@ def get_last_calcjob(workchain: orm.WorkChainNode) -> orm.CalcJobNode:
 @click.pass_context
 def cmd_node_gotocomputer(ctx, node, link_label):
     """Open a shell in the remote folder of the calcjob, or the last calcjob of the workflow"""
+    import os
+    from aiida.common.exceptions import NotExistent
     from aiida.common.links import LinkType
     from aiida.cmdline.commands.cmd_calcjob import calcjob_gotocomputer
+    from aiida.plugins import DataFactory
+
+    RemoteData = DataFactory("remote")
+    RemoteStashFolderData = DataFactory("remote.stash.folder")
+
+    echo.echo(f'Node<{node.pk}> type {type(node)}')
 
     if isinstance(node, orm.CalcJobNode):
         last_calcjob = node
+        ctx.invoke(calcjob_gotocomputer, calcjob=last_calcjob)
     elif isinstance(node, orm.WorkChainNode):
         if link_label is None:
             last_calcjob = get_last_calcjob(node)
             # Get call link label
             link_triples = node.get_outgoing().link_triples
-            link = list(filter(lambda x: x.node == last_calcjob, link_triples))[0]
+            link = list(
+                filter(lambda x: x.node == last_calcjob, link_triples)
+            )[0]
             link_label = link.link_label
         else:
             try:
-                called = node.get_outgoing(link_label_filter=link_label).one().node
+                called = node.get_outgoing(link_label_filter=link_label
+                                           ).one().node
             except ValueError as exc:
-                link_triples = node.get_outgoing(link_type=(LinkType.CALL_CALC, LinkType.CALL_WORK)).link_triples
+                link_triples = node.get_outgoing(
+                    link_type=(LinkType.CALL_CALC, LinkType.CALL_WORK)
+                ).link_triples
                 valid_lables = [x.link_label for x in link_triples]
                 valid_lables = '\n'.join(valid_lables)
-                echo.echo(f"No nodes found with call link label '{link_label}', valid labels are:")
+                echo.echo(
+                    f"No nodes found with call link label '{link_label}', valid labels are:"
+                )
                 echo.echo(f"{valid_lables}")
                 return
 
@@ -93,11 +109,29 @@ def cmd_node_gotocomputer(ctx, node, link_label):
         msg += f" Lastest CalcJob: {last_calcjob.process_label}<{last_calcjob.pk}>\n"
         msg += f" Call link label: {link_label}\n"
         echo.echo(msg)
-    else:
-        echo.echo(f'Unsupported type of node: {node}')
-        return
 
-    ctx.invoke(calcjob_gotocomputer, calcjob=last_calcjob)
+        ctx.invoke(calcjob_gotocomputer, calcjob=last_calcjob)
+    elif isinstance(node, (RemoteData, RemoteStashFolderData)):
+        computer = node.computer
+        try:
+            transport = computer.get_transport()
+        except NotExistent as exception:
+            echo.echo_critical(repr(exception))
+
+        if isinstance(node, RemoteData):
+            remote_workdir = node.get_remote_path()
+        elif isinstance(node, RemoteStashFolderData):
+            remote_workdir = node.target_basepath
+
+        if not remote_workdir:
+            echo.echo_critical('no remote work directory for this node')
+
+        command = transport.gotocomputer_command(remote_workdir)
+        echo.echo_info('going to the remote work directory...')
+        os.system(command)
+        return
+    else:
+        echo.echo_critical(f'Unsupported type of node: {type(node)} {node}')
 
 
 @cmd_node.command('cleanworkdir')
