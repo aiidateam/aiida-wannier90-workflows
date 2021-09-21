@@ -890,8 +890,9 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
         parameters['SYSTEM']['nosym'] = True
         parameters['SYSTEM']['noinv'] = True
 
-        parameters['CONTROL']['restart_mode'] = 'restart'
         parameters['CONTROL']['calculation'] = 'nscf'
+        parameters['CONTROL']['restart_mode'] = 'from_scratch'
+        parameters['ELECTRONS']['startingpot'] = 'file'
         # TODO switch to david?
         parameters['ELECTRONS']['diagonalization'] = 'cg'
         parameters['ELECTRONS']['diago_full_acc'] = True
