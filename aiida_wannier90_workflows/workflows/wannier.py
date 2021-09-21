@@ -28,34 +28,6 @@ from ..utils.upf import get_number_of_projections, get_wannier_number_of_bands, 
 
 __all__ = ['Wannier90WorkChain']
 
-
-def validate_inputs(inputs, ctx=None):  # pylint: disable=unused-argument
-    """Validate the inputs of the entire input namespace."""
-    # pylint: disable=no-member
-
-    # If no scf inputs, the nscf must have a `parent_folder`
-    if 'scf' not in inputs:
-        nscf_inputs = AttributeDict(inputs['nscf'])
-        if 'parent_folder' not in nscf_inputs['pw']:
-            return Wannier90WorkChain.exit_codes.ERROR_INVALID_INPUT_NSCF_PARENT_FOLDER.message
-
-    wannier_inputs = AttributeDict(inputs['wannier90'])
-    wannier_parameters = wannier_inputs.parameters.get_dict()
-
-    # Check bands_plot and kpoint_path
-    bands_plot = wannier_parameters.get('bands_plot', False)
-    if bands_plot:
-        kpoint_path = wannier_inputs.get('kpoint_path', None)
-        if kpoint_path is None:
-            return Wannier90WorkChain.exit_codes.ERROR_INVALID_INPUT_KPOINT_PATH.message
-
-    # Cannot specify both `auto_froz_max` and `scdm_proj`
-    pw2wannier_inputs = AttributeDict(inputs['pw2wannier90'])
-    pw2wannier_parameters = pw2wannier_inputs.parameters.get_dict()
-    if inputs.get('auto_froz_max', False) and pw2wannier_parameters['inputpp'].get('scdm_proj', False):
-        return Wannier90WorkChain.exit_codes.ERROR_INVALID_INPUT_AUTOFROZMAX.message
-
-
 class Wannier90WorkChain(ProtocolMixin, WorkChain):
     """
     Workchain to obtain maximally localised Wannier functions (MLWF)
@@ -181,7 +153,7 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
                 'Inputs for the `Wannier90Calculation` for the Wannier90 calculation.'
             }
         )
-        spec.inputs.validator = validate_inputs
+        spec.inputs.validator = cls.validate_inputs
 
         spec.outline(
             cls.setup,
@@ -235,31 +207,6 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
         spec.expose_outputs(Wannier90Calculation, namespace='wannier90')
 
         spec.exit_code(
-            401,
-            'ERROR_INVALID_INPUT_KPOINT_PATH',
-            message='bands_plot is True but no kpoint_path provided'
-        )
-        spec.exit_code(
-            402,
-            'ERROR_INVALID_INPUT_RELATIVE_DIS_WINDOWS',
-            message='relative_dis_windows is True but no fermi_energy provided'
-        )
-        spec.exit_code(
-            403,
-            'ERROR_INVALID_INPUT_PSEUDOPOTENTIAL',
-            message='Invalid pseudopotentials.'
-        )
-        spec.exit_code(
-            404,
-            'ERROR_INVALID_INPUT_AUTOFROZMAX',
-            message='auto_froz_max is incompatible with SCDM'
-        )
-        spec.exit_code(
-            405,
-            'ERROR_INVALID_INPUT_NSCF_PARENT_FOLDER',
-            message='If skipping scf step, nscf inputs must have a `parent_folder`'
-        )
-        spec.exit_code(
             410,
             'ERROR_SUB_PROCESS_FAILED_RELAX',
             message='the PwRelaxWorkChain sub process failed'
@@ -273,6 +220,11 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
             430,
             'ERROR_SUB_PROCESS_FAILED_NSCF',
             message='the nscf PwBasexWorkChain sub process failed'
+        )
+        spec.exit_code(
+            431,
+            'ERROR_NO_FERMI_FOR_RELATIVE_DIS_WINDOWS',
+            message='`relative_dis_windows` is True but no Fermi energy parsed from scf/nscf outputs'
         )
         spec.exit_code(
             440,
@@ -294,6 +246,34 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
             'ERROR_SUB_PROCESS_FAILED_WANNIER90',
             message='the Wannier90Calculation sub process failed'
         )
+
+    @staticmethod
+    def validate_inputs(inputs, ctx=None):  # pylint: disable=unused-argument
+        """Validate the inputs of the entire input namespace."""
+        # pylint: disable=no-member
+
+        # If no scf inputs, the nscf must have a `parent_folder`
+        if 'scf' not in inputs:
+            nscf_inputs = AttributeDict(inputs['nscf'])
+            if 'parent_folder' not in nscf_inputs['pw']:
+                return 'If skipping scf step, nscf inputs must have a `parent_folder`'
+
+        wannier_inputs = AttributeDict(inputs['wannier90'])
+        wannier_parameters = wannier_inputs.parameters.get_dict()
+
+        # Check bands_plot and kpoint_path
+        bands_plot = wannier_parameters.get('bands_plot', False)
+        if bands_plot:
+            kpoint_path = wannier_inputs.get('kpoint_path', None)
+            if kpoint_path is None:
+                return 'bands_plot is True but no kpoint_path provided'
+
+        # Cannot specify both `auto_froz_max` and `scdm_proj`
+        pw2wannier_inputs = AttributeDict(inputs['pw2wannier90'])
+        pw2wannier_parameters = pw2wannier_inputs.parameters.get_dict()
+        if inputs.get('auto_froz_max', False) and pw2wannier_parameters['inputpp'].get('scdm_proj', False):
+            return '`auto_froz_max` is incompatible with SCDM'
+
 
     def setup(self):
         """Define the current structure in the context to be the input structure."""
@@ -441,6 +421,7 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
         fermi_energy = None
         if self.inputs['relative_dis_windows']:
             if 'workchain_scf' not in self.ctx:
+                # TODO get fermi from nscf?
                 raise ValueError(
                     "relative_dis_windows = True but did not run scf calculation"
                 )
