@@ -2,7 +2,6 @@ import typing
 
 from aiida import orm
 from aiida.engine import if_, ProcessBuilder
-from aiida.engine.launch import run
 
 from aiida_quantumespresso.calculations.functions.seekpath_structure_analysis import seekpath_structure_analysis
 from aiida_quantumespresso.common.types import SpinType
@@ -11,24 +10,6 @@ from .opengrid import Wannier90OpengridWorkChain
 from ..utils.kmesh import get_path_from_kpoints
 
 __all__ = ['Wannier90BandsWorkChain', 'get_builder_for_pwbands']
-
-
-def validate_inputs(inputs, ctx=None):  # pylint: disable=unused-argument
-    """Validate the inputs of the entire input namespace."""
-    # pylint: disable=no-member
-    from aiida_wannier90_workflows.workflows.opengrid import validate_inputs as parent_validator
-    result = parent_validator(inputs)
-    if result is not None:
-        return result
-
-    # Cannot specify both `kpoint_path` and `kpoint_path_distance`
-    if all([key in inputs for key in ['kpoint_path', 'kpoint_path_distance']]):
-        return Wannier90BandsWorkChain.exit_codes.ERROR_INVALID_INPUT_KPOINTS.message
-
-    # `kpoint_path` must contain `labels`
-    if 'kpoint_path' in inputs:
-        if inputs['kpoint_path'].labels is None:
-            return Wannier90BandsWorkChain.exit_codes.ERROR_INVALID_INPUT_KPOINT_PATH.message
 
 
 class Wannier90BandsWorkChain(Wannier90OpengridWorkChain):
@@ -62,7 +43,7 @@ class Wannier90BandsWorkChain(Wannier90OpengridWorkChain):
             exclude=('wannier90.kpoint_path', ),
             namespace_options={'required': True}
         )
-        spec.inputs.validator = validate_inputs
+        spec.inputs.validator = cls.validate_inputs
 
         spec.outline(
             cls.setup,
@@ -122,33 +103,23 @@ class Wannier90BandsWorkChain(Wannier90OpengridWorkChain):
             help='The Wannier interpolated band structure.'
         )
 
-        spec.exit_code(
-            401,
-            'ERROR_INVALID_INPUT_UNRECOGNIZED_KIND',
-            message='Input `StructureData` contains an unsupported kind.'
-        )
-        spec.exit_code(
-            402,
-            'ERROR_INVALID_INPUT_KPOINTS',
-            message=
-            'Cannot specify both `kpoint_path` and `kpoint_path_distance`.'
-        )
-        spec.exit_code(
-            403,
-            'ERROR_INVALID_INPUT_KPOINT_PATH',
-            message=
-            '`kpoint_path` must contain `labels`.'
-        )
-        spec.exit_code(
-            410,
-            'ERROR_INVALID_INPUT_OPENGRID',
-            message='No open_grid.x Code provided.'
-        )
-        spec.exit_code(
-            420,
-            'ERROR_INVALID_INPUT_PSEUDOPOTENTIAL',
-            message='Invalid pseudopotentials.'
-        )
+    @staticmethod
+    def validate_inputs(inputs, ctx=None):  # pylint: disable=unused-argument
+        """Validate the inputs of the entire input namespace."""
+        # pylint: disable=no-member
+        # Call parent validator
+        result = Wannier90OpengridWorkChain.validate_inputs(inputs)
+        if result is not None:
+            return result
+
+        # Cannot specify both `kpoint_path` and `kpoint_path_distance`
+        if all([key in inputs for key in ['kpoint_path', 'kpoint_path_distance']]):
+            return 'Cannot specify both `kpoint_path` and `kpoint_path_distance`.'
+
+        # `kpoint_path` must contain `labels`
+        if 'kpoint_path' in inputs:
+            if inputs['kpoint_path'].labels is None:
+                return '`kpoint_path` must contain `labels`'
 
     def setup(self):
         """Define the current structure in the context to be the input structure."""

@@ -9,14 +9,6 @@ from .wannier import Wannier90WorkChain
 
 __all__ = ('Wannier90OpengridWorkChain', )
 
-def validate_inputs(inputs, ctx=None):  # pylint: disable=unused-argument
-    """Validate the inputs of the entire input namespace."""
-    # pylint: disable=no-member
-    from aiida_wannier90_workflows.workflows.wannier import validate_inputs as parent_validator
-    result = parent_validator(inputs)
-    if result is not None:
-        return result
-
 
 class Wannier90OpengridWorkChain(Wannier90WorkChain):
     """This WorkChain uses open_grid.x to unfold the 
@@ -44,7 +36,7 @@ class Wannier90OpengridWorkChain(Wannier90WorkChain):
                 'help': 'Inputs for the `OpengridCalculation`, if not specified the opengrid step is skipped.'
             }
         )
-        spec.inputs.validator = validate_inputs
+        spec.inputs.validator = cls.validate_inputs
 
         spec.outline(
             cls.setup,
@@ -90,6 +82,15 @@ class Wannier90OpengridWorkChain(Wannier90WorkChain):
             'ERROR_SUB_PROCESS_FAILED_OPENGRID',
             message='the OpengridCalculation sub process failed'
         )
+
+    @staticmethod
+    def validate_inputs(inputs, ctx=None):  # pylint: disable=unused-argument
+        """Validate the inputs of the entire input namespace."""
+        # pylint: disable=no-member
+        # Call parent validator
+        result = Wannier90WorkChain.validate_inputs(inputs)
+        if result is not None:
+            return result
 
     def should_run_opengrid(self):
         """If the 'opengrid' input namespace was specified, we run opengrid after scf or nscf calculation."""
