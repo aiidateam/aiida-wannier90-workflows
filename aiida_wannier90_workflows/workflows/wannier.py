@@ -707,7 +707,12 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
             num_proj = len(
                 self.ctx.calc_projwfc.outputs['projections'].get_orbitals()
             )
-            number_of_projections = get_number_of_projections(**args)
+            spin_orbit_coupling = self.ctx.calc_wannier90.inputs['parameters'].get(
+                'spinors', False
+            )
+            number_of_projections = get_number_of_projections(
+                **args,
+                spin_orbit_coupling=spin_orbit_coupling)
             if number_of_projections != num_proj:
                 raise ValueError(
                     f'number of projections {number_of_projections} != projwfc.x output {num_proj}'
@@ -857,12 +862,15 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
 
         only_valence = kwargs.get('electronic_type', None) == ElectronicType.INSULATOR
         spin_polarized = kwargs.get('spin_type', SpinType.NONE) == SpinType.COLLINEAR
+        spin_orbit_coupling = kwargs.get('spin_type', SpinType.NONE) == SpinType.SPIN_ORBIT
+
         nbnd = get_wannier_number_of_bands(
             structure=kwargs['structure'],
             pseudos=inputs['pw']['pseudos'],
             factor=nbands_factor,
             only_valence=only_valence,
-            spin_polarized=spin_polarized
+            spin_polarized=spin_polarized,
+            spin_orbit_coupling=spin_orbit_coupling
         )
 
         parameters = inputs['pw']['parameters'].get_dict()
@@ -1000,7 +1008,9 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
 
         # Set num_bands, num_wann, also take care of semicore states
         parameters['num_bands'] = nbands
-        num_projs = get_number_of_projections(structure, pseudos)
+        spin_orbit_coupling = kwargs['spin_type'] == SpinType.SPIN_ORBIT
+        num_projs = get_number_of_projections(structure, pseudos,
+            spin_orbit_coupling=spin_orbit_coupling)
 
         # TODO check nospin, spin, soc
         if kwargs['electronic_type'] == ElectronicType.INSULATOR:

@@ -492,7 +492,8 @@ def get_number_of_projections_from_upf(upf: orm.UpfData) -> int:
 
 
 def get_number_of_projections(
-    structure: orm.StructureData, pseudos: typing.Mapping[str, orm.UpfData]
+    structure: orm.StructureData, pseudos: typing.Mapping[str, orm.UpfData],
+    spin_orbit_coupling: typing.Optional[bool] = None
 ) -> int:
     """get number of projections for the crystal structure 
     based on pseudopotential files.
@@ -523,19 +524,36 @@ def get_number_of_projections(
             raise ValueError(
                 f'The type of <{k}, {v}> in pseudos is <{type(k)}, {type(v)}>, only <str, aiida.orm.UpfData> type is accepted'
             )
-
-    tot_nprojs = 0
+    
     # e.g. composition = {'Ga': 1, 'As': 1}
     composition = structure.get_composition()
+    
+    if spin_orbit_coupling is None:
+        # I use the first pseudo to detect SOCs
+        kind = list(composition.keys())[0]
+        spin_orbit_coupling = is_soc_pseudo(get_upf_content(pseudos[kind]))
+
+    tot_nprojs = 0
     for kind in composition:
         upf = pseudos[kind]
         nprojs = get_number_of_projections_from_upf(upf)
+        soc = is_soc_pseudo(get_upf_content(pseudos[kind]))
+        if spin_orbit_coupling and not soc:
+            # For SOC calculation with non-SOC pseudo, QE will generate
+            # 2 PSWFCs from each one PSWFC in the pseudo
+            nprojs *= 2
+        elif not spin_orbit_coupling and soc:
+            # For non-SOC calculation with SOC pseudo, QE will average
+            # the 2 PSWFCs into one
+            nprojs //= 2
         tot_nprojs += nprojs * composition[kind]
+        
     return tot_nprojs
 
 
 def get_wannier_number_of_bands(
-    structure, pseudos, factor=1.2, only_valence=False, spin_polarized=False
+    structure, pseudos, factor=1.2, only_valence=False, spin_polarized=False,
+    spin_orbit_coupling: bool=False
 ):
     """estimate number of bands for a Wannier90 calculation.
 
@@ -547,11 +565,21 @@ def get_wannier_number_of_bands(
     :type only_valence: bool
     :param spin_polarized: magnetic calculation?
     :type spin_polarized: bool
+    :param spin_orbit_coupling: spin orbit coupling calculation?
+    :type spin_orbit_coupling: bool
     :return: number of bands for Wannier90 SCDM
     :rtype: int
     """
+    if spin_orbit_coupling:
+        composition = structure.get_composition()
+        for kind in composition:
+            upf = pseudos[kind]
+            upf_content = get_upf_content(upf)
+            if not is_soc_pseudo(upf_content):
+                raise ValueError("Should use SOC pseudo for SOC calculation")
+
     num_electrons = get_number_of_electrons(structure, pseudos)
-    num_projections = get_number_of_projections(structure, pseudos)
+    num_projections = get_number_of_projections(structure, pseudos, spin_orbit_coupling)
     nspin = 2 if spin_polarized else 1
     # TODO check nospin, spin, soc
     if only_valence:
