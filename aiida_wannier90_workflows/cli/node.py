@@ -66,6 +66,7 @@ def cmd_node_gotocomputer(ctx, node, link_label):
 
     RemoteData = DataFactory("remote")
     RemoteStashFolderData = DataFactory("remote.stash.folder")
+    FolderData = DataFactory("folder")
 
     echo.echo(f'Node<{node.pk}> type {type(node)}')
 
@@ -128,6 +129,14 @@ def cmd_node_gotocomputer(ctx, node, link_label):
 
         command = transport.gotocomputer_command(remote_workdir)
         echo.echo_info('going to the remote work directory...')
+        os.system(command)
+        return
+    elif isinstance(node, FolderData):
+        # Seems FolderData.computer is None
+        # I assume the repository is on localhost
+        workdir = node._repository._get_base_folder().abspath
+        command = f'cd {workdir}; bash -i'
+        echo.echo_info('going to the work directory...')
         os.system(command)
         return
     else:
