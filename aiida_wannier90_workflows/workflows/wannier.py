@@ -707,7 +707,7 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
             num_proj = len(
                 self.ctx.calc_projwfc.outputs['projections'].get_orbitals()
             )
-            spin_orbit_coupling = self.ctx.calc_wannier90.inputs['parameters'].get(
+            spin_orbit_coupling = self.ctx.calc_wannier90.inputs['parameters'].get_dict().get(
                 'spinors', False
             )
             number_of_projections = get_number_of_projections(
