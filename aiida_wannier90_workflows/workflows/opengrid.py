@@ -104,9 +104,6 @@ class Wannier90OpengridWorkChain(Wannier90WorkChain):
         inputs.metadata.call_link_label = 'opengrid'
 
         inputs.parent_folder = self.ctx.current_folder
-        # ProjwfcCalculation requires the previous Calculation having
-        # an input StructureData to parse atomic orbitals.
-        inputs.structure = self.ctx.current_structure
 
         inputs = prepare_process_inputs(OpengridCalculation, inputs)
         running = self.submit(OpengridCalculation, **inputs)
@@ -216,12 +213,6 @@ class Wannier90OpengridWorkChain(Wannier90WorkChain):
 
         builder.opengrid = {
             'code': codes['opengrid'],
-            'parameters': orm.Dict(dict={
-                'inputpp': {
-                    # open_grid.x should not append '_open' to the prefix of QE
-                    'overwrite_prefix': True
-                }
-            }),
             'metadata': {
                 'options': {
                     'resources': {
