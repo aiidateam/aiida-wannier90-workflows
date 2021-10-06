@@ -882,8 +882,10 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
         parameters['CONTROL']['calculation'] = 'nscf'
         parameters['CONTROL']['restart_mode'] = 'from_scratch'
         parameters['ELECTRONS']['startingpot'] = 'file'
-        # TODO switch to david?
-        parameters['ELECTRONS']['diagonalization'] = 'cg'
+        # I switched to the QE default `david` diagonalization, since now
+        # aiida-qe has an error handler to switch to `cg` if `david` fails.
+        # See https://github.com/aiidateam/aiida-quantumespresso/pull/744
+        # parameters['ELECTRONS']['diagonalization'] = 'david'
         parameters['ELECTRONS']['diago_full_acc'] = True
 
         inputs['pw']['parameters'] = orm.Dict(dict=parameters)
@@ -936,8 +938,9 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
     ):
         """Here no need to set scdm_mu, scdm_sigma"""
         parameters = {
-            'write_mmn': True,
-            'write_amn': True,
+            # Default are True
+            # 'write_mmn': True,
+            # 'write_amn': True,
         }
         # write UNK files (to plot WFs)
         if write_unk:
@@ -1001,7 +1004,8 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
             'settings': {},
         }
         parameters = {
-            'use_ws_distance': True,
+            # default is True
+            # 'use_ws_distance': True,
         }
 
         structure = kwargs['structure']
@@ -1354,9 +1358,9 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
         summary['ElectronicType'] = electronic_type
         summary['SpinType'] = spin_type
         summary['PseudoFamily'] = pseudo_family
-        summary['WannierProjectionType'] = projection_type
-        summary['WannierDisentanglementType'] = disentanglement_type
-        summary['WannierFrozenType'] = frozen_type
+        summary['WannierProjectionType'] = projection_type.name
+        summary['WannierDisentanglementType'] = disentanglement_type.name
+        summary['WannierFrozenType'] = frozen_type.name
 
         inputs = cls.get_protocol_inputs(protocol, overrides)
         inputs = AttributeDict(inputs)

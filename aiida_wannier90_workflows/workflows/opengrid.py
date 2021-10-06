@@ -185,28 +185,20 @@ class Wannier90OpengridWorkChain(Wannier90WorkChain):
                 'nbnd', None
             )
             params = builder.scf['pw']['parameters'].get_dict()
-            has_modified = False
             if nbnd is not None:
                 nbnd_scf = params['SYSTEM'].get('nbnd', None)
                 if nbnd_scf != nbnd:
                     params['SYSTEM']['nbnd'] = nbnd
-                    has_modified = True
-            nosym = params['SYSTEM'].pop('nosym', None)
-            noinv = params['SYSTEM'].pop('noinv', None)
-            if nosym is not None or noinv is not None:
-                has_modified = True
-            if has_modified:
-                builder.scf['pw']['parameters'] = orm.Dict(dict=params)
+            params['SYSTEM'].pop('nosym', None)
+            params['SYSTEM'].pop('noinv', None)
+            params['ELECTRONS']['diago_full_acc'] = True
+            builder.scf['pw']['parameters'] = orm.Dict(dict=params)
             builder.nscf.clear()
         else:
             params = builder.nscf['pw']['parameters'].get_dict()
-            has_modified = False
-            nosym = params['SYSTEM'].pop('nosym', None)
-            noinv = params['SYSTEM'].pop('noinv', None)
-            if nosym is not None or noinv is not None:
-                has_modified = True
-            if has_modified:
-                builder.nscf['pw']['parameters'] = orm.Dict(dict=params)
+            params['SYSTEM'].pop('nosym', None)
+            params['SYSTEM'].pop('noinv', None)
+            builder.nscf['pw']['parameters'] = orm.Dict(dict=params)
             builder.nscf.pop('kpoints', None)
             builder.nscf['kpoints_distance'] = builder.scf['kpoints_distance']
             builder.nscf['kpoints_force_parity'] = builder.scf['kpoints_force_parity']

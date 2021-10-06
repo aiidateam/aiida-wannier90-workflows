@@ -366,7 +366,7 @@ def get_builder_for_pwbands(
     parameters.setdefault('SYSTEM', {})
     parameters.setdefault('ELECTRONS', {})
     parameters['CONTROL']['calculation'] = 'bands'
-    parameters['ELECTRONS'].setdefault('diagonalization', 'cg')
+    # parameters['ELECTRONS'].setdefault('diagonalization', 'cg')
     parameters['ELECTRONS'].setdefault('diago_full_acc', True)
 
     if 'nscf' in wannier_workchain.inputs:
