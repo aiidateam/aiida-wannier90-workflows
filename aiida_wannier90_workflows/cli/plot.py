@@ -12,6 +12,8 @@ from .root import cmd_root
 @cmd_root.group('plot')
 def cmd_plot():
     """A set of plotting utilities"""
+
+
 @cmd_plot.command('scdm')
 @click.argument('workchain', type=int, nargs=1)
 @click.option(
@@ -42,7 +44,8 @@ def cmd_plot_scdm(workchain, save):
     help="save as a python plotting script instead of showing matplotlib window"
 )
 @decorators.with_dbenv()
-def cmd_plot_bands(pw, wannier, save):
+@click.pass_context
+def cmd_plot_bands(ctx, pw, wannier, save):
     """Compare DFT and Wannier band structures.
 
     PW is the PK of a PwBaseWorkChain, or a BandsData,
@@ -60,6 +63,13 @@ def cmd_plot_bands(pw, wannier, save):
         print('Only accept at most 1 PW bands')
         sys.exit()
     elif len(pw) == 0:
+        if isinstance(pk1, orm.BandsData):
+            print(
+                f'Input is a single BandsData, I will invoke `verdi data bands show {pk1.pk}`'
+            )
+            from aiida.cmdline.commands.cmd_data.cmd_bands import bands_show
+            return ctx.invoke(bands_show, data=[pk1])
+
         pw_workchains = find_pwbands(pk1)
         if len(pw_workchains) == 0:
             print('Did not find a PW band structrue for comparison')
