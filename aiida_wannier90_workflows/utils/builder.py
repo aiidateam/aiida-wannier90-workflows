@@ -39,6 +39,8 @@ def serializer(node: orm.Node) -> typing.Any:
         res = f'{node.get_formula()}<{node.pk}>'
     elif isinstance(node, UpfData):
         res = f'{node.filename}<{node.pk}>'
+    elif isinstance(node, (orm.WorkflowNode, orm.CalculationNode)):
+        res = f'{node.process_label}<{node.pk}>'
     else:
         res = node
 
@@ -48,7 +50,17 @@ def serializer(node: orm.Node) -> typing.Any:
 def print_builder(builder: ProcessBuilderNamespace):
     from pprint import pprint
 
-    pprint(serializer(builder))
+    # To avoid empty dict, e.g.
+    #  'relax': {'base': {'metadata': {},
+    #                     'pw': {'metadata': {'options': {'stash': {}}},
+    #                            'pseudos': {}}},
+    #            'base_final_scf': {'metadata': {},
+    #                               'pw': {'metadata': {'options': {'stash': {}}},
+    #                                      'pseudos': {}}},
+    #            'metadata': {}},
+    pruned_builder = builder._inputs(prune=True)
+
+    pprint(serializer(pruned_builder))
 
 
 def submit_builder(builder: ProcessBuilder,
