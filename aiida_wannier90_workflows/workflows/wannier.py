@@ -469,12 +469,14 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
                 bands = self.ctx.workchain_nscf.outputs.output_band
             else:
                 bands = self.ctx.workchain_scf.outputs.output_band
-            # Index of parameters['exclude_bands'] starts from 1,
-            # I need to change it to 0-based
-            exclude_bands = [i - 1 for i in parameters['exclude_bands']]
-            bands = remove_exclude_bands(
-                bands=bands.get_bands(), exclude_bands=exclude_bands
-            )
+            bands = bands.get_bands()
+            if parameters.get('exclude_bands', None):
+                # Index of parameters['exclude_bands'] starts from 1,
+                # I need to change it to 0-based
+                exclude_bands = [i - 1 for i in parameters['exclude_bands']]
+                bands = remove_exclude_bands(
+                    bands=bands.get_bands(), exclude_bands=exclude_bands
+                )
             highest_band = bands[:, parameters['num_wann'] - 1]
             # There must be more than 1 available bands for disentanglement,
             # this sets the upper limit of dis_froz_max.
