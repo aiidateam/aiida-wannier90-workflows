@@ -280,7 +280,8 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
         self.ctx.current_structure = self.inputs.structure
 
         if not self.should_run_scf():
-            self.ctx.current_folder = self.inputs['nscf']['pw']['parent_folder']
+            self.ctx.current_folder = self.inputs['nscf']['pw']['parent_folder'
+                                                                ]
 
     def should_run_relax(self):
         """If the 'relax' input namespace was specified, we relax the input structure."""
@@ -475,7 +476,7 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
                 # I need to change it to 0-based
                 exclude_bands = [i - 1 for i in parameters['exclude_bands']]
                 bands = remove_exclude_bands(
-                    bands=bands.get_bands(), exclude_bands=exclude_bands
+                    bands=bands, exclude_bands=exclude_bands
                 )
             highest_band = bands[:, parameters['num_wann'] - 1]
             # There must be more than 1 available bands for disentanglement,
