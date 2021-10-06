@@ -20,8 +20,8 @@ if __name__ == '__main__':
         'pw': 'qe-git-pw@localhost',
         'projwfc': 'qe-git-projwfc@localhost',
         'pw2wannier90': 'qe-git-pw2wannier90@localhost',
-        'wannier90': 'wannier90-git@localhost',
-        'opengrid': 'qe-git-opengrid@localhost'
+        'wannier90': 'wannier90-git-wannier90@localhost',
+        #'opengrid': 'qe-git-opengrid@localhost'
     }
 
     # load a structure or read from file

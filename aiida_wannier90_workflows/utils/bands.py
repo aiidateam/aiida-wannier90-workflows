@@ -114,3 +114,28 @@ def bands_distance(
         dist[i, :] = [mu, res[0], res[1], res[2]]
 
     return dist
+
+
+def remove_exclude_bands(bands: np.array, exclude_bands: list) -> np.array:
+    """Remove bands according the index specified by `exclude_bands`.
+
+    :param bands: num_kpoints x num_bands
+    :type bands: np.array
+    :param exclude_bands: the index of the to-be-excluded bands, 0-based indexing
+    :type exclude_bands: list
+    :return: the bands with exclude_bands removed
+    :rtype: np.array
+    """
+    num_kpoints, num_bands = bands.shape
+
+    if not set(exclude_bands).issubset(set(range(num_bands))):
+        raise ValueError(
+            f"exclude_bands {exclude_bands} not in the range of available bands {range(num_bands)}"
+        )
+
+    # Remove repetition and sort
+    exclude_bands = sorted(set(exclude_bands))
+
+    sub_bands = np.delete(bands, exclude_bands, axis=1)
+
+    return sub_bands
