@@ -28,6 +28,7 @@ from ..utils.upf import get_number_of_projections, get_wannier_number_of_bands, 
 
 __all__ = ['Wannier90WorkChain']
 
+
 class Wannier90WorkChain(ProtocolMixin, WorkChain):
     """
     Workchain to obtain maximally localised Wannier functions (MLWF)
@@ -65,8 +66,7 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
             valid_type=orm.Float,
             required=False,
             default=lambda: orm.Float(3.0),
-            help=
-            'For SCDM projection.'
+            help='For SCDM projection.'
         )
         spec.input(
             'auto_froz_max',
@@ -101,10 +101,8 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
             namespace='scf',
             exclude=('clean_workdir', 'pw.structure'),
             namespace_options={
-                'required':
-                False,
-                'populate_defaults':
-                False,
+                'required': False,
+                'populate_defaults': False,
                 'help':
                 'Inputs for the `PwBaseWorkChain` for the SCF calculation.'
             }
@@ -224,7 +222,8 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
         spec.exit_code(
             431,
             'ERROR_NO_FERMI_FOR_RELATIVE_DIS_WINDOWS',
-            message='`relative_dis_windows` is True but no Fermi energy parsed from scf/nscf outputs'
+            message=
+            '`relative_dis_windows` is True but no Fermi energy parsed from scf/nscf outputs'
         )
         spec.exit_code(
             440,
@@ -271,14 +270,15 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
         # Cannot specify both `auto_froz_max` and `scdm_proj`
         pw2wannier_inputs = AttributeDict(inputs['pw2wannier90'])
         pw2wannier_parameters = pw2wannier_inputs.parameters.get_dict()
-        if inputs.get('auto_froz_max', False) and pw2wannier_parameters['inputpp'].get('scdm_proj', False):
+        if inputs.get(
+            'auto_froz_max', False
+        ) and pw2wannier_parameters['inputpp'].get('scdm_proj', False):
             return '`auto_froz_max` is incompatible with SCDM'
-
 
     def setup(self):
         """Define the current structure in the context to be the input structure."""
         self.ctx.current_structure = self.inputs.structure
-        
+
         if not self.should_run_scf():
             self.ctx.current_folder = self.inputs['nscf']['pw']['parent_folder']
 
@@ -411,6 +411,8 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
         the `get_builder_from_protocol`. Here this method will be called by the running workchain, so it can dynamically
         add/modify inputs based on outputs of previous calculations, e.g. adding Fermi energy, etc. 
         Also, this method can be overridden in derived classes."""
+        from aiida_wannier90_workflows.utils.bands import remove_exclude_bands
+
         inputs = AttributeDict(
             self.exposed_inputs(Wannier90Calculation, namespace='wannier90')
         )
@@ -467,13 +469,22 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
                 bands = self.ctx.workchain_nscf.outputs.output_band
             else:
                 bands = self.ctx.workchain_scf.outputs.output_band
-            # TODO check provenance graph
-            max_energy = np.min(
-                bands.get_bands()[:, parameters['num_wann'] - 1]
+            # Index of parameters['exclude_bands'] starts from 1,
+            # I need to change it to 0-based
+            exclude_bands = [i - 1 for i in parameters['exclude_bands']]
+            bands = remove_exclude_bands(
+                bands=bands.get_bands(), exclude_bands=exclude_bands
             )
-            dis_froz_max = min(max_energy, parameters['dis_froz_max'])
-            if dis_froz_max != parameters['dis_froz_max']:
-                parameters['dis_froz_max'] = dis_froz_max
+            highest_band = bands[:, parameters['num_wann'] - 1]
+            # There must be more than 1 available bands for disentanglement,
+            # this sets the upper limit of dis_froz_max.
+            max_froz_energy = np.min(highest_band)
+            # I subtract a small value for safety
+            max_froz_energy -= 1e-4
+            # dis_froz_max should be smaller than this max_froz_energy
+            # to allow doing disentanglement
+            dis_froz_max = min(max_froz_energy, parameters['dis_froz_max'])
+            parameters['dis_froz_max'] = dis_froz_max
 
         inputs.parameters = orm.Dict(dict=parameters)
 
@@ -554,14 +565,10 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
                 )
             try:
                 args = {
-                    'parameters':
-                    inputs.parameters,
-                    'bands':
-                    self.ctx.calc_projwfc.outputs.bands,
-                    'projections':
-                    self.ctx.calc_projwfc.outputs.projections,
-                    'sigma_factor':
-                    self.inputs.scdm_sigma_factor,
+                    'parameters': inputs.parameters,
+                    'bands': self.ctx.calc_projwfc.outputs.bands,
+                    'projections': self.ctx.calc_projwfc.outputs.projections,
+                    'sigma_factor': self.inputs.scdm_sigma_factor,
                     'metadata': {
                         'call_link_label': 'update_scdm_mu_sigma'
                     }
@@ -707,19 +714,18 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
             num_proj = len(
                 self.ctx.calc_projwfc.outputs['projections'].get_orbitals()
             )
-            spin_orbit_coupling = self.ctx.calc_wannier90.inputs['parameters'].get_dict().get(
-                'spinors', False
-            )
+            spin_orbit_coupling = self.ctx.calc_wannier90.inputs[
+                'parameters'].get_dict().get('spinors', False)
             number_of_projections = get_number_of_projections(
-                **args,
-                spin_orbit_coupling=spin_orbit_coupling)
+                **args, spin_orbit_coupling=spin_orbit_coupling
+            )
             if number_of_projections != num_proj:
                 raise ValueError(
                     f'number of projections {number_of_projections} != projwfc.x output {num_proj}'
                 )
         # 2. the number of electrons is consistent with QE output
-        num_elec = self.ctx.workchain_scf.outputs['output_parameters'
-                                                  ]['number_of_electrons']
+        num_elec = self.ctx.workchain_scf.outputs['output_parameters'][
+            'number_of_electrons']
         number_of_electrons = get_number_of_electrons(**args)
         if number_of_electrons != num_elec:
             raise ValueError(
@@ -759,7 +765,9 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
         return files(wannier_protocols) / 'wannier.yaml'
 
     @classmethod
-    def get_relax_inputs(cls, code, kpoints_distance, pseudo_family=None, **kwargs):
+    def get_relax_inputs(
+        cls, code, kpoints_distance, pseudo_family=None, **kwargs
+    ):
         overrides = {
             'clean_workdir': False,
             'base': {
@@ -776,7 +784,9 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
         if spin_type == SpinType.SPIN_ORBIT:
             filtered_kwargs['spin_type'] = SpinType.NONE
             if pseudo_family is None:
-                raise ValueError("`pseudo_family` should be explicitly set for SOC")
+                raise ValueError(
+                    "`pseudo_family` should be explicitly set for SOC"
+                )
 
         builder = PwRelaxWorkChain.get_builder_from_protocol(
             code=code, overrides=overrides, **filtered_kwargs
@@ -800,7 +810,9 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
         return inputs
 
     @classmethod
-    def get_scf_inputs(cls, code, kpoints_distance, pseudo_family=None, **kwargs):
+    def get_scf_inputs(
+        cls, code, kpoints_distance, pseudo_family=None, **kwargs
+    ):
         overrides = {
             'clean_workdir': False,
             'kpoints_distance': kpoints_distance
@@ -815,7 +827,9 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
         if spin_type == SpinType.SPIN_ORBIT:
             filtered_kwargs['spin_type'] = SpinType.NONE
             if pseudo_family is None:
-                raise ValueError("`pseudo_family` should be explicitly set for SOC")
+                raise ValueError(
+                    "`pseudo_family` should be explicitly set for SOC"
+                )
 
         builder = PwBaseWorkChain.get_builder_from_protocol(
             code=code, overrides=overrides, **filtered_kwargs
@@ -856,13 +870,28 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
         return inputs
 
     @classmethod
-    def get_nscf_inputs(cls, code, kpoints_distance, nbands_factor, pseudo_family=None, **kwargs):
-        
-        inputs = cls.get_scf_inputs(code, kpoints_distance, pseudo_family, **kwargs)
+    def get_nscf_inputs(
+        cls,
+        code,
+        kpoints_distance,
+        nbands_factor,
+        pseudo_family=None,
+        **kwargs
+    ):
 
-        only_valence = kwargs.get('electronic_type', None) == ElectronicType.INSULATOR
-        spin_polarized = kwargs.get('spin_type', SpinType.NONE) == SpinType.COLLINEAR
-        spin_orbit_coupling = kwargs.get('spin_type', SpinType.NONE) == SpinType.SPIN_ORBIT
+        inputs = cls.get_scf_inputs(
+            code, kpoints_distance, pseudo_family, **kwargs
+        )
+
+        only_valence = kwargs.get(
+            'electronic_type', None
+        ) == ElectronicType.INSULATOR
+        spin_polarized = kwargs.get(
+            'spin_type', SpinType.NONE
+        ) == SpinType.COLLINEAR
+        spin_orbit_coupling = kwargs.get(
+            'spin_type', SpinType.NONE
+        ) == SpinType.SPIN_ORBIT
 
         nbnd = get_wannier_number_of_bands(
             structure=kwargs['structure'],
@@ -1013,8 +1042,9 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
         # Set num_bands, num_wann, also take care of semicore states
         parameters['num_bands'] = nbands
         spin_orbit_coupling = kwargs['spin_type'] == SpinType.SPIN_ORBIT
-        num_projs = get_number_of_projections(structure, pseudos,
-            spin_orbit_coupling=spin_orbit_coupling)
+        num_projs = get_number_of_projections(
+            structure, pseudos, spin_orbit_coupling=spin_orbit_coupling
+        )
 
         # TODO check nospin, spin, soc
         if kwargs['electronic_type'] == ElectronicType.INSULATOR:
@@ -1027,7 +1057,7 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
             # TODO now only consider SSSP
             semicore_list = get_semicore_list(structure, pseudo_orbitals)
             num_excludes = len(semicore_list)
-            # I assume all the semicore bands are the lowest
+            # TODO I assume all the semicore bands are the lowest
             exclude_pswfcs = range(1, num_excludes + 1)
             if num_excludes != 0:
                 parameters['exclude_bands'] = exclude_pswfcs
@@ -1114,12 +1144,10 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
                     'dis_conv_tol': parameters['conv_tol'],
                     'dis_proj_min': 0.01,
                     'dis_proj_max': 0.95,
-                    'dis_froz_max': +2.0, # relative to fermi_energy
+                    'dis_froz_max': +2.0,  # relative to fermi_energy
                 })
             else:
-                raise ValueError(
-                    f"Not supported frozen type: {frozen_type}"
-                )
+                raise ValueError(f"Not supported frozen type: {frozen_type}")
         else:
             raise ValueError(
                 f"Not supported disentanglement type: {disentanglement_type}"
@@ -1311,9 +1339,8 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
                         f"For SCDM there should be no frozen states, current frozen type: {frozen_type}"
                     )
             elif projection_type in [
-                    WannierProjectionType.ANALYTIC,
-                    WannierProjectionType.RANDOM
-                ]:
+                WannierProjectionType.ANALYTIC, WannierProjectionType.RANDOM
+            ]:
                 if disentanglement_type is None:
                     disentanglement_type = WannierDisentanglementType.SMV
                 if frozen_type is None:
@@ -1323,9 +1350,9 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
                         f"Disentanglement is explicitly disabled but frozen type {frozen_type} is required"
                     )
             elif projection_type in [
-                    WannierProjectionType.ATOMIC_PROJECTORS_QE,
-                    WannierProjectionType.ATOMIC_PROJECTORS_OPENMX
-                ]:
+                WannierProjectionType.ATOMIC_PROJECTORS_QE,
+                WannierProjectionType.ATOMIC_PROJECTORS_OPENMX
+            ]:
                 if disentanglement_type is None:
                     disentanglement_type = WannierDisentanglementType.SMV
                 if frozen_type is None:
@@ -1351,7 +1378,8 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
             else:
                 # I use aiida-qe default
                 pseudo_family = PwBaseWorkChain.get_protocol_inputs(
-                    protocol=protocol)['pseudo_family']
+                    protocol=protocol
+                )['pseudo_family']
 
         # A dictionary containing key info of Wannierisation and will be printed when the function returns.
         summary['Formula'] = structure.get_formula()
@@ -1458,7 +1486,7 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
         if 'exclude_bands' in wannier_params:
             summary['exclude_bands'] = wannier_params['exclude_bands']
         summary['mp_grid'] = wannier_params['mp_grid']
-        
+
         notes = summary.get('notes', [])
         notes.extend([
             'The `relative_dis_windows` = True, meaning the `dis_froz/win_min/max` in the wannier90 input parameters will be shifted by Fermi energy from scf output parameters.',
@@ -1470,7 +1498,7 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
             cls.print_summary(summary)
 
         return builder
-    
+
     @classmethod
     def print_summary(cls, summary):
         """Try to pretty print the summary when the `get_builder_from_protocol` returns."""
@@ -1483,7 +1511,7 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
 
         if len(notes) == 0:
             return
-        
+
         print('Notes:')
         for n in notes:
             print(f'  * {n}')
