@@ -280,8 +280,7 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
         self.ctx.current_structure = self.inputs.structure
 
         if not self.should_run_scf():
-            self.ctx.current_folder = self.inputs['nscf']['pw']['parent_folder'
-                                                                ]
+            self.ctx.current_folder = self.inputs['nscf']['pw']['parent_folder']
 
     def should_run_relax(self):
         """If the 'relax' input namespace was specified, we relax the input structure."""
@@ -991,7 +990,7 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):
             WannierProjectionType.ATOMIC_PROJECTORS_OPENMX,
         ]:
             parameters['atom_proj'] = True
-            if exclude_pswfcs is not None:
+            if exclude_pswfcs is not None and len(exclude_pswfcs) > 0:
                 parameters['atom_proj_exclude'] = list(exclude_pswfcs)
             if projection_type == WannierProjectionType.ATOMIC_PROJECTORS_OPENMX:
                 # TODO
