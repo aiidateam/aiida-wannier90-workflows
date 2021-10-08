@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """Find PwBandsWorkChain of a StructureData or a corresponding Wannier90BandsWorkChain."""
+import typing as ty
 from aiida import orm
+from aiida_quantumespresso.workflows.pw.base import PwBaseWorkChain
 from aiida_quantumespresso.workflows.pw.bands import PwBandsWorkChain
 from aiida_wannier90_workflows.workflows.bands import Wannier90BandsWorkChain
 
@@ -28,14 +30,25 @@ def find_pwbands(wannier_workchain: Wannier90BandsWorkChain) -> list[PwBandsWork
     return []
 
 
-def find_pwbands_for_structure(structure: orm.StructureData) -> list[PwBandsWorkChain]:
-    """Find a `PwBandsWorkChain` with the specified input `structure`."""
+def find_pwbands_for_structure(structure: orm.StructureData) -> list[ty.Union[PwBandsWorkChain, PwBaseWorkChain]]:
+    """Find a `PwBandsWorkChain` or `PwBaseWorkChain` with a kpath for the specified input `structure`."""
     qb = orm.QueryBuilder()
 
     qb.append(orm.StructureData, tag='structure', filters={'id': structure.pk})
-    qb.append(PwBandsWorkChain, with_incoming='structure', tag='pw_wc', filters={'attributes.exit_status': 0})
+    qb.append((PwBandsWorkChain, PwBaseWorkChain),
+              with_incoming='structure',
+              tag='pw_wc',
+              filters={'attributes.exit_status': 0})
 
-    pw_workchains = [i[0] for i in qb.all()]
+    pw_workchains = []
+    for i in qb.all(flat=True):
+        if i.process_class == PwBandsWorkChain:
+            pw_workchains.append(i)
+        elif i.process_class == PwBaseWorkChain:
+            # I only append PwBaseWorkChain which has a high-symmetry kpath
+            if 'kpoints' in i.inputs and i.inputs['kpoints'] is not None:
+                pw_workchains.append(i)
+
     pw_workchains.sort(key=lambda i: i.pk)
 
     return pw_workchains
