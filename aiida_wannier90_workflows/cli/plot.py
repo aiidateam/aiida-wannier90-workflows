@@ -72,6 +72,7 @@ def cmd_plot_bands(ctx, pw, wannier, save):
 
         if len(pw_workchains) == 1:
             pw = pw_workchains[0]
+            print(f'Found a PW workchain {pw.process_label}<{pw.pk}> with an output band structrue for comparison')
         else:
             pw = pw_workchains[-1]
             print(f'Found multiple PW band structure calculations, using the last one<{pw.pk}>:')
