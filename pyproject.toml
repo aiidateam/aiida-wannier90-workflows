@@ -6,7 +6,7 @@ build-backend = 'setuptools.build_meta:__legacy__'
 max-line-length = 120
 
 [tool.pylint.tool-check]
-generated-members = 'self.exit_codes.*'
+generated-members = 'self.exit_codes.*, Wannier90Calculation.exit_codes.*'
 
 [tool.pylint.messages_control]
 disable = [
