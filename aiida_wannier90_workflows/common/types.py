@@ -6,7 +6,7 @@ import enum
 class WannierProjectionType(enum.Enum):
     """Enumeration to indicate the Wannier initial projection type."""
 
-    # analytic functions which are solutions of hydrogenic Schrödinger equation, 
+    # analytic functions which are solutions of hydrogenic Schrödinger equation,
     # as implemented in Wannier90.
     ANALYTIC = 'analytic'
 
@@ -41,15 +41,28 @@ class WannierFrozenType(enum.Enum):
 
     # a fixed dis_froz_max, default is fermi_energy + 2 eV
     ENERGY_FIXED = 'energy_fixed'
-    
+
     # automatically set the energy dis_froz_max based on bands projectability,
-    # TODO: update: default is having an energy that includes all states that have projectability >= threshold,
+    # TODO: update: default is having an energy that includes all states that have projectability >= threshold,  # pylint: disable=fixme
     # default projectability threshold is 0.9
     ENERGY_AUTO = 'energy_auto'
-    # TODO add doc, for each entry explain number of free parameters and detail explaination
+    # TODO add doc, for each entry explain number of free parameters and detail explaination  # pylint: disable=fixme
 
     # disentaglement per kpoint based on projectability, default thresholds are min/max = 0.01/0.95
     PROJECTABILITY = 'projectability'
 
     # fixed window + projectability per kpoint, default is fermi_energy + 2 eV and min/max = 0.01/0.95
     FIXED_PLUS_PROJECTABILITY = 'fixed_plus_projectability'
+
+
+class WannierFileFormat(enum.Enum):
+    """Enumeration to indicate the format of amn/mmn/eig/spn/unk files."""
+
+    # Fortran formatted text file
+    FORTRAN_FORMATTED = 'fortran_formatted'
+
+    # Fortran unformatted binary file
+    FORTRAN_UNFORMATTED = 'fortran_unformatted'
+
+    # HDF5 file
+    HDF5 = 'hdf5'
