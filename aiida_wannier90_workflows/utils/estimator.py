@@ -3,8 +3,10 @@
 """Storage estimators for files related to wannier90."""
 import typing as ty
 from dataclasses import dataclass
+from collections import namedtuple
 import numpy as np
 # import numpy.typing as npt
+from aiida import orm
 from aiida_wannier90_workflows.common.types import WannierFileFormat
 
 # Storage size of various Fortran types, all unit in bytes
@@ -338,7 +340,257 @@ def estimate_chk(
     raise ValueError(f'Not supported type {file_format}')
 
 
-if __name__ == '__main__':
+def get_number_of_nearest_neighbors(recip_lattice: np.array, kmesh: ty.List[int]) -> int:
+    """Find the number of nearest neighors.
+
+    :param recip_lattice: reciprocal lattice, 3x3, each row is a lattice vector
+    :type recip_lattice: np.array
+    :param kmesh: number of kpoints along kx,ky,kz direction
+    :type kmesh: ty.List[int]
+    :return: [description]
+    :rtype: int
+    """
+    from sklearn.neighbors import KDTree
+
+    # The search supercell is several folds larger
+    supercell_size = 5
+    # Tolerance for equal-distance kpoints
+    kmesh_tol = 1e-6
+    # max number of NN
+    num_nnmax = 12
+
+    nkx, nky, nkz = kmesh
+    x = np.linspace(0, supercell_size, nkx * supercell_size)
+    y = np.linspace(0, supercell_size, nky * supercell_size)
+    z = np.linspace(0, supercell_size, nkz * supercell_size)
+    samples = np.meshgrid(x, y, z)
+    x = samples[0].reshape((-1, 1))
+    y = samples[1].reshape((-1, 1))
+    z = samples[2].reshape((-1, 1))
+    samples = np.hstack([x, y, z])
+
+    # scaled coordinates -> cartesian coordinates
+    samples = samples @ recip_lattice
+    print(samples)
+
+    # the centering point
+    center = np.array([2, 2, 2]).reshape((1, 3)) @ recip_lattice
+    print(center)
+
+    tree = KDTree(samples)
+    dist, ind = tree.query(center, k=num_nnmax + 12)  # 0th element is always itself
+
+    print(dist, ind)
+
+
+WannierFileSize = namedtuple(
+    'WannierFileSize', [
+        'amn',
+        'mmn',
+        'eig',
+        'unk',
+        'chk',
+        'structure',
+        'structure_pk',
+        'num_bands',
+        'num_exclude_bands',
+        'num_wann',
+        'num_kpts',
+        'nntot',
+        'nr1',
+        'nr2',
+        'nr3',
+    ]
+)
+
+
+def estimate_workflow(structure: orm.StructureData) -> WannierFileSize:
+    import numpy as np
+    from aiida.plugins import CalculationFactory, GroupFactory
+    from aiida.common import exceptions
+    from aiida_wannier90_workflows.utils.upf import get_wannier_number_of_bands, get_number_of_projections
+    from aiida_wannier90_workflows.utils.kmesh import create_kpoints_from_distance
+    from aiida_wannier90_workflows.workflows.wannier import get_pseudo_orbitals, get_semicore_list
+    from aiida_wannier90_workflows.utils.predict_smooth_grid import predict_smooth_grid
+
+    PwCalculation = CalculationFactory('quantumespresso.pw')
+    SsspFamily = GroupFactory('pseudo.family.sssp')
+    PseudoDojoFamily = GroupFactory('pseudo.family.pseudo_dojo')
+    CutoffsPseudoPotentialFamily = GroupFactory('pseudo.family.cutoffs')
+
+    pseudo_family = 'SSSP/1.1/PBE/efficiency'
+    try:
+        pseudo_set = (PseudoDojoFamily, SsspFamily, CutoffsPseudoPotentialFamily)
+        pseudo_family = orm.QueryBuilder().append(pseudo_set, filters={'label': pseudo_family}).one()[0]
+    except exceptions.NotExistent as exception:
+        raise ValueError(
+            f'required pseudo family `{pseudo_family}` is not installed. Please use `aiida-pseudo install` to'
+            'install it.'
+        ) from exception
+    pseudos = pseudo_family.get_pseudos(structure=structure)
+
+    try:
+        cutoff_wfc, cutoff_rho = pseudo_family.get_recommended_cutoffs(structure=structure, unit='Ry')
+    except ValueError as exception:
+        raise ValueError(
+            f'failed to obtain recommended cutoffs for pseudo family `{pseudo_family}`: {exception}'
+        ) from exception
+
+    nbands_factor = 2.0
+    nbnd = get_wannier_number_of_bands(
+        structure=structure,
+        pseudos=pseudos,
+        factor=nbands_factor,
+        only_valence=False,
+        spin_polarized=False,
+        spin_orbit_coupling=False
+    )
+
+    pseudo_orbitals = get_pseudo_orbitals(pseudos)
+    semicore_list = get_semicore_list(structure, pseudo_orbitals)
+    num_exclude_bands = len(semicore_list)
+
+    num_bands = nbnd - num_exclude_bands
+
+    num_projs = get_number_of_projections(structure, pseudos, spin_orbit_coupling=False)
+    num_wann = num_projs - num_exclude_bands
+
+    kpoints_distance = 0.2
+    kpoints = create_kpoints_from_distance(structure, kpoints_distance)
+    kmesh = kpoints.get_kpoints_mesh()[0]
+    num_kpts = np.prod(kmesh)
+
+    # nntot depends on the BZ, usually in range 8 - 12, for now I set it as 10
+    # FIXME this is the only one parameter which makes the prediction inaccurate
+    nntot = 10
+    # This is wrong, nntot is the bvectors satisfying B1 condition
+    # nntot = get_number_of_nearest_neighbors(recip_lattice=kpoints.reciprocal_cell, kmesh=kmesh)
+
+    # smooth FFT grid
+    nr1, nr2, nr3 = predict_smooth_grid(structure=structure, ecutwfc=cutoff_wfc)
+
+    # file_format = WannierFileFormat.FORTRAN_FORMATTED
+    file_format = WannierFileFormat.FORTRAN_UNFORMATTED
+
+    # print(f'{structure.get_formula()=}')
+    # print(f"{num_bands=}")
+    # print(f"{num_wann=}")
+    # print(f"{num_kpts=}")
+    # print(f"{nntot=}")
+    # print(f"{nr1=}")
+    # print(f"{nr2=}")
+    # print(f"{nr3=}")
+    # print(f"{num_exclude_bands=}")
+
+    amn_size = estimate_amn(num_bands=num_bands, num_wann=num_wann, num_kpts=num_kpts, file_format=file_format)
+    mmn_size = estimate_mmn(num_bands=num_bands, num_kpts=num_kpts, nntot=nntot, file_format=file_format)
+    eig_size = estimate_eig(num_bands=num_bands, num_kpts=num_kpts, file_format=file_format)
+    unk_size = estimate_unk(
+        nr1=nr1, nr2=nr2, nr3=nr3, num_bands=num_bands, num_kpts=num_kpts, reduce_unk=False, file_format=file_format
+    )
+    # default chk is unformatted
+    chk_size = estimate_chk(
+        num_exclude_bands=num_exclude_bands,
+        num_bands=num_bands,
+        num_wann=num_wann,
+        num_kpts=num_kpts,
+        nntot=nntot,
+        have_disentangled=True,
+        # file_format=WannierFileFormat.FORTRAN_UNFORMATTED
+        file_format=file_format
+    )
+
+    sizes = WannierFileSize(
+        amn=amn_size,
+        mmn=mmn_size,
+        eig=eig_size,
+        unk=unk_size,
+        chk=chk_size,
+        structure=structure.get_formula(),
+        structure_pk=structure.pk,
+        num_bands=num_bands,
+        num_exclude_bands=num_exclude_bands,
+        num_wann=num_wann,
+        num_kpts=num_kpts,
+        nntot=nntot,
+        nr1=nr1,
+        nr2=nr2,
+        nr3=nr3
+    )
+
+    return sizes
+
+
+def estimate_structure_group(group_label: str):
+    import pandas as pd
+
+    group = orm.load_group(group_label)
+
+    num_total = len(group.nodes)
+
+    results = []
+    for i, structure in enumerate(group.nodes):
+        size = estimate_workflow(structure)
+        print(f'{i+1}/{num_total}', size)
+        results.append(size)
+
+    store = pd.HDFStore('wannier_storage_estimator.h5')
+    df = pd.DataFrame(results, columns=WannierFileSize._fields)
+    # print(df)
+    # save it
+    store['df'] = df
+
+
+def human_readable_size(num, suffix='B'):
+    for unit in ['', 'Ki', 'Mi', 'Gi', 'Ti', 'Pi', 'Ei', 'Zi']:
+        if abs(num) < 1024.0:
+            return f'{num:3.1f}{unit}{suffix}'
+        num /= 1024.0
+    return f'{num:.1f}Yi{suffix}'
+
+
+def print_sizes():
+    import pandas as pd
+    from tabulate import tabulate
+
+    byte2mb = lambda _: _ / 1024**2
+
+    # store = pd.HDFStore('wannier_storage_estimator_all_formatted_chk_unformatted.h5')
+    store = pd.HDFStore('wannier_storage_estimator_all_unformatted.h5')
+    # load it
+    df = store['df']
+
+    num_structures = len(df)
+    print(f'{num_structures=}')
+
+    total = np.sum(df.amn) + np.sum(df.mmn) + np.sum(df.eig) + np.sum(df.chk)
+    print(f'total_w/o_unk={human_readable_size(total)}')
+    total += np.sum(df.unk)
+    print(f'total_w/_unk={human_readable_size(total)}')
+    print()
+
+    headers = ['file', 'min', 'max', 'average', 'total']
+    table = []
+    for key in ['amn', 'mmn', 'eig', 'unk', 'chk']:
+        minval = human_readable_size(min(df[key]))
+        maxval = human_readable_size(max(df[key]))
+        average = human_readable_size(np.average(df[key]))
+        total = human_readable_size(np.sum(df[key]))
+        table.append([key, minval, maxval, average, total])
+    print(tabulate(table, headers))
+    print()
+
+    headers = ['param', 'min', 'max', 'average']
+    table = []
+    for key in ['num_bands', 'num_exclude_bands', 'num_wann', 'num_kpts', 'nr1', 'nr2', 'nr3']:
+        minval = min(df[key])
+        maxval = max(df[key])
+        average = np.average(df[key])
+        table.append([key, minval, maxval, average])
+    print(tabulate(table, headers))
+
+
+def test_estimators():
     # TODO some tests to be moved to other dir  # pylint: disable=fixme
     # at least this is true for oneAPI
     assert estimate_amn(12, 7, 64, WannierFileFormat.FORTRAN_FORMATTED) == 279651
@@ -371,3 +623,29 @@ if __name__ == '__main__':
         have_disentangled=True,
         file_format=WannierFileFormat.FORTRAN_UNFORMATTED
     ) == 543097
+
+
+if __name__ == '__main__':
+    import aiida
+    aiida.load_profile()
+    # import ase
+
+    # ase_dict = {'numbers': np.array([29]),
+    #             'positions': np.array([[0., 0., 0.]]),
+    #             'initial_magmoms': np.array([0.]),
+    #             'cell': np.array([[-1.80502346,  0.        ,  1.80502346],
+    #                     [ 0.        ,  1.80502346,  1.80502346],
+    #                     [-1.80502346,  1.80502346,  0.        ]]),
+    #             'pbc': np.array([ True,  True,  True])}
+    # ase_atoms = ase.Atoms.fromdict(ase_dict)
+    # structure = orm.StructureData(ase=ase_atoms)
+
+    # structure = orm.load_node(63497).inputs.structure
+    # print(estimate_workflow(structure))
+    # Actual size @ eiger with intel oneAPI
+    # amn = 3640099, mmn = 58224099, eig = 406000, chk = 4804585 (unformatted)
+
+    # estimate_structure_group('3DD_relax_structures')
+    estimate_structure_group('structure/3dcd/experimental')
+
+    # print_sizes()
