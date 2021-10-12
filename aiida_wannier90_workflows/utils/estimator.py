@@ -355,7 +355,7 @@ def get_number_of_nearest_neighbors(recip_lattice: np.array, kmesh: ty.List[int]
     # The search supercell is several folds larger
     supercell_size = 5
     # Tolerance for equal-distance kpoints
-    kmesh_tol = 1e-6
+    kmesh_tol = 1e-6  # pylint: disable=unused-variable
     # max number of NN
     num_nnmax = 12
 
@@ -404,16 +404,28 @@ WannierFileSize = namedtuple(
 )
 
 
-def estimate_workflow(structure: orm.StructureData) -> WannierFileSize:
-    import numpy as np
-    from aiida.plugins import CalculationFactory, GroupFactory
+def estimate_workflow(
+    structure: orm.StructureData,
+    file_format: WannierFileFormat = WannierFileFormat.FORTRAN_FORMATTED
+) -> WannierFileSize:
+    """Estimate AMN/MMN/EIG/UNK/CHK file sizes of a structure.
+
+    :param structure: [description]
+    :type structure: orm.StructureData
+    :param file_format: [description], defaults to WannierFileFormat.FORTRAN_FORMATTED
+    :type file_format: WannierFileFormat, optional
+    :raises ValueError: [description]
+    :raises ValueError: [description]
+    :return: [description]
+    :rtype: WannierFileSize
+    """
+    from aiida.plugins import GroupFactory
     from aiida.common import exceptions
     from aiida_wannier90_workflows.utils.upf import get_wannier_number_of_bands, get_number_of_projections
     from aiida_wannier90_workflows.utils.kmesh import create_kpoints_from_distance
     from aiida_wannier90_workflows.workflows.wannier import get_pseudo_orbitals, get_semicore_list
     from aiida_wannier90_workflows.utils.predict_smooth_grid import predict_smooth_grid
 
-    PwCalculation = CalculationFactory('quantumespresso.pw')
     SsspFamily = GroupFactory('pseudo.family.sssp')
     PseudoDojoFamily = GroupFactory('pseudo.family.pseudo_dojo')
     CutoffsPseudoPotentialFamily = GroupFactory('pseudo.family.cutoffs')
@@ -430,7 +442,7 @@ def estimate_workflow(structure: orm.StructureData) -> WannierFileSize:
     pseudos = pseudo_family.get_pseudos(structure=structure)
 
     try:
-        cutoff_wfc, cutoff_rho = pseudo_family.get_recommended_cutoffs(structure=structure, unit='Ry')
+        cutoff_wfc, cutoff_rho = pseudo_family.get_recommended_cutoffs(structure=structure, unit='Ry')  # pylint: disable=unused-variable
     except ValueError as exception:
         raise ValueError(
             f'failed to obtain recommended cutoffs for pseudo family `{pseudo_family}`: {exception}'
@@ -461,16 +473,13 @@ def estimate_workflow(structure: orm.StructureData) -> WannierFileSize:
     num_kpts = np.prod(kmesh)
 
     # nntot depends on the BZ, usually in range 8 - 12, for now I set it as 10
-    # FIXME this is the only one parameter which makes the prediction inaccurate
+    # FIXME this is the only one parameter which makes the prediction inaccurate  # pylint: disable=fixme
     nntot = 10
     # This is wrong, nntot is the bvectors satisfying B1 condition
     # nntot = get_number_of_nearest_neighbors(recip_lattice=kpoints.reciprocal_cell, kmesh=kmesh)
 
     # smooth FFT grid
     nr1, nr2, nr3 = predict_smooth_grid(structure=structure, ecutwfc=cutoff_wfc)
-
-    # file_format = WannierFileFormat.FORTRAN_FORMATTED
-    file_format = WannierFileFormat.FORTRAN_UNFORMATTED
 
     # print(f'{structure.get_formula()=}')
     # print(f"{num_bands=}")
@@ -521,27 +530,47 @@ def estimate_workflow(structure: orm.StructureData) -> WannierFileSize:
     return sizes
 
 
-def estimate_structure_group(group_label: str):
-    import pandas as pd
+def estimate_structure_group(group: orm.Group, hdf_file: str, file_format: WannierFileFormat):
+    """Estimate AMN/MMN/EIG/UNK/CHK file sizes of all the structures in a group.
 
-    group = orm.load_group(group_label)
+    :param group: the group containing all the structures to be estimated.
+    :type group: orm.Group
+    :param hdf_file: The hdf5 file name to store the results of estimation.
+    :type hdf_file: str
+    :param file_format: [description]
+    :type file_format: WannierFileFormat
+    """
+    import pandas as pd
 
     num_total = len(group.nodes)
 
     results = []
     for i, structure in enumerate(group.nodes):
-        size = estimate_workflow(structure)
+        size = estimate_workflow(structure, file_format)
         print(f'{i+1}/{num_total}', size)
         results.append(size)
 
-    store = pd.HDFStore('wannier_storage_estimator.h5')
+    store = pd.HDFStore(hdf_file)
     df = pd.DataFrame(results, columns=WannierFileSize._fields)
     # print(df)
+
     # save it
     store['df'] = df
+    store.close()
+
+    print(f'Estimation for structure group "{group.label}" stored in {hdf_file}')
 
 
-def human_readable_size(num, suffix='B'):
+def human_readable_size(num: int, suffix: str = 'B') -> str:
+    """Return a human-readable file size for a given file size in bytes.
+
+    :param num: file size, in bytes.
+    :type num: int
+    :param suffix: the ending char, defaults to 'B'
+    :type suffix: str, optional
+    :return: human-readable file size, e.g. 2.2MiB.
+    :rtype: str
+    """
     for unit in ['', 'Ki', 'Mi', 'Gi', 'Ti', 'Pi', 'Ei', 'Zi']:
         if abs(num) < 1024.0:
             return f'{num:3.1f}{unit}{suffix}'
@@ -549,14 +578,22 @@ def human_readable_size(num, suffix='B'):
     return f'{num:.1f}Yi{suffix}'
 
 
-def print_sizes():
+def print_estimation(hdf_file: str):
+    """Print the estimation from results stored in a HDF5 file.
+
+    :param hdf_file: [description]
+    :type hdf_file: str
+    :raises ValueError: [description]
+    """
+    import os.path
     import pandas as pd
     from tabulate import tabulate
 
-    byte2mb = lambda _: _ / 1024**2
+    if not os.path.exists(hdf_file):
+        raise ValueError(f'File not existed: {hdf_file}')
 
-    # store = pd.HDFStore('wannier_storage_estimator_all_formatted_chk_unformatted.h5')
-    store = pd.HDFStore('wannier_storage_estimator_all_unformatted.h5')
+    store = pd.HDFStore(hdf_file)
+
     # load it
     df = store['df']
 
@@ -589,8 +626,11 @@ def print_sizes():
         table.append([key, minval, maxval, average])
     print(tabulate(table, headers))
 
+    store.close()
+
 
 def test_estimators():
+    """Test estimators."""
     # TODO some tests to be moved to other dir  # pylint: disable=fixme
     # at least this is true for oneAPI
     assert estimate_amn(12, 7, 64, WannierFileFormat.FORTRAN_FORMATTED) == 279651
@@ -623,29 +663,3 @@ def test_estimators():
         have_disentangled=True,
         file_format=WannierFileFormat.FORTRAN_UNFORMATTED
     ) == 543097
-
-
-if __name__ == '__main__':
-    import aiida
-    aiida.load_profile()
-    # import ase
-
-    # ase_dict = {'numbers': np.array([29]),
-    #             'positions': np.array([[0., 0., 0.]]),
-    #             'initial_magmoms': np.array([0.]),
-    #             'cell': np.array([[-1.80502346,  0.        ,  1.80502346],
-    #                     [ 0.        ,  1.80502346,  1.80502346],
-    #                     [-1.80502346,  1.80502346,  0.        ]]),
-    #             'pbc': np.array([ True,  True,  True])}
-    # ase_atoms = ase.Atoms.fromdict(ase_dict)
-    # structure = orm.StructureData(ase=ase_atoms)
-
-    # structure = orm.load_node(63497).inputs.structure
-    # print(estimate_workflow(structure))
-    # Actual size @ eiger with intel oneAPI
-    # amn = 3640099, mmn = 58224099, eig = 406000, chk = 4804585 (unformatted)
-
-    # estimate_structure_group('3DD_relax_structures')
-    estimate_structure_group('structure/3dcd/experimental')
-
-    # print_sizes()
