@@ -629,6 +629,82 @@ def print_estimation(hdf_file: str):
     store.close()
 
 
+def plot_histogram(hdf_file: str):
+    """Plot a histogram for AMN/MMN/EIG/UNK/CHK file sizes.
+
+    :param hdf_file: [description]
+    :type hdf_file: str
+    :raises ValueError: [description]
+    """
+    import os.path
+    import pandas as pd
+    import matplotlib.pyplot as plt
+    from ase.formula import Formula
+
+    def get_num_bins(x, step):
+        """Calculate number of bins in histogram."""
+        num_bins, mod = divmod(max(x), step)
+        if mod != 0:
+            num_bins += 1
+        return num_bins
+
+    def get_size_histogram(x, y, step):
+        num_bins = get_num_bins(x, step)
+        hist_y = np.zeros(num_bins, dtype=int)
+
+        for i, y_i in enumerate(y):
+            # minus 1 so the end point is included, e.g. when step=5, 5 in (0, 5], 5 not in (5, 10]
+            # x[i] should > 0
+            ind = (x[i] - 1) // step
+            hist_y[ind] += y_i
+
+        hist_x = np.arange(step, step * (num_bins + 1), step)
+        return hist_x, hist_y
+
+    get_num_atoms = lambda _: len(Formula(_))
+
+    if not os.path.exists(hdf_file):
+        raise ValueError(f'File not existed: {hdf_file}')
+
+    store = pd.HDFStore(hdf_file)
+
+    # load it
+    df = store['df']
+
+    num_atoms = list(map(get_num_atoms, df['structure']))
+    # print(num_atoms)
+
+    fig, axs = plt.subplots(2, 3)
+
+    step = 1
+    num_bins = get_num_bins(num_atoms, step)
+
+    print('Processing #atoms histogram')
+    axs[0, 0].hist(num_atoms, num_bins)
+    axs[0, 0].set_title('Histogram for number of atoms')
+    axs[0, 0].set_ylabel('Count')
+    axs[0, 0].set_xlabel('number of atoms')
+    axs[0, 0].set_xscale('log')
+
+    ax_iter = iter(fig.axes)
+    next(ax_iter)
+
+    for ftype in ['amn', 'mmn', 'eig', 'unk', 'chk']:
+        print(f'Processing {ftype} histogram')
+        amn_x, amn_y = get_size_histogram(num_atoms, df[ftype].to_numpy(), step)
+        # Convert into GiB
+        amn_y = np.cumsum(amn_y / 1024**3)
+        ax = next(ax_iter)
+        ax.bar(amn_x, amn_y, width=1.5)
+        ax.set_title(f'Cumulative sum for {ftype}')
+        ax.set_ylabel('File size / GiB')
+        ax.set_xlabel('number of atoms')
+        ax.set_xscale('log')
+
+    store.close()
+    plt.show()
+
+
 def test_estimators():
     """Test estimators."""
     # TODO some tests to be moved to other dir  # pylint: disable=fixme
