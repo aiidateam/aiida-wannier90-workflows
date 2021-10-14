@@ -75,3 +75,14 @@ def cmd_estimate_structure(data, formatted):
         if key in ['amn', 'mmn', 'eig', 'chk', 'unk']:
             val = human_readable_size(val)
         echo.echo(f'{key}: {val}')
+
+
+@cmd_estimate.command('plot')
+@click.argument('hdf-file', type=click.Path(exists=True, readable=True))
+def cmd_estimate_plot(hdf_file):
+    """Plot a histogram of results in a HDF5 file."""
+    from aiida_wannier90_workflows.utils.estimator import print_estimation, plot_histogram
+
+    print_estimation(hdf_file)
+    echo.echo('')
+    plot_histogram(hdf_file)
