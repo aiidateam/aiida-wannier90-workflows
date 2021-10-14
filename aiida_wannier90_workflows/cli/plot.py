@@ -6,7 +6,7 @@ import click
 
 from aiida import orm
 from aiida.cmdline.utils import decorators
-from aiida.cmdline.params.types import NodeParamType
+from aiida.cmdline.params.types import NodeParamType, GroupParamType
 from .root import cmd_root
 
 
@@ -97,3 +97,25 @@ def cmd_plot_bands(ctx, pw, wannier, save):
     if not save:
         # print(mpl_code.decode())
         exec(mpl_code, {})  # pylint: disable=exec-used
+
+
+@cmd_plot.command('bandsdist')
+@click.argument('pw', type=GroupParamType(), nargs=1)
+@click.argument('wannier', type=GroupParamType(), nargs=1)
+@click.option('-s', '--save', type=str, help='Save bands distance as HDF5')
+@decorators.with_dbenv()
+def cmd_plot_bandsdist(pw, wannier, save):
+    """Plot bands distance for a group of PwBandsWorkChain and a group of Wannier90BandsWorkChain.
+
+    PW is the PK of a PwBaseWorkChain, or a BandsData,
+    WANNIER is the PK of a Wannier90BandsWorkChain, or a BandsData.
+
+    If only WANNIER is passed, I will invoke QueryBuilder to search for corresponding PW bands.
+    """
+    from aiida_wannier90_workflows.utils.bandsdist import bands_distance_for_group, plot_distance, save_distance
+
+    df = bands_distance_for_group(wannier, pw, match_by_formula=True)
+    plot_distance(df)
+
+    if save is not None:
+        save_distance(df, save)
