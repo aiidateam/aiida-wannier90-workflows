@@ -185,23 +185,22 @@ def bands_distance_for_group(  # pylint: disable=too-many-statements
     print(columns)
 
     result = []
-    for i, wan_wc in enumerate(wan_group.nodes):
+    for wan_wc in wan_group.nodes:
         structure = wan_wc.inputs.structure
         formula = structure.get_formula()
 
         if not wan_wc.is_finished_ok:
-            print(f'! Skip unfinished WorkChain<{wan_wc.pk}> of {formula}')
+            print(f'! Skip unfinished {wan_wc.process_label}<{wan_wc.pk}> of {formula}')
             continue
 
-        idx = mapping[i]
-        if idx is None:
-            msg = f'! Cannot find DFT bands for WorkChain<{wan_wc.pk}> of {formula}'
+        bands_wc = mapping[wan_wc]
+        if bands_wc is None:
+            msg = f'! Cannot find DFT bands for {wan_wc.process_label}<{wan_wc.pk}> of {formula}'
             print(msg)
             continue
 
-        bands_wc = dft_group.nodes[idx]
         if not bands_wc.is_finished_ok:
-            print(f'! Skip unfinished DFT calculation<{bands_wc.pk}> of {formula}')
+            print(f'! Skip unfinished DFT {wan_wc.process_label}<{bands_wc.pk}> of {formula}')
             continue
         bands_dft_node = bands_wc.outputs.output_band
 
@@ -221,6 +220,7 @@ def bands_distance_for_group(  # pylint: disable=too-many-statements
             except KeyError:
                 exclude_list_dft = []
 
+        print(bands_wc.pk, wan_wc.pk)
         dist = bands_distance(bands_dft_node, bands_wannier_node, fermi_energy, exclude_list_dft)
 
         res = [formula, wan_wc.pk, bands_wc.pk, fermi_energy]
