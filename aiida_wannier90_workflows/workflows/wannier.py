@@ -340,7 +340,7 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):  # pylint: disable=too-many-
         add/modify inputs based on outputs of previous calculations, e.g. adding Fermi energy, etc.
         Moreover, this allows overriding the method in derived classes to further modify the inputs.
         """
-        from aiida_wannier90_workflows.utils.bands import remove_exclude_bands
+        from aiida_wannier90_workflows.utils.bandsdist import remove_exclude_bands
 
         inputs = AttributeDict(self.exposed_inputs(Wannier90Calculation, namespace='wannier90'))
         inputs.structure = self.ctx.current_structure
