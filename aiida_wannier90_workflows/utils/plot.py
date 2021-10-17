@@ -131,19 +131,21 @@ def get_mpl_code_for_workchains(workchain0, workchain1, title=None, save=False, 
 
 
 def get_mapping_for_group(
-    wan_group: ty.Union[str, orm.Group], dft_group: ty.Union[str, orm.Group], match_by_formula: bool = False
-) -> list:
+    wan_group: ty.Union[str, orm.Group],
+    dft_group: ty.Union[str, orm.Group],
+    match_by_formula: bool = False
+) -> dict[orm.Node, orm.Node]:
     """Find the corresponding DFT workchain for each Wannier workchain.
 
     :param wan_group: group label of ``Wannier90BandsWorkChain``
     :type wan_group: str
     :param dft_group: group label of ``PwBandsWorkChain``
     :type dft_group: str
-    :param match_by_formula:match by structure formula or structure node itself, defaults to False
+    :param match_by_formula: match by structure formula or structure node itself, defaults to False
     :type match_by_formula: bool, optional
-    :return: the index of the ``PwBandsWorkChain`` in the group ``dft_group`` for each
-    ``Wannier90BandsWorkChain`` in the group ``wan_group``. If not found the index is ``None``.
-    :rtype: list
+    :return: A dict with ``Wannier90BandsWorkChain`` as key and the corresponding ``PwBandsWorkChain`` as
+    value. If not found the value is ``None``.
+    :rtype: dict
     """
     if isinstance(wan_group, str):
         wan_group = orm.load_group(wan_group)
@@ -159,26 +161,26 @@ def get_mapping_for_group(
         return None
 
     if 'structure' in dft_group.nodes[0].inputs:
-        dft_structures = [_.inputs.structure for _ in dft_group.nodes]
+        dft_structures = {_.inputs.structure: _ for _ in dft_group.nodes}
     elif 'structure' in dft_group.nodes[0].inputs['pw']:
-        dft_structures = [_.inputs.pw.structure for _ in dft_group.nodes]
+        dft_structures = {_.inputs.pw.structure: _ for _ in dft_group.nodes}
     if match_by_formula:
-        dft_structures = [_.get_formula() for _ in dft_structures]
+        dft_structures = {k.get_formula(): v for k, v in dft_structures.items()}
     # print(f'Found DFT calculations: {dft_structures}')
 
-    mapping = []
+    mapping = {}
     for wan_wc in wan_group.nodes:
         structure = wan_wc.inputs.structure
         formula = structure.get_formula()
 
         try:
             if match_by_formula:
-                idx = dft_structures.index(formula)
+                dft_wc = dft_structures[formula]
             else:
-                idx = dft_structures.index(structure)
-            mapping.append(idx)
-        except ValueError:
-            mapping.append(None)
+                dft_wc = dft_structures[structure]
+            mapping[wan_wc] = dft_wc
+        except KeyError:
+            mapping[wan_wc] = None
 
     return mapping
 
@@ -214,20 +216,19 @@ def export_bands_for_group(
     os.chdir(save_dir)
     print(f'files are saved in {save_dir}')
 
-    for i, wan_wc in enumerate(wan_group.nodes):
+    for wan_wc in wan_group.nodes:
         if not wan_wc.is_finished_ok:
-            print(f'! Skip unfinished WorkChain<{wan_wc.pk}> of {formula}')
+            print(f'! Skip unfinished {wan_wc.process_label}<{wan_wc.pk}> of {formula}')
             continue
 
-        idx = mapping[i]
-        if idx is None:
-            msg = f'! Cannot find DFT bands for WorkChain<{wan_wc.pk}> of {formula}'
+        dft_wc = mapping[wan_wc]
+        if dft_wc is None:
+            msg = f'! Cannot find DFT bands for {wan_wc.process_label}<{wan_wc.pk}> of {formula}'
             print(msg)
             continue
 
-        dft_wc = dft_group.nodes[idx]
         if not dft_wc.is_finished_ok:
-            print(f'! Skip unfinished DFT calculation<{dft_wc.pk}> of {formula}')
+            print(f'! Skip unfinished DFT {dft_wc.process_label}<{dft_wc.pk}> of {formula}')
             continue
         dft_bands = dft_wc.outputs.output_band
 
