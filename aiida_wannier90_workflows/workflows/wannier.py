@@ -11,6 +11,7 @@ from aiida.engine.processes import WorkChain, ToContext, if_, ProcessBuilder
 from aiida.engine.processes import calcfunction
 from aiida_pseudo.data.pseudo import UpfData
 from aiida_quantumespresso.utils.mapping import prepare_process_inputs
+from aiida_quantumespresso.calculations.pw import PwCalculation
 from aiida_quantumespresso.workflows.pw.base import PwBaseWorkChain
 from aiida_quantumespresso.workflows.pw.relax import PwRelaxWorkChain
 from aiida_quantumespresso.calculations.projwfc import ProjwfcCalculation
@@ -117,6 +118,7 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):  # pylint: disable=too-many-
                 'help': 'Inputs for the `PwBaseWorkChain` for the NSCF calculation.'
             }
         )
+        spec.inputs['nscf']['pw'].validator = PwCalculation.validate_inputs_base
         spec.expose_inputs(
             ProjwfcCalculation,
             namespace='projwfc',
