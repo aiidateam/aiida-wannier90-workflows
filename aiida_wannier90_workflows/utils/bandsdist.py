@@ -215,8 +215,11 @@ def bands_distance_for_group(  # pylint: disable=too-many-statements
             fermi_energy = wan_wc.outputs['scf']['output_parameters']['fermi_energy']
             bands_wannier_node = wan_wc.outputs.band_structure
             try:
-                exclude_list_dft = wan_wc.get_outgoing(link_label_filter='wannier90'
-                                                       ).one().node.inputs.parameters['exclude_bands']
+                last_wan = wan_wc.get_outgoing(link_label_filter='wannier90').one().node
+                if 'parameters' in last_wan.inputs:
+                    exclude_list_dft = last_wan.inputs['parameters']['exclude_bands']
+                else:
+                    exclude_list_dft = last_wan.inputs['wannier90']['parameters']['exclude_bands']
             except KeyError:
                 exclude_list_dft = []
 

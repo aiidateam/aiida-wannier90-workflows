@@ -83,7 +83,9 @@ def cmd_node_gotocomputer(ctx, node, link_label):
 
             # Get call link label
             link_triples = node.get_outgoing(link_type=(LinkType.CALL_CALC, LinkType.CALL_WORK)).link_triples
-            link = list(filter(lambda _: last_calcjob in _.node.called_descendants, link_triples))[0]
+            link = list(
+                filter(lambda _: _.node == last_calcjob or last_calcjob in _.node.called_descendants, link_triples)
+            )[0]
             link_label = link.link_label
         else:
             try:
