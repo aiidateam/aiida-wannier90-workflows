@@ -2,6 +2,7 @@
 """Command line interface `aiida-wannier90-workflows`."""
 import click
 from aiida import orm
+from aiida.common.links import LinkType
 from aiida.cmdline.params import arguments
 from aiida.cmdline.utils import echo
 
@@ -61,7 +62,6 @@ def cmd_node_gotocomputer(ctx, node, link_label):
     """Open a shell in the remote folder of the calcjob, or the last calcjob of the workflow."""
     import os
     from aiida.common.exceptions import NotExistent
-    from aiida.common.links import LinkType
     from aiida.cmdline.commands.cmd_calcjob import calcjob_gotocomputer
     from aiida.plugins import DataFactory
 
@@ -144,11 +144,11 @@ def cmd_node_gotocomputer(ctx, node, link_label):
 
 
 @cmd_node.command('cleanworkdir')
-@arguments.NODES()
-def cmd_node_clean(nodes):
+@arguments.WORKFLOWS('workflows')
+def cmd_node_clean(workflows):
     """Clean the workdir of CalcJobNode/WorkChainNode."""
 
-    for node in nodes:
+    for node in workflows:
         calcs = []
         if isinstance(node, orm.CalcJobNode):
             calcs.append(node)
@@ -169,3 +169,54 @@ def cmd_node_clean(nodes):
                 pass
         if cleaned_calcs:
             echo.echo(f"cleaned remote folders of calculations: {' '.join(map(str, cleaned_calcs))}")
+
+
+@cmd_node.command('saveinput')
+@arguments.NODE('workflow')
+@click.option(
+    '--path',
+    '-p',
+    type=click.Path(),
+    default='.',
+    show_default=True,
+    help='The directory to save all the input files.'
+)
+@click.pass_context
+def cmd_node_saveinput(ctx, workflow, path):
+    """Download scf/nscf/opengrid/pw2wan/wannier90 input files."""
+    from pathlib import Path
+    from contextlib import redirect_stdout
+    from aiida.cmdline.commands.cmd_calcjob import calcjob_inputcat
+    from aiida_wannier90_workflows.workflows.wannier import Wannier90WorkChain
+    from aiida_wannier90_workflows.workflows.opengrid import Wannier90OpengridWorkChain
+    from aiida_wannier90_workflows.workflows.bands import Wannier90BandsWorkChain
+
+    supported_class = (Wannier90WorkChain, Wannier90OpengridWorkChain, Wannier90BandsWorkChain)
+    if workflow.process_class not in supported_class:
+        echo.echo_error(f'Only support {supported_class}, input is {workflow}')
+        return
+
+    dir_path = Path(path)
+    if not dir_path.exists():
+        dir_path.mkdir()
+
+    links = workflow.get_outgoing(link_type=(LinkType.CALL_CALC, LinkType.CALL_WORK))
+
+    for link in links:
+        link_label = link.link_label
+
+        if link_label in ('scf', 'nscf', 'opengrid', 'pw2wannier90'):
+            calcjob = link.node
+            if isinstance(calcjob, orm.WorkChainNode):
+                calcjob = get_last_calcjob(calcjob)
+            save_path = dir_path / f'{link_label}.in'
+        elif link_label == 'wannier90':
+            calcjob = get_last_calcjob(link.node)
+            save_path = dir_path / 'aiida.win'
+        else:
+            continue
+
+        with open(save_path, 'w') as handle:
+            with redirect_stdout(handle):
+                ctx.invoke(calcjob_inputcat, calcjob=calcjob)
+            echo.echo(f'Saved to {save_path}')
