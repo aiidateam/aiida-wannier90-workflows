@@ -1,10 +1,298 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """Processing the Wannier centers."""
+import typing as ty
+import numpy as np
+from aiida import orm
 from aiida_wannier90.calculations import Wannier90Calculation
 
 
-def export_centers_xsf(calculation: Wannier90Calculation, filename: str = 'wannier_centers.xsf'):
+def get_wf_centers(calculation: Wannier90Calculation) -> tuple:
+    """Get Wannier function centers.
+
+    :param calculation: A finished ``Wannier90Calculation``.
+    :type calculation: Wannier90Calculation
+    :return: ``cell``, ``atoms``, ``wf_centers``. ``atoms`` are the atomic positions,
+    both ``atoms`` and ``wf_centers`` are in Cartesian coordinates and are translated back into the cell.
+    :rtype: tuple
+    """
+    import ase
+
+    structure = calculation.inputs.structure
+
+    wf_outputs = calculation.outputs.output_parameters['wannier_functions_output']
+    wf_centers = np.zeros(shape=(len(wf_outputs), 3))
+    for wf in wf_outputs:  # pylint: disable=invalid-name
+        wf_id = wf['wf_ids'] - 1
+        wf_centers[wf_id] = wf['wf_centres']
+
+    structure_ase = structure.get_ase()
+    cell = structure_ase.get_cell()
+    # Transform all coordinates into Cartesian, translate atoms to the cell at origin
+    atoms = structure_ase.get_positions(wrap=True)
+
+    # ase Atoms for representing Wannier function centers
+    wf_ase = ase.Atoms()
+    wf_ase.set_cell(cell)
+    wf_ase.set_pbc(True)
+    for wf in wf_centers:  # pylint: disable=invalid-name
+        # position is in angstrom unit
+        atom = ase.Atom('H', position=wf)
+        wf_ase.append(atom)
+    # Transform all coordinates into Cartesian, translate Wannier function to the cell at origin
+    wf_centers = wf_ase.get_positions(wrap=True)
+
+    return cell, atoms, wf_centers
+
+
+def generate_supercell(cell: np.array, supercell_size: int = 5) -> list[np.array, np.array]:
+    """Generate a supercell for finding nearest neighbours.
+
+    :param cell: each row is a lattice vector
+    :type cell: np.array
+    :param supercell_size: number of repetitions, defaults to 5
+    :type supercell_size: int, optional
+    :return: supercell and the translation index
+    :rtype: list[np.array, np.array]
+    """
+    # Generate a supercell (2D: square, 3D: cube).
+    # If the angles between lattice vectors are small, a 3*3*3 supercell is not enough
+    # for finding minimum distance.
+
+    # Handle both list & np.array
+    dimension = len(cell[0])
+    if dimension not in (2, 3):
+        raise NotImplementedError(f'Only support dimension of 2 or 3, input dimension is {dimension}')
+
+    a1 = np.array(cell[0])  # pylint: disable=invalid-name
+    a2 = np.array(cell[1])  # pylint: disable=invalid-name
+    if dimension == 3:
+        a3 = np.array(cell[2])  # pylint: disable=invalid-name
+
+    supercell_range = range(-supercell_size // 2, supercell_size // 2 + 1)
+    supercell = np.zeros((len(supercell_range)**dimension, dimension))
+    supercell_translations = np.zeros_like(supercell, dtype=int)
+
+    if dimension == 2:
+        counter = 0
+        for i in supercell_range:
+            for j in supercell_range:
+                x, y = i * a1 + j * a2
+                supercell[counter, :] = [x, y]
+                supercell_translations[counter, :] = [i, j]
+                counter += 1
+    elif dimension == 3:
+        counter = 0
+        for i in supercell_range:
+            for j in supercell_range:
+                for k in supercell_range:
+                    x, y, z = i * a1 + j * a2 + k * a3
+                    supercell[counter, :] = [x, y, z]
+                    supercell_translations[counter, :] = [i, j, k]
+
+    return supercell, supercell_translations
+
+
+def find_wf_nearest_atom(cell: np.array, atoms: np.array, wf_centers: np.array) -> tuple[np.array, np.array]:
+    """Find the nearest atom for each Wannier function center.
+
+    :param cell: each row is a lattice vector
+    :type cell: np.array, 3 x 3
+    :param atoms: atomic positions, in Cartesian coordinates.
+    :type atoms: np.array, num_atoms x 3
+    :param wf_centers: Wannier function centers, in Cartesian coordinates.
+    :type wf_centers: np.array, num_wf x 3
+    :return: nearest atom distance, nearest atom index.
+    nearest atom distance: num_wf x 3
+    nearest atom index: num_wf x 4, 0th column is the atom index of ``atoms``,
+    1-3th columns are the cell translation for this atom (the equivalent atom (with this
+    translation applied) is the atom which is nearest to the Wannier function).
+    :rtype: tuple[np.array, np.array]
+    """
+
+    from scipy.spatial import cKDTree
+
+    num_atoms = atoms.shape[0]
+
+    supercell, supercell_translations = generate_supercell(cell)
+    num_supercell, dimension = supercell.shape
+
+    # Generate a supercell of atoms
+    supercell_with_atoms = np.zeros((num_atoms * num_supercell, dimension))
+    supercell_translation_with_atoms = np.zeros((num_atoms * num_supercell, dimension + 1), dtype=int)
+    for iatom in range(num_atoms):
+        idx_start = iatom * num_supercell
+        idx_stop = (iatom + 1) * num_supercell
+        supercell_with_atoms[idx_start:idx_stop, :] = supercell + atoms[iatom, :]
+        # 0th: atom index
+        supercell_translation_with_atoms[idx_start:idx_stop, 0] = iatom
+        # 1-3th: supercell translation
+        supercell_translation_with_atoms[idx_start:idx_stop, 1:] = supercell_translations
+
+    # KD tree for to find nearest neighbours
+    kdtree = cKDTree(supercell_with_atoms)
+    neighbour_distance, neighbour_indexes = kdtree.query(wf_centers, k=1)
+    num_centers = len(wf_centers)
+
+    neighbour_atom = np.zeros((num_centers, supercell_translation_with_atoms.shape[1]), dtype=int)
+    for i in range(num_centers):
+        neighbour_atom[i] = supercell_translation_with_atoms[neighbour_indexes[i]]
+
+    return neighbour_distance, neighbour_atom
+
+
+def get_wf_center_distances(calculation: Wannier90Calculation) -> tuple:
+    """Calculate distances between Wannier function centers and its nearest neighbour.
+
+    :param calculation: a ``Wannier90Calculation``.
+    :type calculation: Wannier90Calculation
+    :return: distance, nearest_atom, cell_translation, structure_ase
+    :rtype: tuple
+    """
+
+    cell, atoms, wf_centers = get_wf_centers(calculation)
+
+    distance, atom_translation = find_wf_nearest_atom(cell, atoms, wf_centers)
+
+    nearest_atom = atom_translation[:, 0]
+    cell_translation = atom_translation[:, 1:]
+    structure_ase = calculation.inputs.structure.get_ase()
+
+    return distance, nearest_atom, cell_translation, structure_ase
+
+
+def get_wigner_seitz(cell: np.array) -> np.array:
+    """Get Wigner-Seitz cell.
+
+    :param cell: each row is a lattice vector.
+    :type cell: np.array
+    :return: Wigner-Seitz cell
+    :rtype: np.array
+    """
+    import itertools
+    from scipy.spatial import Voronoi  # pylint: disable=no-name-in-module
+
+    # Initially I tried to find the Wigner-Seitz cell the Wannier function belongs to,
+    # and calculate the distance between Wannier function and the cell center.
+    # Then get the minimum of the calculated distances (among all atomic positions in the WS cell),
+    # thus we find the nearest atom of the Wannier function.
+    # But later on I just use a supercell approach since that is easier to do.
+
+    points = []
+    for i, j, k in itertools.product((-1, 0, 1), repeat=3):
+        points.append(i * cell[0] + j * cell[1] + k * cell[2])
+
+    vor = Voronoi(points)
+
+    for region in vor.regions:
+        if len(region) != 0 and np.all(np.array(region) >= 0):
+            break
+
+    ws_cell = np.zeros(shape=(len(region), 3))  # pylint: disable=undefined-loop-variable
+    for i, reg in enumerate(region):  # pylint: disable=undefined-loop-variable
+        ws_cell[i] = vor.vertices[reg]
+
+    return ws_cell
+
+
+def test_plot_voronoi():
+    """Plot a test Voronoi diagram for a very oblique cell."""
+    import matplotlib.pyplot as plt
+    from scipy.spatial import Voronoi, voronoi_plot_2d  # pylint: disable=no-name-in-module
+
+    cell_angle = 10
+    cell = np.array([[1, 0], [np.cos(cell_angle / 180 * np.pi), np.sin(cell_angle / 180 * np.pi)]])
+
+    supercell, _ = generate_supercell(cell)
+
+    vor = Voronoi(supercell)
+    voronoi_plot_2d(vor)
+
+    plt.axis('equal')
+    plt.show()
+
+
+def test_find_nearest():
+    """Test the function."""
+    cell, atoms, wf_centers = get_wf_centers(orm.load_node(-1))
+    # wannier_function_coordinates = [[3.20056284, 3.20056284, 3.20056284]])
+    distance, nearest_atoms = find_wf_nearest_atom(cell, atoms, wf_centers)
+
+    print('==== cell ====')
+    print(cell)
+    print('==== atoms ====')
+    print(atoms)
+    print('==== wf_centers ====')
+    print(wf_centers)
+    print('==== distance ====')
+    print(distance)
+    print('==== nearest_atoms ====')
+    print(nearest_atoms)
+
+
+def get_last_wan_calc(node: ty.Union[orm.WorkChainNode, orm.CalcJobNode]) -> Wannier90Calculation:
+    """Get the last ``Wannier90Calculation`` of a workchain.
+
+    :param node: [description]
+    :type node: ty.Union[orm.WorkChainNode, orm.CalcJobNode]
+    :return: [description]
+    :rtype: Wannier90Calculation
+    """
+    from aiida.common.links import LinkType
+    from aiida_wannier90_workflows.workflows.bands import Wannier90BandsWorkChain
+    from aiida_wannier90_workflows.workflows.opengrid import Wannier90OpengridWorkChain
+    from aiida_wannier90_workflows.workflows.wannier import Wannier90WorkChain
+    from aiida_wannier90_workflows.workflows.base import Wannier90BaseWorkChain
+    from aiida_wannier90_workflows.cli.node import get_last_calcjob
+
+    supported_workchains = (Wannier90BandsWorkChain, Wannier90OpengridWorkChain, Wannier90WorkChain)
+
+    if isinstance(node, orm.WorkChainNode):
+        if node.process_class in supported_workchains:
+            calc = node.get_outgoing(link_type=(LinkType.CALL_CALC, LinkType.CALL_WORK),
+                                     link_label_filter='wannier90').one().node
+            if calc.process_class == Wannier90BaseWorkChain:
+                calc = get_last_calcjob(calc)
+        elif node.process_class == Wannier90BaseWorkChain:
+            calc = get_last_calcjob(node)
+        else:
+            raise ValueError(f'Supported WorkChain type {supported_workchains}, current WorkChain {node}')
+    elif isinstance(node, orm.CalcJobNode) and node.process_class == Wannier90Calculation:
+        calc = node
+    else:
+        raise ValueError(f'Unsupported type {node}')
+
+    return calc
+
+
+def wf_center_distances_for_group(group: ty.Union[orm.Group, str, int]) -> np.array:
+    """Calculate distance of Wannier function center to nearest atom for a group of WorkChain.
+
+    :param group: [description]
+    :type group: orm.Group, str, int
+    :return: [description]
+    :rtype: np.array
+    """
+    distances = []
+
+    if not isinstance(group, orm.Group):
+        group = orm.load_group(group)
+
+    for node in group.nodes:
+        if not node.is_finished_ok:
+            print(f'Skip unfinished node: {node}')
+            continue
+
+        calc = get_last_wan_calc(node)
+        dist, _, _, _ = get_wf_center_distances(calc)
+        distances.extend(dist)
+
+    distances = np.array(distances)
+
+    return distances
+
+
+def export_wf_centers_to_xyz(calculation: Wannier90Calculation, filename: str = None):
     """Export a XSF file to visualize Wannier function centers.
 
     :param calculation: [description]
@@ -15,10 +303,56 @@ def export_centers_xsf(calculation: Wannier90Calculation, filename: str = 'wanni
     structure = calculation.inputs.structure.get_ase()
     new_structure = structure.copy()
 
-    wannier_functions_output = calculation.outputs.output_parameters.get_dict()['wannier_functions_output']
-    coordinates = [_['coordinates'] for _ in wannier_functions_output]
+    _, _, wf_centers = get_wf_centers(calculation)
 
-    for coord in coordinates:
+    for coord in wf_centers:
         new_structure.append(ase.Atom('X', coord))
 
+    if not filename:
+        filename = f'{structure.get_formula()}_{calculation.pk}_wf_centers.xyz'
+
     new_structure.write(filename)
+
+
+def export_wf_centers_for_group(group: orm.Group, save_dir: str = '.'):
+    """Export Wannier function centers to XYZ file for a group of WorkChain.
+
+    :param group: [description]
+    :type group: orm.Group
+    """
+    from pathlib import Path
+
+    for node in group.nodes:
+        if not node.is_finished_ok:
+            print(f'Skip unfinished node: {node}')
+            continue
+
+        calc = get_last_wan_calc(node)
+
+        filename = f'{calc.inputs.structure.get_formula()}_{calc.pk}_wf_centers.xyz'
+        filename = Path(save_dir) / filename
+
+        export_wf_centers_to_xyz(calc, filename)
+
+
+def plot_histogram(distances: np.array, title: str = None):
+    """Plot a histogram of Wannier function centers to nearest atom distances.
+
+    :param distances: [description]
+    :type distances: np.array
+    """
+    import matplotlib.pyplot as plt
+
+    plt.hist(distances, 100)
+
+    plt.xlabel('distance(WF center, nearest atom) / Angstrom')
+    plt.ylabel('Count')
+    pre_title = f'Histogram of {len(distances)} WFs'
+    if title is not None:
+        full_title = f'{pre_title}, {title}'
+        plt.title(full_title)
+    plt.grid(True)
+    plt.annotate(f'average = {np.average(distances):.4f}', xy=(0.7, 0.9), xycoords='axes fraction')
+
+    # plt.savefig('distances.png')
+    plt.show()
