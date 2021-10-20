@@ -287,7 +287,7 @@ def read_distance(hdf_file: str) -> pd.DataFrame:
     return df
 
 
-def plot_distance(df: pd.DataFrame, max_dist: bool = False) -> None:
+def plot_distance(df: pd.DataFrame, max_dist: bool = False, show: bool = True) -> None:
     """Plot a histogram of bands distance."""
     import matplotlib.pyplot as plt
 
@@ -297,7 +297,7 @@ def plot_distance(df: pd.DataFrame, max_dist: bool = False) -> None:
     # bands distance \eta
     distance = np.zeros((len(df), len(labels)))
     # pks are the wannier workchain PK of each row of eta
-    pks = []
+    pks = np.zeros(len(df), dtype=int)
 
     if max_dist:
         # I use the abs distance
@@ -305,10 +305,15 @@ def plot_distance(df: pd.DataFrame, max_dist: bool = False) -> None:
     else:
         eta_index = 'bands_dist_ef+'
 
-    for i in range(len(df)):
+    # Some times the dataframe index is not continous, (after filtering the dataframe),
+    # so we need a counter i to index distance[...].
+    i = 0
+    for _, row in df.iterrows():
         for j, mu in enumerate(mu_range):
-            distance[i, j] = df[f'{eta_index}{mu}'][i] * 1e3  # to meV
-        pks.append(df['wan_workchain'][i])
+            key = f'{eta_index}{mu}'
+            distance[i, j] = row[key] * 1e3  # to meV
+        pks[i] = row['wan_workchain']
+        i += 1
 
     fig, axs = plt.subplots(
         len(labels),
@@ -344,4 +349,8 @@ def plot_distance(df: pd.DataFrame, max_dist: bool = False) -> None:
     # plt.tight_layout()
     # plt.savefig('distances.pdf')
     # plt.savefig('wf_center_xyz/' + 'distances.png')
-    plt.show()
+
+    if show:
+        plt.show()
+
+    return fig
