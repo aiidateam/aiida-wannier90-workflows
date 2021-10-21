@@ -9,6 +9,8 @@ import numpy as np
 from aiida import orm
 from aiida_wannier90_workflows.common.types import WannierFileFormat
 
+# pylint: disable=too-many-lines
+
 # Storage size of various Fortran types, all unit in bytes
 # Fortran default integer
 _SIZE_INTEGER = 4
@@ -340,6 +342,304 @@ def estimate_chk(
     raise ValueError(f'Not supported type {file_format}')
 
 
+# This is not working
+# def get_nrpts(cell: np.array, mp_grid: ty.Sequence[int]) -> int:
+#     from aiida_wannier90_workflows.utils.center import generate_supercell, get_wigner_seitz
+#     from shapely.geometry import Point, Polygon
+
+#     # Wannier90 default
+#     ws_search_size = 2
+#     ws_distance_tol = 1.e-5
+
+#     # Get the WS cell of the supercell
+#     supercell = cell * np.array(mp_grid)
+
+#     ws_supercell = get_wigner_seitz(supercell, ws_search_size)
+
+#     # All the R points
+#     all_points, _ = generate_supercell(cell, ws_search_size*np.array(mp_grid))
+
+#     polygon = Polygon(ws_supercell)
+#     print(polygon.contains(Point(0,0,0)))
+#     print(all_points, all_points.shape)
+#     contained_points = list(filter(lambda _: polygon.distance(Point(_)) <= ws_distance_tol, all_points))
+#     nrpts = len(contained_points)
+
+#     return nrpts
+
+
+def get_nrpts_ndegen(cell: np.array, mp_grid: ty.Sequence[int]) -> int:
+    """Calculate number of R points in Fourier transform.
+
+    :param cell: [description]
+    :type cell: np.array
+    :param mp_grid: [description]
+    :type mp_grid: ty.Sequence[int]
+    :return: [description]
+    :rtype: int
+    """
+    from aiida_wannier90_workflows.utils.center import generate_supercell
+
+    # Wannier90 default
+    ws_search_size = 2
+    ws_distance_tol = 1.e-5
+
+    # Get the WS cell of the supercell
+    supercell = cell * np.array(mp_grid)
+
+    supercell_points, _ = generate_supercell(supercell, ws_search_size + 1)
+
+    all_points, _ = generate_supercell(cell, ws_search_size * np.array(mp_grid))
+
+    dist = all_points[:, :, np.newaxis] - supercell_points.T[np.newaxis, :, :]
+    dist = np.linalg.norm(dist, axis=1)
+
+    # R = (0, 0, 0) <-> index = supercell_points.shape[0] // 2, (shape[0] is always odd)
+    idx_r0 = supercell_points.shape[0] // 2
+    # print(supercell_points[idx_R0, :])
+
+    dist_min = np.min(dist, axis=1)
+    is_in_wscell = np.abs(dist[:, idx_r0] - dist_min) < ws_distance_tol
+    # Count number of True
+    nrpts = np.sum(is_in_wscell)
+
+    is_degen = np.abs(dist[is_in_wscell, :] - dist_min[is_in_wscell, np.newaxis]) < ws_distance_tol
+    ndegen = np.sum(is_degen, axis=1)
+
+    return nrpts, ndegen
+
+
+def test_get_nrpts_ndegen():
+    """Test nrpts."""
+
+    # cell_angle = 20
+    # cell = np.array([[1, 0, 0],
+    # [np.cos(cell_angle / 180 * np.pi), np.sin(cell_angle / 180 * np.pi), 0],
+    # [0, 0, 1]])
+    # mp_grid = [2, 3, 4]
+
+    # cell = np.eye(3)
+    cell = np.array([[-2.69880000000000, 0.000000000000000E+000, 2.69880000000000],
+                     [0.000000000000000E+000, 2.69880000000000, 2.69880000000000],
+                     [-2.69880000000000, 2.69880000000000, 0.000000000000000E+00]])
+    mp_grid = [4, 4, 4]
+
+    nrpts, ndegen = get_nrpts_ndegen(cell, mp_grid)
+
+    nrpts_ref = 93
+    ndegen_ref = [
+        4, 6, 2, 2, 2, 1, 2, 2, 1, 1, 2, 6, 2, 2, 2, 6, 2, 2, 4, 1, 1, 1, 4, 1, 1, 1, 1, 2, 1, 1, 1, 2, 2, 1, 1, 2, 4,
+        2, 1, 2, 1, 1, 1, 1, 2, 1, 1, 1, 2, 1, 1, 1, 1, 2, 1, 2, 4, 2, 1, 1, 2, 2, 1, 1, 1, 2, 1, 1, 1, 1, 4, 1, 1, 1,
+        4, 2, 2, 6, 2, 2, 2, 6, 2, 1, 1, 2, 2, 1, 2, 2, 2, 6, 4
+    ]
+
+    assert nrpts == nrpts_ref
+    assert np.allclose(ndegen, ndegen_ref)
+
+
+def estimate_hr_dat(nrpts: int, num_wann: int) -> int:
+    """Estimate seedname_hr.dat file size.
+
+    :param nrpts: [description]
+    :type nrpts: int
+    :param num_wann: [description]
+    :type num_wann: int
+    :return: [description]
+    :rtype: int
+    """
+    # header
+    total_size = _SIZE_CARRIAGE_CONTROL + _SIZE_CHARACTER * 33 + _SIZE_LINE_FEED
+    # num_wann
+    total_size += 12 + _SIZE_LINE_FEED
+    # nrpts
+    total_size += 12 + _SIZE_LINE_FEED
+    # ndegen
+    nline, rem = divmod(nrpts, 15)
+    total_size += (5 * 15 + _SIZE_LINE_FEED) * nline + 5 * rem + _SIZE_LINE_FEED
+    # H(R)
+    total_size += (5 * 5 + 12 * 2 + _SIZE_LINE_FEED) * nrpts * num_wann**2
+
+    return total_size
+
+
+def estimate_r_dat(nrpts: int, num_wann: int) -> int:
+    """Estimate seedname_r.dat file size.
+
+    :param nrpts: [description]
+    :type nrpts: int
+    :param num_wann: [description]
+    :type num_wann: int
+    :return: [description]
+    :rtype: int
+    """
+    # header
+    total_size = _SIZE_CARRIAGE_CONTROL + _SIZE_CHARACTER * 33 + _SIZE_LINE_FEED
+    # num_wann
+    total_size += 12 + _SIZE_LINE_FEED
+    # nrpts
+    total_size += 12 + _SIZE_LINE_FEED
+    # R(R)
+    total_size += (5 * 5 + 12 * 6 + _SIZE_LINE_FEED) * nrpts * num_wann**2
+
+    return total_size
+
+
+def estimate_wsvec_dat(nrpts: int, num_wann: int, wdist_ndeg: list = None) -> int:
+    """Estimate seedname_wsvec.dat file size.
+
+    :param nrpts: [description]
+    :type nrpts: int
+    :param num_wann: [description]
+    :type num_wann: int
+    :param wdist_ndeg: [description], defaults to None
+    :type wdist_ndeg: list, optional
+    :return: [description]
+    :rtype: int
+    """
+    # header
+    total_size = _SIZE_CHARACTER * 100 + _SIZE_LINE_FEED
+    # irvec
+    total_size += (5 * 5 + _SIZE_LINE_FEED) * nrpts * num_wann**2
+    # wdist_ndeg, not exact: I need wdist_ndeg
+    total_size += (5 + _SIZE_LINE_FEED) * nrpts * num_wann**2
+    # irdist_ws
+    if wdist_ndeg:
+        total_size += (5 * 3 + _SIZE_LINE_FEED) * np.sum(wdist_ndeg) * num_wann**2
+
+    return total_size
+
+
+def estimate_centres_xyz(num_wann: int, num_atoms: int) -> int:
+    """Estimate seedname_centres.xyz file size.
+
+    :param num_wann: [description]
+    :type num_wann: int
+    :param num_atoms: [description]
+    :type num_atoms: int
+    :return: [description]
+    :rtype: int
+    """
+    # num_wann + num_atoms
+    total_size = 6 + _SIZE_LINE_FEED
+    # comment
+    total_size += _SIZE_CARRIAGE_CONTROL + 62 + _SIZE_LINE_FEED
+    # WFs
+    total_size += (1 + 6 + (14 + 3) * 3 - 3 + _SIZE_LINE_FEED) * num_wann
+    # atoms
+    total_size += (2 + 5 + (14 + 3) * 3 - 3 + _SIZE_LINE_FEED) * num_atoms
+
+    return total_size
+
+
+def estimate_tb_dat(nrpts: int, num_wann: int) -> int:
+    """Estimate seedname_tb.dat file size.
+
+    :param nrpts: [description]
+    :type nrpts: int
+    :param num_wann: [description]
+    :type num_wann: int
+    :return: [description]
+    :rtype: int
+    """
+    # header
+    total_size = _SIZE_CARRIAGE_CONTROL + _SIZE_CHARACTER * 33 + _SIZE_LINE_FEED
+    # lattice
+    total_size += (24 * 3 + _SIZE_LINE_FEED) * 3
+    # num_wann
+    total_size += 12 + _SIZE_LINE_FEED
+    # nrpts
+    total_size += 12 + _SIZE_LINE_FEED
+    # ndegen
+    nline, rem = divmod(nrpts, 15)
+    total_size += (5 * 15 + _SIZE_LINE_FEED) * nline + 5 * rem + _SIZE_LINE_FEED
+    # H(R)
+    total_size += (5 * 3 + _SIZE_LINE_FEED * 2) * nrpts
+    total_size += (5 * 2 + 2 + 16 * 2 + _SIZE_LINE_FEED) * num_wann**2 * nrpts
+    # R(R)
+    total_size += (5 * 3 + _SIZE_LINE_FEED * 2) * nrpts
+    total_size += (5 * 2 + 2 + 16 * 6 + _SIZE_LINE_FEED) * num_wann**2 * nrpts
+
+    return total_size
+
+
+def estimate_xsf(
+    num_wann: int,
+    num_atoms: int,
+    nr1: int,
+    nr2: int,
+    nr3: int,
+    reduce_unk: bool = False,
+    wannier_plot_supercell: int = 2
+) -> int:
+    """Estimate seedname_0000*.xsf file size.
+
+    :param num_wann: [description]
+    :type num_wann: int
+    :param num_atoms: [description]
+    :type num_atoms: int
+    :param nr1: [description]
+    :type nr1: int
+    :param nr2: [description]
+    :type nr2: int
+    :param nr3: [description]
+    :type nr3: int
+    :param reduce_unk: [description], defaults to False
+    :type reduce_unk: bool, optional
+    :param wannier_plot_supercell: [description], defaults to 2
+    :type wannier_plot_supercell: int, optional
+    :return: [description]
+    :rtype: int
+    """
+    if reduce_unk:
+        nr1 = (nr1 + 1) // 2
+        nr2 = (nr2 + 1) // 2
+        nr3 = (nr3 + 1) // 2
+
+    # header
+    total_size = _SIZE_CARRIAGE_CONTROL + 7 + _SIZE_LINE_FEED
+    total_size += _SIZE_CARRIAGE_CONTROL + 62 + _SIZE_LINE_FEED
+    total_size += _SIZE_CARRIAGE_CONTROL + 33 + _SIZE_LINE_FEED
+    total_size += _SIZE_CARRIAGE_CONTROL + 7 + _SIZE_LINE_FEED
+    # CRYSTAL
+    total_size += 7 + _SIZE_LINE_FEED
+    # PRIMVEC
+    total_size += 7 + _SIZE_LINE_FEED
+    total_size += (12 * 3 + _SIZE_LINE_FEED) * 3
+    # CONVVEC
+    total_size += 7 + _SIZE_LINE_FEED
+    total_size += (12 * 3 + _SIZE_LINE_FEED) * 3
+    # PRIMCOORD
+    total_size += 9 + _SIZE_LINE_FEED
+    # num_atoms
+    total_size += 6 + 3 + _SIZE_LINE_FEED
+    total_size += (2 + 3 + 12 * 3 + _SIZE_LINE_FEED) * num_atoms
+    # newlines
+    total_size += _SIZE_LINE_FEED * 2
+    # BEGIN_BLOCK_DATAGRID_3D, 3D_field, BEGIN_DATAGRID_3D_UNKNOWN
+    total_size += 23 + _SIZE_LINE_FEED
+    total_size += 8 + _SIZE_LINE_FEED
+    total_size += 25 + _SIZE_LINE_FEED
+    # grid size
+    total_size += 6 * 3 + _SIZE_LINE_FEED
+    # x_0
+    total_size += 12 * 3 + _SIZE_LINE_FEED
+    # grid length
+    total_size += (12 * 3 + _SIZE_LINE_FEED) * 3
+    # data
+    ngrid = wannier_plot_supercell**3 * nr1 * nr2 * nr3
+    nline, rem = divmod(ngrid, 6)
+    total_size += (13 * 6 + _SIZE_LINE_FEED) * nline
+    if rem > 0:
+        total_size += 13 * rem + _SIZE_LINE_FEED
+    # END_DATAGRID_3D, END_BLOCK_DATAGRID_3D
+    total_size += 15 + _SIZE_LINE_FEED
+    total_size += 21 + _SIZE_LINE_FEED
+
+    total_size *= num_wann
+
+    return total_size
+
+
 def get_number_of_nearest_neighbors(recip_lattice: np.array, kmesh: ty.List[int]) -> int:
     """Find the number of nearest neighors.
 
@@ -384,13 +684,28 @@ def get_number_of_nearest_neighbors(recip_lattice: np.array, kmesh: ty.List[int]
 
 
 WannierFileSize = namedtuple(
-    'WannierFileSize', [
+    'WannierFileSize',
+    [
+        # files
         'amn',
         'mmn',
         'eig',
         'unk',
+        'unk_reduce',
         'chk',
-        'structure',
+        # files for Hamiltonian
+        'centres_xyz',
+        'hr_dat',
+        'r_dat',
+        'wsvec_dat',
+        'tb_dat',
+        'xsf',
+        'xsf_reduce',
+        'xsf_supercell3',
+        'xsf_reduce_supercell3',
+        # 'cube',
+        # parameters
+        'structure',  # formula
         'structure_pk',
         'num_bands',
         'num_exclude_bands',
@@ -400,11 +715,12 @@ WannierFileSize = namedtuple(
         'nr1',
         'nr2',
         'nr3',
+        'nrpts',
     ]
 )
 
 
-def estimate_workflow(
+def estimate_workflow(  # pylint: disable=too-many-statements
     structure: orm.StructureData,
     file_format: WannierFileFormat = WannierFileFormat.FORTRAN_FORMATTED
 ) -> WannierFileSize:
@@ -497,6 +813,9 @@ def estimate_workflow(
     unk_size = estimate_unk(
         nr1=nr1, nr2=nr2, nr3=nr3, num_bands=num_bands, num_kpts=num_kpts, reduce_unk=False, file_format=file_format
     )
+    unk_reduce = estimate_unk(
+        nr1=nr1, nr2=nr2, nr3=nr3, num_bands=num_bands, num_kpts=num_kpts, reduce_unk=True, file_format=file_format
+    )
     # default chk is unformatted
     chk_size = estimate_chk(
         num_exclude_bands=num_exclude_bands,
@@ -509,12 +828,37 @@ def estimate_workflow(
         file_format=file_format
     )
 
+    nrpts, _ = get_nrpts_ndegen(structure.cell, kmesh)
+    num_atoms = len(structure.sites)
+
+    centres_xyz = estimate_centres_xyz(num_wann, num_atoms)
+    hr_dat = estimate_hr_dat(nrpts, num_wann)
+    r_dat = estimate_r_dat(nrpts, num_wann)
+    wsvec_dat = estimate_wsvec_dat(nrpts, num_wann)
+    tb_dat = estimate_tb_dat(nrpts, num_wann)
+    xsf = estimate_xsf(num_wann, num_atoms, nr1, nr2, nr3)
+    xsf_reduce = estimate_xsf(num_wann, num_atoms, nr1, nr2, nr3, True)
+    xsf_supercell3 = estimate_xsf(num_wann, num_atoms, nr1, nr2, nr3, False, 3)
+    xsf_reduce_supercell3 = estimate_xsf(num_wann, num_atoms, nr1, nr2, nr3, True, 3)
+
     sizes = WannierFileSize(
         amn=amn_size,
         mmn=mmn_size,
         eig=eig_size,
         unk=unk_size,
         chk=chk_size,
+        #
+        unk_reduce=unk_reduce,
+        centres_xyz=centres_xyz,
+        hr_dat=hr_dat,
+        r_dat=r_dat,
+        wsvec_dat=wsvec_dat,
+        tb_dat=tb_dat,
+        xsf=xsf,
+        xsf_reduce=xsf_reduce,
+        xsf_supercell3=xsf_supercell3,
+        xsf_reduce_supercell3=xsf_reduce_supercell3,
+        #
         structure=structure.get_formula(),
         structure_pk=structure.pk,
         num_bands=num_bands,
@@ -524,13 +868,15 @@ def estimate_workflow(
         nntot=nntot,
         nr1=nr1,
         nr2=nr2,
-        nr3=nr3
+        nr3=nr3,
+        #
+        nrpts=nrpts,
     )
 
     return sizes
 
 
-def estimate_structure_group(group: orm.Group, hdf_file: str, file_format: WannierFileFormat):
+def estimate_structure_group(group: ty.Union[orm.Group, str], hdf_file: str, file_format: WannierFileFormat):
     """Estimate AMN/MMN/EIG/UNK/CHK file sizes of all the structures in a group.
 
     :param group: the group containing all the structures to be estimated.
@@ -541,6 +887,9 @@ def estimate_structure_group(group: orm.Group, hdf_file: str, file_format: Wanni
     :type file_format: WannierFileFormat
     """
     import pandas as pd
+
+    if isinstance(group, str):
+        group = orm.load_group(group)
 
     num_total = len(group.nodes)
 
@@ -608,7 +957,10 @@ def print_estimation(hdf_file: str):
 
     headers = ['file', 'min', 'max', 'average', 'total']
     table = []
-    for key in ['amn', 'mmn', 'eig', 'unk', 'chk']:
+    for key in [
+        'amn', 'mmn', 'eig', 'unk', 'unk_reduce', 'chk', 'centres_xyz', 'hr_dat', 'r_dat', 'wsvec_dat', 'tb_dat', 'xsf',
+        'xsf_reduce', 'xsf_supercell3', 'xsf_reduce_supercell3'
+    ]:
         minval = human_readable_size(min(df[key]))
         maxval = human_readable_size(max(df[key]))
         average = human_readable_size(np.average(df[key]))
@@ -619,7 +971,7 @@ def print_estimation(hdf_file: str):
 
     headers = ['param', 'min', 'max', 'average']
     table = []
-    for key in ['num_bands', 'num_exclude_bands', 'num_wann', 'num_kpts', 'nr1', 'nr2', 'nr3']:
+    for key in ['num_bands', 'num_exclude_bands', 'num_wann', 'num_kpts', 'nr1', 'nr2', 'nr3', 'nrpts']:
         minval = min(df[key])
         maxval = max(df[key])
         average = np.average(df[key])
@@ -739,3 +1091,20 @@ def test_estimators():
         have_disentangled=True,
         file_format=WannierFileFormat.FORTRAN_UNFORMATTED
     ) == 543097
+
+    test_get_nrpts_ndegen()
+
+    assert estimate_hr_dat(93, 8) == 298133
+    assert estimate_r_dat(93, 8) == 583357
+    assert estimate_wsvec_dat(93, 8) == 190565  # in fact real file size is 299457
+    assert estimate_centres_xyz(8, 2) == 631
+    assert estimate_tb_dat(93, 8) == 920522
+    assert estimate_xsf(7, 1, 18, 18, 18) == 614995 * 7
+    assert estimate_xsf(7, 1, 18, 18, 18, True) == 614995 * 7
+    assert estimate_xsf(7, 1, 18, 18, 18, True) == 77479 * 7
+
+    # minimum: hr + wsvec + centres
+    # medium:  hr + wsvec + r
+    # medium2: tb + wsvec
+    # maximum: tb + wsvec + xsf_reduce
+    # maximum: tb + wsvec + xsf_full
