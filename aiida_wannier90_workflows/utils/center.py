@@ -45,13 +45,13 @@ def get_wf_centers(calculation: Wannier90Calculation) -> tuple:
     return cell, atoms, wf_centers
 
 
-def generate_supercell(cell: np.array, supercell_size: int = 5) -> list[np.array, np.array]:
+def generate_supercell(cell: np.array, size: ty.Union[int, list, np.array] = 2) -> list[np.array, np.array]:
     """Generate a supercell for finding nearest neighbours.
 
     :param cell: each row is a lattice vector
     :type cell: np.array
-    :param supercell_size: number of repetitions, defaults to 5
-    :type supercell_size: int, optional
+    :param size: number of repetitions = 2*size + 1, defaults to 2
+    :type size: int, optional
     :return: supercell and the translation index
     :rtype: list[np.array, np.array]
     """
@@ -69,26 +69,36 @@ def generate_supercell(cell: np.array, supercell_size: int = 5) -> list[np.array
     if dimension == 3:
         a3 = np.array(cell[2])  # pylint: disable=invalid-name
 
-    supercell_range = range(-supercell_size // 2, supercell_size // 2 + 1)
-    supercell = np.zeros((len(supercell_range)**dimension, dimension))
+    if isinstance(size, int):
+        size = [size for _ in range(dimension)]
+
+    supercell_range0 = range(-size[0], size[0] + 1)
+    supercell_range1 = range(-size[1], size[1] + 1)
+    if dimension == 2:
+        num_pts = len(supercell_range0) * len(supercell_range1)
+    elif dimension == 3:
+        supercell_range2 = range(-size[2], size[2] + 1)
+        num_pts = len(supercell_range0) * len(supercell_range1) * len(supercell_range2)
+    supercell = np.zeros((num_pts, dimension))
     supercell_translations = np.zeros_like(supercell, dtype=int)
 
     if dimension == 2:
         counter = 0
-        for i in supercell_range:
-            for j in supercell_range:
+        for i in supercell_range0:
+            for j in supercell_range1:
                 x, y = i * a1 + j * a2
                 supercell[counter, :] = [x, y]
                 supercell_translations[counter, :] = [i, j]
                 counter += 1
     elif dimension == 3:
         counter = 0
-        for i in supercell_range:
-            for j in supercell_range:
-                for k in supercell_range:
+        for i in supercell_range0:
+            for j in supercell_range1:
+                for k in supercell_range2:
                     x, y, z = i * a1 + j * a2 + k * a3
                     supercell[counter, :] = [x, y, z]
                     supercell_translations[counter, :] = [i, j, k]
+                    counter += 1
 
     return supercell, supercell_translations
 
@@ -161,7 +171,7 @@ def get_wf_center_distances(calculation: Wannier90Calculation) -> tuple:
     return distance, nearest_atom, cell_translation, structure_ase
 
 
-def get_wigner_seitz(cell: np.array) -> np.array:
+def get_wigner_seitz(cell: np.array, search_size: int = 2) -> np.array:
     """Get Wigner-Seitz cell.
 
     :param cell: each row is a lattice vector.
@@ -178,19 +188,29 @@ def get_wigner_seitz(cell: np.array) -> np.array:
     # thus we find the nearest atom of the Wannier function.
     # But later on I just use a supercell approach since that is easier to do.
 
-    points = []
-    for i, j, k in itertools.product((-1, 0, 1), repeat=3):
-        points.append(i * cell[0] + j * cell[1] + k * cell[2])
+    dimension = cell.shape[0]
+    search_range = range(-search_size, search_size + 1)
+
+    # points = []
+    # for i, j, k in itertools.product(search_range, repeat=dimension):
+    #     points.append(i * cell[0] + j * cell[1] + k * cell[2])
+
+    # A bit faster
+    points = np.array(list(itertools.product(search_range, repeat=dimension)))
+    points = points @ cell
 
     vor = Voronoi(points)
 
+    ws_cell = None
     for region in vor.regions:
         if len(region) != 0 and np.all(np.array(region) >= 0):
+            ws_cell = np.zeros(shape=(len(region), 3))
+            for i, reg in enumerate(region):
+                ws_cell[i] = vor.vertices[reg]
             break
-
-    ws_cell = np.zeros(shape=(len(region), 3))  # pylint: disable=undefined-loop-variable
-    for i, reg in enumerate(region):  # pylint: disable=undefined-loop-variable
-        ws_cell[i] = vor.vertices[reg]
+    # pylint: disable=fixme
+    # TODO: There might be multiple closed regions, I need to ensure the region containing
+    # the origin is returned.
 
     return ws_cell
 
