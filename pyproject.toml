@@ -37,6 +37,7 @@ good-names = [
     'df',
     'ax',
     'pw',
+    'pk',
     'wannier',
     'SsspFamily',
     'StructureData',
