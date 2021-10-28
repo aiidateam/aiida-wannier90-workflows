@@ -351,13 +351,13 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):  # pylint: disable=too-many-
         # Need fermi energy to shift the windows
         fermi_energy = None
         if self.inputs['relative_dis_windows']:
-            if 'workchain_scf' not in self.ctx:
-                # TODO get fermi from nscf?
-                raise ValueError('relative_dis_windows = True but did not run scf calculation')
-            scf_output_parameters = self.ctx.workchain_scf.outputs.output_parameters
-            fermi_energy = get_fermi_energy(scf_output_parameters)
+            if 'workchain_scf' in self.ctx:
+                scf_output_parameters = self.ctx.workchain_scf.outputs.output_parameters
+                fermi_energy = get_fermi_energy(scf_output_parameters)
+            elif 'workchain_nscf' in self.ctx:
+                fermi_energy = get_scf_fermi_energy(self.ctx.workchain_nscf)
             if fermi_energy is None:
-                raise ValueError('relative_dis_windows = True but cannot retrieve Fermi energy from scf output')
+                raise ValueError('relative_dis_windows = True but cannot retrieve Fermi energy from scf or nscf output')
 
         # add scf Fermi energy
         if 'workchain_scf' in self.ctx:
@@ -1413,3 +1413,44 @@ def get_semicore_list(structure: orm.StructureData, pseudo_orbitals: dict) -> li
         if len(site_semicores) != 0:
             return ValueError(f'Error when processing pseudo {site.kind_name} with orbitals {pseudo_orbitals}')
     return semicore_list
+
+
+def get_scf_fermi_energy(calc_nscf: typing.Union[PwBaseWorkChain, PwCalculation]) -> float:
+    """Parse nscf output to get the scf Fermi energy.
+
+    :param calc_nscf: a nscf PwBaseWorkChain or PwCalculation
+    :type calc_nscf: typing.Union[PwBaseWorkChain, PwCalculation]
+    :return: scf Fermi energy
+    :rtype: float
+    """
+    import re
+    from aiida_wannier90_workflows.cli.node import get_last_calcjob
+
+    supported_inputs = (PwBaseWorkChain, PwCalculation)
+    if calc_nscf.process_class not in supported_inputs:
+        raise ValueError(f'Only support {supported_inputs}, input is {calc_nscf}')
+
+    if not calc_nscf.is_finished_ok:
+        raise ValueError(f'Input {calc_nscf} has not finished successfully')
+
+    if calc_nscf.process_class == PwBaseWorkChain:
+        calc_nscf = get_last_calcjob(calc_nscf)
+
+    if calc_nscf.process_class != PwCalculation:
+        raise ValueError(f'Input {calc_nscf} is not a PwCalculation')
+
+    out = calc_nscf.outputs.retrieved.get_object_content('aiida.out')
+    lines = out.split('\n')
+
+    # QE 6.8 output scf Fermi energy in nscf run:
+    #  the Fermi energy is     5.9816 ev
+    #  (compare with:     5.9034 eV, computed in scf)
+    fermi_energy = None
+    regex = re.compile(r'\s*\(compare with:\s*([+-]?(?:[0-9]+(?:[.][0-9]*)?|[.][0-9]+))\s*eV, computed in scf\)')
+    for line in lines:
+        match = regex.match(line)
+        if match:
+            fermi_energy = float(match.group(1))
+            break
+
+    return fermi_energy
