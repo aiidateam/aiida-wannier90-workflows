@@ -945,6 +945,7 @@ def print_estimation(hdf_file: str):
 
     # load it
     df = store['df']
+    store.close()
 
     num_structures = len(df)
     print(f'{num_structures=}')
@@ -969,6 +970,26 @@ def print_estimation(hdf_file: str):
     print(tabulate(table, headers))
     print()
 
+    print('Estimation for saving Wannier Hamiltonian')
+    scheme_minimum = ['hr_dat', 'wsvec_dat', 'centres_xyz']
+    scheme_medium1 = ['hr_dat', 'wsvec_dat', 'r_dat']
+    scheme_medium2 = ['tb_dat', 'wsvec_dat']
+    scheme_medium3 = ['tb_dat', 'wsvec_dat', 'xsf_reduce']
+    scheme_maximum = ['tb_dat', 'wsvec_dat', 'xsf']
+    headers = ['files', 'min', 'max', 'average', 'total']
+    table = []
+    for scheme in [scheme_minimum, scheme_medium1, scheme_medium2, scheme_medium3, scheme_maximum]:
+        total_size = np.zeros_like(df[scheme[0]], dtype=int)
+        for key in scheme:
+            total_size += df[key]
+        minval = human_readable_size(min(total_size))
+        maxval = human_readable_size(max(total_size))
+        average = human_readable_size(np.average(total_size))
+        total = human_readable_size(np.sum(total_size))
+        table.append(['+'.join(scheme), minval, maxval, average, total])
+    print(tabulate(table, headers))
+    print()
+
     headers = ['param', 'min', 'max', 'average']
     table = []
     for key in ['num_bands', 'num_exclude_bands', 'num_wann', 'num_kpts', 'nr1', 'nr2', 'nr3', 'nrpts']:
@@ -977,8 +998,6 @@ def print_estimation(hdf_file: str):
         average = np.average(df[key])
         table.append([key, minval, maxval, average])
     print(tabulate(table, headers))
-
-    store.close()
 
 
 def plot_histogram(hdf_file: str):
@@ -1022,6 +1041,7 @@ def plot_histogram(hdf_file: str):
 
     # load it
     df = store['df']
+    store.close()
 
     num_atoms = list(map(get_num_atoms, df['structure']))
     # print(num_atoms)
@@ -1053,7 +1073,171 @@ def plot_histogram(hdf_file: str):
         ax.set_xlabel('number of atoms')
         ax.set_xscale('log')
 
+    plt.show()
+
+
+def plot_histogram_hamiltonian(hdf_file: str):  # pylint: disable=too-many-statements
+    """Plot a histogram for hr_dat/tb_dat/... file sizes.
+
+    :param hdf_file: [description]
+    :type hdf_file: str
+    :raises ValueError: [description]
+    """
+    import os.path
+    import pandas as pd
+    import matplotlib.pyplot as plt
+    from ase.formula import Formula
+
+    def get_num_bins(x, step):
+        """Calculate number of bins in histogram."""
+        num_bins, mod = divmod(max(x), step)
+        if mod != 0:
+            num_bins += 1
+        return num_bins
+
+    def get_size_histogram(x, y, step):
+        num_bins = get_num_bins(x, step)
+        hist_y = np.zeros(num_bins, dtype=int)
+
+        for i, y_i in enumerate(y):
+            # minus 1 so the end point is included, e.g. when step=5, 5 in (0, 5], 5 not in (5, 10]
+            # x[i] should > 0
+            ind = (x[i] - 1) // step
+            hist_y[ind] += y_i
+
+        hist_x = np.arange(step, step * (num_bins + 1), step)
+        return hist_x, hist_y
+
+    get_num_atoms = lambda _: len(Formula(_))
+
+    if not os.path.exists(hdf_file):
+        raise ValueError(f'File not existed: {hdf_file}')
+
+    store = pd.HDFStore(hdf_file)
+
+    # load it
+    df = store['df']
     store.close()
+
+    num_atoms = list(map(get_num_atoms, df['structure']))
+    # print(num_atoms)
+
+    fig, axs = plt.subplots(2, 3)
+
+    step = 1
+    num_bins = get_num_bins(num_atoms, step)
+
+    print('Processing #atoms histogram')
+    axs[0, 0].hist(num_atoms, num_bins)
+    axs[0, 0].set_title('Histogram for number of atoms')
+    axs[0, 0].set_ylabel('Count')
+    axs[0, 0].set_xlabel('number of atoms')
+    axs[0, 0].set_xscale('log')
+
+    ax_iter = iter(fig.axes)
+    next(ax_iter)
+
+    # Whether write kinetic energy and external potential operators
+    add_kin_extpot = False
+    # Whether write them into format of 3-vectors in one file, or in seperate files similar to hr.dat
+    kin_extpot_tbdat_format = False
+    # Whether do compression
+    compress_file = False
+    #'zst', '7z', 'zip'
+    compression_format = 'zip'
+    # compressed file / raw file ratio
+    compression_ratio = {
+        'hr_dat': {
+            'zip': 0.14,
+            '7z': 0.08,
+            'zst': 0.13
+        },
+        'wsvec_dat': {
+            'zip': 0.06,
+            '7z': 0.02,
+            'zst': 0.02
+        },
+        'centres_xyz': {
+            'zip': 0.58,
+            '7z': 0.52,
+            'zst': 0.41
+        },
+        'r_dat': {
+            'zip': 0.15,
+            '7z': 0.09,
+            'zst': 0.15
+        },
+        'tb_dat': {
+            'zip': 0.34,
+            '7z': 0.18,
+            'zst': 0.30
+        },
+        'xsf': {
+            'zip': 0.30,
+            '7z': 0.22,
+            'zst': 0.32
+        }
+    }
+    if compress_file:
+        for key, val in compression_ratio.items():
+            df[key] *= val[compression_format]
+        df['xsf_reduce'] *= compression_ratio['xsf'][compression_format]
+        df['xsf_supercell3'] *= compression_ratio['xsf'][compression_format]
+        df['xsf_reduce_supercell3'] *= compression_ratio['xsf'][compression_format]
+
+    scheme_minimum = ['hr_dat', 'wsvec_dat', 'centres_xyz']
+    scheme_medium1 = ['hr_dat', 'wsvec_dat', 'r_dat']
+    scheme_medium2 = ['tb_dat', 'wsvec_dat']
+    scheme_medium3 = ['tb_dat', 'wsvec_dat', 'xsf_reduce']
+    scheme_maximum = ['tb_dat', 'wsvec_dat', 'xsf']
+    for scheme in [scheme_minimum, scheme_medium1, scheme_medium2, scheme_medium3, scheme_maximum]:
+        scheme_name = '+'.join(scheme)
+        print(f'Processing {scheme_name} histogram')
+        total_size = np.zeros_like(df[scheme[0]])
+        for key in scheme:
+            total_size += df[key]
+        if add_kin_extpot:
+            if kin_extpot_tbdat_format:
+                if 'hr_dat' in scheme:
+                    total_size -= df['hr_dat']
+                    total_size += df['tb_dat']
+                elif 'tb_dat' in scheme:
+                    # tb_dat also contains r(R)_mn, a bit overestimate
+                    total_size += 2 / 3 * (df['tb_dat'] - df['r_dat'])
+                else:
+                    raise ValueError('No Hamiltonian data, should not enter this branch')
+            else:
+                total_size += 2 * df['hr_dat']
+        data_x, data_y = get_size_histogram(num_atoms, total_size, step)
+
+        ax = next(ax_iter)
+
+        # Convert into GiB
+        data_y = np.cumsum(data_y / 1024**3)
+        ax.set_ylabel('File size / GiB')
+        # For XSF, convert into TiB
+        if any('xsf' in _ for _ in scheme):
+            data_y /= 1024
+            ax.set_ylabel('File size / TiB')
+
+        ax.bar(data_x, data_y, width=1.5)
+        title = f'Cumulative sum for {scheme_name}'
+        ax.set_title(title)
+        ax.set_xlabel('number of atoms')
+        ax.set_xscale('log')
+
+        ax.annotate(f'tot={data_y[-1]:.2f}', xy=(0.05, 0.95), xycoords='axes fraction')
+
+    title = ''
+    if add_kin_extpot:
+        if kin_extpot_tbdat_format:
+            title = 'with T,V_ext in tb.dat format'
+        else:
+            title = 'with T,V_ext in hr.dat format'
+    if compress_file:
+        title += '\n' + f'with {compression_format} compression'
+    fig.suptitle(title)
+
     plt.show()
 
 
@@ -1102,9 +1286,3 @@ def test_estimators():
     assert estimate_xsf(7, 1, 18, 18, 18) == 614995 * 7
     assert estimate_xsf(7, 1, 18, 18, 18, True) == 614995 * 7
     assert estimate_xsf(7, 1, 18, 18, 18, True) == 77479 * 7
-
-    # minimum: hr + wsvec + centres
-    # medium:  hr + wsvec + r
-    # medium2: tb + wsvec
-    # maximum: tb + wsvec + xsf_reduce
-    # maximum: tb + wsvec + xsf_full
