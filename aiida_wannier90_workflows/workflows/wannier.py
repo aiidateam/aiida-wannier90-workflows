@@ -571,11 +571,15 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):  # pylint: disable=too-many-
         # not necessary but it is good to do some sanity checks:
         # 1. the calculated number of projections is consistent with QE projwfc.x
         from ..utils.upf import get_number_of_electrons
+        if 'scf' in self.inputs:
+            pseudos = self.inputs['scf']['pw']['pseudos']
+        else:
+            pseudos = self.inputs['nscf']['pw']['pseudos']
         args = {
             'structure': self.ctx.current_structure,
             # the type of `self.inputs['scf']['pw']['pseudos']` is plumpy.utils.AttributesFrozendict,
             # we need to convert it to dict, otherwise get_number_of_projections will fail.
-            'pseudos': dict(self.inputs['scf']['pw']['pseudos'])
+            'pseudos': dict(pseudos)
         }
         if 'calc_projwfc' in self.ctx:
             num_proj = len(self.ctx.calc_projwfc.outputs['projections'].get_orbitals())
@@ -585,7 +589,10 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):  # pylint: disable=too-many-
             if number_of_projections != num_proj:
                 raise ValueError(f'number of projections {number_of_projections} != projwfc.x output {num_proj}')
         # 2. the number of electrons is consistent with QE output
-        num_elec = self.ctx.workchain_scf.outputs['output_parameters']['number_of_electrons']
+        if 'workchain_scf' in self.ctx:
+            num_elec = self.ctx.workchain_scf.outputs['output_parameters']['number_of_electrons']
+        else:
+            num_elec = self.ctx.workchain_nscf.outputs['output_parameters']['number_of_electrons']
         number_of_electrons = get_number_of_electrons(**args)
         if number_of_electrons != num_elec:
             raise ValueError(f'number of electrons {number_of_electrons} != QE output {num_elec}')
