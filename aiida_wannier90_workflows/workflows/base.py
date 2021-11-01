@@ -17,6 +17,8 @@ class Wannier90BaseWorkChain(BaseRestartWorkChain):
     _WANNIER90_DEFAULT_DIS_PROJ_MIN = 0.1
     _WANNIER90_DEFAULT_DIS_PROJ_MAX = 0.9
 
+    _WANNIER90_DEFAULT_WANNIER_PLOT_SUPERCELL = 2
+
     @classmethod
     def define(cls, spec):
         """Define the process spec."""
@@ -36,6 +38,7 @@ class Wannier90BaseWorkChain(BaseRestartWorkChain):
 
         spec.exit_code(400, 'ERROR_BVECTORS', message='Unrecoverable bvectors error.')
         spec.exit_code(401, 'ERROR_DISENTANGLEMENT_NOT_ENOUGH_STATES', message='Unrecoverable disentanglement error.')
+        spec.exit_code(402, 'ERROR_PLOT_WF_CUBE', message='Unrecoverable cube format error.')
 
     def setup(self):
         """Call the `setup` of the `BaseRestartWorkChain` and then create the inputs dictionary in `self.ctx.inputs`.
@@ -47,6 +50,7 @@ class Wannier90BaseWorkChain(BaseRestartWorkChain):
         self.ctx.inputs = AttributeDict(self.exposed_inputs(Wannier90Calculation, 'wannier90'))
         self.ctx.kmeshtol_new = [self._WANNIER90_DEFAULT_KMESH_TOL, 1e-8, 1e-4]
         self.ctx.disprojmin_multipliers = [0.5, 0.25, 0.125]
+        self.ctx.wannier_plot_supercell_new = [self._WANNIER90_DEFAULT_WANNIER_PLOT_SUPERCELL + _ for _ in range(1, 4)]
 
     def report_error_handled(self, calculation, action):
         """Report an action taken for a calculation that has failed.
@@ -116,6 +120,35 @@ class Wannier90BaseWorkChain(BaseRestartWorkChain):
 
         action = 'Not enough states for disentanglement, '
         action += f'current dis_proj_min = {current_disprojmin}, new dis_proj_min = {new_disprojmin}'
+        self.report_error_handled(calculation, action)
+        self.ctx.inputs.parameters = orm.Dict(dict=parameters)
+
+        return ProcessHandlerReport(True)
+
+    @process_handler(exit_codes=[Wannier90Calculation.exit_codes.ERROR_PLOT_WF_CUBE])
+    def handle_plot_wf_cube(self, calculation):
+        """Try to fix Wannier90 wout error message related to cube format.
+
+        The error message is: 'Error plotting WF cube. Try one of the following:'.
+
+        The handler will try to increase 'wannier_plot_supercell'.
+        """
+        parameters = self.ctx.inputs.parameters.get_dict()
+
+        current_supercell = parameters.get('wannier_plot_supercell', self._WANNIER90_DEFAULT_WANNIER_PLOT_SUPERCELL)
+        if current_supercell in self.ctx.wannier_plot_supercell_new:
+            self.ctx.wannier_plot_supercell_new.remove(current_supercell)
+
+        if len(self.ctx.wannier_plot_supercell_new) == 0:
+            action = 'Unrecoverable error after several trials of wannier_plot_supercell'
+            self.report_error_handled(calculation, action)
+            return ProcessHandlerReport(True, self.exit_codes.ERROR_PLOT_WF_CUBE)
+
+        new_supercell = self.ctx.wannier_plot_supercell_new.pop(0)
+        parameters['wannier_plot_supercell'] = new_supercell
+
+        action = 'Error plotting WFs in cube format, '
+        action += f'current wannier_plot_supercell = {current_supercell}, new wannier_plot_supercell = {new_supercell}'
         self.report_error_handled(calculation, action)
         self.ctx.inputs.parameters = orm.Dict(dict=parameters)
 
