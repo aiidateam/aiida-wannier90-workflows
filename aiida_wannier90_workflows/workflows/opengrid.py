@@ -1,28 +1,33 @@
+# -*- coding: utf-8 -*-
+"""Wannierisation workflow using open_grid.x to bypass the nscf step."""
 from aiida import orm
 from aiida.common import AttributeDict
 from aiida.engine.processes import ToContext, if_, ProcessBuilder
 
 from aiida_quantumespresso.utils.mapping import prepare_process_inputs
 from aiida_quantumespresso.calculations.opengrid import OpengridCalculation
+from aiida_wannier90_workflows.workflows.restart.opengrid import OpengridBaseWorkChain
 
 from .wannier import Wannier90WorkChain
 
-__all__ = ('Wannier90OpengridWorkChain', )
+__all__ = ('Wannier90OpengridWorkChain',)
 
 
 class Wannier90OpengridWorkChain(Wannier90WorkChain):
-    """This WorkChain uses open_grid.x to unfold the 
-    symmetrized kmesh to a full kmesh in the Wannier90WorkChain.
-    The full-kmesh nscf can be avoided.
+    """WorkChain using open_grid.x to bypass the nscf step.
+
+    The open_grid.x unfolds the symmetrized kmesh to a full kmesh, thus
+    the full-kmesh nscf step can be avoided.
 
     2 schemes:
-    1. scf w/ symmetry, more nbnd -> open_grid 
-       -> pw2wannier90 -> wannier90
-    2. scf w/ symmetry, default nbnd -> nscf w/ symm, more nbnd 
-       -> open_grid -> pw2wannier90 -> wannier90
+      1. scf w/ symmetry, more nbnd -> open_grid -> pw2wannier90 -> wannier90
+      2. scf w/ symmetry, default nbnd -> nscf w/ symm, more nbnd -> open_grid
+         -> pw2wannier90 -> wannier90
     """
+
     @classmethod
     def define(cls, spec):
+        """Define the process spec."""
         super().define(spec)
 
         spec.expose_inputs(
@@ -31,8 +36,7 @@ class Wannier90OpengridWorkChain(Wannier90WorkChain):
             exclude=('parent_folder', 'structure'),
             namespace_options={
                 'required': False,
-                'populate_defaults':
-                False,
+                'populate_defaults': False,
                 'help': 'Inputs for the `OpengridCalculation`, if not specified the opengrid step is skipped.'
             }
         )
@@ -56,10 +60,7 @@ class Wannier90OpengridWorkChain(Wannier90WorkChain):
                 cls.run_opengrid,
                 cls.inspect_opengrid,
             ),
-            if_(cls.should_run_projwfc)(
-                cls.run_projwfc, 
-                cls.inspect_projwfc
-            ),
+            if_(cls.should_run_projwfc)(cls.run_projwfc, cls.inspect_projwfc),
             cls.run_wannier90_pp,
             cls.inspect_wannier90_pp,
             cls.run_pw2wannier90,
@@ -69,19 +70,11 @@ class Wannier90OpengridWorkChain(Wannier90WorkChain):
             cls.results,
         )
 
-        spec.expose_outputs(
-            OpengridCalculation,
-            namespace='opengrid',
-            namespace_options={
-                'required': False,
-            }
-        )
+        spec.expose_outputs(OpengridCalculation, namespace='opengrid', namespace_options={
+            'required': False,
+        })
 
-        spec.exit_code(
-            480,
-            'ERROR_SUB_PROCESS_FAILED_OPENGRID',
-            message='the OpengridCalculation sub process failed'
-        )
+        spec.exit_code(480, 'ERROR_SUB_PROCESS_FAILED_OPENGRID', message='the OpengridCalculation sub process failed')
 
     @staticmethod
     def validate_inputs(inputs, ctx=None):  # pylint: disable=unused-argument
@@ -97,39 +90,36 @@ class Wannier90OpengridWorkChain(Wannier90WorkChain):
         return 'opengrid' in self.inputs
 
     def run_opengrid(self):
-        """Use QE open_grid.x to unfold irriducible kmesh to a full kmesh"""
-        inputs = AttributeDict(
-            self.exposed_inputs(OpengridCalculation, namespace='opengrid')
-        )
-        inputs.metadata.call_link_label = 'opengrid'
-
+        """Use QE open_grid.x to unfold irriducible kmesh to a full kmesh."""
+        inputs = AttributeDict(self.exposed_inputs(OpengridCalculation, namespace='opengrid'))
         inputs.parent_folder = self.ctx.current_folder
+        inputs = {'opengrid': inputs, 'metadata': {'call_link_label': 'opengrid'}}
+        inputs = prepare_process_inputs(OpengridBaseWorkChain, inputs)
 
-        inputs = prepare_process_inputs(OpengridCalculation, inputs)
-        running = self.submit(OpengridCalculation, **inputs)
+        running = self.submit(OpengridBaseWorkChain, **inputs)
         self.report(f'launching {running.process_label}<{running.pk}>')
 
-        return ToContext(calc_opengrid=running)
+        return ToContext(workchain_opengrid=running)
 
     def inspect_opengrid(self):
         """Verify that the OpengridCalculation run successfully finished."""
-        workchain = self.ctx.calc_opengrid
+        workchain = self.ctx.workchain_opengrid
 
         if not workchain.is_finished_ok:
-            self.report(
-                f'{workchain.process_label} failed with exit status {workchain.exit_status}'
-            )
+            self.report(f'{workchain.process_label} failed with exit status {workchain.exit_status}')
             return self.exit_codes.ERROR_SUB_PROCESS_FAILED_OPENGRID
 
         self.ctx.current_folder = workchain.outputs.remote_folder
 
     def prepare_wannier90_inputs(self):
-        """Overrides the parent method in Wannier90WorkChain.
-        The wannier input kpoints are set as the parsed output from OpengridCalculation."""
+        """Override the parent method in Wannier90WorkChain.
+
+        The wannier input kpoints are set as the parsed output from OpengridCalculation.
+        """
         inputs = super().prepare_wannier90_inputs()
 
         if self.should_run_opengrid():
-            opengrid_outputs = self.ctx.calc_opengrid.outputs
+            opengrid_outputs = self.ctx.workchain_opengrid.outputs
             inputs.kpoints = opengrid_outputs.kpoints
             parameters = inputs.parameters.get_dict()
             parameters['mp_grid'] = opengrid_outputs.kpoints_mesh.get_kpoints_mesh()[0]
@@ -138,52 +128,38 @@ class Wannier90OpengridWorkChain(Wannier90WorkChain):
         return inputs
 
     def results(self):
-        """Overrides parent workchain"""
+        """Override parent workchain."""
         if self.should_run_opengrid():
-            self.out_many(
-                self.exposed_outputs(
-                    self.ctx.calc_opengrid,
-                    OpengridCalculation,
-                    namespace='opengrid'
-                )
-            )
+            self.out_many(self.exposed_outputs(self.ctx.workchain_opengrid, OpengridCalculation, namespace='opengrid'))
 
         super().results()
 
     @classmethod
-    def get_builder_from_protocol(
-        cls,
-        codes: dict,
-        structure: orm.StructureData,
-        *,
-        opengrid_only_scf: bool = True,
-        **kwargs
+    def get_builder_from_protocol(  # pylint: disable=arguments-differ
+        cls, codes: dict, structure: orm.StructureData, *, opengrid_only_scf: bool = True, **kwargs
     ) -> ProcessBuilder:
-        """Reture a builder populated with predefined inputs that can be directly submitted.
+        """Return a builder populated with predefined inputs that can be directly submitted.
+
         Optional keyword arguments are passed to the same function of Wannier90WorkChain.
-        
         Overrides Wannier90WorkChain workchain.
 
         :param codes: [description]
         :type codes: [type]
         :param structure: [description]
         :type structure: [type]
-        :param opengrid_only_scf: If True first do a scf with symmetry and increased number of bands, then open_grid to unfold kmesh; If False first do a scf with symmetry and default number of bands, then a nscf with symmetry and increased number of bands, followed by open_grid.
+        :param opengrid_only_scf: If True first do a scf with symmetry and increased number of bands,
+        then launch open_grid.x to unfold kmesh; If False first do a scf with symmetry and default
+        number of bands, then a nscf with symmetry and increased number of bands, followed by open_grid.x.
         :type opengrid_only_scf: [type]
         """
-        
+
         summary = kwargs.pop('summary', {})
         print_summary = kwargs.pop('print_summary', True)
 
-        builder = super().get_builder_from_protocol(
-            codes, structure, **kwargs,
-            summary=summary, print_summary=False
-        )
+        builder = super().get_builder_from_protocol(codes, structure, **kwargs, summary=summary, print_summary=False)
 
         if opengrid_only_scf:
-            nbnd = builder.nscf['pw']['parameters'].get_dict()['SYSTEM'].get(
-                'nbnd', None
-            )
+            nbnd = builder.nscf['pw']['parameters'].get_dict()['SYSTEM'].get('nbnd', None)
             params = builder.scf['pw']['parameters'].get_dict()
             if nbnd is not None:
                 nbnd_scf = params['SYSTEM'].get('nbnd', None)
