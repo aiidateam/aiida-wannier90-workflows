@@ -51,7 +51,7 @@ def cmd_plot_bands(ctx, pw, wannier, save):
     """
     from pprint import pprint
     from aiida.cmdline.commands.cmd_data.cmd_bands import bands_show
-    from aiida_wannier90_workflows.utils.nodes import find_pwbands
+    from aiida_wannier90_workflows.utils.node.bands import find_pwbands
     from aiida_wannier90_workflows.utils.plot import get_mpl_code_for_bands, get_mpl_code_for_workchains
 
     if len(pw) > 1:
