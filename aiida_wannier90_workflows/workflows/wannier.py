@@ -126,20 +126,20 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):  # pylint: disable=too-many-
             namespace_options={
                 'required': False,
                 'populate_defaults': False,
-                'help': 'Inputs for the `ProjwfcCalculation` for the Projwfc calculation.'
+                'help': 'Inputs for the `ProjwfcCalculation`.'
             }
         )
         spec.expose_inputs(
             Pw2wannier90Calculation,
             namespace='pw2wannier90',
             exclude=('parent_folder', 'nnkp_file'),
-            namespace_options={'help': 'Inputs for the `Pw2wannier90Calculation` for the pw2wannier90 calculation.'}
+            namespace_options={'help': 'Inputs for the `Pw2wannier90Calculation`.'}
         )
         spec.expose_inputs(
-            Wannier90Calculation,
+            Wannier90BaseWorkChain,
             namespace='wannier90',
-            exclude=('structure',),
-            namespace_options={'help': 'Inputs for the `Wannier90Calculation` for the Wannier90 calculation.'}
+            exclude=('wannier90.structure',),
+            namespace_options={'help': 'Inputs for the `Wannier90BaseWorkChain`.'}
         )
         spec.inputs.validator = cls.validate_inputs
 
@@ -204,7 +204,7 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):  # pylint: disable=too-many-
             if 'parent_folder' not in nscf_inputs['pw']:
                 return 'If skipping scf step, nscf inputs must have a `parent_folder`'
 
-        wannier_inputs = AttributeDict(inputs['wannier90'])
+        wannier_inputs = AttributeDict(inputs['wannier90']['wannier90'])
         wannier_parameters = wannier_inputs.parameters.get_dict()
 
         # Check bands_plot and kpoint_path
@@ -344,7 +344,8 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):  # pylint: disable=too-many-
         """
         from aiida_wannier90_workflows.utils.bandsdist import remove_exclude_bands
 
-        inputs = AttributeDict(self.exposed_inputs(Wannier90Calculation, namespace='wannier90'))
+        base_inputs = AttributeDict(self.exposed_inputs(Wannier90BaseWorkChain, namespace='wannier90'))
+        inputs = base_inputs['wannier90']
         inputs.structure = self.ctx.current_structure
         parameters = inputs.parameters.get_dict()
 
@@ -408,11 +409,14 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):  # pylint: disable=too-many-
 
         inputs.parameters = orm.Dict(dict=parameters)
 
-        return inputs
+        base_inputs['wannier90'] = inputs
+
+        return base_inputs
 
     def run_wannier90_pp(self):
         """Wannier90 post processing step."""
-        inputs = self.prepare_wannier90_inputs()
+        base_inputs = self.prepare_wannier90_inputs()
+        inputs = base_inputs['wannier90']
 
         # add postproc
         if 'settings' in inputs:
@@ -422,8 +426,15 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):  # pylint: disable=too-many-
         settings['postproc_setup'] = True
         inputs['settings'] = settings
 
-        inputs = {'wannier90': inputs, 'metadata': {'call_link_label': 'wannier90_pp'}}
-        inputs = prepare_process_inputs(Wannier90BaseWorkChain, inputs)
+        # I should not stash files in postproc, otherwise there is a RemoteStashFolderData in outputs
+        if 'stash' in inputs['metadata']['options']:
+            options = deepcopy(inputs['metadata']['options'])
+            options.pop('stash', None)
+            inputs['metadata']['options'] = options
+
+        base_inputs['wannier90'] = inputs
+        base_inputs['metadata'] = {'call_link_label': 'wannier90_pp'}
+        inputs = prepare_process_inputs(Wannier90BaseWorkChain, base_inputs)
 
         running = self.submit(Wannier90BaseWorkChain, **inputs)
         self.report(f'launching {running.process_label}<{running.pk}> in postproc mode')
@@ -508,7 +519,14 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):  # pylint: disable=too-many-
 
     def run_wannier90(self):
         """Wannier90 step for MLWF."""
-        inputs = AttributeDict(self.exposed_inputs(Wannier90Calculation, namespace='wannier90'))
+        # from aiida_wannier90_workflows.cli.node import get_last_calcjob
+        base_inputs = AttributeDict(self.exposed_inputs(Wannier90BaseWorkChain, namespace='wannier90'))
+        inputs = base_inputs['wannier90']
+
+        # I should stash files, which was removed from metadata in the postproc step
+        stash = None
+        if 'stash' in inputs['metadata']['options']:
+            stash = deepcopy(inputs['metadata']['options']['stash'])
 
         inputs['remote_input_folder'] = self.ctx.current_folder
 
@@ -528,8 +546,15 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):  # pylint: disable=too-many-
 
         inputs.settings = settings
 
-        inputs = {'wannier90': inputs, 'metadata': {'call_link_label': 'wannier90'}}
-        inputs = prepare_process_inputs(Wannier90BaseWorkChain, inputs)
+        # Restore stash files
+        if stash:
+            options = deepcopy(inputs['metadata']['options'])
+            options['stash'] = stash
+            inputs['metadata']['options'] = options
+
+        base_inputs['wannier90'] = inputs
+        base_inputs['metadata'] = {'call_link_label': 'wannier90'}
+        inputs = prepare_process_inputs(Wannier90BaseWorkChain, base_inputs)
 
         running = self.submit(Wannier90BaseWorkChain, **inputs)
         self.report(f'launching {running.process_label}<{running.pk}>')
@@ -1270,12 +1295,12 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):  # pylint: disable=too-many-
                 retrieve_matrices=retrieve_matrices,
                 **filtered_kwargs
             )
-            builder.wannier90 = wannier_inputs
+            builder.wannier90 = {'wannier90': wannier_inputs}
             builder.relative_dis_windows = orm.Bool(True)
 
         builder.clean_workdir = orm.Bool(inputs.get('clean_workdir', False))
 
-        wannier_params = builder.wannier90['parameters'].get_dict()
+        wannier_params = builder.wannier90['wannier90']['parameters'].get_dict()
         summary['num_bands'] = wannier_params['num_bands']
         summary['num_wann'] = wannier_params['num_wann']
         if 'exclude_bands' in wannier_params:

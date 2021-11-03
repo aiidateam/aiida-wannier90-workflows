@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """Wrapper workchain for Wannier90Calculation to automatically handle several errors."""
+import os.path
 from aiida import orm
 from aiida.common import AttributeDict
 from aiida.engine import while_
@@ -25,6 +26,13 @@ class Wannier90BaseWorkChain(BaseRestartWorkChain):
         super().define(spec)
         spec.expose_inputs(Wannier90Calculation, namespace='wannier90')
 
+        spec.input(
+            'settings',
+            valid_type=orm.Dict,
+            required=False,
+            help="""Additional settings, valid keys: remote_symlink_files"""
+        )
+
         spec.outline(
             cls.setup,
             while_(cls.should_run_process)(
@@ -47,7 +55,32 @@ class Wannier90BaseWorkChain(BaseRestartWorkChain):
         the calculations in the internal loop.
         """
         super().setup()
-        self.ctx.inputs = AttributeDict(self.exposed_inputs(Wannier90Calculation, 'wannier90'))
+
+        inputs = AttributeDict(self.exposed_inputs(Wannier90Calculation, 'wannier90'))
+
+        if 'remote_input_folder' in inputs:
+            # Note there is an `additional_remote_symlink_list` in Wannier90Calculation.inputs.settings,
+            # however it requires user providing a list of
+            #   (computer_uuid, remote_input_folder_abs_path, dest_path)
+            # This is impossible if we launch a Wannier90Calculation inside a workflow since we don't
+            # know the remote_input_folder when setting the inputs of the workflow.
+            # Thus I add an `inputs.settings['remote_symlink_files']` to Wannier90BaseWorkChain,
+            # which only accepts a list of filenames and generate the full
+            # `additional_remote_symlink_list` here.
+            remote_input_folder = inputs['remote_input_folder']
+            remote_input_folder_path = remote_input_folder.get_remote_path()
+            workflow_settings = self.inputs.settings.get_dict()
+            calc_settings = inputs.settings.get_dict()
+            remote_symlink_list = calc_settings.get('additional_remote_symlink_list', [])
+            remote_symlink_list += [
+                (remote_input_folder.computer.uuid, os.path.join(remote_input_folder_path, filename), filename)
+                for filename in workflow_settings.get('remote_symlink_files', [])
+            ]
+            calc_settings['additional_remote_symlink_list'] = remote_symlink_list
+            inputs.settings = orm.Dict(dict=calc_settings)
+
+        self.ctx.inputs = inputs
+
         self.ctx.kmeshtol_new = [self._WANNIER90_DEFAULT_KMESH_TOL, 1e-8, 1e-4]
         self.ctx.disprojmin_multipliers = [0.5, 0.25, 0.125]
         self.ctx.wannier_plot_supercell_new = [self._WANNIER90_DEFAULT_WANNIER_PLOT_SUPERCELL + _ for _ in range(1, 4)]

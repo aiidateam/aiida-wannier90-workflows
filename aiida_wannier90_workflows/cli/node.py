@@ -147,6 +147,7 @@ def cmd_node_gotocomputer(ctx, node, link_label):
 @arguments.WORKFLOWS('workflows')
 def cmd_node_clean(workflows):
     """Clean the workdir of CalcJobNode/WorkChainNode."""
+    from aiida.common.exceptions import NotExistentAttributeError
 
     for node in workflows:
         calcs = []
@@ -165,7 +166,8 @@ def cmd_node_clean(workflows):
             try:
                 calc.outputs.remote_folder._clean()  # pylint: disable=protected-access
                 cleaned_calcs.append(calc.pk)
-            except (IOError, OSError, KeyError):
+            except (IOError, OSError, KeyError, NotExistentAttributeError):
+                # NotExistentAttributeError: when calc was excepted and has no remote_folder
                 pass
         if cleaned_calcs:
             echo.echo(f"cleaned remote folders of calculations: {' '.join(map(str, cleaned_calcs))}")
