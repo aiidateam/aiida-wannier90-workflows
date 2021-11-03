@@ -38,7 +38,9 @@ class Wannier90BandsWorkChain(Wannier90OpengridWorkChain):
         # is a subset of Wannier90OpengridWorkChain,
         # this allow us to launch either Wannier90WorkChain or Wannier90OpengridWorkChain.
         spec.expose_inputs(
-            Wannier90OpengridWorkChain, exclude=('wannier90.kpoint_path',), namespace_options={'required': True}
+            Wannier90OpengridWorkChain,
+            exclude=('wannier90.wannier90.kpoint_path',),
+            namespace_options={'required': True}
         )
         spec.inputs.validator = cls.validate_inputs
 
@@ -147,14 +149,17 @@ class Wannier90BandsWorkChain(Wannier90OpengridWorkChain):
         :return: the inputs port
         :rtype: InputPort
         """
-        inputs = super().prepare_wannier90_inputs()
+        base_inputs = super().prepare_wannier90_inputs()
+        inputs = base_inputs['wannier90']
 
         parameters = inputs.parameters.get_dict()
         parameters['bands_plot'] = True
         inputs.parameters = orm.Dict(dict=parameters)
         inputs.kpoint_path = self.ctx.current_kpoint_path
 
-        return inputs
+        base_inputs['wannier90'] = inputs
+
+        return base_inputs
 
     def results(self):
         """Attach the relevant output nodes from the band calculation to the workchain outputs for convenience."""

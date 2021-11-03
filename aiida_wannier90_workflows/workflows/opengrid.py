@@ -116,7 +116,8 @@ class Wannier90OpengridWorkChain(Wannier90WorkChain):
 
         The wannier input kpoints are set as the parsed output from OpengridCalculation.
         """
-        inputs = super().prepare_wannier90_inputs()
+        base_inputs = super().prepare_wannier90_inputs()
+        inputs = base_inputs['wannier90']
 
         if self.should_run_opengrid():
             opengrid_outputs = self.ctx.workchain_opengrid.outputs
@@ -125,7 +126,9 @@ class Wannier90OpengridWorkChain(Wannier90WorkChain):
             parameters['mp_grid'] = opengrid_outputs.kpoints_mesh.get_kpoints_mesh()[0]
             inputs.parameters = orm.Dict(dict=parameters)
 
-        return inputs
+        base_inputs['wannier90'] = inputs
+
+        return base_inputs
 
     def results(self):
         """Override parent workchain."""
