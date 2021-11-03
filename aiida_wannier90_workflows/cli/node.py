@@ -29,24 +29,6 @@ def cmd_node_show(ctx, nodes):  # pylint: disable=unused-argument
             echo.echo(f'\n{path}')
 
 
-def get_last_calcjob(workchain: orm.WorkChainNode) -> orm.CalcJobNode:
-    """Return the last CalcJob of a WorkChain."""
-    calcs = []
-    for called_descendant in workchain.called_descendants:
-        if not isinstance(called_descendant, orm.CalcJobNode):
-            continue
-        calcs.append(called_descendant)
-
-    if len(calcs) == 0:
-        return None
-
-    # Sort by PK to get latest calcjob
-    calcs.sort(key=lambda x: x.pk)
-    last_calcjob = calcs[-1]
-
-    return last_calcjob
-
-
 @cmd_node.command('gotocomputer')
 @arguments.NODE()
 @click.option(
@@ -64,6 +46,7 @@ def cmd_node_gotocomputer(ctx, node, link_label):
     from aiida.common.exceptions import NotExistent
     from aiida.cmdline.commands.cmd_calcjob import calcjob_gotocomputer
     from aiida.plugins import DataFactory
+    from aiida_wannier90_workflows.utils.node import get_last_calcjob
 
     RemoteData = DataFactory('remote')  # pylint: disable=invalid-name
     RemoteStashFolderData = DataFactory('remote.stash.folder')  # pylint: disable=invalid-name
@@ -189,6 +172,7 @@ def cmd_node_saveinput(ctx, workflow, path):
     from pathlib import Path
     from contextlib import redirect_stdout
     from aiida.cmdline.commands.cmd_calcjob import calcjob_inputcat
+    from aiida_wannier90_workflows.utils.node import get_last_calcjob
     from aiida_wannier90_workflows.workflows.wannier import Wannier90WorkChain
     from aiida_wannier90_workflows.workflows.opengrid import Wannier90OpengridWorkChain
     from aiida_wannier90_workflows.workflows.bands import Wannier90BandsWorkChain

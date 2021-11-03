@@ -519,7 +519,8 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):  # pylint: disable=too-many-
 
     def run_wannier90(self):
         """Wannier90 step for MLWF."""
-        # from aiida_wannier90_workflows.cli.node import get_last_calcjob
+        from aiida_wannier90_workflows.utils.node import get_last_calcjob
+
         base_inputs = AttributeDict(self.exposed_inputs(Wannier90BaseWorkChain, namespace='wannier90'))
         inputs = base_inputs['wannier90']
 
@@ -530,10 +531,8 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):  # pylint: disable=too-many-
 
         inputs['remote_input_folder'] = self.ctx.current_folder
 
-        # use the Wannier90BaseWorkChain-corrected parameters
-        # sort by pk, since the last Wannier90Calculation in Wannier90BaseWorkChain
-        # should have the largest pk
-        last_calc = max(self.ctx.workchain_wannier90_pp.called, key=lambda calc: calc.pk)
+        # Use the Wannier90BaseWorkChain-corrected parameters
+        last_calc = get_last_calcjob(self.ctx.workchain_wannier90_pp)
         # copy postproc inputs, especially the `kmesh_tol` might have been corrected
         for key in last_calc.inputs:
             inputs[key] = last_calc.inputs[key]
@@ -1456,7 +1455,7 @@ def get_scf_fermi_energy(calc_nscf: typing.Union[PwBaseWorkChain, PwCalculation]
     :rtype: float
     """
     import re
-    from aiida_wannier90_workflows.cli.node import get_last_calcjob
+    from aiida_wannier90_workflows.utils.node import get_last_calcjob
 
     supported_inputs = (PwBaseWorkChain, PwCalculation)
     if calc_nscf.process_class not in supported_inputs:
