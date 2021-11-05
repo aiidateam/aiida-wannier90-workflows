@@ -123,7 +123,13 @@ def get_mpl_code_for_workchains(workchain0, workchain1, title=None, save=False, 
     if save and (filename is None):
         filename = f'bandsdiff_{formula}_{workchain0.pk}_{workchain1.pk}.py'
 
-    fermi_energy = workchain1.outputs['scf']['output_parameters']['fermi_energy']
+    if workchain1.process_class == Wannier90BandsWorkChain and 'scf' in workchain1.outputs:
+        fermi_energy = workchain1.outputs['scf']['output_parameters']['fermi_energy']
+    else:
+        if workchain0.process_class == PwBandsWorkChain:
+            fermi_energy = workchain0.outputs['scf_parameters']['fermi_energy']
+        else:
+            raise ValueError('Cannot find fermi energy')
 
     mpl_code = get_mpl_code_for_bands(dft_bands, wan_bands, fermi_energy, title, save, filename)
 
@@ -134,7 +140,7 @@ def get_mapping_for_group(
     wan_group: ty.Union[str, orm.Group],
     dft_group: ty.Union[str, orm.Group],
     match_by_formula: bool = False
-) -> dict[orm.Node, orm.Node]:
+) -> ty.Dict[orm.Node, orm.Node]:
     """Find the corresponding DFT workchain for each Wannier workchain.
 
     :param wan_group: group label of ``Wannier90BandsWorkChain``

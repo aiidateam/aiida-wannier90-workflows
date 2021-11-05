@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """Base class for Wannierisation workflow."""
-import typing
+import typing as ty
 from copy import deepcopy
 import numpy as np
 
@@ -58,7 +58,8 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):  # pylint: disable=too-many-
             required=False,
             default=lambda: orm.Bool(False),
             help=(
-                'If True the dis_froz/win_min/max will be shifted by fermi_enerngy. '
+                'If True the dis_froz/win_min/max will be shifted by Fermi enerngy (for metals) '
+                'or minimum of lowest-unoccupied bands (for insulators). '
                 'False is the default behaviour of wannier90.'
             )
         )
@@ -333,7 +334,7 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):  # pylint: disable=too-many-
             self.report(f'{calculation.process_label} failed with exit status {calculation.exit_status}')
             return self.exit_codes.ERROR_SUB_PROCESS_FAILED_PROJWFC
 
-    def prepare_wannier90_inputs(self):
+    def prepare_wannier90_inputs(self):  # pylint: disable=too-many-statements
         """Construct the inputs of wannier90 calculation.
 
         This is different from the classmethod `get_wannier90_inputs`, which statically generates
@@ -349,31 +350,44 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):  # pylint: disable=too-many-
         inputs.structure = self.ctx.current_structure
         parameters = inputs.parameters.get_dict()
 
-        # Need fermi energy to shift the windows
         fermi_energy = None
-        if self.inputs['relative_dis_windows']:
-            if 'workchain_scf' in self.ctx:
-                scf_output_parameters = self.ctx.workchain_scf.outputs.output_parameters
-                fermi_energy = get_fermi_energy(scf_output_parameters)
-            elif 'workchain_nscf' in self.ctx:
-                fermi_energy = get_scf_fermi_energy(self.ctx.workchain_nscf)
-            if fermi_energy is None:
-                raise ValueError('relative_dis_windows = True but cannot retrieve Fermi energy from scf or nscf output')
-
-        # add scf Fermi energy
         if 'workchain_scf' in self.ctx:
             scf_output_parameters = self.ctx.workchain_scf.outputs.output_parameters
             fermi_energy = get_fermi_energy(scf_output_parameters)
-            if fermi_energy is None:
-                raise ValueError('relative_dis_windows = True but cannot retrieve Fermi energy from scf output')
-            parameters['fermi_energy'] = fermi_energy
-            if self.inputs.relative_dis_windows:
-                keys = ['dis_froz_min', 'dis_froz_max', 'dis_win_min', 'dis_win_max']
-                for k in keys:
-                    if k in parameters:
-                        parameters[k] += fermi_energy
+        elif 'workchain_nscf' in self.ctx:
+            fermi_energy = get_scf_fermi_energy(self.ctx.workchain_nscf)
 
-        # set dis_froz_max
+        # Add Fermi energy
+        if fermi_energy:
+            parameters['fermi_energy'] = fermi_energy
+
+        if self.inputs['relative_dis_windows']:
+            # Need fermi energy to shift the windows
+            if fermi_energy is None:
+                raise ValueError('relative_dis_windows = True but cannot retrieve Fermi energy from scf or nscf output')
+
+            # Check the system is metal or insulator.
+            # For metal, we shift the four paramters by Fermi energy.
+            # For insulator, we shift them by the minimum of LUMO.
+            if 'workchain_scf' in self.ctx:
+                output_band = self.ctx.workchain_scf.outputs.output_band
+            elif 'workchain_nscf' in self.ctx:
+                output_band = self.ctx.workchain_nscf.outputs.output_band
+            else:
+                raise ValueError('No output scf or nscf bands, cannot calculate bandgap')
+            homo, lumo = get_homo_lumo(output_band.get_bands(), fermi_energy)
+            bandgap = lumo - homo
+            if bandgap > 1e-3:
+                shift_energy = lumo
+            else:
+                shift_energy = fermi_energy
+
+            keys = ['dis_froz_min', 'dis_froz_max', 'dis_win_min', 'dis_win_max']
+            for k in keys:
+                if k in parameters:
+                    parameters[k] += shift_energy
+
+        # Auto set dis_froz_max
         if 'auto_froz_max' in self.inputs and self.inputs.auto_froz_max:
             bands = self.ctx.calc_projwfc.outputs.bands
             projections = self.ctx.calc_projwfc.outputs.projections
@@ -1343,7 +1357,7 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):  # pylint: disable=too-many-
         return
 
 
-def get_fermi_energy(output_parameters: orm.Dict) -> typing.Optional[float]:
+def get_fermi_energy(output_parameters: orm.Dict) -> ty.Optional[float]:
     """Get Fermi energy from scf output parameters.
 
     :param output_parameters: scf output parameters
@@ -1390,7 +1404,7 @@ def update_scdm_mu_sigma(
     return orm.Dict(dict=parameters_dict)
 
 
-def get_pseudo_orbitals(pseudos: typing.Mapping[str, UpfData]) -> dict:
+def get_pseudo_orbitals(pseudos: ty.Mapping[str, UpfData]) -> dict:
     """Get the pseudo wavefunctions contained in the pseudopotential.
 
     Currently only support SSSP.
@@ -1446,11 +1460,11 @@ def get_semicore_list(structure: orm.StructureData, pseudo_orbitals: dict) -> li
     return semicore_list
 
 
-def get_scf_fermi_energy(calc_nscf: typing.Union[PwBaseWorkChain, PwCalculation]) -> float:
+def get_scf_fermi_energy(calc_nscf: ty.Union[PwBaseWorkChain, PwCalculation]) -> float:
     """Parse nscf output to get the scf Fermi energy.
 
     :param calc_nscf: a nscf PwBaseWorkChain or PwCalculation
-    :type calc_nscf: typing.Union[PwBaseWorkChain, PwCalculation]
+    :type calc_nscf: ty.Union[PwBaseWorkChain, PwCalculation]
     :return: scf Fermi energy
     :rtype: float
     """
@@ -1485,3 +1499,22 @@ def get_scf_fermi_energy(calc_nscf: typing.Union[PwBaseWorkChain, PwCalculation]
             break
 
     return fermi_energy
+
+
+def get_homo_lumo(bands: np.array, fermi_energy: float) -> ty.Tuple[float, float]:
+    """Find highest occupied bands and lowest unoccupied bands around Fermi energy.
+
+    :param bands: num_kpoints * num_bands
+    :type bands: np.array
+    :param fermi_energy: [description]
+    :type fermi_energy: float
+    :return: [description]
+    :rtype: ty.Tuple[float, float]
+    """
+    occupied = bands <= fermi_energy
+    unoccupied = bands > fermi_energy
+
+    homo = np.max(bands[occupied])
+    lumo = np.min(bands[unoccupied])
+
+    return homo, lumo

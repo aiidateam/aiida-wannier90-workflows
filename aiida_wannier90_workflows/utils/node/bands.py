@@ -8,7 +8,7 @@ from aiida_quantumespresso.workflows.pw.bands import PwBandsWorkChain
 from aiida_wannier90_workflows.workflows.bands import Wannier90BandsWorkChain
 
 
-def find_pwbands(wannier_workchain: Wannier90BandsWorkChain) -> list[PwBandsWorkChain]:
+def find_pwbands(wannier_workchain: Wannier90BandsWorkChain) -> ty.List[PwBandsWorkChain]:
     """Find a corresponding PwBaseWorkChain or PwBandsWorkChain for Wannier90BandsWorkChain.
 
     :param wannier_workchain: [description]
@@ -30,7 +30,7 @@ def find_pwbands(wannier_workchain: Wannier90BandsWorkChain) -> list[PwBandsWork
     return []
 
 
-def find_pwbands_for_structure(structure: orm.StructureData) -> list[ty.Union[PwBandsWorkChain, PwBaseWorkChain]]:
+def find_pwbands_for_structure(structure: orm.StructureData) -> ty.List[ty.Union[PwBandsWorkChain, PwBaseWorkChain]]:
     """Find a `PwBandsWorkChain` or `PwBaseWorkChain` with a kpath for the specified input `structure`."""
     qb = orm.QueryBuilder()
 
