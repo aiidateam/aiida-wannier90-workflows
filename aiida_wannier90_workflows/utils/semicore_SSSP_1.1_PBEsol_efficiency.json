@@ -1,0 +1,1124 @@
+{
+    "Ag": {
+        "filename": "Ag_ONCV_PBEsol-1.0.upf",
+        "md5": "be0296cafe7c2d67c3292db0cbbac4d1",
+        "pswfcs": [
+            "4S",
+            "4P",
+            "5S",
+            "4D"
+        ],
+        "semicores": [
+            "4S",
+            "4P"
+        ]
+    },
+    "Al": {
+        "filename": "Al.pbesol-n-kjpaw_psl.1.0.0.UPF",
+        "md5": "3401bcfaaf5f9b08e46a00870a1ef39d",
+        "pswfcs": [
+            "3S",
+            "3P"
+        ],
+        "semicores": []
+    },
+    "Ar": {
+        "filename": "Ar_ONCV_PBEsol-1.1.upf",
+        "md5": "c01a123fbe80b3fe80f6f94f1eb776dd",
+        "pswfcs": [
+            "3S",
+            "3P"
+        ],
+        "semicores": []
+    },
+    "As": {
+        "filename": "As.pbesol-n-rrkjus_psl.0.2.UPF",
+        "md5": "1aa86e6aa4f77befd3aa87cac6788838",
+        "pswfcs": [
+            "4S",
+            "4P"
+        ],
+        "semicores": []
+    },
+    "Au": {
+        "filename": "Au_ONCV_PBEsol-1.0.upf",
+        "md5": "107326c382cdbc7cf544f5ac04d81467",
+        "pswfcs": [
+            "5S",
+            "5P",
+            "6S",
+            "5D"
+        ],
+        "semicores": [
+            "5S",
+            "5P"
+        ]
+    },
+    "B": {
+        "filename": "b_pbesol_v1.4.uspp.F.UPF",
+        "md5": "369b69bef2c3aeed4453bd8b804fd6a8",
+        "pswfcs": [
+            "2S",
+            "2P"
+        ],
+        "semicores": []
+    },
+    "Ba": {
+        "filename": "Ba.pbesol-spn-kjpaw_psl.1.0.0.UPF",
+        "md5": "f28c4a63d325c1a0d00fd3a4f19b8d73",
+        "pswfcs": [
+            "5S",
+            "6S",
+            "5P"
+        ],
+        "semicores": [
+            "5S",
+            "5P"
+        ]
+    },
+    "Be": {
+        "filename": "be_pbesol_v1.4.uspp.F.UPF",
+        "md5": "09f0a726f30643f9a0ebddd893618f5c",
+        "pswfcs": [
+            "1S",
+            "2S",
+            "2P"
+        ],
+        "semicores": [
+            "1S"
+        ]
+    },
+    "Bi": {
+        "filename": "bi_pbesol_v1.uspp.F.UPF",
+        "md5": "588b87649a5c12ad5a0392deab1dcc00",
+        "pswfcs": [
+            "5D",
+            "6S",
+            "6P"
+        ],
+        "semicores": [
+            "5D"
+        ]
+    },
+    "Br": {
+        "filename": "br_pbesol_v1.4.uspp.F.UPF",
+        "md5": "7bf6084e715f6bfd1944787c04c43e72",
+        "pswfcs": [
+            "4S",
+            "4P"
+        ],
+        "semicores": []
+    },
+    "C": {
+        "filename": "C.pbesol-n-kjpaw_psl.1.0.0.UPF",
+        "md5": "5f3a56537b2bcef3348431d8311bb923",
+        "pswfcs": [
+            "2S",
+            "2P"
+        ],
+        "semicores": []
+    },
+    "Ca": {
+        "filename": "ca_pbesol_v1.uspp.F.UPF",
+        "md5": "0533207b58cddeaa036efa5b63902087",
+        "pswfcs": [
+            "3S",
+            "3P",
+            "4S",
+            "3D"
+        ],
+        "semicores": [
+            "3S",
+            "3P"
+        ]
+    },
+    "Cd": {
+        "filename": "Cd.pbesol-dn-rrkjus_psl.0.3.1.UPF",
+        "md5": "1f02951eb1ebb2be2329879281757063",
+        "pswfcs": [
+            "5S",
+            "5P",
+            "4D"
+        ],
+        "semicores": []
+    },
+    "Ce": {
+        "filename": "Ce.GGA-PBESOL-paw.UPF",
+        "md5": "23607d9236a12d616006a21dc3c8e039",
+        "pswfcs": [
+            "5S",
+            "6S",
+            "5P",
+            "6P",
+            "5D",
+            "6D",
+            "4F",
+            "5F"
+        ],
+        "semicores": [
+            "5S",
+            "5P"
+        ]
+    },
+    "Cl": {
+        "filename": "cl_pbesol_v1.4.uspp.F.UPF",
+        "md5": "ed6bbcf06f19043c0df9f6394706ff8f",
+        "pswfcs": [
+            "3S",
+            "3P"
+        ],
+        "semicores": []
+    },
+    "Co": {
+        "filename": "co_pbesol_v1.2.uspp.F.UPF",
+        "md5": "3b4cd4e7cc7df4da9fdede0fd33e2193",
+        "pswfcs": [
+            "3S",
+            "3P",
+            "3D",
+            "4S",
+            "4P"
+        ],
+        "semicores": [
+            "3S",
+            "3P"
+        ]
+    },
+    "Cr": {
+        "filename": "cr_pbesol_v1.5.uspp.F.UPF",
+        "md5": "a621641e0be27168676a837af8893d0f",
+        "pswfcs": [
+            "3S",
+            "3P",
+            "4S",
+            "3D"
+        ],
+        "semicores": [
+            "3S",
+            "3P"
+        ]
+    },
+    "Cs": {
+        "filename": "cs_pbesol_v1.uspp.F.UPF",
+        "md5": "ae4559e5c840913b791237f814e2d884",
+        "pswfcs": [
+            "5S",
+            "5P",
+            "5D",
+            "6S",
+            "6P"
+        ],
+        "semicores": [
+            "5S",
+            "5P"
+        ]
+    },
+    "Cu": {
+        "filename": "cu_pbesol_v1.2.uspp.F.UPF",
+        "md5": "9756a2ec9488b52ead7a8e4006543bdf",
+        "pswfcs": [
+            "3S",
+            "3P",
+            "3D",
+            "4S",
+            "4P"
+        ],
+        "semicores": [
+            "3S",
+            "3P"
+        ]
+    },
+    "Dy": {
+        "filename": "Dy.GGA-PBESOL-paw.UPF",
+        "md5": "87300e485cfe89bd0b23a3ce6d7c616b",
+        "pswfcs": [
+            "5S",
+            "6S",
+            "5P",
+            "6P",
+            "5D",
+            "6D",
+            "4F",
+            "5F"
+        ],
+        "semicores": [
+            "5S",
+            "5P"
+        ]
+    },
+    "Er": {
+        "filename": "Er.GGA-PBESOL-paw.UPF",
+        "md5": "d8b3a218689ff1ecfc4479e98c14c765",
+        "pswfcs": [
+            "5S",
+            "6S",
+            "5P",
+            "6P",
+            "5D",
+            "6D",
+            "4F",
+            "5F"
+        ],
+        "semicores": [
+            "5S",
+            "5P"
+        ]
+    },
+    "Eu": {
+        "filename": "Eu.GGA-PBESOL-paw.UPF",
+        "md5": "f3820d3063e0c66ddd8b5316f2038eb4",
+        "pswfcs": [
+            "5S",
+            "6S",
+            "5P",
+            "6P",
+            "5D",
+            "6D",
+            "4F",
+            "5F"
+        ],
+        "semicores": [
+            "5S",
+            "5P"
+        ]
+    },
+    "F": {
+        "filename": "f_pbesol_v1.4.uspp.F.UPF",
+        "md5": "d2815ecb49b17b99c5724ffd2f9bbd8d",
+        "pswfcs": [
+            "2S",
+            "2P"
+        ],
+        "semicores": []
+    },
+    "Fe": {
+        "filename": "Fe.pbesol-spn-kjpaw_psl.0.2.1.UPF",
+        "md5": "4d7ec5aa2156491519a4322664fbbf52",
+        "pswfcs": [
+            "3S",
+            "4S",
+            "3P",
+            "4P",
+            "3D"
+        ],
+        "semicores": [
+            "3S",
+            "3P"
+        ]
+    },
+    "Ga": {
+        "filename": "Ga.pbesol-dn-kjpaw_psl.1.0.0.UPF",
+        "md5": "2a7819223b42fad6ccd7f29fc9cbee49",
+        "pswfcs": [
+            "4S",
+            "4P",
+            "3D"
+        ],
+        "semicores": [
+            "3D"
+        ]
+    },
+    "Gd": {
+        "filename": "Gd.GGA-PBESOL-paw.UPF",
+        "md5": "d9fdc7360015cd9620bad644bcc14b0d",
+        "pswfcs": [
+            "5S",
+            "6S",
+            "5P",
+            "6P",
+            "5D",
+            "6D",
+            "4F",
+            "5F"
+        ],
+        "semicores": [
+            "5S",
+            "5P"
+        ]
+    },
+    "Ge": {
+        "filename": "ge_pbesol_v1.4.uspp.F.UPF",
+        "md5": "7bed0412183f5e553a4d27ec7023354d",
+        "pswfcs": [
+            "3D",
+            "4S",
+            "4P"
+        ],
+        "semicores": [
+            "3D"
+        ]
+    },
+    "H": {
+        "filename": "H.pbesol-rrkjus_psl.1.0.0.UPF",
+        "md5": "0324ed591cc0147dc3d88cad0d33f665",
+        "pswfcs": [
+            "1S"
+        ],
+        "semicores": []
+    },
+    "He": {
+        "filename": "He_ONCV_PBEsol-1.0.upf",
+        "md5": "3a98d7dc8e9b0e8c7e1be02b8995cc9d",
+        "pswfcs": [
+            "1S"
+        ],
+        "semicores": []
+    },
+    "Hf": {
+        "filename": "Hf-sp.oncvpsp.upf",
+        "md5": "3619c98de2ee908b1d969add25be4863",
+        "pswfcs": [
+            "5S",
+            "5P",
+            "5D",
+            "6S"
+        ],
+        "semicores": [
+            "5S",
+            "5P"
+        ]
+    },
+    "Hg": {
+        "filename": "Hg_ONCV_PBEsol-1.0.upf",
+        "md5": "9b18bbaf32e5d8994dbbbf1f0a8e2d63",
+        "pswfcs": [
+            "5S",
+            "5P",
+            "6S",
+            "5D"
+        ],
+        "semicores": [
+            "5S",
+            "5P"
+        ]
+    },
+    "Ho": {
+        "filename": "Ho.GGA-PBESOL-paw.UPF",
+        "md5": "e4331f82ae8f480097e745152a969825",
+        "pswfcs": [
+            "5S",
+            "6S",
+            "5P",
+            "6P",
+            "5D",
+            "6D",
+            "4F",
+            "5F"
+        ],
+        "semicores": [
+            "5S",
+            "5P"
+        ]
+    },
+    "I": {
+        "filename": "I.pbesol-n-kjpaw_psl.0.2.UPF",
+        "md5": "cecf1a22a184a0b1ae701638a037a48d",
+        "pswfcs": [
+            "5S",
+            "5P"
+        ],
+        "semicores": []
+    },
+    "In": {
+        "filename": "In.pbesol-dn-rrkjus_psl.0.2.2.UPF",
+        "md5": "2a3399a31491503da6b8c7d8e01e9843",
+        "pswfcs": [
+            "5S",
+            "5P",
+            "4D"
+        ],
+        "semicores": [
+            "4D"
+        ]
+    },
+    "Ir": {
+        "filename": "ir_pbesol_v1.2.uspp.F.UPF",
+        "md5": "965d8bb5733ec2587acb56a50491f36d",
+        "pswfcs": [
+            "5P",
+            "5D",
+            "6S",
+            "6P"
+        ],
+        "semicores": [
+            "5P"
+        ]
+    },
+    "K": {
+        "filename": "K.pbesol-spn-kjpaw_psl.1.0.0.UPF",
+        "md5": "b302bede38c4f5fe00638ceae66f121b",
+        "pswfcs": [
+            "3S",
+            "4S",
+            "3P",
+            "4P"
+        ],
+        "semicores": [
+            "3S",
+            "3P"
+        ]
+    },
+    "Kr": {
+        "filename": "Kr_ONCV_PBEsol-1.0.upf",
+        "md5": "5ac180be35b0c9edbb375e438c4855d9",
+        "pswfcs": [
+            "4S",
+            "4P"
+        ],
+        "semicores": []
+    },
+    "La": {
+        "filename": "La.GGA-PBESOL-paw.UPF",
+        "md5": "2e80f1c10d694b9f13352ee8148412ff",
+        "pswfcs": [
+            "5S",
+            "6S",
+            "5P",
+            "6P",
+            "5D",
+            "6D",
+            "4F",
+            "5F"
+        ],
+        "semicores": [
+            "5S",
+            "5P"
+        ]
+    },
+    "Li": {
+        "filename": "li_pbesol_v1.4.uspp.F.UPF",
+        "md5": "aa28d9aeea6a965f2dc95ee9517b3536",
+        "pswfcs": [
+            "1S",
+            "2S",
+            "2P"
+        ],
+        "semicores": [
+            "1S"
+        ]
+    },
+    "Lu": {
+        "filename": "Lu.GGA-PBESOL-paw.UPF",
+        "md5": "3fcef48d55e219cc7c47d20c5f2554a6",
+        "pswfcs": [
+            "5S",
+            "6S",
+            "5P",
+            "6P",
+            "5D",
+            "6D",
+            "4F",
+            "5F"
+        ],
+        "semicores": [
+            "5S",
+            "5P"
+        ]
+    },
+    "Mg": {
+        "filename": "Mg.pbesol-n-kjpaw_psl.0.3.0.UPF",
+        "md5": "a6c8d2ff726a5f7005dea00130d82930",
+        "pswfcs": [
+            "3S",
+            "3P"
+        ],
+        "semicores": []
+    },
+    "Mn": {
+        "filename": "mn_pbesol_v1.5.uspp.F.UPF",
+        "md5": "0716d5f563e6e95a34f9080f4c78c109",
+        "pswfcs": [
+            "3S",
+            "3P",
+            "4S",
+            "3D",
+            "4P"
+        ],
+        "semicores": [
+            "3S",
+            "3P"
+        ]
+    },
+    "Mo": {
+        "filename": "Mo_ONCV_PBEsol-1.0.upf",
+        "md5": "5193ba6a20874d27c2ef80314d1b3445",
+        "pswfcs": [
+            "4S",
+            "4P",
+            "5S",
+            "4D"
+        ],
+        "semicores": [
+            "4S",
+            "4P"
+        ]
+    },
+    "N": {
+        "filename": "N.pbesol-theos.UPF",
+        "md5": "1b64827339d390a5a22afef3ff345c9d",
+        "pswfcs": [
+            "2S",
+            "2P"
+        ],
+        "semicores": []
+    },
+    "Na": {
+        "filename": "na_pbesol_v1.5.uspp.F.UPF",
+        "md5": "164b46c7694b4bc5b1217b5d1ae6f423",
+        "pswfcs": [
+            "2S",
+            "2P",
+            "3S"
+        ],
+        "semicores": [
+            "2S",
+            "2P"
+        ]
+    },
+    "Nb": {
+        "filename": "Nb.pbesol-spn-kjpaw_psl.0.3.0.UPF",
+        "md5": "3501bca1474143575298708b2d32ca28",
+        "pswfcs": [
+            "4S",
+            "5S",
+            "4P",
+            "4D"
+        ],
+        "semicores": [
+            "4S",
+            "4P"
+        ]
+    },
+    "Nd": {
+        "filename": "Nd.GGA-PBESOL-paw.UPF",
+        "md5": "37d3b6ddf0e3018c38af49be729a942f",
+        "pswfcs": [
+            "5S",
+            "6S",
+            "5P",
+            "6P",
+            "5D",
+            "6D",
+            "4F",
+            "5F"
+        ],
+        "semicores": [
+            "5S",
+            "5P"
+        ]
+    },
+    "Ne": {
+        "filename": "Ne_ONCV_PBEsol-1.0.upf",
+        "md5": "6b58c9748b6c6bd8518a05c4ffec2876",
+        "pswfcs": [
+            "2S",
+            "2P"
+        ],
+        "semicores": []
+    },
+    "Ni": {
+        "filename": "ni_pbesol_v1.4.uspp.F.UPF",
+        "md5": "de937c0c8ae4b350e69c02b76d8a83cb",
+        "pswfcs": [
+            "3S",
+            "3P",
+            "3D",
+            "4S",
+            "4P"
+        ],
+        "semicores": [
+            "3S",
+            "3P"
+        ]
+    },
+    "O": {
+        "filename": "O.pbesol-n-kjpaw_psl.0.1.UPF",
+        "md5": "81d73d1479e654e5638b0319f0d6c2c7",
+        "pswfcs": [
+            "2S",
+            "2P"
+        ],
+        "semicores": []
+    },
+    "Os": {
+        "filename": "os_pbesol_v1.2.uspp.F.UPF",
+        "md5": "417375b0b6115d11b925f9c92882b8df",
+        "pswfcs": [
+            "5S",
+            "5P",
+            "5D",
+            "6S",
+            "6P"
+        ],
+        "semicores": [
+            "5S",
+            "5P"
+        ]
+    },
+    "P": {
+        "filename": "P.pbesol-n-rrkjus_psl.1.0.0.UPF",
+        "md5": "bbb94b1b16383820d6a769669b5d42db",
+        "pswfcs": [
+            "3S",
+            "3P"
+        ],
+        "semicores": []
+    },
+    "Pb": {
+        "filename": "Pb.pbesol-dn-kjpaw_psl.0.2.2.UPF",
+        "md5": "df0e0ac60519e244e20a4bf230ae894d",
+        "pswfcs": [
+            "6S",
+            "6P",
+            "5D"
+        ],
+        "semicores": [
+            "5D"
+        ]
+    },
+    "Pd": {
+        "filename": "Pd_ONCV_PBEsol-1.0.upf",
+        "md5": "252ac589d0cc8911379e98310815452c",
+        "pswfcs": [
+            "4S",
+            "4P",
+            "5S",
+            "4D"
+        ],
+        "semicores": [
+            "4S",
+            "4P"
+        ]
+    },
+    "Pm": {
+        "filename": "Pm.GGA-PBESOL-paw.UPF",
+        "md5": "7393b4891bb7c67805a884007ee3d7dc",
+        "pswfcs": [
+            "5S",
+            "6S",
+            "5P",
+            "6P",
+            "5D",
+            "6D",
+            "4F",
+            "5F"
+        ],
+        "semicores": [
+            "5S",
+            "5P"
+        ]
+    },
+    "Po": {
+        "filename": "Po.pbesol-dn-rrkjus_psl.1.0.0.UPF",
+        "md5": "699150f1cfd13117cb33a6caa4356c05",
+        "pswfcs": [
+            "6S",
+            "6P",
+            "5D"
+        ],
+        "semicores": [
+            "5D"
+        ]
+    },
+    "Pr": {
+        "filename": "Pr.GGA-PBESOL-paw.UPF",
+        "md5": "340b69098d76ddc3d434d602373e49e6",
+        "pswfcs": [
+            "5S",
+            "6S",
+            "5P",
+            "6P",
+            "5D",
+            "6D",
+            "4F",
+            "5F"
+        ],
+        "semicores": [
+            "5S",
+            "5P"
+        ]
+    },
+    "Pt": {
+        "filename": "pt_pbesol_v1.4.uspp.F.UPF",
+        "md5": "d14d547907f752a992688280a7473f8c",
+        "pswfcs": [
+            "5P",
+            "5D",
+            "6S",
+            "6P"
+        ],
+        "semicores": [
+            "5P"
+        ]
+    },
+    "Rb": {
+        "filename": "Rb_ONCV_PBEsol-1.0.upf",
+        "md5": "84df3c5f64297d00eda9a2a6a50301db",
+        "pswfcs": [
+            "4S",
+            "4P",
+            "5S"
+        ],
+        "semicores": [
+            "4S",
+            "4P"
+        ]
+    },
+    "Re": {
+        "filename": "re_pbesol_v1.2.uspp.F.UPF",
+        "md5": "aaf9138663fa2d46e1797bae542d0e3d",
+        "pswfcs": [
+            "5S",
+            "5P",
+            "5D",
+            "6S",
+            "6P"
+        ],
+        "semicores": [
+            "5S",
+            "5P"
+        ]
+    },
+    "Rh": {
+        "filename": "Rh_ONCV_PBEsol-1.0.upf",
+        "md5": "ec594c1794ddd2e1e7b303db34a9ee92",
+        "pswfcs": [
+            "4S",
+            "4P",
+            "5S",
+            "4D"
+        ],
+        "semicores": [
+            "4S",
+            "4P"
+        ]
+    },
+    "Rn": {
+        "filename": "Rn.pbesol-dn-kjpaw_psl.1.0.0.UPF",
+        "md5": "5c61dddfb132b66dc3f68191c02785a8",
+        "pswfcs": [
+            "6S",
+            "6P",
+            "5D"
+        ],
+        "semicores": [
+            "5D"
+        ]
+    },
+    "Ru": {
+        "filename": "Ru_ONCV_PBEsol-1.0.upf",
+        "md5": "8f986bf37b5af91b2f53a4f9afee5fd8",
+        "pswfcs": [
+            "4S",
+            "4P",
+            "5S",
+            "4D"
+        ],
+        "semicores": [
+            "4S",
+            "4P"
+        ]
+    },
+    "S": {
+        "filename": "s_pbesol_v1.4.uspp.F.UPF",
+        "md5": "0ccfa86ec6eb59065d10aaae963ef2a7",
+        "pswfcs": [
+            "3S",
+            "3P"
+        ],
+        "semicores": []
+    },
+    "Sb": {
+        "filename": "sb_pbesol_v1.4.uspp.F.UPF",
+        "md5": "b66a27f2c95be5fc87b0bb5ef8c6d7fd",
+        "pswfcs": [
+            "4D",
+            "5S",
+            "5P"
+        ],
+        "semicores": [
+            "4D"
+        ]
+    },
+    "Sc": {
+        "filename": "Sc_ONCV_PBEsol-1.0.upf",
+        "md5": "1a9da10301537f29e8fd13e102309a15",
+        "pswfcs": [
+            "3S",
+            "3P",
+            "4S",
+            "3D"
+        ],
+        "semicores": [
+            "3S",
+            "3P"
+        ]
+    },
+    "Se": {
+        "filename": "se_pbesol_v1.uspp.F.UPF",
+        "md5": "a3b4745ad650bb7419ce2e0d5f176975",
+        "pswfcs": [
+            "4S",
+            "4P"
+        ],
+        "semicores": []
+    },
+    "Si": {
+        "filename": "Si.pbesol-n-rrkjus_psl.1.0.0.UPF",
+        "md5": "c4212819de858c94c3a1644338846ac9",
+        "pswfcs": [
+            "3S",
+            "3P"
+        ],
+        "semicores": []
+    },
+    "Sm": {
+        "filename": "Sm.GGA-PBESOL-paw.UPF",
+        "md5": "6689040c10eac9660c2e310e7c4a0367",
+        "pswfcs": [
+            "5S",
+            "6S",
+            "5P",
+            "6P",
+            "5D",
+            "6D",
+            "4F",
+            "5F"
+        ],
+        "semicores": [
+            "5S",
+            "5P"
+        ]
+    },
+    "Sn": {
+        "filename": "sn_pbesol_v1.4.uspp.F.UPF",
+        "md5": "463fec1d5456f1e96ec1bfcad4b7b038",
+        "pswfcs": [
+            "4D",
+            "5S",
+            "5P"
+        ],
+        "semicores": [
+            "4D"
+        ]
+    },
+    "Sr": {
+        "filename": "sr_pbesol_v1.uspp.F.UPF",
+        "md5": "635bff1625df5273dba4129a01ed8c82",
+        "pswfcs": [
+            "4S",
+            "4P",
+            "4D",
+            "5S",
+            "5P"
+        ],
+        "semicores": [
+            "4S",
+            "4P"
+        ]
+    },
+    "Ta": {
+        "filename": "ta_pbesol_v1.uspp.F.UPF",
+        "md5": "5dd23d6859724cbb2c0d9b6294d5f84c",
+        "pswfcs": [
+            "5S",
+            "5P",
+            "5D",
+            "6S",
+            "6P"
+        ],
+        "semicores": [
+            "5S",
+            "5P"
+        ]
+    },
+    "Tb": {
+        "filename": "Tb.GGA-PBESOL-paw.UPF",
+        "md5": "bb25a619965335560b6ee28da5b6e46d",
+        "pswfcs": [
+            "5S",
+            "6S",
+            "5P",
+            "6P",
+            "5D",
+            "6D",
+            "4F",
+            "5F"
+        ],
+        "semicores": [
+            "5S",
+            "5P"
+        ]
+    },
+    "Tc": {
+        "filename": "Tc_ONCV_PBEsol-1.0.upf",
+        "md5": "e1002180990b9df3eeb3e08c45184084",
+        "pswfcs": [
+            "4S",
+            "4P",
+            "5S",
+            "4D"
+        ],
+        "semicores": [
+            "4S",
+            "4P"
+        ]
+    },
+    "Te": {
+        "filename": "te_pbesol_v1.uspp.F.UPF",
+        "md5": "44ee7635674656c288d8e9a9a9ffd7e3",
+        "pswfcs": [
+            "5S",
+            "5P"
+        ],
+        "semicores": []
+    },
+    "Ti": {
+        "filename": "ti_pbesol_v1.4.uspp.F.UPF",
+        "md5": "193cf2c0c3c6a4da613d69453fa7e3e9",
+        "pswfcs": [
+            "3S",
+            "3P",
+            "4S",
+            "3D"
+        ],
+        "semicores": [
+            "3S",
+            "3P"
+        ]
+    },
+    "Tl": {
+        "filename": "tl_pbesol_v1.2.uspp.F.UPF",
+        "md5": "ce331abb17083e2469b5604a64700343",
+        "pswfcs": [
+            "5D",
+            "6S",
+            "6P"
+        ],
+        "semicores": [
+            "5D"
+        ]
+    },
+    "Tm": {
+        "filename": "Tm.GGA-PBESOL-paw.UPF",
+        "md5": "1277d8a20ca143f5a519eae978e5978a",
+        "pswfcs": [
+            "5S",
+            "6S",
+            "5P",
+            "6P",
+            "5D",
+            "6D",
+            "4F",
+            "5F"
+        ],
+        "semicores": [
+            "5S",
+            "5P"
+        ]
+    },
+    "V": {
+        "filename": "v_pbesol_v1.4.uspp.F.UPF",
+        "md5": "72fa7d0034c41d8adc50bbc8c632b9f9",
+        "pswfcs": [
+            "3S",
+            "3P",
+            "4S",
+            "3D"
+        ],
+        "semicores": [
+            "3S",
+            "3P"
+        ]
+    },
+    "W": {
+        "filename": "w_pbesol_v1.2.uspp.F.UPF",
+        "md5": "78d6efd6ad550bd5be97e9711072ceda",
+        "pswfcs": [
+            "5S",
+            "5P",
+            "5D",
+            "6S",
+            "6P"
+        ],
+        "semicores": [
+            "5S",
+            "5P"
+        ]
+    },
+    "Xe": {
+        "filename": "Xe_ONCV_PBEsol-1.1.upf",
+        "md5": "ed053c2ceb368a0b775438b7c863d821",
+        "pswfcs": [
+            "4D",
+            "5S",
+            "5P"
+        ],
+        "semicores": [
+            "4D"
+        ]
+    },
+    "Y": {
+        "filename": "y_pbesol_v1.4.uspp.F.UPF",
+        "md5": "dac24993bfd4491f22c7b9129ad9e93d",
+        "pswfcs": [
+            "4S",
+            "4P",
+            "4D",
+            "5S",
+            "5P"
+        ],
+        "semicores": [
+            "4S",
+            "4P"
+        ]
+    },
+    "Yb": {
+        "filename": "Yb.GGA-PBESOL-paw.UPF",
+        "md5": "bb287f6aeb53b1e1f1bc3782e219ba83",
+        "pswfcs": [
+            "5S",
+            "6S",
+            "5P",
+            "6P",
+            "5D",
+            "6D",
+            "4F",
+            "5F"
+        ],
+        "semicores": [
+            "5S",
+            "5P"
+        ]
+    },
+    "Zn": {
+        "filename": "zn_pbesol_v1.uspp.F.UPF",
+        "md5": "7d8615e52efe7c1e2b1899de8658bae2",
+        "pswfcs": [
+            "3S",
+            "3P",
+            "3D",
+            "4S",
+            "4P"
+        ],
+        "semicores": [
+            "3S",
+            "3P"
+        ]
+    },
+    "Zr": {
+        "filename": "zr_pbesol_v1.uspp.F.UPF",
+        "md5": "f29f2a20533738a515abe666fee35838",
+        "pswfcs": [
+            "4S",
+            "4P",
+            "4D",
+            "5S",
+            "5P"
+        ],
+        "semicores": [
+            "4S",
+            "4P"
+        ]
+    }
+}

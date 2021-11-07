@@ -1409,14 +1409,23 @@ def update_scdm_mu_sigma(
 def get_pseudo_orbitals(pseudos: ty.Mapping[str, UpfData]) -> dict:
     """Get the pseudo wavefunctions contained in the pseudopotential.
 
-    Currently only support SSSP.
+    Currently only support the following pseudopotentials installed by `aiida-pseudo`:
+        1. SSSP/1.1/PBE/efficiency
+        2. SSSP/1.1/PBEsol/efficiency
     """
-    pseudo_data = _load_pseudo_metadata('semicore_sssp_efficiency_1.1.json')
+    pseudo_data = []
+    pseudo_data.append(_load_pseudo_metadata('semicore_SSSP_1.1_PBEsol_efficiency.json'))
+    pseudo_data.append(_load_pseudo_metadata('semicore_SSSP_1.1_PBE_efficiency.json'))
+
     pseudo_orbitals = {}
     for element in pseudos:
-        if pseudo_data[element]['md5'] != pseudos[element].md5:
-            raise ValueError(f"Cannot find pseudopotential {element} with md5 {pseudo_data[element]['md5']}")
-        pseudo_orbitals[element] = pseudo_data[element]
+        for data in pseudo_data:
+            if data[element]['md5'] == pseudos[element].md5:
+                pseudo_orbitals[element] = data[element]
+                break
+        else:
+            raise ValueError(f'Cannot find pseudopotential {element} with md5 {pseudos[element].md5}')
+
     return pseudo_orbitals
 
 
