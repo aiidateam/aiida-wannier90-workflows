@@ -139,7 +139,7 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):  # pylint: disable=too-many-
         spec.expose_inputs(
             Wannier90BaseWorkChain,
             namespace='wannier90',
-            exclude=('wannier90.structure',),
+            exclude=('clean_workdir', 'wannier90.structure'),
             namespace_options={'help': 'Inputs for the `Wannier90BaseWorkChain`.'}
         )
         spec.inputs.validator = cls.validate_inputs
@@ -448,6 +448,7 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):  # pylint: disable=too-many-
 
         base_inputs['wannier90'] = inputs
         base_inputs['metadata'] = {'call_link_label': 'wannier90_pp'}
+        base_inputs['clean_workdir'] = orm.Bool(False)
         inputs = prepare_process_inputs(Wannier90BaseWorkChain, base_inputs)
 
         running = self.submit(Wannier90BaseWorkChain, **inputs)
@@ -567,6 +568,7 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):  # pylint: disable=too-many-
 
         base_inputs['wannier90'] = inputs
         base_inputs['metadata'] = {'call_link_label': 'wannier90'}
+        base_inputs['clean_workdir'] = orm.Bool(False)
         inputs = prepare_process_inputs(Wannier90BaseWorkChain, base_inputs)
 
         running = self.submit(Wannier90BaseWorkChain, **inputs)
@@ -668,7 +670,7 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):  # pylint: disable=too-many-
     @classmethod
     def get_relax_inputs(cls, code, kpoints_distance, pseudo_family=None, **kwargs):
         """Statically generate the inputs for `PwRelaxWorkChain`."""
-        overrides = {'clean_workdir': False, 'base': {'kpoints_distance': kpoints_distance}}
+        overrides = {'clean_workdir': orm.Bool(False), 'base': {'kpoints_distance': kpoints_distance}}
         if pseudo_family is not None:
             overrides['pseudo_family'] = pseudo_family
 
@@ -703,7 +705,7 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):  # pylint: disable=too-many-
     @classmethod
     def get_scf_inputs(cls, code, kpoints_distance, pseudo_family=None, **kwargs):
         """Statically generate the inputs for `PwBaseWorkChain`."""
-        overrides = {'clean_workdir': False, 'kpoints_distance': kpoints_distance}
+        overrides = {'clean_workdir': orm.Bool(False), 'kpoints_distance': kpoints_distance}
         if pseudo_family is not None:
             overrides['pseudo_family'] = pseudo_family
 
