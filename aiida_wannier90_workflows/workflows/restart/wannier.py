@@ -83,7 +83,7 @@ class Wannier90BaseWorkChain(BaseRestartWorkChain):
 
         self.ctx.kmeshtol_new = [self._WANNIER90_DEFAULT_KMESH_TOL, 1e-8, 1e-4]
         self.ctx.disprojmin_multipliers = [0.5, 0.25, 0.125]
-        self.ctx.wannier_plot_supercell_new = [self._WANNIER90_DEFAULT_WANNIER_PLOT_SUPERCELL + _ for _ in range(1, 4)]
+        self.ctx.wannier_plot_supercell_new = [4, 6, 8, 10]
 
     def report_error_handled(self, calculation, action):
         """Report an action taken for a calculation that has failed.
@@ -169,8 +169,8 @@ class Wannier90BaseWorkChain(BaseRestartWorkChain):
         parameters = self.ctx.inputs.parameters.get_dict()
 
         current_supercell = parameters.get('wannier_plot_supercell', self._WANNIER90_DEFAULT_WANNIER_PLOT_SUPERCELL)
-        if current_supercell in self.ctx.wannier_plot_supercell_new:
-            self.ctx.wannier_plot_supercell_new.remove(current_supercell)
+        # Remove sizes which are smaller equal than current supercell size
+        self.ctx.wannier_plot_supercell_new = [_ for _ in self.ctx.wannier_plot_supercell_new if _ > current_supercell]
 
         if len(self.ctx.wannier_plot_supercell_new) == 0:
             action = 'Unrecoverable error after several trials of wannier_plot_supercell'
