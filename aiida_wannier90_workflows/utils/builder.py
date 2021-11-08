@@ -1,11 +1,13 @@
 #!/usr/bin/env python
-import typing
+# -*- coding: utf-8 -*-
+"""Functions for manipulating builder."""
+import typing as ty
 from aiida import orm
 from aiida.engine import ProcessBuilder, ProcessBuilderNamespace
 
 
-def serializer(node: orm.Node) -> typing.Any:
-    """transform arbitrary aiida object to ordinary python type, for pretty print.
+def serializer(node: orm.Node) -> ty.Any:
+    """Transform arbitrary aiida object to ordinary python type, for pretty print.
 
     Usage:
     ```
@@ -21,18 +23,20 @@ def serializer(node: orm.Node) -> typing.Any:
 
     if isinstance(node, orm.Dict):
         res = {}
-        for k, v in node.get_dict().items():
-            res[k] = serializer(v)
+        for key, val in node.get_dict().items():
+            res[key] = serializer(val)
     elif isinstance(node, dict):
         res = {}
-        for k, v in node.items():
-            res[k] = serializer(v)
+        for key, val in node.items():
+            res[key] = serializer(val)
     elif isinstance(node, ProcessBuilderNamespace):
         res = {}
-        for k in node:
-            res[k] = serializer(node[k])
+        for key in node:
+            res[key] = serializer(node[key])
     elif isinstance(node, (orm.Float, orm.Bool, orm.Int, orm.Str)):
         res = node.value
+    elif isinstance(node, orm.KpointsData):
+        res = serialize_kpoints(node)
     elif isinstance(node, orm.Code):
         res = f'{node.label}@{node.computer.label}<{node.pk}>'
     elif isinstance(node, orm.StructureData):
@@ -47,7 +51,31 @@ def serializer(node: orm.Node) -> typing.Any:
     return res
 
 
+def serialize_kpoints(kpoints: orm.KpointsData) -> str:
+    """Return str representation of KpointsData.
+
+    :param kpoints: [description]
+    :type kpoints: orm.KpointsData
+    :return: [description]
+    :rtype: str
+    """
+    if 'labels' in kpoints.attributes:
+        res = '-'.join(kpoints.attributes['labels'])
+    elif 'mesh' in kpoints.attributes:
+        res = f"{kpoints.attributes['mesh']} mesh + {kpoints.attributes['offset']} offset"
+    else:
+        res = f"{kpoints.attributes['array|kpoints'][0]} points"
+
+    res += f'<{kpoints.pk}>'
+    return res
+
+
 def print_builder(builder: ProcessBuilderNamespace):
+    """Pretty print builder.
+
+    :param builder: [description]
+    :type builder: ProcessBuilderNamespace
+    """
     from pprint import pprint
 
     # To avoid empty dict, e.g.
@@ -58,28 +86,37 @@ def print_builder(builder: ProcessBuilderNamespace):
     #                               'pw': {'metadata': {'options': {'stash': {}}},
     #                                      'pseudos': {}}},
     #            'metadata': {}},
-    pruned_builder = builder._inputs(prune=True)
+    pruned_builder = builder._inputs(prune=True)  # pylint: disable=protected-access
 
     pprint(serializer(pruned_builder))
 
 
 def submit_builder(builder: ProcessBuilder,
-                   group_label: typing.Optional[str] = None,
-                   dry_run: bool = True) -> typing.Optional[orm.ProcessNode]:
+                   group_label: ty.Optional[str] = None,
+                   dry_run: bool = True) -> ty.Optional[orm.ProcessNode]:
+    """Submit builder and add to group.
+
+    :param builder: [description]
+    :type builder: ProcessBuilder
+    :param group_label: [description], defaults to None
+    :type group_label: ty.Optional[str], optional
+    :param dry_run: [description], defaults to True
+    :type dry_run: bool, optional
+    :return: [description]
+    :rtype: ty.Optional[orm.ProcessNode]
+    """
     from aiida.engine import submit
     from colorama import Fore
 
     if dry_run:
-        print(Fore.GREEN + ">>> Inputs of the builder" + Fore.RESET)
+        print(Fore.GREEN + '>>> Inputs of the builder' + Fore.RESET)
         print_builder(builder)
-        print(Fore.GREEN + ">>> Use `dry_run=False` to submit" + Fore.RESET)
+        print(Fore.GREEN + '>>> Use `dry_run=False` to submit' + Fore.RESET)
         if group_label:
-            print("Destination group name: " + Fore.GREEN + group_label +
-                  Fore.RESET)
+            print('Destination group name: ' + Fore.GREEN + group_label + Fore.RESET)
     else:
         res = submit(builder)
-        print(Fore.GREEN + f">>> Submitted {res.process_label}<{res.pk}>" +
-              Fore.RESET)
+        print(Fore.GREEN + f'>>> Submitted {res.process_label}<{res.pk}>' + Fore.RESET)
 
         if 'structure' in builder:
             structure = builder.structure

@@ -19,14 +19,24 @@ def cmd_node():  # pylint: disable=unused-argument
 @click.pass_context
 def cmd_node_show(ctx, nodes):  # pylint: disable=unused-argument
     """Show info of a node."""
+    from pprint import pprint
     from aiida.cmdline.commands.cmd_node import node_show
+    from aiida_wannier90_workflows.utils.builder import serializer
+    header = '\n--- Additional info: {:s} ---'
 
     for node in nodes:
         ctx.invoke(node_show, nodes=nodes, print_groups=False)
 
         if isinstance(node, orm.RemoteData):
             path = f'{node.get_computer_name()}:{node.get_remote_path()}'
-            echo.echo(f'\n{path}')
+            echo.echo(header.format('path'))
+            echo.echo(f'{path}')
+        elif isinstance(node, (orm.CalculationNode, orm.WorkflowNode)):
+            inputs = {}
+            for key in node.inputs:
+                inputs[key] = serializer(node.inputs[key])
+            echo.echo(header.format(f'{node.process_label}.inputs'))
+            pprint(inputs)
 
 
 @cmd_node.command('gotocomputer')
