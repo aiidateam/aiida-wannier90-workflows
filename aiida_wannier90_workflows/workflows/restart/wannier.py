@@ -186,3 +186,40 @@ class Wannier90BaseWorkChain(BaseRestartWorkChain):
         self.ctx.inputs.parameters = orm.Dict(dict=parameters)
 
         return ProcessHandlerReport(True)
+
+    @process_handler(exit_codes=[Wannier90Calculation.exit_codes.ERROR_OUTPUT_STDOUT_INCOMPLETE])
+    def handle_output_stdout_incomplete(self, calculation):
+        """Try to fix incomplete stdout error by reducing the number of cores.
+
+        Often the ERROR_OUTPUT_STDOUT_INCOMPLETE is due to out-of-memory.
+        The handler will try to set `num_mpiprocs_per_machine` to 1.
+        """
+        import re
+
+        regex = re.compile(r'Detected \d+ oom-kill event\(s\) in step')
+        scheduler_stderr = calculation.get_scheduler_stderr()
+        for line in scheduler_stderr.split('\n'):
+            if regex.search(line) or 'Out Of Memory' in line:
+                break
+        else:
+            action = 'Unrecoverable incomplete stdout error'
+            self.report_error_handled(calculation, action)
+            return ProcessHandlerReport(True, self.exit_codes.ERROR_OUTPUT_STDOUT_INCOMPLETE)
+
+        metadata = self.ctx.inputs['metadata']
+        current_num_mpiprocs_per_machine = metadata['options']['resources'].get('num_mpiprocs_per_machine', 1)
+        # num_mpiprocs_per_machine = calculation.attributes['resources'].get('num_mpiprocs_per_machine', 1)
+
+        if current_num_mpiprocs_per_machine == 1:
+            action = 'Unrecoverable out-of-memory error after setting num_mpiprocs_per_machine to 1'
+            self.report_error_handled(calculation, action)
+            return ProcessHandlerReport(True, self.exit_codes.ERROR_OUTPUT_STDOUT_INCOMPLETE)
+
+        new_num_mpiprocs_per_machine = current_num_mpiprocs_per_machine // 2
+        metadata['options']['resources']['num_mpiprocs_per_machine'] = new_num_mpiprocs_per_machine
+        action = f'Out-of-memory error, current num_mpiprocs_per_machine = {current_num_mpiprocs_per_machine}'
+        action += f', new num_mpiprocs_per_machine = {new_num_mpiprocs_per_machine}'
+        self.report_error_handled(calculation, action)
+        self.ctx.inputs['metadata'] = metadata
+
+        return ProcessHandlerReport(True)
