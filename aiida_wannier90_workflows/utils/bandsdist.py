@@ -161,9 +161,12 @@ def bands_distance_for_group(  # pylint: disable=too-many-statements
     :return: [description]
     :rtype: pd.DataFrame
     """
+    from aiida_quantumespresso.calculations.pw import PwCalculation
+    from aiida_quantumespresso.workflows.pw.base import PwBaseWorkChain
+    from aiida_quantumespresso.workflows.pw.bands import PwBandsWorkChain
     from aiida_wannier90.calculations import Wannier90Calculation
     from aiida_wannier90_workflows.workflows.bands import Wannier90BandsWorkChain
-    from aiida_wannier90_workflows.utils.plot import get_mapping_for_group
+    from aiida_wannier90_workflows.utils.plot import get_mapping_for_group, get_wannier_workchain_fermi_energy
 
     if isinstance(wan_group, str):
         wan_group = orm.load_group(wan_group)
@@ -202,7 +205,12 @@ def bands_distance_for_group(  # pylint: disable=too-many-statements
         if not bands_wc.is_finished_ok:
             print(f'! Skip unfinished DFT {wan_wc.process_label}<{bands_wc.pk}> of {formula}')
             continue
-        bands_dft_node = bands_wc.outputs.output_band
+        if bands_wc.process_class in (PwBaseWorkChain, PwCalculation):
+            bands_dft_node = bands_wc.outputs.output_band
+        elif bands_wc.process_class == PwBandsWorkChain:
+            bands_dft_node = bands_wc.outputs.band_structure
+        else:
+            raise ValueError(f'Unsupported node type {bands_wc.process_class}<{bands_wc.pk}>')
 
         if wan_wc.process_class == Wannier90Calculation:
             fermi_energy = wan_wc.inputs.parameters['fermi_energy']
@@ -212,7 +220,7 @@ def bands_distance_for_group(  # pylint: disable=too-many-statements
             except KeyError:
                 exclude_list_dft = []
         elif wan_wc.process_class == Wannier90BandsWorkChain:
-            fermi_energy = wan_wc.outputs['scf']['output_parameters']['fermi_energy']
+            fermi_energy = get_wannier_workchain_fermi_energy(wan_wc)
             bands_wannier_node = wan_wc.outputs.band_structure
             try:
                 last_wan = wan_wc.get_outgoing(link_label_filter='wannier90').one().node

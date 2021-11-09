@@ -99,7 +99,6 @@ def get_mpl_code_for_bands(dft_bands, wan_bands, fermi_energy=None, title=None, 
 
 def get_mpl_code_for_workchains(workchain0, workchain1, title=None, save=False, filename=None):
     """Return matplotlib code for comparing band structures of two workchains."""
-    from aiida_wannier90_workflows.utils.node import get_last_calcjob
 
     def get_output_bands(workchain):
         if workchain.process_class == PwBaseWorkChain:
@@ -125,14 +124,7 @@ def get_mpl_code_for_workchains(workchain0, workchain1, title=None, save=False, 
         filename = f'bandsdiff_{formula}_{workchain0.pk}_{workchain1.pk}.py'
 
     if workchain1.process_class == Wannier90BandsWorkChain:
-        if 'scf' in workchain1.outputs:
-            fermi_energy = workchain1.outputs['scf']['output_parameters']['fermi_energy']
-        else:
-            w90calc = get_last_calcjob(workchain1.get_outgoing(link_label_filter='wannier90').one().node)
-            if 'fermi_energy' in w90calc.inputs.parameters.get_dict():
-                fermi_energy = w90calc.inputs.parameters.get_dict()['fermi_energy']
-            else:
-                raise ValueError('Cannot find fermi energy')
+        fermi_energy = get_wannier_workchain_fermi_energy(workchain1)
     else:
         if workchain0.process_class == PwBandsWorkChain:
             fermi_energy = workchain0.outputs['scf_parameters']['fermi_energy']
@@ -142,6 +134,28 @@ def get_mpl_code_for_workchains(workchain0, workchain1, title=None, save=False, 
     mpl_code = get_mpl_code_for_bands(dft_bands, wan_bands, fermi_energy, title, save, filename)
 
     return mpl_code
+
+
+def get_wannier_workchain_fermi_energy(workchain: Wannier90BandsWorkChain) -> float:
+    """Get Fermi energy of Wannier90BandsWorkChain.
+
+    :param workchain: [description]
+    :type workchain: Wannier90BandsWorkChain
+    :return: [description]
+    :rtype: float
+    """
+    from aiida_wannier90_workflows.utils.node import get_last_calcjob
+
+    if 'scf' in workchain.outputs:
+        fermi_energy = workchain.outputs['scf']['output_parameters']['fermi_energy']
+    else:
+        w90calc = get_last_calcjob(workchain.get_outgoing(link_label_filter='wannier90').one().node)
+        if 'fermi_energy' in w90calc.inputs.parameters.get_dict():
+            fermi_energy = w90calc.inputs.parameters.get_dict()['fermi_energy']
+        else:
+            raise ValueError('Cannot find fermi energy')
+
+    return fermi_energy
 
 
 def get_mapping_for_group(
