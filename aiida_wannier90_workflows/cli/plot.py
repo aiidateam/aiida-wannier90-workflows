@@ -107,10 +107,8 @@ def cmd_plot_bands(ctx, pw, wannier, save):
 def cmd_plot_bandsdist(pw, wannier, save):
     """Plot bands distance for a group of PwBandsWorkChain and a group of Wannier90BandsWorkChain.
 
-    PW is the PK of a PwBaseWorkChain, or a BandsData,
-    WANNIER is the PK of a Wannier90BandsWorkChain, or a BandsData.
-
-    If only WANNIER is passed, I will invoke QueryBuilder to search for corresponding PW bands.
+    PW is the PK of a group which contains PwBandsWorkChain,
+    WANNIER is the PK of a group which contains Wannier90BandsWorkChain.
     """
     from aiida_wannier90_workflows.utils.bandsdist import bands_distance_for_group, plot_distance, save_distance
 
@@ -119,3 +117,54 @@ def cmd_plot_bandsdist(pw, wannier, save):
 
     if save is not None:
         save_distance(df, save)
+
+
+@cmd_plot.command('exportbands')
+@click.argument('pw', type=GroupParamType(), nargs=1)
+@click.argument('wannier', type=GroupParamType(), nargs=1)
+@click.option(
+    '-s', '--savedir', type=str, default='exportbands', show_default=True, help='Directory to save exported bands.'
+)
+@decorators.with_dbenv()
+def cmd_plot_exportbands(pw, wannier, savedir):
+    """Export python scripts for comparing a group of ``PwBandsWorkChain`` and a group of ``Wannier90BandsWorkChain``.
+
+    PW is the PK of a group which contains ``PwBandsWorkChain``,
+    WANNIER is the PK of a group which contains ``Wannier90BandsWorkChain``, or a ``BandsData``.
+    """
+    import os
+    from aiida_wannier90_workflows.utils.plot import get_mapping_for_group, get_mpl_code_for_workchains
+    dft_group = pw
+    wan_group = wannier
+
+    match_by_formula = True
+    mapping = get_mapping_for_group(wan_group, dft_group, match_by_formula)
+
+    if savedir != '' and not os.path.exists(savedir):
+        os.mkdir(savedir)
+
+    for wan_wc in wan_group.nodes:
+
+        formula = wan_wc.inputs.structure.get_formula()
+
+        if not wan_wc.is_finished_ok:
+            print(f'! Skip unfinished {wan_wc.process_label}<{wan_wc.pk}> of {formula}')
+            continue
+
+        bands_wc = mapping[wan_wc]
+        if bands_wc is None:
+            msg = f'! Cannot find DFT bands for {wan_wc.process_label}<{wan_wc.pk}> of {formula}'
+            print(msg)
+            continue
+
+        if not bands_wc.is_finished_ok:
+            print(f'! Skip unfinished DFT {wan_wc.process_label}<{bands_wc.pk}> of {formula}')
+            continue
+
+        filename = f'bandsdiff_{formula}_{bands_wc.pk}_{wan_wc.pk}.py'
+        if savedir != '':
+            filename = savedir + '/' + filename
+
+        get_mpl_code_for_workchains(bands_wc, wan_wc, save=True, filename=filename)
+
+        print(f'Saved to {filename}')
