@@ -2,6 +2,7 @@
 """Wrapper workchain for Wannier90Calculation to automatically handle several errors."""
 import os.path
 from aiida import orm
+from aiida.orm.nodes.data.base import to_aiida_type
 from aiida.common import AttributeDict
 from aiida.engine import while_
 from aiida.engine import BaseRestartWorkChain
@@ -30,7 +31,8 @@ class Wannier90BaseWorkChain(BaseRestartWorkChain):
             'settings',
             valid_type=orm.Dict,
             required=False,
-            help="""Additional settings, valid keys: remote_symlink_files"""
+            serializer=to_aiida_type,
+            help="""Additional settings, valid keys: `remote_symlink_files`"""
         )
 
         spec.outline(
@@ -72,17 +74,20 @@ class Wannier90BaseWorkChain(BaseRestartWorkChain):
             workflow_settings = self.inputs.settings.get_dict()
             calc_settings = inputs.settings.get_dict()
             remote_symlink_list = calc_settings.get('additional_remote_symlink_list', [])
-            remote_symlink_list += [
-                (remote_input_folder.computer.uuid, os.path.join(remote_input_folder_path, filename), filename)
-                for filename in workflow_settings.get('remote_symlink_files', [])
-            ]
+            existed_symlinks = [_[-1] for _ in remote_symlink_list]
+            for filename in workflow_settings.get('remote_symlink_files', []):
+                if filename in existed_symlinks:
+                    continue
+                remote_symlink_list.append(
+                    (remote_input_folder.computer.uuid, os.path.join(remote_input_folder_path, filename), filename)
+                )
             calc_settings['additional_remote_symlink_list'] = remote_symlink_list
             inputs.settings = orm.Dict(dict=calc_settings)
 
         self.ctx.inputs = inputs
 
         self.ctx.kmeshtol_new = [self._WANNIER90_DEFAULT_KMESH_TOL, 1e-8, 1e-4]
-        self.ctx.disprojmin_multipliers = [0.5, 0.25, 0.125]
+        self.ctx.disprojmin_multipliers = [0.5, 0.25, 0.125, 0]
         self.ctx.wannier_plot_supercell_new = [4, 6, 8, 10]
 
     def report_error_handled(self, calculation, action):

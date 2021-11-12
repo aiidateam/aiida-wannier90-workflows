@@ -5,8 +5,8 @@ import sys
 import click
 
 from aiida import orm
-from aiida.cmdline.utils import decorators
-from aiida.cmdline.params.types import NodeParamType, GroupParamType
+from aiida.cmdline.utils import decorators, echo
+from aiida.cmdline.params.types import NodeParamType, GroupParamType, WorkflowParamType
 from .root import cmd_root
 
 
@@ -102,7 +102,7 @@ def cmd_plot_bands(ctx, pw, wannier, save):
 @cmd_plot.command('bandsdist')
 @click.argument('pw', type=GroupParamType(), nargs=1)
 @click.argument('wannier', type=GroupParamType(), nargs=1)
-@click.option('-s', '--save', type=str, help='Save bands distance as HDF5')
+@click.option('-s', '--save', is_flag=True, default=False, help='Save bands distance as HDF5')
 @decorators.with_dbenv()
 def cmd_plot_bandsdist(pw, wannier, save):
     """Plot bands distance for a group of PwBandsWorkChain and a group of Wannier90BandsWorkChain.
@@ -115,8 +115,33 @@ def cmd_plot_bandsdist(pw, wannier, save):
     df = bands_distance_for_group(wannier, pw, match_by_formula=True)
     plot_distance(df)
 
-    if save is not None:
+    if save:
         save_distance(df, save)
+
+
+@cmd_plot.command('checkerboard')
+@click.argument('workchain', type=WorkflowParamType(), nargs=1)
+@click.option('-s', '--save', is_flag=True, default=False, help='save as a PNG instead of showing matplotlib window')
+@decorators.with_dbenv()
+def cmd_plot_checkerboard(workchain, save):
+    """Plot bands distance checkerboard a Wannier90OptimizeWorkChain."""
+    from aiida_wannier90_workflows.workflows.optimize import Wannier90OptimizeWorkChain
+    from aiida_wannier90_workflows.utils.checkerboard import plot_checkerboard
+
+    if workchain.process_class != Wannier90OptimizeWorkChain:
+        echo.echo_error(f'Input workchain should be {Wannier90OptimizeWorkChain}')
+
+    formula = workchain.inputs.structure.get_formula()
+
+    if save:
+        filename = f'checkerboard_{formula}_{workchain.pk}.png'
+    else:
+        filename = None
+
+    plot_checkerboard(workchain, filename)
+
+    if save:
+        echo.echo(f'Saved to {filename}')
 
 
 @cmd_plot.command('exportbands')

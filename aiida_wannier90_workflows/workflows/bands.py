@@ -22,16 +22,35 @@ class Wannier90BandsWorkChain(Wannier90OpengridWorkChain):
             valid_type=orm.KpointsData,
             required=False,
             help=(
-                'Explicit kpoints to use for the BANDS calculation. '
+                'High symmetry kpoints to use for the wannier90 bands interpolation. '
+                'If specified, the high symmetry kpoint labels will be used and wannier90 will use the '
+                '`bands_num_points` mechanism to auto generate a list of kpoints along the kpath. '
                 'If not specified, the workchain will run seekpath to generate '
-                'a primitive cell and a kpoint_path. Specify either this or `kpoint_path_distance`.'
+                'a primitive cell and a bands_kpoints. Specify either this or `bands_kpoints` '
+                'or `kpoint_path_distance`.'
             )
         )
         spec.input(
-            'kpoint_path_distance',
+            'bands_kpoints',
+            valid_type=orm.KpointsData,
+            required=False,
+            help=(
+                'Explicit kpoints to use for the wannier90 bands interpolation. '
+                'If specified, wannier90 will use this list of kpoints and will not use the '
+                '`bands_num_points` mechanism to auto generate a list of kpoints along the kpath. '
+                'If not specified, the workchain will run seekpath to generate '
+                'a primitive cell and a bands_kpoints. Specify either this or `bands_kpoints` '
+                'or `kpoint_path_distance`. '
+                'This ensures the wannier interpolated bands has the exact same number of kpoints '
+                'as PW bands, to calculate bands distance.'
+            )
+        )
+        spec.input(
+            'kpoint_path_distance',  # TODO rename as bands_kpoints_distance  pylint: disable=fixme
             valid_type=orm.Float,
             required=False,
-            help='Minimum kpoints distance for the BANDS calculation. Specify either this or `kpoint_path`.'
+            help='Minimum kpoints distance for seekpath to generate a list of kpoints along the path. '
+            'Specify either this or `bands_kpoints` or `kpoint_path`.'
         )
 
         # We expose the in/output of Wannier90OpengridWorkChain since Wannier90WorkChain in/output
@@ -39,7 +58,7 @@ class Wannier90BandsWorkChain(Wannier90OpengridWorkChain):
         # this allow us to launch either Wannier90WorkChain or Wannier90OpengridWorkChain.
         spec.expose_inputs(
             Wannier90OpengridWorkChain,
-            exclude=('wannier90.wannier90.kpoint_path',),
+            exclude=('wannier90.wannier90.kpoint_path', 'wannier90.wannier90.bands_kpoints'),
             namespace_options={'required': True}
         )
         spec.inputs.validator = cls.validate_inputs
@@ -100,24 +119,33 @@ class Wannier90BandsWorkChain(Wannier90OpengridWorkChain):
             return result
 
         # Cannot specify both `kpoint_path` and `kpoint_path_distance`
-        if all(key in inputs for key in ['kpoint_path', 'kpoint_path_distance']):
-            return 'Cannot specify both `kpoint_path` and `kpoint_path_distance`.'
+        if sum(key in inputs for key in ['kpoint_path', 'bands_kpoints', 'kpoint_path_distance']) > 1:
+            return 'Can only specify one of the `kpoint_path`, `bands_kpoints` and `kpoint_path_distance`.'
 
         # `kpoint_path` must contain `labels`
         if 'kpoint_path' in inputs:
             if inputs['kpoint_path'].labels is None:
                 return '`kpoint_path` must contain `labels`'
+        if 'bands_kpoints' in inputs:
+            if inputs['bands_kpoints'].labels is None:
+                return '`bands_kpoints` must contain `labels`'
 
     def setup(self):
         """Define the current structure in the context to be the input structure."""
         super().setup()
 
         if not self.should_run_seekpath():
-            self.ctx.current_kpoint_path = get_path_from_kpoints(self.inputs.kpoint_path)
+            self.ctx.current_kpoint_path = None
+            if 'kpoint_path' in self.inputs:
+                self.ctx.current_kpoint_path = get_path_from_kpoints(self.inputs.kpoint_path)
+
+            self.ctx.current_bands_kpoints = None
+            if 'bands_kpoints' in self.inputs:
+                self.ctx.current_bands_kpoints = self.inputs.bands_kpoints
 
     def should_run_seekpath(self):
-        """Seekpath should only be run if the `kpoint_path` input is not specified."""
-        return 'kpoint_path' not in self.inputs
+        """Seekpath should only be run if the `kpoint_path` or `bands_kpoints` input is not specified."""
+        return not any(_ in self.inputs for _ in ('kpoint_path', 'bands_kpoints'))
 
     def run_seekpath(self):
         """Run the structure through SeeKpath to get the primitive and normalized structure."""
@@ -155,7 +183,10 @@ class Wannier90BandsWorkChain(Wannier90OpengridWorkChain):
         parameters = inputs.parameters.get_dict()
         parameters['bands_plot'] = True
         inputs.parameters = orm.Dict(dict=parameters)
-        inputs.kpoint_path = self.ctx.current_kpoint_path
+        if self.ctx.current_kpoint_path:
+            inputs.kpoint_path = self.ctx.current_kpoint_path
+        if self.ctx.current_bands_kpoints:
+            inputs.bands_kpoints = self.ctx.current_bands_kpoints
 
         base_inputs['wannier90'] = inputs
 
@@ -176,6 +207,7 @@ class Wannier90BandsWorkChain(Wannier90OpengridWorkChain):
         structure: orm.StructureData,
         *,
         kpoint_path: orm.Dict = None,
+        bands_kpoints: orm.KpointsData = None,
         kpoint_path_distance: float = None,
         run_opengrid: bool = False,
         opengrid_only_scf: bool = True,
@@ -214,8 +246,8 @@ class Wannier90BandsWorkChain(Wannier90OpengridWorkChain):
         """
         from aiida.tools import get_explicit_kpoints_path
 
-        if kpoint_path is not None and kpoint_path_distance is not None:
-            raise ValueError('Cannot specify both `kpoint_path` and `kpoint_path_distance`')
+        if sum(_ is not None for _ in (kpoint_path, bands_kpoints, kpoint_path_distance)) > 1:
+            raise ValueError('Can only specify one of the `kpoint_path`, `bands_kpoints` and `kpoint_path_distance`')
 
         if run_opengrid and kwargs.get('electronic_type', None) == SpinType.SPIN_ORBIT:
             raise ValueError('open_grid.x does not support spin orbit coupling')
@@ -232,7 +264,7 @@ class Wannier90BandsWorkChain(Wannier90OpengridWorkChain):
         summary = kwargs.pop('summary', {})
         print_summary = kwargs.pop('print_summary', True)
 
-        if kpoint_path is None:
+        if kpoint_path is None and bands_kpoints is None:
             # The following code will test if the input structure is a primitive structure,
             # if it is a primitive structure, a kpath will be generated so the workchain will not
             # run a seekpath analysis internally. However, this causes the workchain's behaviour
@@ -283,7 +315,10 @@ class Wannier90BandsWorkChain(Wannier90OpengridWorkChain):
             builder = parent_class.get_builder_from_protocol(
                 codes, structure, **kwargs, summary=summary, print_summary=False
             )
-            builder.kpoint_path = kpoint_path
+            if kpoint_path:
+                builder.kpoint_path = kpoint_path
+            if bands_kpoints:
+                builder.bands_kpoints = bands_kpoints
 
         if print_summary:
             cls.print_summary(summary)

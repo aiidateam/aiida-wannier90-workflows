@@ -85,7 +85,7 @@ def bands_distance(
     fermi_energy: float,
     exclude_list_dft: list = None
 ) -> np.array:
-    """Calculate bands distance with ``mu`` set as Ef-1 to Ef+5.
+    """Calculate bands distance with ``mu`` set as Ef to Ef+5.
 
     :param bands_dft: [description]
     :type bands_dft: orm.BandsData
@@ -95,7 +95,7 @@ def bands_distance(
     :type fermi_energy: float
     :param exclude_list_dft: [description], defaults to None
     :type exclude_list_dft: list, optional
-    :return: [description]
+    :return: [description], unit is eV.
     :rtype: np.array
     """
     dft_bands = bands_dft.get_bands()
@@ -107,7 +107,7 @@ def bands_distance(
     # add a small eps to arange stop, so fermi+5 is always included
     mu_range = np.arange(start, stop + 0.0001, 1)
 
-    dist = -1 * np.ones((len(mu_range), 4))
+    dist = np.full((len(mu_range), 4), np.nan)
 
     for i, mu in enumerate(mu_range):
         res = bands_distance_raw(

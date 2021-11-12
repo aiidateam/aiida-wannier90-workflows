@@ -208,12 +208,13 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):  # pylint: disable=too-many-
         wannier_inputs = AttributeDict(inputs['wannier90']['wannier90'])
         wannier_parameters = wannier_inputs.parameters.get_dict()
 
-        # Check bands_plot and kpoint_path
+        # Check bands_plot and kpoint_path, explicit_kpoint_path
         bands_plot = wannier_parameters.get('bands_plot', False)
         if bands_plot:
             kpoint_path = wannier_inputs.get('kpoint_path', None)
-            if kpoint_path is None:
-                return 'bands_plot is True but no kpoint_path provided'
+            explicit_kpoint_path = wannier_inputs.get('explicit_kpoint_path', None)
+            if kpoint_path is None and explicit_kpoint_path is None:
+                return 'bands_plot is True but no kpoint_path or explicit_kpoint_path provided'
 
         # Cannot specify both `auto_froz_max` and `scdm_proj`
         pw2wannier_inputs = AttributeDict(inputs['pw2wannier90'])
@@ -441,10 +442,7 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):  # pylint: disable=too-many-
         inputs['settings'] = settings
 
         # I should not stash files in postproc, otherwise there is a RemoteStashFolderData in outputs
-        if 'stash' in inputs['metadata']['options']:
-            options = deepcopy(inputs['metadata']['options'])
-            options.pop('stash', None)
-            inputs['metadata']['options'] = options
+        inputs['metadata']['options'].pop('stash', None)
 
         base_inputs['wannier90'] = inputs
         base_inputs['metadata'] = {'call_link_label': 'wannier90_pp'}
@@ -544,13 +542,13 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):  # pylint: disable=too-many-
         if 'stash' in inputs['metadata']['options']:
             stash = deepcopy(inputs['metadata']['options']['stash'])
 
-        inputs['remote_input_folder'] = self.ctx.current_folder
-
         # Use the Wannier90BaseWorkChain-corrected parameters
         last_calc = get_last_calcjob(self.ctx.workchain_wannier90_pp)
         # copy postproc inputs, especially the `kmesh_tol` might have been corrected
         for key in last_calc.inputs:
             inputs[key] = last_calc.inputs[key]
+
+        inputs['remote_input_folder'] = self.ctx.current_folder
 
         if 'settings' in inputs:
             settings = inputs.settings.get_dict()
