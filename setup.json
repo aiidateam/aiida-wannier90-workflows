@@ -19,7 +19,8 @@
             "wannier90_workflows.restart.opengrid = aiida_wannier90_workflows.workflows.restart.opengrid:OpengridBaseWorkChain",
             "wannier90_workflows.bands = aiida_wannier90_workflows.workflows.bands:Wannier90BandsWorkChain",
             "wannier90_workflows.wannier90 = aiida_wannier90_workflows.workflows.wannier:Wannier90WorkChain",
-            "wannier90_workflows.opengrid = aiida_wannier90_workflows.workflows.opengrid:Wannier90OpengridWorkChain"
+            "wannier90_workflows.opengrid = aiida_wannier90_workflows.workflows.opengrid:Wannier90OpengridWorkChain",
+            "wannier90_workflows.optimize = aiida_wannier90_workflows.workflows.optimize:Wannier90OptimizeWorkChain"
         ],
         "console_scripts": [
             "aiida-wannier90-workflows = aiida_wannier90_workflows.cli:cmd_root"

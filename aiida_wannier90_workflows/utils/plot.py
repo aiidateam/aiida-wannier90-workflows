@@ -7,7 +7,7 @@ from aiida import orm
 from aiida_quantumespresso.workflows.pw.base import PwBaseWorkChain
 from aiida_quantumespresso.workflows.pw.bands import PwBandsWorkChain
 from aiida_wannier90.calculations import Wannier90Calculation
-from aiida_wannier90_workflows.workflows import Wannier90BandsWorkChain, Wannier90WorkChain
+from aiida_wannier90_workflows.workflows import Wannier90BaseWorkChain, Wannier90BandsWorkChain, Wannier90WorkChain
 from aiida_wannier90_workflows.utils.scdm import erfc_scdm, fit_scdm_mu_sigma_aiida
 
 
@@ -109,13 +109,18 @@ def get_mpl_code_for_workchains(workchain0, workchain1, title=None, save=False, 
             return workchain.outputs.band_structure
         if workchain.process_class == Wannier90Calculation:
             return workchain.outputs.interpolated_bands
+        if workchain.process_class == Wannier90BaseWorkChain:
+            return workchain.outputs.interpolated_bands
         raise ValueError(f'Unrecognized workchain type: {workchain}')
 
     # assume workchain0 is pw, workchain1 is wannier
     dft_bands = get_output_bands(workchain0)
     wan_bands = get_output_bands(workchain1)
 
-    formula = workchain1.inputs.structure.get_formula()
+    if workchain1.process_class in (Wannier90BaseWorkChain,):
+        formula = workchain1.inputs.wannier90.structure.get_formula()
+    else:
+        formula = workchain1.inputs.structure.get_formula()
     if title is None:
         title = f'{formula}, {workchain0.process_label}<{workchain0.pk}> bands<{dft_bands.pk}>, '
         title += f'{workchain1.process_label}<{workchain1.pk}> bands<{wan_bands.pk}>'
@@ -123,7 +128,7 @@ def get_mpl_code_for_workchains(workchain0, workchain1, title=None, save=False, 
     if save and (filename is None):
         filename = f'bandsdiff_{formula}_{workchain0.pk}_{workchain1.pk}.py'
 
-    if workchain1.process_class == Wannier90BandsWorkChain:
+    if workchain1.process_class in (Wannier90BaseWorkChain, Wannier90BandsWorkChain):
         fermi_energy = get_wannier_workchain_fermi_energy(workchain1)
     else:
         if workchain0.process_class == PwBandsWorkChain:
@@ -136,7 +141,7 @@ def get_mpl_code_for_workchains(workchain0, workchain1, title=None, save=False, 
     return mpl_code
 
 
-def get_wannier_workchain_fermi_energy(workchain: Wannier90BandsWorkChain) -> float:
+def get_wannier_workchain_fermi_energy(workchain: ty.Union[Wannier90BaseWorkChain, Wannier90BandsWorkChain]) -> float:
     """Get Fermi energy of Wannier90BandsWorkChain.
 
     :param workchain: [description]
@@ -149,7 +154,12 @@ def get_wannier_workchain_fermi_energy(workchain: Wannier90BandsWorkChain) -> fl
     if 'scf' in workchain.outputs:
         fermi_energy = workchain.outputs['scf']['output_parameters']['fermi_energy']
     else:
-        w90calc = get_last_calcjob(workchain.get_outgoing(link_label_filter='wannier90').one().node)
+        if workchain.process_class == Wannier90BaseWorkChain:
+            w90calc = get_last_calcjob(workchain)
+        elif workchain.process_class == Wannier90BandsWorkChain:
+            w90calc = get_last_calcjob(workchain.get_outgoing(link_label_filter='wannier90').one().node)
+        else:
+            raise ValueError('Cannot find fermi energy')
         if 'fermi_energy' in w90calc.inputs.parameters.get_dict():
             fermi_energy = w90calc.inputs.parameters.get_dict()['fermi_energy']
         else:
