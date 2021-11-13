@@ -10,6 +10,14 @@ from .root import cmd_root
 
 
 @cmd_root.command('list')
+@click.option(
+    '-L',
+    '--process-label',
+    type=str,
+    default='Wannier90BandsWorkChain',
+    show_default=True,
+    help='Process label to filter. If group is provided, the process label is ignored.'
+)
 @options_core.PROJECT(
     type=click.Choice(CalculationQueryBuilder.valid_projections), default=CalculationQueryBuilder.default_projections
 )
@@ -24,10 +32,11 @@ from .root import cmd_root
 @options_core.PAST_DAYS()
 @options_core.LIMIT()
 @options_core.RAW()
-@decorators.with_dbenv()
-@click.pass_context  # pylint: disable=too-many-statements
+@decorators.with_dbenv()  # pylint: disable=too-many-statements
+@click.pass_context
 def cmd_list(
     ctx,  # pylint: disable=unused-argument
+    process_label,
     all_entries,
     group,
     process_state,
@@ -45,8 +54,6 @@ def cmd_list(
     from tabulate import tabulate
     from aiida.cmdline.commands.cmd_process import process_list  # pylint: disable=unused-import
 
-    process_label = 'Wannier90BandsWorkChain'
-
     # result = ctx.invoke(
     #     process_list,
     #     all_entries=True,
@@ -63,6 +70,10 @@ def cmd_list(
 
     if group:
         relationships['with_node'] = group
+
+        # If group is present, I will auto set process_label
+        if len(group.nodes) > 0 and 'process_label' in dir(group.nodes[0]):
+            process_label = group.nodes[0].process_label
 
     builder = CalculationQueryBuilder()
     filters = builder.get_filters(all_entries, process_state, process_label, paused, exit_status, failed)
