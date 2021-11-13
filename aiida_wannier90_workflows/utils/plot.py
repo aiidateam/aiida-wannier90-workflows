@@ -13,6 +13,7 @@ from aiida_wannier90_workflows.utils.scdm import erfc_scdm, fit_scdm_mu_sigma_ai
 
 def plot_scdm_fit(workchain: int, save: bool = False):
     """Plot the projectabilities distribution of SCDM fitting."""
+    from aiida_wannier90_workflows.utils.node import get_last_calcjob
 
     if workchain.process_class not in [Wannier90BandsWorkChain, Wannier90WorkChain]:
         raise ValueError(f'Input workchain type should be {Wannier90BandsWorkChain}')
@@ -20,7 +21,8 @@ def plot_scdm_fit(workchain: int, save: bool = False):
     formula = workchain.inputs.structure.get_formula()
 
     w90calc = workchain.get_outgoing(link_label_filter='wannier90').one().node
-    p2wcalc = workchain.get_outgoing(link_label_filter='pw2wannier90').one().node
+    p2w_workchain = workchain.get_outgoing(link_label_filter='pw2wannier90').one().node
+    p2wcalc = get_last_calcjob(p2w_workchain)
     projcalc = workchain.get_outgoing(link_label_filter='projwfc').one().node
 
     fermi_energy = w90calc.inputs.parameters['fermi_energy']

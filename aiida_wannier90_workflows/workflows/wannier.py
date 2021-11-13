@@ -15,13 +15,13 @@ from aiida_quantumespresso.calculations.pw import PwCalculation
 from aiida_quantumespresso.workflows.pw.base import PwBaseWorkChain
 from aiida_quantumespresso.workflows.pw.relax import PwRelaxWorkChain
 from aiida_quantumespresso.calculations.projwfc import ProjwfcCalculation
-from aiida_quantumespresso.calculations.pw2wannier90 import Pw2wannier90Calculation
 from aiida_quantumespresso.common.types import ElectronicType, SpinType
 from aiida_quantumespresso.workflows.protocols.utils import ProtocolMixin
 from aiida_wannier90.calculations import Wannier90Calculation
 
 from ..common.types import WannierProjectionType, WannierDisentanglementType, WannierFrozenType
 from .base.wannier import Wannier90BaseWorkChain
+from .base.pw2wannier90 import Pw2wannier90BaseWorkChain
 from ..utils.kmesh import get_explicit_kpoints_from_distance, get_explicit_kpoints, create_kpoints_from_distance
 from ..utils.scdm import fit_scdm_mu_sigma_aiida, get_energy_of_projectability
 from ..utils.upf import get_number_of_projections, get_wannier_number_of_bands, _load_pseudo_metadata
@@ -131,10 +131,10 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):  # pylint: disable=too-many-
             }
         )
         spec.expose_inputs(
-            Pw2wannier90Calculation,
+            Pw2wannier90BaseWorkChain,
             namespace='pw2wannier90',
-            exclude=('parent_folder', 'nnkp_file'),
-            namespace_options={'help': 'Inputs for the `Pw2wannier90Calculation`.'}
+            exclude=('clean_workdir', 'pw2wannier90.parent_folder', 'pw2wannier90.nnkp_file'),
+            namespace_options={'help': 'Inputs for the `Pw2wannier90BaseWorkChain`.'}
         )
         spec.expose_inputs(
             Wannier90BaseWorkChain,
@@ -175,7 +175,7 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):  # pylint: disable=too-many-
         spec.expose_outputs(PwBaseWorkChain, namespace='scf', namespace_options={'required': False})
         spec.expose_outputs(PwBaseWorkChain, namespace='nscf', namespace_options={'required': False})
         spec.expose_outputs(ProjwfcCalculation, namespace='projwfc', namespace_options={'required': False})
-        spec.expose_outputs(Pw2wannier90Calculation, namespace='pw2wannier90')
+        spec.expose_outputs(Pw2wannier90BaseWorkChain, namespace='pw2wannier90')
         spec.expose_outputs(Wannier90BaseWorkChain, namespace='wannier90_pp')
         spec.expose_outputs(Wannier90BaseWorkChain, namespace='wannier90')
 
@@ -189,12 +189,16 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):  # pylint: disable=too-many-
         )
         spec.exit_code(440, 'ERROR_SUB_PROCESS_FAILED_PROJWFC', message='the ProjwfcCalculation sub process failed')
         spec.exit_code(
-            450, 'ERROR_SUB_PROCESS_FAILED_WANNIER90PP', message='the postproc Wannier90Calculation sub process failed'
+            450,
+            'ERROR_SUB_PROCESS_FAILED_WANNIER90PP',
+            message='the postproc Wannier90BaseWorkChain sub process failed'
         )
         spec.exit_code(
-            460, 'ERROR_SUB_PROCESS_FAILED_PW2WANNIER90', message='the Pw2wannier90Calculation sub process failed'
+            460, 'ERROR_SUB_PROCESS_FAILED_PW2WANNIER90', message='the Pw2wannier90BaseWorkChain sub process failed'
         )
-        spec.exit_code(470, 'ERROR_SUB_PROCESS_FAILED_WANNIER90', message='the Wannier90Calculation sub process failed')
+        spec.exit_code(
+            470, 'ERROR_SUB_PROCESS_FAILED_WANNIER90', message='the Wannier90BaseWorkChain sub process failed'
+        )
 
     @staticmethod
     def validate_inputs(inputs, ctx=None):  # pylint: disable=unused-argument
@@ -217,7 +221,7 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):  # pylint: disable=too-many-
                 return 'bands_plot is True but no kpoint_path or explicit_kpoint_path provided'
 
         # Cannot specify both `auto_froz_max` and `scdm_proj`
-        pw2wannier_inputs = AttributeDict(inputs['pw2wannier90'])
+        pw2wannier_inputs = AttributeDict(inputs['pw2wannier90']['pw2wannier90'])
         pw2wannier_parameters = pw2wannier_inputs.parameters.get_dict()
         if inputs.get('auto_froz_max', False) and pw2wannier_parameters['inputpp'].get('scdm_proj', False):
             return '`auto_froz_max` is incompatible with SCDM'
@@ -282,7 +286,7 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):  # pylint: disable=too-many-
         self.ctx.current_folder = workchain.outputs.remote_folder
 
     def should_run_nscf(self):
-        """If the 'nscf' input namespace was specified, run the nscf workchain."""
+        """If the `nscf` input namespace was specified, run the nscf workchain."""
         return 'nscf' in self.inputs
 
     def run_nscf(self):
@@ -463,7 +467,7 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):  # pylint: disable=too-many-
             return self.exit_codes.ERROR_SUB_PROCESS_FAILED_WANNIER90PP
 
     def prepare_pw2wannier90_inputs(self):
-        """Construct the inputs of pw2wannier90 calculation.
+        """Construct the inputs of Pw2wannier90BaseWorkChain.
 
         This is different from the classmethod `get_pw2wannier90_inputs`, which statically generates
         inputs and is used by the `get_builder_from_protocol`.
@@ -472,7 +476,8 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):  # pylint: disable=too-many-
         e.g. calculating scdm_mu/sigma from projectability, etc.
         Moreover, this method can be overridden in derived classes.
         """
-        inputs = AttributeDict(self.exposed_inputs(Pw2wannier90Calculation, namespace='pw2wannier90'))
+        base_inputs = AttributeDict(self.exposed_inputs(Pw2wannier90BaseWorkChain, namespace='pw2wannier90'))
+        inputs = base_inputs['pw2wannier90']
 
         inputs['parent_folder'] = self.ctx.current_folder
         inputs['nnkp_file'] = self.ctx.workchain_wannier90_pp.outputs.nnkp_file
@@ -507,22 +512,24 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):  # pylint: disable=too-many-
             except Exception as exc:
                 raise ValueError(f'update_scdm_mu_sigma failed! {exc.args}') from exc
 
-        return inputs
+        base_inputs['pw2wannier90'] = inputs
+
+        return base_inputs
 
     def run_pw2wannier90(self):
         """Run the pw2wannier90 step."""
         inputs = self.prepare_pw2wannier90_inputs()
         inputs.metadata.call_link_label = 'pw2wannier90'
 
-        inputs = prepare_process_inputs(Pw2wannier90Calculation, inputs)
-        running = self.submit(Pw2wannier90Calculation, **inputs)
+        inputs = prepare_process_inputs(Pw2wannier90BaseWorkChain, inputs)
+        running = self.submit(Pw2wannier90BaseWorkChain, **inputs)
         self.report(f'launching {running.process_label}<{running.pk}>')
 
-        return ToContext(calc_pw2wannier90=running)
+        return ToContext(workchain_pw2wannier90=running)
 
     def inspect_pw2wannier90(self):
-        """Verify that the `Pw2Wannier90Calculation` for the pw2wannier90 run successfully finished."""
-        workchain = self.ctx.calc_pw2wannier90
+        """Verify that the Pw2wannier90BaseWorkChain for the pw2wannier90 run successfully finished."""
+        workchain = self.ctx.workchain_pw2wannier90
 
         if not workchain.is_finished_ok:
             self.report(f'{workchain.process_label} failed with exit status {workchain.exit_status}')
@@ -599,7 +606,7 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):  # pylint: disable=too-many-
             self.out_many(self.exposed_outputs(self.ctx.calc_projwfc, ProjwfcCalculation, namespace='projwfc'))
 
         self.out_many(
-            self.exposed_outputs(self.ctx.calc_pw2wannier90, Pw2wannier90Calculation, namespace='pw2wannier90')
+            self.exposed_outputs(self.ctx.workchain_pw2wannier90, Pw2wannier90BaseWorkChain, namespace='pw2wannier90')
         )
         self.out_many(
             self.exposed_outputs(self.ctx.workchain_wannier90_pp, Wannier90BaseWorkChain, namespace='wannier90_pp')
@@ -1289,7 +1296,7 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):  # pylint: disable=too-many-
                 plot_wannier_functions=plot_wannier_functions,
                 **filtered_kwargs
             )
-            builder.pw2wannier90 = pw2wannier_inputs
+            builder.pw2wannier90 = {'pw2wannier90': pw2wannier_inputs}
 
         # wannier90
         if inputs.get('wannier90', True):
