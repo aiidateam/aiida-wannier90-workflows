@@ -18,6 +18,14 @@ from .root import cmd_root
     show_default=True,
     help='Process label to filter. If group is provided, the process label is ignored.'
 )
+@click.option(
+    '-s',
+    '--show-statistics',
+    is_flag=True,
+    default=False,
+    show_default=True,
+    help='Show statistics about exit status of all workchains.'
+)
 @options_core.PROJECT(
     type=click.Choice(CalculationQueryBuilder.valid_projections), default=CalculationQueryBuilder.default_projections
 )
@@ -31,12 +39,13 @@ from .root import cmd_root
 @options_core.FAILED()
 @options_core.PAST_DAYS()
 @options_core.LIMIT()
-@options_core.RAW()
+@options_core.RAW()  # pylint: disable=too-many-statements
 @decorators.with_dbenv()  # pylint: disable=too-many-statements
 @click.pass_context
 def cmd_list(
     ctx,  # pylint: disable=unused-argument
     process_label,
+    show_statistics,
     all_entries,
     group,
     process_state,
@@ -104,15 +113,20 @@ def cmd_list(
         echo.echo(tabulated)
         echo.echo(f'\nTotal results: {len(projected)}\n')
         print_last_process_state_change()
-        # Second query to get active process count
-        # Currently this is slow but will be fixed wiith issue #2770
-        # We place it at the end so that the user can Ctrl+C after getting the process table.
-        builder = CalculationQueryBuilder()
-        filters = builder.get_filters(process_state=('created', 'waiting', 'running'))
-        query_set = builder.get_query_set(filters=filters)
-        projected = builder.get_projected(query_set, projections=['pk'])
-        worker_slot_use = len(projected) - 1
-        check_worker_load(worker_slot_use)
+        # This is very slow, I skip it
+        if show_statistics:
+            # Second query to get active process count
+            # Currently this is slow but will be fixed wiith issue #2770
+            # We place it at the end so that the user can Ctrl+C after getting the process table.
+            builder = CalculationQueryBuilder()
+            filters = builder.get_filters(process_state=('created', 'waiting', 'running'))
+            query_set = builder.get_query_set(filters=filters)
+            projected = builder.get_projected(query_set, projections=['pk'])
+            worker_slot_use = len(projected) - 1
+            check_worker_load(worker_slot_use)
+
+    if not show_statistics:
+        return
 
     # Collect statistics of failed workflows
     # similar to aiida.cmdline.commands.cmd_process.process_list
