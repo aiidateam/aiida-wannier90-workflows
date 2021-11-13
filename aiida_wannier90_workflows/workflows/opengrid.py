@@ -6,7 +6,7 @@ from aiida.engine.processes import ToContext, if_, ProcessBuilder
 
 from aiida_quantumespresso.utils.mapping import prepare_process_inputs
 from aiida_quantumespresso.calculations.opengrid import OpengridCalculation
-from aiida_wannier90_workflows.workflows.restart.opengrid import OpengridBaseWorkChain
+from aiida_wannier90_workflows.workflows.base.opengrid import OpengridBaseWorkChain
 
 from .wannier import Wannier90WorkChain
 

@@ -9,7 +9,7 @@ from aiida.engine import while_, if_, ToContext, append_
 from aiida_quantumespresso.utils.mapping import prepare_process_inputs
 from aiida_wannier90_workflows.utils.node import get_last_calcjob
 from aiida_wannier90_workflows.utils.bandsdist import bands_distance
-from aiida_wannier90_workflows.workflows.restart.wannier import Wannier90BaseWorkChain
+from aiida_wannier90_workflows.workflows.base.wannier import Wannier90BaseWorkChain
 from aiida_wannier90_workflows.workflows.bands import Wannier90BandsWorkChain
 
 

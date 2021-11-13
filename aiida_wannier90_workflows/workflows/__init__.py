@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """AiiDA Wannier90 Workchains."""
 
-from .restart.wannier import Wannier90BaseWorkChain
+from .base.wannier import Wannier90BaseWorkChain
 from .wannier import Wannier90WorkChain
 from .opengrid import Wannier90OpengridWorkChain
 from .bands import Wannier90BandsWorkChain
