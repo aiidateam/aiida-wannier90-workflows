@@ -4,8 +4,27 @@ import re
 from aiida.common import AttributeDict
 from aiida.engine import while_
 from aiida.engine import BaseRestartWorkChain
-from aiida.engine import process_handler, ProcessHandlerReport
+from aiida.engine import process_handler, ProcessHandlerReport  # pylint: disable=unused-import
 from aiida_quantumespresso.calculations.namelists import NamelistsCalculation
+
+# def process_handler_stdout_incomplete(func, **handler_kwargs):
+#     """A specific handler for `ERROR_OUTPUT_STDOUT_INCOMPLETE`.
+
+#     I cannot use
+#     ```
+#     @process_handler(exit_codes=[_process_class.exit_codes.ERROR_OUTPUT_STDOUT_INCOMPLETE])
+#     def handle_output_stdout_incomplete(self, calculation):
+#     ```
+#     because in the definition `QeBaseRestartWorkChain._process_class = NamelistsCalculation`,
+#     so it will conplain that there is no exit code `ERROR_OUTPUT_STDOUT_INCOMPLETE`.
+#     With this decorator the exit code is retrieved dynamically to avoid this error.
+#     """
+#     def wrapper(**kwargs):
+#         _process_class = kwargs['self']
+#         exit_codes = [_process_class.exit_codes.ERROR_OUTPUT_STDOUT_INCOMPLETE, ]
+#         handler_kwargs['exit_codes'] = exit_codes
+#         return process_handler(func(**kwargs), **handler_kwargs)
+#     return wrapper
 
 
 class QeBaseRestartWorkChain(BaseRestartWorkChain):
@@ -68,7 +87,7 @@ class QeBaseRestartWorkChain(BaseRestartWorkChain):
         self.report(message)
         self.report(f'Action taken: {action}')
 
-    @process_handler(exit_codes=[_process_class.exit_codes.ERROR_OUTPUT_STDOUT_INCOMPLETE])  # pylint: disable=no-member
+    # @process_handler_stdout_incomplete
     def handle_output_stdout_incomplete(self, calculation):
         """Try to fix incomplete stdout error by reducing the number of cores.
 
