@@ -39,6 +39,162 @@ def cmd_node_show(ctx, nodes):  # pylint: disable=unused-argument
             pprint(inputs)
 
 
+def find_calcjob(node: orm.Node, link_label: str) -> orm.CalcJobNode:
+    """Find CalcJob of a workchain with the specified link label."""
+    from aiida_wannier90_workflows.utils.node import get_last_calcjob
+
+    last_calcjob = None
+    if isinstance(node, orm.CalcJobNode):
+        last_calcjob = node
+    elif isinstance(node, orm.WorkChainNode):
+        if link_label is None:
+            last_calcjob = get_last_calcjob(node)
+            if last_calcjob is None:
+                echo.echo_critical(f'No CalcJob for {node}?')
+
+            # Get call link label
+            link_triples = node.get_outgoing(link_type=(LinkType.CALL_CALC, LinkType.CALL_WORK)).link_triples
+            link = list(
+                filter(lambda _: _.node == last_calcjob or last_calcjob in _.node.called_descendants, link_triples)
+            )[0]
+            link_label = link.link_label
+        else:
+            try:
+                called = node.get_outgoing(link_label_filter=link_label).one().node
+            except ValueError:
+                link_triples = node.get_outgoing(link_type=(LinkType.CALL_CALC, LinkType.CALL_WORK)).link_triples
+                valid_lables = [x.link_label for x in link_triples]
+                valid_lables = '\n'.join(valid_lables)
+                echo.echo_critical(
+                    f'No nodes found with call link label `{link_label}`, valid labels are:\n'
+                    f'{valid_lables}'
+                )
+
+            if isinstance(called, orm.CalcJobNode):
+                last_calcjob = called
+            elif isinstance(called, orm.WorkChainNode):
+                last_calcjob = get_last_calcjob(called)
+            else:
+                echo.echo_critical(f'Unsupported type of node: {called}')
+
+        msg = f'Parent WorkChain: {node.process_label}<{node.pk}>\n'
+        msg += f' Lastest CalcJob: {last_calcjob.process_label}<{last_calcjob.pk}>\n'
+        msg += f' Call link label: {link_label}\n'
+        echo.echo(msg)
+    else:
+        echo.echo_critical(f'Unsupported type of node: {type(node)} {node}')
+
+    return last_calcjob
+
+
+@cmd_node.command('inputcat')
+@arguments.NODE()
+@click.option(
+    '-l',
+    '--link-label',
+    'link_label',
+    type=click.STRING,
+    required=False,
+    help='Goto the calcjob with this call link label.'
+)
+@click.option(
+    '-s',
+    '--show-scheduler',
+    is_flag=True,
+    default=False,
+    show_default=True,
+    help='Show scheduler submission script instead of calculation stdout.'
+)
+@click.option(
+    '-r',
+    '--show-remote',
+    is_flag=True,
+    default=False,
+    show_default=True,
+    help='Show input file in the remote_folder RemoteData. Otherwise show info from database.'
+)
+def cmd_node_inputcat(node, link_label, show_scheduler, show_remote):
+    """Show input or scheduler submission file of a CalcJob."""
+    from tempfile import NamedTemporaryFile
+    from pprint import pprint
+    from aiida_wannier90_workflows.utils.builder import serializer
+
+    def show_input(calcjob: orm.CalcJobNode, show_scheduler: bool, show_remote: bool) -> None:
+        if show_remote:
+            if show_scheduler:
+                echo.echo(f'===== {calcjob.process_label}<{calcjob.pk}> remote scheduler script =====', bold=True)
+                file_path = calcjob.attributes['submit_script_filename']
+            else:
+                echo.echo(f'===== {calcjob.process_label}<{calcjob.pk}> remote input file =====', bold=True)
+                file_path = calcjob.attributes['input_filename']
+
+            with NamedTemporaryFile('w+') as out_file:
+                calcjob.outputs.remote_folder.getfile(file_path, out_file.name)
+                out_file.seek(0)
+                input_lines = out_file.read()
+                echo.echo(input_lines)
+        else:
+            if show_scheduler:
+                echo.echo(f'===== {calcjob.process_label}<{calcjob.pk}> scheduler info =====', bold=True)
+                data = {}
+                for key in (
+                    'withmpi', 'resources', 'queue_name', 'num_machines', 'num_mpiprocs', 'mpirun_extra_params',
+                    'max_wallclock_seconds', 'custom_scheduler_commands', 'append_text', 'prepend_text'
+                ):
+                    if key not in calcjob.attributes:
+                        continue
+                    data[key] = calcjob.attributes[key]
+                pprint(data)
+            else:
+                echo.echo(f'===== {calcjob.process_label}<{calcjob.pk}> inputs =====', bold=True)
+                if isinstance(calcjob, (orm.CalculationNode, orm.WorkflowNode)):
+                    inputs = {}
+                    for key in calcjob.inputs:
+                        inputs[key] = serializer(calcjob.inputs[key])
+                    pprint(inputs)
+
+    calcjob = find_calcjob(node, link_label)
+    show_input(calcjob, show_scheduler, show_remote)
+
+
+@cmd_node.command('outputcat')
+@arguments.NODE()
+@click.option(
+    '-l',
+    '--link-label',
+    'link_label',
+    type=click.STRING,
+    required=False,
+    help='Goto the calcjob with this call link label.'
+)
+@click.option(
+    '-s',
+    '--show-scheduler',
+    is_flag=True,
+    default=False,
+    show_default=True,
+    help='Show scheduler stdout/stderr instead of calculation stdout.'
+)
+def cmd_node_outputcat(node, link_label, show_scheduler):
+    """Show stdout or scheduler output of a CalcJob from retrieved FolderData."""
+
+    def show_output(calcjob: orm.CalcJobNode, show_scheduler: bool) -> None:
+        if show_scheduler:
+            echo.echo(f'===== {calcjob.process_label}<{calcjob.pk}> scheduler stdout =====', bold=True)
+            echo.echo(calcjob.get_scheduler_stdout())
+            echo.echo('\n')
+            echo.echo(f'===== {calcjob.process_label}<{calcjob.pk}> scheduler stderr =====', bold=True)
+            echo.echo(calcjob.get_scheduler_stderr())
+        else:
+            output_filename = calcjob.attributes['output_filename']
+            output_lines = calcjob.outputs.retrieved.get_object_content(output_filename)
+            echo.echo(f'===== {calcjob.process_label}<{calcjob.pk}> stdout =====', bold=True)
+            echo.echo(output_lines)
+
+    calcjob = find_calcjob(node, link_label)
+    show_output(calcjob, show_scheduler)
+
+
 @cmd_node.command('gotocomputer')
 @arguments.NODE()
 @click.option(
@@ -56,7 +212,6 @@ def cmd_node_gotocomputer(ctx, node, link_label):
     from aiida.common.exceptions import NotExistent
     from aiida.cmdline.commands.cmd_calcjob import calcjob_gotocomputer
     from aiida.plugins import DataFactory
-    from aiida_wannier90_workflows.utils.node import get_last_calcjob
 
     RemoteData = DataFactory('remote')  # pylint: disable=invalid-name
     RemoteStashFolderData = DataFactory('remote.stash.folder')  # pylint: disable=invalid-name
@@ -64,47 +219,9 @@ def cmd_node_gotocomputer(ctx, node, link_label):
 
     echo.echo(f'Node<{node.pk}> type {type(node)}')
 
-    if isinstance(node, orm.CalcJobNode):
-        last_calcjob = node
-        ctx.invoke(calcjob_gotocomputer, calcjob=last_calcjob)
-    elif isinstance(node, orm.WorkChainNode):
-        if link_label is None:
-            last_calcjob = get_last_calcjob(node)
-            if last_calcjob is None:
-                echo.echo(f'No CalcJob for {node}?')
-                return
-
-            # Get call link label
-            link_triples = node.get_outgoing(link_type=(LinkType.CALL_CALC, LinkType.CALL_WORK)).link_triples
-            link = list(
-                filter(lambda _: _.node == last_calcjob or last_calcjob in _.node.called_descendants, link_triples)
-            )[0]
-            link_label = link.link_label
-        else:
-            try:
-                called = node.get_outgoing(link_label_filter=link_label).one().node
-            except ValueError:
-                link_triples = node.get_outgoing(link_type=(LinkType.CALL_CALC, LinkType.CALL_WORK)).link_triples
-                valid_lables = [x.link_label for x in link_triples]
-                valid_lables = '\n'.join(valid_lables)
-                echo.echo(f"No nodes found with call link label '{link_label}', valid labels are:")
-                echo.echo(f'{valid_lables}')
-                return
-
-            if isinstance(called, orm.CalcJobNode):
-                last_calcjob = called
-            elif isinstance(called, orm.WorkChainNode):
-                last_calcjob = get_last_calcjob(called)
-            else:
-                echo.echo(f'Unsupported type of node: {called}')
-                return
-
-        msg = f'Parent WorkChain: {node.process_label}<{node.pk}>\n'
-        msg += f' Lastest CalcJob: {last_calcjob.process_label}<{last_calcjob.pk}>\n'
-        msg += f' Call link label: {link_label}\n'
-        echo.echo(msg)
-
-        ctx.invoke(calcjob_gotocomputer, calcjob=last_calcjob)
+    if isinstance(node, (orm.CalcJobNode, orm.WorkChainNode)):
+        calcjob = find_calcjob(node, link_label)
+        ctx.invoke(calcjob_gotocomputer, calcjob=calcjob)
     elif isinstance(node, (RemoteData, RemoteStashFolderData)):
         computer = node.computer
         try:
@@ -152,7 +269,7 @@ def cmd_node_clean(workflows):
                     continue
                 calcs.append(called_descendant)
         else:
-            echo.echo(f'Unsupported type of node: {node}')
+            echo.echo_critical(f'Unsupported type of node: {node}')
 
         cleaned_calcs = []
         for calc in calcs:
@@ -162,7 +279,7 @@ def cmd_node_clean(workflows):
             except (IOError, OSError, KeyError, NotExistentAttributeError):
                 # NotExistentAttributeError: when calc was excepted and has no remote_folder
                 pass
-        if cleaned_calcs:
+        if len(cleaned_calcs) > 0:
             echo.echo(f"cleaned remote folders of calculations: {' '.join(map(str, cleaned_calcs))}")
 
 
