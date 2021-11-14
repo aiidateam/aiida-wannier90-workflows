@@ -7,7 +7,9 @@ from aiida import orm
 from aiida_quantumespresso.workflows.pw.base import PwBaseWorkChain
 from aiida_quantumespresso.workflows.pw.bands import PwBandsWorkChain
 from aiida_wannier90.calculations import Wannier90Calculation
-from aiida_wannier90_workflows.workflows import Wannier90BaseWorkChain, Wannier90BandsWorkChain, Wannier90WorkChain
+from aiida_wannier90_workflows.workflows import (
+    Wannier90BaseWorkChain, Wannier90BandsWorkChain, Wannier90WorkChain, Wannier90OptimizeWorkChain
+)
 from aiida_wannier90_workflows.utils.scdm import erfc_scdm, fit_scdm_mu_sigma_aiida
 
 
@@ -15,8 +17,9 @@ def plot_scdm_fit(workchain: int, save: bool = False):
     """Plot the projectabilities distribution of SCDM fitting."""
     from aiida_wannier90_workflows.utils.node import get_last_calcjob
 
-    if workchain.process_class not in [Wannier90BandsWorkChain, Wannier90WorkChain]:
-        raise ValueError(f'Input workchain type should be {Wannier90BandsWorkChain}')
+    valid_classes = [Wannier90BandsWorkChain, Wannier90WorkChain]
+    if workchain.process_class not in valid_classes:
+        raise ValueError(f'Input workchain type should be {valid_classes}')
 
     formula = workchain.inputs.structure.get_formula()
 
@@ -105,13 +108,9 @@ def get_mpl_code_for_workchains(workchain0, workchain1, title=None, save=False, 
     def get_output_bands(workchain):
         if workchain.process_class == PwBaseWorkChain:
             return workchain.outputs.output_band
-        if workchain.process_class == PwBandsWorkChain:
+        if workchain.process_class in (PwBandsWorkChain, Wannier90BandsWorkChain, Wannier90OptimizeWorkChain):
             return workchain.outputs.band_structure
-        if workchain.process_class == Wannier90BandsWorkChain:
-            return workchain.outputs.band_structure
-        if workchain.process_class == Wannier90Calculation:
-            return workchain.outputs.interpolated_bands
-        if workchain.process_class == Wannier90BaseWorkChain:
+        if workchain.process_class in (Wannier90Calculation, Wannier90BaseWorkChain):
             return workchain.outputs.interpolated_bands
         raise ValueError(f'Unrecognized workchain type: {workchain}')
 
