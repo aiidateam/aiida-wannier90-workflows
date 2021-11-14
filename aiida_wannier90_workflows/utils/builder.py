@@ -35,6 +35,14 @@ def serializer(node: orm.Node) -> ty.Any:
             res[key] = serializer(node[key])
     elif isinstance(node, (orm.Float, orm.Bool, orm.Int, orm.Str)):
         res = node.value
+    elif isinstance(node, orm.List):
+        res = node.get_list()
+    # BandsData is a subclass of KpointsData, need to before KpointsData
+    elif isinstance(node, orm.BandsData):
+        num_kpoints, num_bands = node.attributes['array|bands']
+        res = f'nkpt={num_kpoints},nbnd={num_bands}'
+        if 'labels' in node.attributes:
+            res += f',{serialize_kpoints(node)}'
     elif isinstance(node, orm.KpointsData):
         res = serialize_kpoints(node)
     elif isinstance(node, orm.Code):
@@ -45,6 +53,8 @@ def serializer(node: orm.Node) -> ty.Any:
         res = f'{node.filename}<{node.pk}>'
     elif isinstance(node, (orm.WorkflowNode, orm.CalculationNode)):
         res = f'{node.process_label}<{node.pk}>'
+    elif isinstance(node, orm.RemoteData):
+        res = f'{node.__class__.__name__}<{node.pk}>'
     else:
         res = node
 
