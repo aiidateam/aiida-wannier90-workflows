@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Commands to list instances of `PseudoPotentialFamily`."""
+"""Commands to list instances of `Wannier90BandsWorkChain`."""
 import click
 from aiida import orm
 from aiida.cmdline.params import options as options_core
@@ -7,6 +7,59 @@ from aiida.cmdline.utils import decorators, echo
 from aiida.cmdline.utils.query.calculation import CalculationQueryBuilder
 
 from .root import cmd_root
+
+
+def print_process_table(
+    process_label, all_entries, group, process_state, paused, exit_status, failed, past_days, limit, project, raw,
+    order_by, order_dir
+):
+    """Print process table.
+
+    Mostly the same as `verdi process list`, but I also print structure formula.
+    """
+    from tabulate import tabulate
+    from aiida.cmdline.utils.common import print_last_process_state_change
+
+    relationships = {}
+
+    if group:
+        relationships['with_node'] = group
+
+        # If group is present, I will auto set process_label
+        if len(group.nodes) > 0 and 'process_label' in dir(group.nodes[0]):
+            process_label = group.nodes[0].process_label
+
+    builder = CalculationQueryBuilder()
+    filters = builder.get_filters(all_entries, process_state, process_label, paused, exit_status, failed)
+    query_set = builder.get_query_set(
+        relationships=relationships, filters=filters, order_by={order_by: order_dir}, past_days=past_days, limit=limit
+    )
+    projected = builder.get_projected(query_set, projections=project)
+
+    headers = projected.pop(0)
+
+    projected_with_structure = []
+    # Add structure
+    for entry in projected:
+        # I assume 0th column is PK
+        pk = entry[0]
+        node = orm.load_node(pk)
+        formula = node.inputs.structure.get_formula()
+        entry_with_structure = [pk, formula, *entry[1:]]
+        projected_with_structure.append(entry_with_structure)
+    projected = projected_with_structure
+    headers = [headers[0], 'structure', *headers[1:]]
+
+    if raw:
+        tabulated = tabulate(projected, tablefmt='plain')
+        echo.echo(tabulated)
+    else:
+        tabulated = tabulate(projected, headers=headers)
+        echo.echo(tabulated)
+        echo.echo(f'\nTotal results: {len(projected)}\n')
+        print_last_process_state_change()
+
+    return projected, headers
 
 
 @cmd_root.command('list')
@@ -61,7 +114,7 @@ def cmd_list(
 ):
     """List all instances of `Wannier90BandsWorkChain`."""
     from tabulate import tabulate
-    from aiida.cmdline.commands.cmd_process import process_list  # pylint: disable=unused-import
+    # from aiida.cmdline.commands.cmd_process import process_list
 
     # result = ctx.invoke(
     #     process_list,
@@ -73,60 +126,27 @@ def cmd_list(
     # )
 
     # Copied from process_list
-    from aiida.cmdline.utils.common import print_last_process_state_change, check_worker_load
+    from aiida.cmdline.utils.common import check_worker_load
 
-    relationships = {}
-
-    if group:
-        relationships['with_node'] = group
-
-        # If group is present, I will auto set process_label
-        if len(group.nodes) > 0 and 'process_label' in dir(group.nodes[0]):
-            process_label = group.nodes[0].process_label
-
-    builder = CalculationQueryBuilder()
-    filters = builder.get_filters(all_entries, process_state, process_label, paused, exit_status, failed)
-    query_set = builder.get_query_set(
-        relationships=relationships, filters=filters, order_by={order_by: order_dir}, past_days=past_days, limit=limit
+    print_process_table(
+        process_label, all_entries, group, process_state, paused, exit_status, failed, past_days, limit, project, raw,
+        order_by, order_dir
     )
-    projected = builder.get_projected(query_set, projections=project)
 
-    headers = projected.pop(0)
-
-    projected_with_structure = []
-    # Add structure
-    for entry in projected:
-        # I assume 0th column is PK
-        pk = entry[0]
-        node = orm.load_node(pk)
-        formula = node.inputs.structure.get_formula()
-        entry_with_structure = [pk, formula, *entry[1:]]
-        projected_with_structure.append(entry_with_structure)
-    projected = projected_with_structure
-    headers = [headers[0], 'structure', *headers[1:]]
-
-    if raw:
-        tabulated = tabulate(projected, tablefmt='plain')
-        echo.echo(tabulated)
-    else:
-        tabulated = tabulate(projected, headers=headers)
-        echo.echo(tabulated)
-        echo.echo(f'\nTotal results: {len(projected)}\n')
-        print_last_process_state_change()
-        # This is very slow, I skip it
-        if show_statistics:
-            # Second query to get active process count
-            # Currently this is slow but will be fixed wiith issue #2770
-            # We place it at the end so that the user can Ctrl+C after getting the process table.
-            builder = CalculationQueryBuilder()
-            filters = builder.get_filters(process_state=('created', 'waiting', 'running'))
-            query_set = builder.get_query_set(filters=filters)
-            projected = builder.get_projected(query_set, projections=['pk'])
-            worker_slot_use = len(projected) - 1
-            check_worker_load(worker_slot_use)
-
+    # This is very slow, I skip it
     if not show_statistics:
         return
+
+    if not raw:
+        # Second query to get active process count
+        # Currently this is slow but will be fixed wiith issue #2770
+        # We place it at the end so that the user can Ctrl+C after getting the process table.
+        builder = CalculationQueryBuilder()
+        filters = builder.get_filters(process_state=('created', 'waiting', 'running'))
+        query_set = builder.get_query_set(filters=filters)
+        projected = builder.get_projected(query_set, projections=['pk'])
+        worker_slot_use = len(projected) - 1
+        check_worker_load(worker_slot_use)
 
     # Collect statistics of failed workflows
     # similar to aiida.cmdline.commands.cmd_process.process_list
