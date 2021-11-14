@@ -66,7 +66,14 @@ def cmd_movefailed(ctx, src_group, dest_group):
     # 0th is PK
     nodes = [orm.load_node(_[0]) for _ in projected_failed + projected_excepted]
 
-    echo.echo(f"\nWorkchains to be moved: {' '.join([str(_.pk) for _ in nodes])}\n", bold=True)
+    echo.echo(f"\nWorkchains to be moved: {' '.join([str(_.pk) for _ in nodes])}", bold=True)
 
-    ctx.invoke(group_remove_nodes, group=src_group, nodes=nodes)
-    ctx.invoke(group_add_nodes, group=dest_group, nodes=nodes)
+    message = (
+        f'Are you sure you want to move {len(nodes)} nodes from '
+        f'{src_group.__class__.__name__}<{src_group.label}> to '
+        f'{dest_group.__class__.__name__}<{dest_group.label}>?'
+    )
+    click.confirm(message, abort=True)
+
+    ctx.invoke(group_remove_nodes, group=src_group, nodes=nodes, force=True)
+    ctx.invoke(group_add_nodes, group=dest_group, nodes=nodes, force=True)
