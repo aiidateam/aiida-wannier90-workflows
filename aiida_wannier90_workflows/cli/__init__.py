@@ -12,3 +12,4 @@ from .plot import cmd_plot
 from .node import cmd_node
 from .estimate import cmd_estimate
 from .group import cmd_group
+from .statistics import cmd_statistics
