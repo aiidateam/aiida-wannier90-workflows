@@ -37,6 +37,9 @@ def cmd_node_show(ctx, nodes):  # pylint: disable=unused-argument
                 inputs[key] = serializer(node.inputs[key])
             echo.echo(header.format(f'{node.process_label}.inputs'))
             pprint(inputs)
+        else:
+            echo.echo(header.format(f'serializer({node.__class__.__name__})'))
+            pprint(serializer(node))
 
 
 def find_calcjob(node: orm.Node, link_label: str) -> orm.CalcJobNode:
