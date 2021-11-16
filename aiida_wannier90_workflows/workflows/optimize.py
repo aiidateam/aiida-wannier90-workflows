@@ -139,7 +139,7 @@ class Wannier90OptimizeWorkChain(Wannier90BandsWorkChain):
 
         spec.output(
             'bands_distance',
-            valid_type=orm.List,
+            valid_type=orm.Float,
             required=False,
             help='Bands distances between reference bands and Wannier interpolated bands for Ef to Ef+5eV.'
         )
@@ -533,34 +533,35 @@ class Wannier90OptimizeWorkChain(Wannier90BandsWorkChain):
             else:
                 # Even if I haven't run optimization, I still output bands distance if reference bands is present
                 optimal_workchain = self.ctx.workchain_wannier90
-            bandsdist = self._get_bands_distance_raw(optimal_workchain).tolist()
-            bandsdist = orm.List(list=bandsdist)
+            bandsdist = self._get_bands_distance(optimal_workchain)
+            bandsdist = orm.Float(bandsdist)
             bandsdist.store()
             self.out('bands_distance', bandsdist)
 
-    def _get_bands_distance_raw(self, wannier_workchain) -> np.array:
-        """Get bands distance for Fermi energy to Fermi energy + 5eV."""
-        pw_bands = self.inputs['optimize_reference_bands']
-        wan_bands = wannier_workchain.outputs['interpolated_bands']
-
-        wan_parameters = wannier_workchain.inputs['wannier90']['parameters'].get_dict()
-        fermi_energy = wan_parameters.get('fermi_energy')
-        exclude_list_dft = wan_parameters.get('exclude_bands', None)
-
-        # bands distance from Ef to Ef+5
-        bandsdist = bands_distance(pw_bands, wan_bands, fermi_energy, exclude_list_dft)
-
-        # Only return average distance, not max distance
-        bandsdist = bandsdist[:, 1]
-
-        return bandsdist
-
-    def _get_bands_distance(self, wannier_workchain) -> float:
+    def _get_bands_distance(self, wannier_workchain: Wannier90BaseWorkChain) -> float:
         """Get bands distance for Fermi energy + 2eV."""
-        bandsdist = self._get_bands_distance_raw(wannier_workchain)
-        bandsdist = bandsdist[2]  # TODO check 2 <-> Ef+2?  pylint: disable=fixme
+        ref_bands = self.inputs['optimize_reference_bands']
+        bandsdist = get_bands_distance_ef2(ref_bands, wannier_workchain)
 
         return bandsdist
+
+
+def get_bands_distance_ef2(ref_bands: orm.BandsData, wannier_workchain: Wannier90BaseWorkChain) -> float:
+    """Get bands distance for E <= Fermi energy + 2eV."""
+    wan_bands = wannier_workchain.outputs['interpolated_bands']
+
+    wan_parameters = wannier_workchain.inputs['wannier90']['parameters'].get_dict()
+    fermi_energy = wan_parameters.get('fermi_energy')
+    exclude_list_dft = wan_parameters.get('exclude_bands', None)
+
+    # Bands distance from Ef to Ef+5
+    bandsdist = bands_distance(ref_bands, wan_bands, fermi_energy, exclude_list_dft)
+    # Only return average distance, not max distance
+    bandsdist = bandsdist[:, 1]
+    # Return Ef+2
+    bandsdist = bandsdist[2]
+
+    return bandsdist
 
 
 def get_spreads_imbalence(wannier_functions_output: dict) -> float:
