@@ -52,7 +52,10 @@ def compute_checkerboard(optimize_workchain: Wannier90OptimizeWorkChain) -> ty.T
 
     for i, dis_proj_max in enumerate(max_range):
         for j, dis_proj_min in enumerate(min_range):
-            idx = all_minmax.index((dis_proj_min, dis_proj_max))
+            minmax = (dis_proj_min, dis_proj_max)
+            if minmax not in all_minmax:
+                continue
+            idx = all_minmax.index(minmax)
             workchain = all_optimize_workchains[idx]
             wan_bands = workchain.outputs.interpolated_bands
             bands_dist = bands_distance(pw_bands, wan_bands, fermi_energy, exclude_list_dft)
@@ -111,7 +114,7 @@ def plot_checkerboard_raw(
 
         ax = axs_flat[idx_z]
         im = ax.imshow(sorted_checkerboard, origin='lower', cmap='RdYlBu_r')  # pylint: disable=invalid-name
-        ax.set_title(f'Bands <= EF+{idx_z}eV (meV)')
+        ax.set_title(f'E <= EF+{idx_z}eV (meV)')
         ax.set_xticks(range(len(label_x)))
         ax.set_xticklabels(label_x[ind_sort_x])
         ax.set_xlabel('dis_proj_max (%)')
@@ -129,7 +132,7 @@ def plot_checkerboard_raw(
     if title:
         fig.suptitle(title, y=0.92)
     else:
-        fig.suptitle('Bands distances', y=0.92)
+        fig.suptitle('Bands distances checkerboard', y=0.92)
 
     if show:
         plt.show()
@@ -146,7 +149,16 @@ def plot_checkerboard(optimize_workchain: Wannier90OptimizeWorkChain, filename: 
 
     checkerboard, max_range, min_range = compute_checkerboard(optimize_workchain)
 
-    fig = plot_checkerboard_raw(checkerboard, max_range, min_range, show=False)
+    fig = plot_checkerboard_raw(
+        checkerboard,
+        max_range,
+        min_range,
+        title=(
+            f'Bands distance checkerboard for {optimize_workchain.process_label}'
+            f'<{optimize_workchain.pk}> {optimize_workchain.inputs.structure.get_formula()}'
+        ),
+        show=False
+    )
 
     if filename:
         fig.savefig(filename, bbox_inches='tight', dpi=300)
