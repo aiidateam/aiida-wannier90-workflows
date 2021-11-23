@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """Wrapper workchain for BaseRestartWorkChain to automatically handle several QE errors."""
 import re
+from aiida import orm
 from aiida.common import AttributeDict
 from aiida.engine import while_
 from aiida.engine import BaseRestartWorkChain
@@ -132,8 +133,10 @@ class QeBaseRestartWorkChain(BaseRestartWorkChain):
                             # This should not happen, in this case the cmdline is wrong
                             continue
                         try:
-                            cmdline[idx + 1] = f'{int(cmdline[idx + 1]) // 2}'
+                            cmdline[idx + 1] = f'{int(cmdline[idx + 1]) // self._mpi_proc_reduce_factor}'
                         except ValueError:
                             continue
+                settings['cmdline'] = cmdline
+                self.ctx.inputs['settings'] = orm.Dict(dict=settings)
 
         return ProcessHandlerReport(True)
