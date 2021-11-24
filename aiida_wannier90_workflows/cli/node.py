@@ -303,7 +303,7 @@ def cmd_node_saveinput(ctx, workflow, path):
     from contextlib import redirect_stdout
     from aiida.cmdline.commands.cmd_calcjob import calcjob_inputcat
     from aiida_wannier90_workflows.utils.node import get_last_calcjob
-    from aiida_wannier90_workflows.workflows.wannier import Wannier90WorkChain
+    from aiida_wannier90_workflows.workflows.wannier90 import Wannier90WorkChain
     from aiida_wannier90_workflows.workflows.opengrid import Wannier90OpengridWorkChain
     from aiida_wannier90_workflows.workflows.bands import Wannier90BandsWorkChain
 

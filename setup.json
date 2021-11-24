@@ -15,10 +15,10 @@
     "entry_points": {
         "aiida.parsers": [],
         "aiida.workflows": [
-            "wannier90_workflows.base.wannier = aiida_wannier90_workflows.workflows.base.wannier:Wannier90BaseWorkChain",
+            "wannier90_workflows.base.wannier90 = aiida_wannier90_workflows.workflows.base.wannier90:Wannier90BaseWorkChain",
             "wannier90_workflows.base.opengrid = aiida_wannier90_workflows.workflows.base.opengrid:OpengridBaseWorkChain",
             "wannier90_workflows.base.pw2wannier90 = aiida_wannier90_workflows.workflows.base.pw2wannier90:Pw2wannier90BaseWorkChain",
-            "wannier90_workflows.wannier90 = aiida_wannier90_workflows.workflows.wannier:Wannier90WorkChain",
+            "wannier90_workflows.wannier90 = aiida_wannier90_workflows.workflows.wannier90:Wannier90WorkChain",
             "wannier90_workflows.opengrid = aiida_wannier90_workflows.workflows.opengrid:Wannier90OpengridWorkChain",
             "wannier90_workflows.bands = aiida_wannier90_workflows.workflows.bands:Wannier90BandsWorkChain",
             "wannier90_workflows.optimize = aiida_wannier90_workflows.workflows.optimize:Wannier90OptimizeWorkChain"

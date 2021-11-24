@@ -739,7 +739,7 @@ def estimate_workflow(  # pylint: disable=too-many-statements
     from aiida.common import exceptions
     from aiida_wannier90_workflows.utils.upf import get_wannier_number_of_bands, get_number_of_projections
     from aiida_wannier90_workflows.utils.kmesh import create_kpoints_from_distance
-    from aiida_wannier90_workflows.workflows.wannier import get_pseudo_orbitals, get_semicore_list
+    from aiida_wannier90_workflows.workflows.wannier90 import get_pseudo_orbitals, get_semicore_list
     from aiida_wannier90_workflows.utils.predict_smooth_grid import predict_smooth_grid
 
     SsspFamily = GroupFactory('pseudo.family.sssp')

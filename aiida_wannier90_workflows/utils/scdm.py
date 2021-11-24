@@ -1,37 +1,38 @@
-import typing
+# -*- coding: utf-8 -*-
+"""Functions for SCDM fitting."""
+import typing as ty
 import numpy as np
-from scipy.special import erfc
-from scipy.optimize import curve_fit
 from aiida import orm
 
-__all__ = (
-    'erfc_scdm', 'fit_scdm_mu_sigma', 'fit_scdm_mu_sigma_aiida',
-    'get_energy_of_projectability'
-)
+__all__ = ('erfc_scdm', 'fit_scdm_mu_sigma', 'fit_scdm_mu_sigma_aiida', 'get_energy_of_projectability')
 
 
 def erfc_scdm(x, mu, sigma):
+    """Error function."""
+    from scipy.special import erfc  # pylint: disable=no-name-in-module
+
     return 0.5 * erfc((x - mu) / sigma)
 
 
-def fit_erfc(f, xdata, ydata):
+def fit_erfc(f, xdata, ydata):  # pylint: disable=invalid-name
+    """Fit error function."""
+    from scipy.optimize import curve_fit
+
     return curve_fit(f, xdata, ydata, bounds=([-50, 0], [50, 50]))
 
 
-def fit_scdm_mu_sigma(
-    bands: np.array,
-    projections: np.array,
-    sigma_factor: float = 3.0,
-    return_data: bool = False
-) -> typing.Union[typing.Tuple[float, float], typing.Tuple[float, float, np.
-                                                           array]]:
-    '''Fit mu parameter for the SCDM-k method:
-    The projectability of all orbitals is fitted using an erfc(x) function. 
+def fit_scdm_mu_sigma(bands: np.array,
+                      projections: np.array,
+                      sigma_factor: float = 3.0,
+                      return_data: bool = False) -> ty.Union[ty.Tuple[float, float], ty.Tuple[float, float, np.array]]:
+    """Fit mu parameter for the SCDM-k method.
+
+    The projectability of all orbitals is fitted using an erfc(x) function.
     Mu and sigma are extracted from the fitted distribution,
     with mu = mu_fit - k * sigma, sigma = sigma_fit and
     k a parameter with default k = 3.
 
-    This function accepts numpy array inputs, the function `fit_scdm_mu_sigma_aiida` 
+    This function accepts numpy array inputs, the function `fit_scdm_mu_sigma_aiida`
     is the AiiDA wrapper which accepts AiiDA type as input parameters.
 
     :param bands: output of projwfc, it was computed in the nscf calc
@@ -40,12 +41,11 @@ def fit_scdm_mu_sigma(
         scdm_mu = E(projectability==max_projectability) - sigma_factor * scdm_sigma
         Pass sigma_factor = 0 if you do not want to shift
     :return: scdm_mu, scdm_sigma,
-        optional data (shape 2 * N, 0th row energy, 1st row projectability)'''
-    sorted_bands, sorted_projwfc = sort_projectability_arrays(
-        bands, projections
-    )
+        optional data (shape 2 * N, 0th row energy, 1st row projectability)
+    """
+    sorted_bands, sorted_projwfc = sort_projectability_arrays(bands, projections)
 
-    popt, pcov = fit_erfc(erfc_scdm, sorted_bands, sorted_projwfc)
+    popt, pcov = fit_erfc(erfc_scdm, sorted_bands, sorted_projwfc)  # pylint: disable=unbalanced-tuple-unpacking,unused-variable
     mu = popt[0]
     sigma = popt[1]
 
@@ -57,18 +57,18 @@ def fit_scdm_mu_sigma(
         data[0, :] = sorted_bands
         data[1, :] = sorted_projwfc
         return scdm_mu, scdm_sigma, data
-    else:
-        return scdm_mu, scdm_sigma
+
+    return scdm_mu, scdm_sigma
 
 
 def fit_scdm_mu_sigma_aiida(
     bands: orm.BandsData,
     projections: orm.ProjectionData,
-    sigma_factor: orm.Float = orm.Float(3.0),
+    sigma_factor: orm.Float,
     return_data: bool = False
-) -> typing.Union[typing.Tuple[float, float], typing.Tuple[float, float, np.
-                                                           array]]:
+) -> ty.Union[ty.Tuple[float, float], ty.Tuple[float, float, np.array]]:
     """Fit scdm_mu & scdm_sigma based on projectability.
+
     This is the AiiDA wrapper of `fit_scdm_mu_sigma`.
 
     :param pw2wan_parameters: pw2wannier90 input parameters (the one to update with this calcfunction)
@@ -78,20 +78,17 @@ def fit_scdm_mu_sigma_aiida(
     :param projections: projectability of the projwfc output
     :type projections: orm.ProjectionData
     :param sigma_factor: sigma_factor of SCDM
-    :type sigma_factor: orm.Float"""
-    bands_array, projections_array = get_projectability_arrays(
-        bands, projections
-    )
-    return fit_scdm_mu_sigma(
-        bands_array, projections_array, sigma_factor.value, return_data
-    )
+    :type sigma_factor: orm.Float
+    """
+    bands_array, projections_array = get_projectability_arrays(bands, projections)
+    return fit_scdm_mu_sigma(bands_array, projections_array, sigma_factor.value, return_data)
 
 
-def get_projectability_arrays(
-    bands: orm.BandsData, projections: orm.ProjectionData
-):
-    """accept aiida orm class, return numpy arrays: 
-            (bands_array, projections_array), where each array has shape (num_kpt, num_bands)
+def get_projectability_arrays(bands: orm.BandsData, projections: orm.ProjectionData):
+    """Calculate projectability array.
+
+    Accept aiida orm class, return numpy arrays:
+        (bands_array, projections_array), where each array has shape (num_kpt, num_bands)
 
     :param bands: [description]
     :type bands: orm.BandsData
@@ -102,8 +99,7 @@ def get_projectability_arrays(
     orbitals_list = [i.get_orbital_dict() for i in projections.get_orbitals()]
     # Sum of the projections on all atomic orbitals, shape num_kpoints * num_bands
     projections_array = sum([
-        sum([x[1] for x in projections.get_projections(**orb_dict)])
-        for orb_dict in orbitals_list
+        sum([x[1] for x in projections.get_projections(**orb_dict)]) for orb_dict in orbitals_list
     ])
     # shape num_kpoints * num_bands, TODO support spin
     bands_array = bands.get_bands()
@@ -111,7 +107,7 @@ def get_projectability_arrays(
 
 
 def sort_projectability_arrays(bands: np.array, projections: np.array):
-    """sort projectability arrays by energy in ascending order
+    """Sort projectability arrays by energy in ascending order.
 
     :param bands: output of projwfc, it was computed in the nscf calc
     :type bands: np.array, shape num_kpoints * num_bands
@@ -133,12 +129,8 @@ def sort_projectability_arrays(bands: np.array, projections: np.array):
     return sorted_bands, sorted_projwfc
 
 
-def get_energy_of_projectability(
-    bands: orm.BandsData,
-    projections: orm.ProjectionData,
-    thresholds: float = 0.9
-):
-    """return energy corresponds to projectability = thresholds
+def get_energy_of_projectability(bands: orm.BandsData, projections: orm.ProjectionData, thresholds: float = 0.9):
+    """Return energy corresponds to projectability = thresholds.
 
     :param bands: [description]
     :type bands: orm.BandsData
@@ -147,11 +139,7 @@ def get_energy_of_projectability(
     :param thresholds: [description]
     :type thresholds: float
     """
-    bands_array, projections_array = get_projectability_arrays(
-        bands, projections
-    )
-    sorted_bands, sorted_projwfc = sort_projectability_arrays(
-        bands_array, projections_array
-    )
+    bands_array, projections_array = get_projectability_arrays(bands, projections)
+    sorted_bands, sorted_projwfc = sort_projectability_arrays(bands_array, projections_array)
     max_ind = np.max(np.argwhere(sorted_projwfc >= thresholds).flatten())
     return sorted_bands[max_ind]

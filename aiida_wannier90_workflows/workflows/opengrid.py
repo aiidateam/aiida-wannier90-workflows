@@ -8,7 +8,7 @@ from aiida_quantumespresso.utils.mapping import prepare_process_inputs
 from aiida_quantumespresso.calculations.opengrid import OpengridCalculation
 from aiida_wannier90_workflows.workflows.base.opengrid import OpengridBaseWorkChain
 
-from .wannier import Wannier90WorkChain
+from .wannier90 import Wannier90WorkChain
 
 __all__ = ('Wannier90OpengridWorkChain',)
 
