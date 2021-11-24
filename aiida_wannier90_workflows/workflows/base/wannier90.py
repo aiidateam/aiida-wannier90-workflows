@@ -49,6 +49,11 @@ class Wannier90BaseWorkChain(BaseRestartWorkChain):
         spec.exit_code(400, 'ERROR_BVECTORS', message='Unrecoverable bvectors error.')
         spec.exit_code(401, 'ERROR_DISENTANGLEMENT_NOT_ENOUGH_STATES', message='Unrecoverable disentanglement error.')
         spec.exit_code(402, 'ERROR_PLOT_WF_CUBE', message='Unrecoverable cube format error.')
+        spec.exit_code(
+            404,
+            'ERROR_OUTPUT_STDOUT_INCOMPLETE',
+            message='The stdout output file was incomplete probably because the calculation got interrupted.'
+        )
 
     def setup(self):
         """Call the `setup` of the `BaseRestartWorkChain` and then create the inputs dictionary in `self.ctx.inputs`.
@@ -60,7 +65,7 @@ class Wannier90BaseWorkChain(BaseRestartWorkChain):
 
         inputs = AttributeDict(self.exposed_inputs(Wannier90Calculation, 'wannier90'))
 
-        if 'remote_input_folder' in inputs:
+        if 'remote_input_folder' in inputs and 'settings' in self.inputs:
             # Note there is an `additional_remote_symlink_list` in Wannier90Calculation.inputs.settings,
             # however it requires user providing a list of
             #   (computer_uuid, remote_input_folder_abs_path, dest_path)
@@ -72,7 +77,10 @@ class Wannier90BaseWorkChain(BaseRestartWorkChain):
             remote_input_folder = inputs['remote_input_folder']
             remote_input_folder_path = remote_input_folder.get_remote_path()
             workflow_settings = self.inputs.settings.get_dict()
-            calc_settings = inputs.settings.get_dict()
+            if 'settings' in inputs:
+                calc_settings = inputs.settings.get_dict()
+            else:
+                calc_settings = {}
             remote_symlink_list = calc_settings.get('additional_remote_symlink_list', [])
             existed_symlinks = [_[-1] for _ in remote_symlink_list]
             for filename in workflow_settings.get('remote_symlink_files', []):
