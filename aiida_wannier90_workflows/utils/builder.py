@@ -7,11 +7,11 @@ from aiida.engine import ProcessBuilder, ProcessBuilderNamespace
 
 
 def serializer(node: orm.Node) -> ty.Any:
-    """Transform arbitrary aiida object to ordinary python type, for pretty print.
+    """Serialize arbitrary aiida object to ordinary python type, for pretty print.
 
     Usage:
     ```
-    pprint.pprint(node_serializer(builder))
+    pprint.pprint(serializer(builder))
     ```
 
     :param node: arbitrary aiida node
@@ -25,36 +25,46 @@ def serializer(node: orm.Node) -> ty.Any:
         res = {}
         for key, val in node.get_dict().items():
             res[key] = serializer(val)
+
     elif isinstance(node, dict):
         res = {}
         for key, val in node.items():
             res[key] = serializer(val)
+
     elif isinstance(node, ProcessBuilderNamespace):
-        res = {}
-        for key in node:
-            res[key] = serializer(node[key])
-    elif isinstance(node, (orm.Float, orm.Bool, orm.Int, orm.Str)):
+        res = serializer(node._inputs(prune=True))  # pylint: disable=protected-access
+
+    elif isinstance(node, (orm.Float, orm.Bool, orm.Int, orm.Str, orm.BaseType)):
         res = node.value
+
     elif isinstance(node, orm.List):
         res = node.get_list()
+
     # BandsData is a subclass of KpointsData, need to before KpointsData
     elif isinstance(node, orm.BandsData):
         num_kpoints, num_bands = node.attributes['array|bands']
         res = f'nkpt={num_kpoints},nbnd={num_bands}'
         if 'labels' in node.attributes:
             res += f',{serialize_kpoints(node)}'
+
     elif isinstance(node, orm.KpointsData):
         res = serialize_kpoints(node)
+
     elif isinstance(node, orm.Code):
-        res = f'{node.label}@{node.computer.label}<{node.pk}>'
+        res = f'{node.full_label}<{node.pk}>'
+
     elif isinstance(node, orm.StructureData):
         res = f'{node.get_formula()}<{node.pk}>'
+
     elif isinstance(node, UpfData):
         res = f'{node.filename}<{node.pk}>'
+
     elif isinstance(node, (orm.WorkflowNode, orm.CalculationNode)):
         res = f'{node.process_label}<{node.pk}>'
+
     elif isinstance(node, orm.RemoteData):
         res = f'{node.__class__.__name__}<{node.pk}>'
+
     else:
         res = node
 

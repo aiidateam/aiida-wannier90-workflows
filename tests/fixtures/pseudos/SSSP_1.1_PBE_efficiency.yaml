@@ -1,0 +1,948 @@
+Ag:
+  filename: Ag_ONCV_PBE-1.0.oncvpsp.upf
+  has_so: F
+  md5: 94f47bd0669c641108e45594df92fabc
+  number_of_wfc: 10
+  pswfc:
+  - 0
+  - 1
+  - 0
+  - 2
+  z_valence: 19.0
+Al:
+  filename: Al.pbe-n-kjpaw_psl.1.0.0.UPF
+  has_so: F
+  md5: cfc449ca30b5f3223ec38ddd88ac046d
+  number_of_wfc: 4
+  pswfc:
+  - 0
+  - 1
+  z_valence: 3.0
+Ar:
+  filename: Ar_ONCV_PBE-1.1.oncvpsp.upf
+  has_so: F
+  md5: 46d28409cdd246843f76b7675277a949
+  number_of_wfc: 4
+  pswfc:
+  - 0
+  - 1
+  z_valence: 8.0
+As:
+  filename: As.pbe-n-rrkjus_psl.0.2.UPF
+  has_so: F
+  md5: 767315de957beeeb34f87d97bf945c8f
+  number_of_wfc: 4
+  pswfc:
+  - 0
+  - 1
+  z_valence: 5.0
+Au:
+  filename: Au_ONCV_PBE-1.0.oncvpsp.upf
+  has_so: F
+  md5: d14007822ba0e19f0206237467fc06c2
+  number_of_wfc: 10
+  pswfc:
+  - 0
+  - 1
+  - 0
+  - 2
+  z_valence: 19.0
+B:
+  filename: b_pbe_v1.4.uspp.F.UPF
+  has_so: F
+  md5: cc6de2960df11db49a60e589f9ebb39b
+  number_of_wfc: 4
+  pswfc:
+  - 0
+  - 1
+  z_valence: 3.0
+Ba:
+  filename: Ba.pbe-spn-kjpaw_psl.1.0.0.UPF
+  has_so: F
+  md5: c432291d3e53af55f19d5e8866385beb
+  number_of_wfc: 5
+  pswfc:
+  - 0
+  - 0
+  - 1
+  z_valence: 10.0
+Be:
+  filename: be_pbe_v1.4.uspp.F.UPF
+  has_so: F
+  md5: 5ecff1440924c7c98ad504bef30f5264
+  number_of_wfc: 5
+  pswfc:
+  - 0
+  - 0
+  - 1
+  z_valence: 4.0
+Bi:
+  filename: Bi_pbe_v1.uspp.F.UPF
+  has_so: F
+  md5: cceb9f28ec65b6d7ff33140f5b0b1758
+  number_of_wfc: 9
+  pswfc:
+  - 2
+  - 0
+  - 1
+  z_valence: 15.0
+Br:
+  filename: br_pbe_v1.4.uspp.F.UPF
+  has_so: F
+  md5: d3ffb7b29f6225aa16fe06858fb2a80b
+  number_of_wfc: 4
+  pswfc:
+  - 0
+  - 1
+  z_valence: 7.0
+C:
+  filename: C.pbe-n-kjpaw_psl.1.0.0.UPF
+  has_so: F
+  md5: 5d2aebdfa2cae82b50a7e79e9516da0f
+  number_of_wfc: 4
+  pswfc:
+  - 0
+  - 1
+  z_valence: 4.0
+Ca:
+  filename: Ca_pbe_v1.uspp.F.UPF
+  has_so: F
+  md5: 403a4c14b9e4d4dfdc3024c9a3812218
+  number_of_wfc: 10
+  pswfc:
+  - 0
+  - 1
+  - 0
+  - 2
+  z_valence: 10.0
+Cd:
+  filename: Cd.pbe-dn-rrkjus_psl.0.3.1.UPF
+  has_so: F
+  md5: 558e9f355611b531a870a69ef6ace9e2
+  number_of_wfc: 9
+  pswfc:
+  - 0
+  - 1
+  - 2
+  z_valence: 12.0
+Ce:
+  filename: Ce.GGA-PBE-paw-v1.0.UPF
+  has_so: F
+  md5: f2b950f613061344c13339c8d844425d
+  number_of_wfc: 32
+  pswfc:
+  - 0
+  - 0
+  - 1
+  - 1
+  - 2
+  - 2
+  - 3
+  - 3
+  z_valence: 12.0
+Cl:
+  filename: cl_pbe_v1.4.uspp.F.UPF
+  has_so: F
+  md5: fc6f6913ecf08c9257cb748ef0700058
+  number_of_wfc: 4
+  pswfc:
+  - 0
+  - 1
+  z_valence: 7.0
+Co:
+  filename: Co_pbe_v1.2.uspp.F.UPF
+  has_so: F
+  md5: 5f91765df6ddd3222702df6e7b74a16d
+  number_of_wfc: 13
+  pswfc:
+  - 0
+  - 1
+  - 2
+  - 0
+  - 1
+  z_valence: 17.0
+Cr:
+  filename: cr_pbe_v1.5.uspp.F.UPF
+  has_so: F
+  md5: 0d52af634a40206e4dee301ad30da4bf
+  number_of_wfc: 10
+  pswfc:
+  - 0
+  - 1
+  - 0
+  - 2
+  z_valence: 14.0
+Cs:
+  filename: Cs_pbe_v1.uspp.F.UPF
+  has_so: F
+  md5: 3476d69cb178dfad3ffaa59df4e07ca4
+  number_of_wfc: 13
+  pswfc:
+  - 0
+  - 1
+  - 2
+  - 0
+  - 1
+  z_valence: 9.0
+Cu:
+  filename: Cu_pbe_v1.2.uspp.F.UPF
+  has_so: F
+  md5: 6e991ff952a84172a2a52a1c1e996048
+  number_of_wfc: 13
+  pswfc:
+  - 0
+  - 1
+  - 2
+  - 0
+  - 1
+  z_valence: 19.0
+Dy:
+  filename: Dy.GGA-PBE-paw-v1.0.UPF
+  has_so: F
+  md5: 733414aae3e3693a823ce0c917a68f08
+  number_of_wfc: 32
+  pswfc:
+  - 0
+  - 0
+  - 1
+  - 1
+  - 2
+  - 2
+  - 3
+  - 3
+  z_valence: 20.0
+Er:
+  filename: Er.GGA-PBE-paw-v1.0.UPF
+  has_so: F
+  md5: 5952a841f12bc97f67d25f9d1b2e7e35
+  number_of_wfc: 32
+  pswfc:
+  - 0
+  - 0
+  - 1
+  - 1
+  - 2
+  - 2
+  - 3
+  - 3
+  z_valence: 22.0
+Eu:
+  filename: Eu.GGA-PBE-paw-v1.0.UPF
+  has_so: F
+  md5: acec5fd9176fb57ec8e299eae1ecaf48
+  number_of_wfc: 32
+  pswfc:
+  - 0
+  - 0
+  - 1
+  - 1
+  - 2
+  - 2
+  - 3
+  - 3
+  z_valence: 17.0
+F:
+  filename: f_pbe_v1.4.uspp.F.UPF
+  has_so: F
+  md5: 4c38b6a325caf53ec0e86aed9459de46
+  number_of_wfc: 4
+  pswfc:
+  - 0
+  - 1
+  z_valence: 7.0
+Fe:
+  filename: Fe.pbe-spn-kjpaw_psl.0.2.1.UPF
+  has_so: F
+  md5: e86618425769142926afa95317d90200
+  number_of_wfc: 13
+  pswfc:
+  - 0
+  - 0
+  - 1
+  - 1
+  - 2
+  z_valence: 16.0
+Ga:
+  filename: Ga.pbe-dn-kjpaw_psl.1.0.0.UPF
+  has_so: F
+  md5: a27b4342b1af7e5f338de752e9ed7044
+  number_of_wfc: 9
+  pswfc:
+  - 0
+  - 1
+  - 2
+  z_valence: 13.0
+Gd:
+  filename: Gd.GGA-PBE-paw-v1.0.UPF
+  has_so: F
+  md5: 3e8e0d208da550914ae52eaf991d13de
+  number_of_wfc: 32
+  pswfc:
+  - 0
+  - 0
+  - 1
+  - 1
+  - 2
+  - 2
+  - 3
+  - 3
+  z_valence: 18.0
+Ge:
+  filename: ge_pbe_v1.4.uspp.F.UPF
+  has_so: F
+  md5: 9c9eaa91e581c3f09632fb3098b2c6b2
+  number_of_wfc: 9
+  pswfc:
+  - 2
+  - 0
+  - 1
+  z_valence: 14.0
+H:
+  filename: H.pbe-rrkjus_psl.1.0.0.UPF
+  has_so: F
+  md5: f52b6d4d1c606e5624b1dc7b2218f220
+  number_of_wfc: 1
+  pswfc:
+  - 0
+  z_valence: 1.0
+He:
+  filename: He_ONCV_PBE-1.0.oncvpsp.upf
+  has_so: F
+  md5: e7160162b946020f132a727efeb32d00
+  number_of_wfc: 1
+  pswfc:
+  - 0
+  z_valence: 2.0
+Hf:
+  filename: Hf-sp.oncvpsp.upf
+  has_so: F
+  md5: 417ed15784afe83d2e06dacf143de3f8
+  number_of_wfc: 10
+  pswfc:
+  - 0
+  - 1
+  - 2
+  - 0
+  z_valence: 12.0
+Hg:
+  filename: Hg_ONCV_PBE-1.0.oncvpsp.upf
+  has_so: F
+  md5: dd5a8773074bfcf4280086d4d95875c4
+  number_of_wfc: 10
+  pswfc:
+  - 0
+  - 1
+  - 0
+  - 2
+  z_valence: 20.0
+Ho:
+  filename: Ho.GGA-PBE-paw-v1.0.UPF
+  has_so: F
+  md5: 3d93cae5f38e6cc822e0e70538981326
+  number_of_wfc: 32
+  pswfc:
+  - 0
+  - 0
+  - 1
+  - 1
+  - 2
+  - 2
+  - 3
+  - 3
+  z_valence: 21.0
+I:
+  filename: I.pbe-n-kjpaw_psl.0.2.UPF
+  has_so: F
+  md5: d4ef18d9c8f18dc85e5843bca1e50dc0
+  number_of_wfc: 4
+  pswfc:
+  - 0
+  - 1
+  z_valence: 7.0
+In:
+  filename: In.pbe-dn-rrkjus_psl.0.2.2.UPF
+  has_so: F
+  md5: 25e7c42c3b55b68f4bf926be2e7201a4
+  number_of_wfc: 9
+  pswfc:
+  - 0
+  - 1
+  - 2
+  z_valence: 13.0
+Ir:
+  filename: Ir_pbe_v1.2.uspp.F.UPF
+  has_so: F
+  md5: 8836f839c3459d2b385c504ce6d91f2c
+  number_of_wfc: 12
+  pswfc:
+  - 1
+  - 2
+  - 0
+  - 1
+  z_valence: 15.0
+K:
+  filename: K.pbe-spn-kjpaw_psl.1.0.0.UPF
+  has_so: F
+  md5: 7d58810084cac21f60fbe77ea2b688fd
+  number_of_wfc: 8
+  pswfc:
+  - 0
+  - 0
+  - 1
+  - 1
+  z_valence: 9.0
+Kr:
+  filename: Kr_ONCV_PBE-1.0.oncvpsp.upf
+  has_so: F
+  md5: f2280ecf57a6c8a47e066f0532d843fa
+  number_of_wfc: 4
+  pswfc:
+  - 0
+  - 1
+  z_valence: 8.0
+La:
+  filename: La.GGA-PBE-paw-v1.0.UPF
+  has_so: F
+  md5: 436541e95c1ad8901025bd0b0ed42ae2
+  number_of_wfc: 32
+  pswfc:
+  - 0
+  - 0
+  - 1
+  - 1
+  - 2
+  - 2
+  - 3
+  - 3
+  z_valence: 11.0
+Li:
+  filename: li_pbe_v1.4.uspp.F.UPF
+  has_so: F
+  md5: e912e257baa3777c20ea3d68f190483c
+  number_of_wfc: 5
+  pswfc:
+  - 0
+  - 0
+  - 1
+  z_valence: 3.0
+Lu:
+  filename: Lu.GGA-PBE-paw-v1.0.UPF
+  has_so: F
+  md5: 9ceca61ee0c17e9380a83635bfffa61d
+  number_of_wfc: 32
+  pswfc:
+  - 0
+  - 0
+  - 1
+  - 1
+  - 2
+  - 2
+  - 3
+  - 3
+  z_valence: 25.0
+Mg:
+  filename: Mg.pbe-n-kjpaw_psl.0.3.0.UPF
+  has_so: F
+  md5: 24ecedc7f3e3cbe212e682f4413594e4
+  number_of_wfc: 4
+  pswfc:
+  - 0
+  - 1
+  z_valence: 2.0
+Mn:
+  filename: mn_pbe_v1.5.uspp.F.UPF
+  has_so: F
+  md5: 82ef2b46521d7a7d9e736dc3972e4928
+  number_of_wfc: 13
+  pswfc:
+  - 0
+  - 1
+  - 0
+  - 2
+  - 1
+  z_valence: 15.0
+Mo:
+  filename: Mo_ONCV_PBE-1.0.oncvpsp.upf
+  has_so: F
+  md5: 1b5d28e075c9ccadda658a603575cd1f
+  number_of_wfc: 10
+  pswfc:
+  - 0
+  - 1
+  - 0
+  - 2
+  z_valence: 14.0
+N:
+  filename: N.pbe-n-radius_5.UPF
+  has_so: F
+  md5: 16739722b17309cd8fe442a2ace49922
+  number_of_wfc: 4
+  pswfc:
+  - 0
+  - 1
+  z_valence: 5.0
+Na:
+  filename: na_pbe_v1.5.uspp.F.UPF
+  has_so: F
+  md5: 44600605ef58000f06b90626533354dc
+  number_of_wfc: 5
+  pswfc:
+  - 0
+  - 1
+  - 0
+  z_valence: 9.0
+Nb:
+  filename: Nb.pbe-spn-kjpaw_psl.0.3.0.UPF
+  has_so: F
+  md5: 411d72ad547312f8017e2943ceca08cc
+  number_of_wfc: 10
+  pswfc:
+  - 0
+  - 0
+  - 1
+  - 2
+  z_valence: 13.0
+Nd:
+  filename: Nd.GGA-PBE-paw-v1.0.UPF
+  has_so: F
+  md5: 1d1e94942b6eb1cde76049b71bb7dcb0
+  number_of_wfc: 32
+  pswfc:
+  - 0
+  - 0
+  - 1
+  - 1
+  - 2
+  - 2
+  - 3
+  - 3
+  z_valence: 14.0
+Ne:
+  filename: Ne_ONCV_PBE-1.0.oncvpsp.upf
+  has_so: F
+  md5: 9b5acc4cb48b9d80e669eadd528e4e8f
+  number_of_wfc: 4
+  pswfc:
+  - 0
+  - 1
+  z_valence: 8.0
+Ni:
+  filename: ni_pbe_v1.4.uspp.F.UPF
+  has_so: F
+  md5: 1ee80287db30b12d2bc1f57a5b5d6409
+  number_of_wfc: 13
+  pswfc:
+  - 0
+  - 1
+  - 2
+  - 0
+  - 1
+  z_valence: 18.0
+O:
+  filename: O.pbe-n-kjpaw_psl.0.1.UPF
+  has_so: F
+  md5: 0234752ac141de4415c5fc33072bef88
+  number_of_wfc: 4
+  pswfc:
+  - 0
+  - 1
+  z_valence: 6.0
+Os:
+  filename: Os_pbe_v1.2.uspp.F.UPF
+  has_so: F
+  md5: a3fb40a04f0c37c25c34bbc47164c9a8
+  number_of_wfc: 13
+  pswfc:
+  - 0
+  - 1
+  - 2
+  - 0
+  - 1
+  z_valence: 16.0
+P:
+  filename: P.pbe-n-rrkjus_psl.1.0.0.UPF
+  has_so: F
+  md5: 8b930f418f0a4573dca56cd030ffe088
+  number_of_wfc: 4
+  pswfc:
+  - 0
+  - 1
+  z_valence: 5.0
+Pb:
+  filename: Pb.pbe-dn-kjpaw_psl.0.2.2.UPF
+  has_so: F
+  md5: 9d431e6316058b74ade52399a6cf67da
+  number_of_wfc: 9
+  pswfc:
+  - 0
+  - 1
+  - 2
+  z_valence: 14.0
+Pd:
+  filename: Pd_ONCV_PBE-1.0.oncvpsp.upf
+  has_so: F
+  md5: eb77f42b51d86fb18e25f68156a31cf1
+  number_of_wfc: 10
+  pswfc:
+  - 0
+  - 1
+  - 0
+  - 2
+  z_valence: 18.0
+Pm:
+  filename: Pm.GGA-PBE-paw-v1.0.UPF
+  has_so: F
+  md5: 4b6c6c601cafc6eebaa7bee0af846dec
+  number_of_wfc: 32
+  pswfc:
+  - 0
+  - 0
+  - 1
+  - 1
+  - 2
+  - 2
+  - 3
+  - 3
+  z_valence: 15.0
+Po:
+  filename: Po.pbe-dn-rrkjus_psl.1.0.0.UPF
+  has_so: F
+  md5: 3f8a5a8b7a531f42ca8381c21d3cd528
+  number_of_wfc: 9
+  pswfc:
+  - 0
+  - 1
+  - 2
+  z_valence: 16.0
+Pr:
+  filename: Pr.GGA-PBE-paw-v1.0.UPF
+  has_so: F
+  md5: b5e1e58e76df433569641143f671cc27
+  number_of_wfc: 32
+  pswfc:
+  - 0
+  - 0
+  - 1
+  - 1
+  - 2
+  - 2
+  - 3
+  - 3
+  z_valence: 13.0
+Pt:
+  filename: pt_pbe_v1.4.uspp.F.UPF
+  has_so: F
+  md5: f09d6de1a584b5a045c4fc126da2d0c4
+  number_of_wfc: 12
+  pswfc:
+  - 1
+  - 2
+  - 0
+  - 1
+  z_valence: 16.0
+Rb:
+  filename: Rb_ONCV_PBE-1.0.oncvpsp.upf
+  has_so: F
+  md5: 55a5172d6bfbce6759a58e35d43f6aa9
+  number_of_wfc: 5
+  pswfc:
+  - 0
+  - 1
+  - 0
+  z_valence: 9.0
+Re:
+  filename: Re_pbe_v1.2.uspp.F.UPF
+  has_so: F
+  md5: 85f993410f3e006da9d71c142b4ad953
+  number_of_wfc: 13
+  pswfc:
+  - 0
+  - 1
+  - 2
+  - 0
+  - 1
+  z_valence: 15.0
+Rh:
+  filename: Rh_ONCV_PBE-1.0.oncvpsp.upf
+  has_so: F
+  md5: ba07c69523b14cacd10683cd4c4284c1
+  number_of_wfc: 10
+  pswfc:
+  - 0
+  - 1
+  - 0
+  - 2
+  z_valence: 17.0
+Rn:
+  filename: Rn.pbe-dn-kjpaw_psl.1.0.0.UPF
+  has_so: F
+  md5: 03f6b960ab99273412830d0b4aa01365
+  number_of_wfc: 9
+  pswfc:
+  - 0
+  - 1
+  - 2
+  z_valence: 18.0
+Ru:
+  filename: Ru_ONCV_PBE-1.0.oncvpsp.upf
+  has_so: F
+  md5: be037bb81c227cfb9b1461a9f099f4bd
+  number_of_wfc: 10
+  pswfc:
+  - 0
+  - 1
+  - 0
+  - 2
+  z_valence: 16.0
+S:
+  filename: s_pbe_v1.4.uspp.F.UPF
+  has_so: F
+  md5: 88d86576ff6df21479756cfb9bdac1df
+  number_of_wfc: 4
+  pswfc:
+  - 0
+  - 1
+  z_valence: 6.0
+Sb:
+  filename: sb_pbe_v1.4.uspp.F.UPF
+  has_so: F
+  md5: 9bc50dfb53373b713f5709b9110fe27f
+  number_of_wfc: 9
+  pswfc:
+  - 2
+  - 0
+  - 1
+  z_valence: 15.0
+Sc:
+  filename: Sc_ONCV_PBE-1.0.oncvpsp.upf
+  has_so: F
+  md5: e21af8023abb52e52cb7cd3133e4a229
+  number_of_wfc: 10
+  pswfc:
+  - 0
+  - 1
+  - 0
+  - 2
+  z_valence: 11.0
+Se:
+  filename: Se_pbe_v1.uspp.F.UPF
+  has_so: F
+  md5: 1b3568f3a8ae88f9a2a0ad0698632c85
+  number_of_wfc: 4
+  pswfc:
+  - 0
+  - 1
+  z_valence: 6.0
+Si:
+  filename: Si.pbe-n-rrkjus_psl.1.0.0.UPF
+  has_so: F
+  md5: 0b0bb1205258b0d07b9f9672cf965d36
+  number_of_wfc: 4
+  pswfc:
+  - 0
+  - 1
+  z_valence: 4.0
+Sm:
+  filename: Sm.GGA-PBE-paw-v1.0.UPF
+  has_so: F
+  md5: 886f70968969f895acf876f5617e0641
+  number_of_wfc: 32
+  pswfc:
+  - 0
+  - 0
+  - 1
+  - 1
+  - 2
+  - 2
+  - 3
+  - 3
+  z_valence: 16.0
+Sn:
+  filename: Sn_pbe_v1.uspp.F.UPF
+  has_so: F
+  md5: 4cf58ce39ec5d5d420df3dd08604eb00
+  number_of_wfc: 9
+  pswfc:
+  - 2
+  - 0
+  - 1
+  z_valence: 14.0
+Sr:
+  filename: Sr_pbe_v1.uspp.F.UPF
+  has_so: F
+  md5: 6b418c05fbe9db5448babca5e47b7a5b
+  number_of_wfc: 13
+  pswfc:
+  - 0
+  - 1
+  - 2
+  - 0
+  - 1
+  z_valence: 10.0
+Ta:
+  filename: Ta_pbe_v1.uspp.F.UPF
+  has_so: F
+  md5: f8bbe9446314a3b8ea5d9f3e3836c939
+  number_of_wfc: 13
+  pswfc:
+  - 0
+  - 1
+  - 2
+  - 0
+  - 1
+  z_valence: 13.0
+Tb:
+  filename: Tb.GGA-PBE-paw-v1.0.UPF
+  has_so: F
+  md5: f7bf3d58e9b293961564f5b9598c921e
+  number_of_wfc: 32
+  pswfc:
+  - 0
+  - 0
+  - 1
+  - 1
+  - 2
+  - 2
+  - 3
+  - 3
+  z_valence: 19.0
+Tc:
+  filename: Tc_ONCV_PBE-1.0.oncvpsp.upf
+  has_so: F
+  md5: 1c2b1e6c8b361b656073c0c20ed4f60a
+  number_of_wfc: 10
+  pswfc:
+  - 0
+  - 1
+  - 0
+  - 2
+  z_valence: 15.0
+Te:
+  filename: Te_pbe_v1.uspp.F.UPF
+  has_so: F
+  md5: c319670d6894cc26e93307826a071b75
+  number_of_wfc: 4
+  pswfc:
+  - 0
+  - 1
+  z_valence: 6.0
+Ti:
+  filename: ti_pbe_v1.4.uspp.F.UPF
+  has_so: F
+  md5: 88a00a6731bd790ddea75d31a80cb452
+  number_of_wfc: 10
+  pswfc:
+  - 0
+  - 1
+  - 0
+  - 2
+  z_valence: 12.0
+Tl:
+  filename: Tl_pbe_v1.2.uspp.F.UPF
+  has_so: F
+  md5: b76cf1f7e72655a2b2c53cf6385d7059
+  number_of_wfc: 9
+  pswfc:
+  - 2
+  - 0
+  - 1
+  z_valence: 13.0
+Tm:
+  filename: Tm.GGA-PBE-paw-v1.0.UPF
+  has_so: F
+  md5: e502ddec747d736c64e0ed72ddfd7d4c
+  number_of_wfc: 32
+  pswfc:
+  - 0
+  - 0
+  - 1
+  - 1
+  - 2
+  - 2
+  - 3
+  - 3
+  z_valence: 23.0
+V:
+  filename: v_pbe_v1.4.uspp.F.UPF
+  has_so: F
+  md5: 22b79981416ebb76fdaf5b1b8640f6fb
+  number_of_wfc: 10
+  pswfc:
+  - 0
+  - 1
+  - 0
+  - 2
+  z_valence: 13.0
+W:
+  filename: W_pbe_v1.2.uspp.F.UPF
+  has_so: F
+  md5: 9c083fa34c2a2ea0f02f1f893e16e1c8
+  number_of_wfc: 13
+  pswfc:
+  - 0
+  - 1
+  - 2
+  - 0
+  - 1
+  z_valence: 14.0
+Xe:
+  filename: Xe_ONCV_PBE-1.1.oncvpsp.upf
+  has_so: F
+  md5: f6ea899d5a535d3f5731d9e48edfe3e3
+  number_of_wfc: 9
+  pswfc:
+  - 2
+  - 0
+  - 1
+  z_valence: 18.0
+Y:
+  filename: Y_pbe_v1.uspp.F.UPF
+  has_so: F
+  md5: 2cf71db95cafeb975fc457bd7f14888e
+  number_of_wfc: 13
+  pswfc:
+  - 0
+  - 1
+  - 2
+  - 0
+  - 1
+  z_valence: 11.0
+Yb:
+  filename: Yb.GGA-PBE-paw-v1.0.UPF
+  has_so: F
+  md5: 43b6465ad8021f06e3edb42ae292e187
+  number_of_wfc: 32
+  pswfc:
+  - 0
+  - 0
+  - 1
+  - 1
+  - 2
+  - 2
+  - 3
+  - 3
+  z_valence: 24.0
+Zn:
+  filename: Zn_pbe_v1.uspp.F.UPF
+  has_so: F
+  md5: df62231357ef9e81f77b2b3087fa5675
+  number_of_wfc: 13
+  pswfc:
+  - 0
+  - 1
+  - 2
+  - 0
+  - 1
+  z_valence: 20.0
+Zr:
+  filename: Zr_pbe_v1.uspp.F.UPF
+  has_so: F
+  md5: 5db81b1e868ab7776c4564c113de050b
+  number_of_wfc: 13
+  pswfc:
+  - 0
+  - 1
+  - 2
+  - 0
+  - 1
+  z_valence: 12.0
