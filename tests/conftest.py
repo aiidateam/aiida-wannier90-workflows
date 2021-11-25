@@ -2,12 +2,9 @@
 # pylint: disable=redefined-outer-name,too-many-statements
 """Initialise a text database and profile for pytest."""
 import io
-import os
+import pathlib
 import shutil
-import tempfile
-
 from collections.abc import Mapping
-
 import pytest
 
 pytest_plugins = ['aiida.manage.tests.pytest_fixtures']  # pylint: disable=invalid-name
@@ -21,13 +18,13 @@ def filepath_tests():
 
     :return: absolute filepath of `tests` folder which is the basepath for all test resources.
     """
-    return os.path.dirname(os.path.abspath(__file__))
+    return pathlib.Path(__file__).resolve().parent
 
 
-@pytest.fixture
+@pytest.fixture(scope='session')
 def filepath_fixtures(filepath_tests):
     """Return the absolute filepath to the directory containing the file `fixtures`."""
-    return os.path.join(filepath_tests, 'fixtures')
+    return filepath_tests / 'fixtures'
 
 
 @pytest.fixture(scope='function')
@@ -75,39 +72,9 @@ def serialize_builder():
     :param builder: the process builder to serialize
     :return: dictionary
     """
+    from aiida_wannier90_workflows.utils.builder import serializer
 
-    def serialize_data(data):
-        # pylint: disable=too-many-return-statements
-        from aiida.orm import BaseType, Dict, Code
-        from aiida.plugins import DataFactory
-
-        StructureData = DataFactory('structure')
-        UpfData = DataFactory('pseudo.upf')
-
-        if isinstance(data, dict):
-            return {key: serialize_data(value) for key, value in data.items()}
-
-        if isinstance(data, BaseType):
-            return data.value
-
-        if isinstance(data, Code):
-            return data.full_label
-
-        if isinstance(data, Dict):
-            return data.get_dict()
-
-        if isinstance(data, StructureData):
-            return data.get_formula()
-
-        if isinstance(data, UpfData):
-            return f'{data.element}<md5={data.md5}>'
-
-        return data
-
-    def _serialize_builder(builder):
-        return serialize_data(builder._inputs(prune=True))  # pylint: disable=protected-access
-
-    return _serialize_builder
+    return serializer
 
 
 @pytest.fixture(scope='session', autouse=True)
@@ -120,29 +87,31 @@ def sssp(aiida_profile, generate_upf_data):
 
     SsspFamily = GroupFactory('pseudo.family.sssp')
 
-    cutoffs = {}
     stringency = 'standard'
+    label = 'SSSP/1.1/PBE/efficiency'
+    family = SsspFamily(label=label)
+    family.store()
 
-    with tempfile.TemporaryDirectory() as dirpath:
-        for values in elements.values():
+    cutoffs = {}
+    upfs = []
 
-            element = values['symbol']
+    for values in elements.values():
+        element = values['symbol']
+        if element in ['X']:
+            continue
+        try:
             upf = generate_upf_data(element)
-            filename = os.path.join(dirpath, f'{element}.upf')
+        except ValueError:
+            continue
 
-            with open(filename, 'w+b') as handle:
-                with upf.open(mode='rb') as source:
-                    handle.write(source.read())
-                    handle.flush()
+        upfs.append(upf)
 
-            cutoffs[element] = {
-                'cutoff_wfc': 30.0,
-                'cutoff_rho': 240.0,
-            }
+        cutoffs[element] = {
+            'cutoff_wfc': 30.0,
+            'cutoff_rho': 240.0,
+        }
 
-        label = 'SSSP/1.1/PBE/efficiency'
-        family = SsspFamily.create_from_folder(dirpath, label)
-
+    family.add_nodes(upfs)
     family.set_cutoffs(cutoffs, stringency, unit='Ry')
 
     return family
@@ -176,7 +145,7 @@ def generate_calc_job():
 
 
 @pytest.fixture
-def generate_calc_job_node(fixture_localhost):
+def generate_calc_job_node(fixture_localhost, filepath_fixtures):
     """Fixture to generate a mock `CalcJobNode` for testing parsers."""
 
     def flatten_inputs(inputs, prefix=''):
@@ -214,14 +183,12 @@ def generate_calc_job_node(fixture_localhost):
         filepath_folder = None
 
         if test_name is not None:
-            basepath = os.path.dirname(os.path.abspath(__file__))
             for name in ('quantumespresso.', 'wannier90.'):
                 if name in entry_point_name:
                     plugin_name = entry_point_name[len(name):]
                     break
-            filename = os.path.join(plugin_name, test_name)
-            filepath_folder = os.path.join(basepath, 'fixtures', 'calcjob', filename)
-            filepath_input = os.path.join(filepath_folder, 'aiida.in')
+            filepath_folder = filepath_fixtures / 'calcjob' / plugin_name / test_name
+            filepath_input = filepath_folder / 'aiida.in'
 
         entry_point = format_entry_point_string('aiida.calculations', entry_point_name)
 
@@ -263,7 +230,7 @@ def generate_calc_job_node(fixture_localhost):
         if retrieve_temporary:
             dirpath, filenames = retrieve_temporary
             for filename in filenames:
-                shutil.copy(os.path.join(filepath_folder, filename), os.path.join(dirpath, filename))
+                shutil.copy(filepath_folder / filename, pathlib.Path(dirpath) / filename)
 
         if filepath_folder:
             retrieved = orm.FolderData()
@@ -287,15 +254,55 @@ def generate_calc_job_node(fixture_localhost):
 
 
 @pytest.fixture(scope='session')
-def generate_upf_data():
+def generate_upf_data(filepath_fixtures):
     """Return a `UpfData` instance for the given element a file for which should exist in `tests/fixtures/pseudos`."""
 
     def _generate_upf_data(element):
         """Return `UpfData` node."""
-        from aiida_pseudo.data.pseudo import UpfData
-        content = f'<UPF version="2.0.1"><PP_HEADER\nelement="{element}"\nz_valence="4.0"\n/></UPF>\n'
+        import yaml
+        from aiida_pseudo.data.pseudo import UpfData, PseudoPotentialData
+
+        yaml_file = filepath_fixtures / 'pseudos' / 'SSSP_1.1_PBE_efficiency.yaml'
+        with open(yaml_file) as file:
+            upf_metadata = yaml.load(file, Loader=yaml.FullLoader)
+
+        if element not in upf_metadata:
+            raise ValueError(f'Element {element} not found in {yaml_file}')
+
+        filename = upf_metadata[element]['filename']
+        md5 = upf_metadata[element]['md5']
+        z_valence = upf_metadata[element]['z_valence']
+        number_of_wfc = upf_metadata[element]['number_of_wfc']
+        has_so = upf_metadata[element]['has_so']
+        pswfc = upf_metadata[element]['pswfc']
+        ppchi = ''
+        for i, l in enumerate(pswfc):  # pylint: disable=invalid-name
+            ppchi += f'<PP_CHI.{i+1} l="{l}"/>\n'
+
+        content = (
+            '<UPF version="2.0.1">\n'
+            '<PP_HEADER\n'
+            f'element="{element}"\n'
+            f'z_valence="{z_valence}"\n'
+            f'has_so="{has_so}"\n'
+            f'number_of_wfc="{number_of_wfc}"\n'
+            '/>\n'
+            '<PP_PSWFC>\n'
+            f'{ppchi}'
+            '</PP_PSWFC>\n'
+            '</UPF>\n'
+        )
         stream = io.BytesIO(content.encode('utf-8'))
-        return UpfData(stream, filename=f'{element}.upf')
+        upf = UpfData(stream, filename=f'{filename}')
+
+        # I need to hack the md5
+        # upf.md5 = md5
+        upf.set_attribute(upf._key_md5, md5)  # pylint: disable=protected-access
+        # UpfData.store will check md5
+        # `PseudoPotentialData` is the parent class of `UpfData`, this will skip md5 check
+        super(PseudoPotentialData, upf).store()
+
+        return upf
 
     return _generate_upf_data
 
