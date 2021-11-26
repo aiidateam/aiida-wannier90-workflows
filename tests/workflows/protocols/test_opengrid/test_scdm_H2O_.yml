@@ -1,0 +1,86 @@
+clean_workdir: false
+opengrid:
+  code: test.quantumespresso.opengrid@localhost-test<None>
+  metadata:
+    options:
+      resources:
+        num_machines: 1
+        num_mpiprocs_per_machine: 1
+projwfc:
+  code: test.quantumespresso.projwfc@localhost-test<None>
+  metadata:
+    options:
+      resources:
+        num_machines: 1
+        num_mpiprocs_per_machine: 1
+  parameters:
+    PROJWFC:
+      DeltaE: 0.2
+pw2wannier90:
+  pw2wannier90:
+    code: test.quantumespresso.pw2wannier90@localhost-test<None>
+    metadata:
+      options:
+        resources:
+          num_machines: 1
+          num_mpiprocs_per_machine: 1
+    parameters:
+      inputpp:
+        scdm_entanglement: erfc
+        scdm_proj: true
+relative_dis_windows: true
+scf:
+  kpoints_distance: 0.2
+  kpoints_force_parity: false
+  pw:
+    code: test.quantumespresso.pw@localhost-test<None>
+    metadata:
+      options:
+        max_wallclock_seconds: 43200
+        resources:
+          num_machines: 1
+        withmpi: true
+    parameters:
+      CONTROL:
+        calculation: scf
+        etot_conv_thr: 3.0000000000000004e-05
+        forc_conv_thr: 0.0001
+        tprnfor: true
+        tstress: true
+      ELECTRONS:
+        conv_thr: 6.0e-10
+        diago_full_acc: true
+        electron_maxstep: 80
+        mixing_beta: 0.4
+      SYSTEM:
+        degauss: 0.01
+        ecutrho: 240.0
+        ecutwfc: 30.0
+        nbnd: 12
+        occupations: smearing
+        smearing: cold
+    pseudos:
+      H: H.pbe-rrkjus_psl.1.0.0.UPF<1>
+      O: O.pbe-n-kjpaw_psl.0.1.UPF<8>
+structure: H2O<None>
+wannier90:
+  wannier90:
+    code: test.wannier90.wannier90@localhost-test<None>
+    kpoints: 216 points<None>
+    metadata:
+      options:
+        resources:
+          num_machines: 1
+    parameters:
+      auto_projections: true
+      conv_tol: 3.0e-07
+      conv_window: 3
+      dis_num_iter: 0
+      mp_grid:
+      - 6
+      - 6
+      - 6
+      num_bands: 12
+      num_iter: 4000
+      num_wann: 6
+    settings: {}
