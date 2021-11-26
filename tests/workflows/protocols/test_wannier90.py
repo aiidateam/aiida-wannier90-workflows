@@ -15,16 +15,20 @@ Wannier90WorkChain = WorkflowFactory('wannier90_workflows.wannier90')
 @pytest.fixture
 def get_wannier90_generator_inputs(fixture_code, generate_structure):
     """Generate a set of default inputs for the ``Wannier90WorkChain.get_builder_from_protocol()`` method."""
-    return {
-        'codes': {
-            'pw': fixture_code('quantumespresso.pw'),
-            'pw2wannier90': fixture_code('quantumespresso.pw2wannier90'),
-            'wannier90': fixture_code('wannier90.wannier90'),
-            'projwfc': fixture_code('quantumespresso.projwfc'),
-            'opengrid': fixture_code('quantumespresso.opengrid'),
-        },
-        'structure': generate_structure('silicon')
-    }
+
+    def _get_inputs(structure_id='Si'):
+        return {
+            'codes': {
+                'pw': fixture_code('quantumespresso.pw'),
+                'pw2wannier90': fixture_code('quantumespresso.pw2wannier90'),
+                'wannier90': fixture_code('wannier90.wannier90'),
+                'projwfc': fixture_code('quantumespresso.projwfc'),
+                'opengrid': fixture_code('quantumespresso.opengrid'),
+            },
+            'structure': generate_structure(structure_id=structure_id)
+        }
+
+    return _get_inputs
 
 
 def test_get_available_protocols():
@@ -39,20 +43,22 @@ def test_get_default_protocol():
     assert Wannier90WorkChain.get_default_protocol() == 'moderate'
 
 
-def test_scdm(get_wannier90_generator_inputs, data_regression, serialize_builder):
+@pytest.mark.parametrize('structure', ('Si', 'H2O', 'GaAs', 'BaTiO3'))
+def test_scdm(get_wannier90_generator_inputs, data_regression, serialize_builder, structure):
     """Test ``Wannier90WorkChain.get_builder_from_protocol`` for the default protocol."""
 
-    inputs = get_wannier90_generator_inputs
+    inputs = get_wannier90_generator_inputs(structure)
     builder = Wannier90WorkChain.get_builder_from_protocol(**inputs)
 
     assert isinstance(builder, ProcessBuilder)
     data_regression.check(serialize_builder(builder))
 
 
-def test_atomic_projectors_qe(get_wannier90_generator_inputs, data_regression, serialize_builder):
+@pytest.mark.parametrize('structure', ('Si', 'H2O', 'GaAs', 'BaTiO3'))
+def test_atomic_projectors_qe(get_wannier90_generator_inputs, data_regression, serialize_builder, structure):
     """Test ``Wannier90WorkChain.get_builder_from_protocol`` for the default protocol."""
 
-    inputs = get_wannier90_generator_inputs
+    inputs = get_wannier90_generator_inputs(structure)
     builder = Wannier90WorkChain.get_builder_from_protocol(
         **inputs, projection_type=WannierProjectionType.ATOMIC_PROJECTORS_QE
     )
@@ -65,11 +71,11 @@ def test_electronic_type(get_wannier90_generator_inputs):
     """Test ``Wannier90WorkChain.get_builder_from_protocol`` with ``electronic_type`` keyword."""
     with pytest.raises(NotImplementedError):
         builder = Wannier90WorkChain.get_builder_from_protocol(
-            **get_wannier90_generator_inputs, electronic_type=ElectronicType.AUTOMATIC
+            **get_wannier90_generator_inputs(), electronic_type=ElectronicType.AUTOMATIC
         )
 
     builder = Wannier90WorkChain.get_builder_from_protocol(
-        **get_wannier90_generator_inputs, electronic_type=ElectronicType.INSULATOR
+        **get_wannier90_generator_inputs(), electronic_type=ElectronicType.INSULATOR
     )
     for namespace, occupations in zip((builder.scf, builder.nscf), ('fixed', 'fixed')):
         parameters = namespace['pw']['parameters'].get_dict()
@@ -78,7 +84,7 @@ def test_electronic_type(get_wannier90_generator_inputs):
         assert 'smearing' not in parameters['SYSTEM']
 
     builder = Wannier90WorkChain.get_builder_from_protocol(
-        **get_wannier90_generator_inputs, electronic_type=ElectronicType.METAL
+        **get_wannier90_generator_inputs(), electronic_type=ElectronicType.METAL
     )
     for namespace, occupations in zip((builder.scf, builder.nscf), ('smearing', 'smearing')):
         parameters = namespace['pw']['parameters'].get_dict()
@@ -92,10 +98,10 @@ def test_spin_type(get_wannier90_generator_inputs):
     with pytest.raises(NotImplementedError):
         for spin_type in [SpinType.COLLINEAR, SpinType.NON_COLLINEAR]:
             builder = Wannier90WorkChain.get_builder_from_protocol(
-                **get_wannier90_generator_inputs, spin_type=spin_type
+                **get_wannier90_generator_inputs(), spin_type=spin_type
             )
 
-    builder = Wannier90WorkChain.get_builder_from_protocol(**get_wannier90_generator_inputs, spin_type=SpinType.NONE)
+    builder = Wannier90WorkChain.get_builder_from_protocol(**get_wannier90_generator_inputs(), spin_type=SpinType.NONE)
     for namespace in [builder.scf, builder.nscf]:
         parameters = namespace['pw']['parameters'].get_dict()
         assert 'nspin' not in parameters['SYSTEM']
@@ -110,11 +116,11 @@ def test_projection_type(get_wannier90_generator_inputs):
     #         WannierProjectionType.ATOMIC_PROJECTORS_OPENMX
     #     ]:
     #         builder = Wannier90WorkChain.get_builder_from_protocol(
-    #             **get_wannier90_generator_inputs, projection_type=projection_type
+    #             **get_wannier90_generator_inputs(), projection_type=projection_type
     #         )
 
     builder = Wannier90WorkChain.get_builder_from_protocol(
-        **get_wannier90_generator_inputs, projection_type=WannierProjectionType.ATOMIC_PROJECTORS_QE
+        **get_wannier90_generator_inputs(), projection_type=WannierProjectionType.ATOMIC_PROJECTORS_QE
     )
     for namespace in [
         builder.wannier90,
