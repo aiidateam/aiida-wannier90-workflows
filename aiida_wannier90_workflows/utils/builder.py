@@ -65,6 +65,9 @@ def serializer(node: orm.Node) -> ty.Any:
     elif isinstance(node, orm.RemoteData):
         res = f'{node.__class__.__name__}<{node.pk}>'
 
+    elif isinstance(node, range):
+        res = list(node)
+
     else:
         res = node
 
