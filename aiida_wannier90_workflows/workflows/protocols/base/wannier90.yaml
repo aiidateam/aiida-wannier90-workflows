@@ -1,8 +1,8 @@
 default_inputs:
     clean_workdir: False
     shift_energy_windows: False
-    auto_disfrozmax: False
-    auto_disfrozmax_threshold: 0.9
+    auto_energy_windows: False
+    auto_energy_windows_threshold: 0.9
     meta_parameters:
         conv_tol_per_atom: 1.e-7
         dis_conv_tol_per_atom: 1.e-7
