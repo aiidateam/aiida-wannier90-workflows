@@ -24,7 +24,7 @@ def cmd_plot_scdm(workchain, save):
 
     WORKCHAIN is the identifier of a Wannier90WorkChain.
     """
-    from ..utils.plot import plot_scdm_fit
+    from aiida_wannier90_workflows.utils.workflows.plot import plot_scdm_fit
 
     plot_scdm_fit(workchain, save)
 
@@ -51,8 +51,8 @@ def cmd_plot_bands(ctx, pw, wannier, save):
     """
     from pprint import pprint
     from aiida.cmdline.commands.cmd_data.cmd_bands import bands_show
-    from aiida_wannier90_workflows.utils.node.bands import find_pwbands
-    from aiida_wannier90_workflows.utils.plot import get_mpl_code_for_bands, get_mpl_code_for_workchains
+    from aiida_wannier90_workflows.utils.workflows.bands import find_pwbands
+    from aiida_wannier90_workflows.utils.workflows.plot import get_mpl_code_for_bands, get_mpl_code_for_workchains
 
     if len(pw) > 1:
         print('Only accept at most 1 PW bands')
@@ -103,20 +103,30 @@ def cmd_plot_bands(ctx, pw, wannier, save):
 @click.argument('pw', type=GroupParamType(), nargs=1)
 @click.argument('wannier', type=GroupParamType(), nargs=1)
 @click.option('-s', '--save', is_flag=True, default=False, help='Save bands distance as HDF5')
+@click.option(
+    '-m',
+    '--match-by-structure',
+    is_flag=True,
+    default=False,
+    help='Find PwBandsWorkChain by structure instead of structure formula'
+)
 @decorators.with_dbenv()
-def cmd_plot_bandsdist(pw, wannier, save):
+def cmd_plot_bandsdist(pw, wannier, save, match_by_structure):
     """Plot bands distance for a group of PwBandsWorkChain and a group of Wannier90BandsWorkChain.
 
     PW is the PK of a group which contains PwBandsWorkChain,
     WANNIER is the PK of a group which contains Wannier90BandsWorkChain.
     """
-    from aiida_wannier90_workflows.utils.bandsdist import bands_distance_for_group, plot_distance, save_distance
+    from aiida_wannier90_workflows.utils.bands.distance import (
+        bands_distance_for_group, plot_distance, save_distance, standardize_groupname
+    )
 
-    df = bands_distance_for_group(wannier, pw, match_by_formula=True)
+    df = bands_distance_for_group(wannier, pw, match_by_formula=not match_by_structure)
     plot_distance(df)
 
     if save:
-        save_distance(df, save)
+        filename = f'bandsdist_{standardize_groupname(pw.label)}_{standardize_groupname(wannier.label)}.h5'
+        save_distance(df, filename)
 
 
 @cmd_plot.command('checkerboard')
@@ -126,7 +136,7 @@ def cmd_plot_bandsdist(pw, wannier, save):
 def cmd_plot_checkerboard(workchain, save):
     """Plot bands distance checkerboard a Wannier90OptimizeWorkChain."""
     from aiida_wannier90_workflows.workflows.optimize import Wannier90OptimizeWorkChain
-    from aiida_wannier90_workflows.utils.checkerboard import plot_checkerboard
+    from aiida_wannier90_workflows.utils.workflows.checkerboard import plot_checkerboard
 
     if workchain.process_class != Wannier90OptimizeWorkChain:
         echo.echo_error(f'Input workchain should be {Wannier90OptimizeWorkChain}')
@@ -158,7 +168,7 @@ def cmd_plot_exportbands(pw, wannier, savedir):
     WANNIER is the PK of a group which contains ``Wannier90BandsWorkChain``, or a ``BandsData``.
     """
     import os
-    from aiida_wannier90_workflows.utils.plot import get_mapping_for_group, get_mpl_code_for_workchains
+    from aiida_wannier90_workflows.utils.workflows.plot import get_mapping_for_group, get_mpl_code_for_workchains
     dft_group = pw
     wan_group = wannier
 

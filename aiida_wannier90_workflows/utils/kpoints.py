@@ -1,10 +1,12 @@
+# -*- coding: utf-8 -*-
+"""Functions for processing kpoints."""
 import numpy as np
 from aiida import orm
 
 
 def get_explicit_kpoints(kmesh):
-    """works just like `kmesh.pl` in Wannier90
-    
+    """Work just like `kmesh.pl` of Wannier90.
+
     :param kmesh: contains a N1 * N2 * N3 mesh
     :type kmesh: aiida.orm.KpointsData
     :raises AttributeError: if kmesh does not contains a mesh
@@ -13,9 +15,8 @@ def get_explicit_kpoints(kmesh):
     """
     try:  # test if it is a mesh
         results = kmesh.get_kpoints_mesh()
-    except AttributeError as e:
-        e.args = ('input does not contain a mesh!', )
-        raise e
+    except AttributeError as exc:
+        raise ValueError('input does not contain a mesh!') from exc
     else:
         # currently offset is ignored
         mesh = results[0]
@@ -37,24 +38,44 @@ def get_explicit_kpoints(kmesh):
 
 
 def create_kpoints_from_distance(structure, distance):
+    """Create KpointsData from a given distance.
+
+    :param structure: [description]
+    :type structure: [type]
+    :param distance: [description]
+    :type distance: [type]
+    :return: [description]
+    :rtype: [type]
+    """
     kpoints = orm.KpointsData()
     kpoints.set_cell_from_structure(structure)
     if isinstance(distance, orm.Float):
-        kpoints_distance = distance.value
+        distance = distance.value
     kpoints.set_kpoints_mesh_from_density(distance, force_parity=False)
 
     return kpoints
 
 
 def get_explicit_kpoints_from_distance(structure, distance):
+    """Create an explicit list of kpoints with a given distance.
+
+    :param structure: [description]
+    :type structure: [type]
+    :param distance: [description]
+    :type distance: [type]
+    :return: [description]
+    :rtype: [type]
+    """
     kpoints = create_kpoints_from_distance(structure, distance)
     kpoints = get_explicit_kpoints(kpoints)
 
     return kpoints
 
+
 def get_path_from_kpoints(kpoints: orm.KpointsData) -> orm.Dict:
-    """A convenience function to translate bands kpoints path objects,
-    from the input `bands_kpoints` (a KpointsData object) of PwBandsWorkChain,
+    """Translate bands kpoints path objects.
+
+    From the input `bands_kpoints` (a KpointsData object) of PwBandsWorkChain,
     to the input `kpoint_path` (a Dict object) of Wannier90Calculation.
 
     :param kpoints: the input KpointsData must contain `labels`.
@@ -62,12 +83,12 @@ def get_path_from_kpoints(kpoints: orm.KpointsData) -> orm.Dict:
     :return: the returned Dict object contains two keys: `path` and `point_coords`.
     :rtype: orm.Dict
     """
-    assert kpoints.labels is not None, "`kpoints` must have `labels`"
+    assert kpoints.labels is not None, '`kpoints` must have `labels`'
     assert len(kpoints.labels) >= 2
 
     # default in crystal coordinates
     explicit_kpoints = kpoints.get_kpoints()
-    
+
     # [('GAMMA', 'X'),
     # ('X', 'U'),
     # ('K', 'GAMMA'),

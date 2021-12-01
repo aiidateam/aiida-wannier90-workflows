@@ -126,7 +126,7 @@ def cmd_list(
     # )
 
     # Copied from process_list
-    from aiida.cmdline.utils.common import check_worker_load
+    # from aiida.cmdline.utils.common import check_worker_load
 
     print_process_table(
         process_label, all_entries, group, process_state, paused, exit_status, failed, past_days, limit, project, raw,
@@ -137,16 +137,16 @@ def cmd_list(
     if not show_statistics:
         return
 
-    if not raw:
-        # Second query to get active process count
-        # Currently this is slow but will be fixed wiith issue #2770
-        # We place it at the end so that the user can Ctrl+C after getting the process table.
-        builder = CalculationQueryBuilder()
-        filters = builder.get_filters(process_state=('created', 'waiting', 'running'))
-        query_set = builder.get_query_set(filters=filters)
-        projected = builder.get_projected(query_set, projections=['pk'])
-        worker_slot_use = len(projected) - 1
-        check_worker_load(worker_slot_use)
+    # if not raw:
+    #     # Second query to get active process count
+    #     # Currently this is slow but will be fixed wiith issue #2770
+    #     # We place it at the end so that the user can Ctrl+C after getting the process table.
+    #     builder = CalculationQueryBuilder()
+    #     filters = builder.get_filters(process_state=('created', 'waiting', 'running'))
+    #     query_set = builder.get_query_set(filters=filters)
+    #     projected = builder.get_projected(query_set, projections=['pk'])
+    #     worker_slot_use = len(projected) - 1
+    #     check_worker_load(worker_slot_use)
 
     # Collect statistics of failed workflows
     # similar to aiida.cmdline.commands.cmd_process.process_list
@@ -154,6 +154,10 @@ def cmd_list(
 
     if group:
         relationships['with_node'] = group
+
+        # If group is present, I will auto set process_label
+        if len(group.nodes) > 0 and 'process_label' in dir(group.nodes[0]):
+            process_label = group.nodes[0].process_label
 
     builder = CalculationQueryBuilder()
     filters = builder.get_filters(

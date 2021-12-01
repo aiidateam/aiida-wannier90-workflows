@@ -4,6 +4,7 @@
 import typing as ty
 import numpy as np
 import pandas as pd
+
 from aiida import orm
 
 
@@ -124,29 +125,6 @@ def bands_distance(
     return dist
 
 
-def remove_exclude_bands(bands: np.array, exclude_bands: list) -> np.array:
-    """Remove bands according the index specified by `exclude_bands`.
-
-    :param bands: num_kpoints x num_bands
-    :type bands: np.array
-    :param exclude_bands: the index of the to-be-excluded bands, 0-based indexing
-    :type exclude_bands: list
-    :return: the bands with exclude_bands removed
-    :rtype: np.array
-    """
-    num_kpoints, num_bands = bands.shape  # pylint: disable=unused-variable
-
-    if not set(exclude_bands).issubset(set(range(num_bands))):
-        raise ValueError(f'exclude_bands {exclude_bands} not in the range of available bands {range(num_bands)}')
-
-    # Remove repetition and sort
-    exclude_bands = sorted(set(exclude_bands))
-
-    sub_bands = np.delete(bands, exclude_bands, axis=1)
-
-    return sub_bands
-
-
 def bands_distance_for_group(  # pylint: disable=too-many-statements
     wan_group: ty.Union[orm.Group, str],
     dft_group: ty.Union[orm.Group, str],
@@ -166,14 +144,16 @@ def bands_distance_for_group(  # pylint: disable=too-many-statements
     from aiida_quantumespresso.workflows.pw.bands import PwBandsWorkChain
     from aiida_wannier90.calculations import Wannier90Calculation
     from aiida_wannier90_workflows.workflows.bands import Wannier90BandsWorkChain
-    from aiida_wannier90_workflows.utils.plot import get_mapping_for_group, get_wannier_workchain_fermi_energy
+    from aiida_wannier90_workflows.workflows.optimize import Wannier90OptimizeWorkChain
+    from aiida_wannier90_workflows.utils.workflows.plot import get_mapping_for_group, get_wannier_workchain_fermi_energy
 
     if isinstance(wan_group, str):
         wan_group = orm.load_group(wan_group)
     if isinstance(dft_group, str):
         dft_group = orm.load_group(dft_group)
 
-    mapping = get_mapping_for_group(wan_group, dft_group, match_by_formula)
+    if wan_group.nodes[0].process_class != Wannier90OptimizeWorkChain:
+        mapping = get_mapping_for_group(wan_group, dft_group, match_by_formula)
 
     columns = [
         'formula',
@@ -196,7 +176,12 @@ def bands_distance_for_group(  # pylint: disable=too-many-statements
             print(f'! Skip unfinished {wan_wc.process_label}<{wan_wc.pk}> of {formula}')
             continue
 
-        bands_wc = mapping[wan_wc]
+        if wan_wc.process_class == Wannier90OptimizeWorkChain and 'optimize_reference_bands' in wan_wc.inputs:
+            bands_wc = wan_wc.inputs.optimize_reference_bands.get_incoming(link_label_filter='band_structure'
+                                                                           ).one().node
+        else:
+            bands_wc = mapping[wan_wc]
+
         if bands_wc is None:
             msg = f'! Cannot find DFT bands for {wan_wc.process_label}<{wan_wc.pk}> of {formula}'
             print(msg)
@@ -219,7 +204,7 @@ def bands_distance_for_group(  # pylint: disable=too-many-statements
                 exclude_list_dft = wan_wc.inputs.parameters['exclude_bands']
             except KeyError:
                 exclude_list_dft = []
-        elif wan_wc.process_class == Wannier90BandsWorkChain:
+        elif wan_wc.process_class in (Wannier90BandsWorkChain, Wannier90OptimizeWorkChain):
             fermi_energy = get_wannier_workchain_fermi_energy(wan_wc)
             bands_wannier_node = wan_wc.outputs.band_structure
             try:

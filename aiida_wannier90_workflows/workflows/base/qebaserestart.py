@@ -8,6 +8,10 @@ from aiida.engine import BaseRestartWorkChain
 from aiida.engine import process_handler, ProcessHandlerReport  # pylint: disable=unused-import
 from aiida_quantumespresso.calculations.namelists import NamelistsCalculation
 
+__all__ = [
+    'QeBaseRestartWorkChain',
+]
+
 # def process_handler_stdout_incomplete(func, **handler_kwargs):
 #     """A specific handler for `ERROR_OUTPUT_STDOUT_INCOMPLETE`.
 
@@ -37,9 +41,9 @@ class QeBaseRestartWorkChain(BaseRestartWorkChain):
 
     # When subclass this workchain, need to set these, e.g.
     # _process_class = Pw2wannier90Calculation
-    # _expose_inputs_namespace = 'pw2wannier90'
+    # _inputs_namespace = 'pw2wannier90'
     _process_class = NamelistsCalculation
-    _expose_inputs_namespace = 'base'
+    _inputs_namespace = 'base'
 
     _mpi_proc_reduce_factor = 2
 
@@ -47,7 +51,7 @@ class QeBaseRestartWorkChain(BaseRestartWorkChain):
     def define(cls, spec):
         """Define the process spec."""
         super().define(spec)
-        spec.expose_inputs(cls._process_class, namespace=cls._expose_inputs_namespace)
+        spec.expose_inputs(cls._process_class, namespace=cls._inputs_namespace)
 
         spec.outline(
             cls.setup,
@@ -73,7 +77,7 @@ class QeBaseRestartWorkChain(BaseRestartWorkChain):
         the calculations in the internal loop.
         """
         super().setup()
-        self.ctx.inputs = AttributeDict(self.exposed_inputs(self._process_class, self._expose_inputs_namespace))
+        self.ctx.inputs = AttributeDict(self.exposed_inputs(self._process_class, self._inputs_namespace))
 
     def report_error_handled(self, calculation, action):
         """Report an action taken for a calculation that has failed.

@@ -17,8 +17,8 @@ def compute_checkerboard(optimize_workchain: Wannier90OptimizeWorkChain) -> ty.T
     :rtype: np.array
     """
     from aiida.common import LinkType
-    from aiida_wannier90_workflows.utils.node import get_last_calcjob
-    from aiida_wannier90_workflows.utils.bandsdist import bands_distance
+    from aiida_wannier90_workflows.utils.workflows import get_last_calcjob
+    from aiida_wannier90_workflows.utils.bands.distance import bands_distance
 
     if 'optimize_reference_bands' not in optimize_workchain.inputs:
         raise ValueError('No `optimize_reference_bands` in workchain inputs')

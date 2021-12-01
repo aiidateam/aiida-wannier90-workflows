@@ -263,7 +263,7 @@ def get_last_wan_calc(node: ty.Union[orm.WorkChainNode, orm.CalcJobNode]) -> Wan
     from aiida_wannier90_workflows.workflows.opengrid import Wannier90OpengridWorkChain
     from aiida_wannier90_workflows.workflows.wannier90 import Wannier90WorkChain
     from aiida_wannier90_workflows.workflows.base.wannier90 import Wannier90BaseWorkChain
-    from aiida_wannier90_workflows.utils.node import get_last_calcjob
+    from aiida_wannier90_workflows.utils.workflows import get_last_calcjob
 
     supported_workchains = (Wannier90BandsWorkChain, Wannier90OpengridWorkChain, Wannier90WorkChain)
 

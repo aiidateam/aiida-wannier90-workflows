@@ -72,7 +72,7 @@ def serialize_builder():
     :param builder: the process builder to serialize
     :return: dictionary
     """
-    from aiida_wannier90_workflows.utils.builder import serializer
+    from aiida_wannier90_workflows.utils.workflows.builder import serializer
 
     return serializer
 
@@ -115,6 +115,79 @@ def sssp(aiida_profile, generate_upf_data):
     family.set_cutoffs(cutoffs, stringency, unit='Ry')
 
     return family
+
+
+@pytest.fixture(scope='session')
+def generate_upf_data(filepath_fixtures):
+    """Return a `UpfData` instance for the given element a file for which should exist in `tests/fixtures/pseudos`."""
+
+    def _generate_upf_data(element):
+        """Return `UpfData` node."""
+        import yaml
+        from aiida_pseudo.data.pseudo import UpfData, PseudoPotentialData
+
+        yaml_file = filepath_fixtures / 'pseudos' / 'SSSP_1.1_PBE_efficiency.yaml'
+        with open(yaml_file) as file:
+            upf_metadata = yaml.load(file, Loader=yaml.FullLoader)
+
+        if element not in upf_metadata:
+            raise ValueError(f'Element {element} not found in {yaml_file}')
+
+        filename = upf_metadata[element]['filename']
+        md5 = upf_metadata[element]['md5']
+        z_valence = upf_metadata[element]['z_valence']
+        number_of_wfc = upf_metadata[element]['number_of_wfc']
+        has_so = upf_metadata[element]['has_so']
+        pswfc = upf_metadata[element]['pswfc']
+        ppchi = ''
+        for i, l in enumerate(pswfc):  # pylint: disable=invalid-name
+            ppchi += f'<PP_CHI.{i+1} l="{l}"/>\n'
+
+        content = (
+            '<UPF version="2.0.1">\n'
+            '<PP_HEADER\n'
+            f'element="{element}"\n'
+            f'z_valence="{z_valence}"\n'
+            f'has_so="{has_so}"\n'
+            f'number_of_wfc="{number_of_wfc}"\n'
+            '/>\n'
+            '<PP_PSWFC>\n'
+            f'{ppchi}'
+            '</PP_PSWFC>\n'
+            '</UPF>\n'
+        )
+        stream = io.BytesIO(content.encode('utf-8'))
+        upf = UpfData(stream, filename=f'{filename}')
+
+        # I need to hack the md5
+        # upf.md5 = md5
+        upf.set_attribute(upf._key_md5, md5)  # pylint: disable=protected-access
+        # UpfData.store will check md5
+        # `PseudoPotentialData` is the parent class of `UpfData`, this will skip md5 check
+        super(PseudoPotentialData, upf).store()
+
+        return upf
+
+    return _generate_upf_data
+
+
+@pytest.fixture(scope='session')
+def get_sssp_upf():
+    """Returen a SSSP pseudo with a given element name."""
+
+    def _get_sssp_upf(element):
+        """Returen SSSP pseudo."""
+        from aiida.orm import QueryBuilder
+        from aiida.plugins import GroupFactory
+
+        SsspFamily = GroupFactory('pseudo.family.sssp')
+
+        label = 'SSSP/1.1/PBE/efficiency'
+        pseudo_family = QueryBuilder().append(SsspFamily, filters={'label': label}).one()[0]
+
+        return pseudo_family.get_pseudo(element=element)
+
+    return _get_sssp_upf
 
 
 @pytest.fixture
@@ -251,60 +324,6 @@ def generate_calc_job_node(fixture_localhost, filepath_fixtures):
         return node
 
     return _generate_calc_job_node
-
-
-@pytest.fixture(scope='session')
-def generate_upf_data(filepath_fixtures):
-    """Return a `UpfData` instance for the given element a file for which should exist in `tests/fixtures/pseudos`."""
-
-    def _generate_upf_data(element):
-        """Return `UpfData` node."""
-        import yaml
-        from aiida_pseudo.data.pseudo import UpfData, PseudoPotentialData
-
-        yaml_file = filepath_fixtures / 'pseudos' / 'SSSP_1.1_PBE_efficiency.yaml'
-        with open(yaml_file) as file:
-            upf_metadata = yaml.load(file, Loader=yaml.FullLoader)
-
-        if element not in upf_metadata:
-            raise ValueError(f'Element {element} not found in {yaml_file}')
-
-        filename = upf_metadata[element]['filename']
-        md5 = upf_metadata[element]['md5']
-        z_valence = upf_metadata[element]['z_valence']
-        number_of_wfc = upf_metadata[element]['number_of_wfc']
-        has_so = upf_metadata[element]['has_so']
-        pswfc = upf_metadata[element]['pswfc']
-        ppchi = ''
-        for i, l in enumerate(pswfc):  # pylint: disable=invalid-name
-            ppchi += f'<PP_CHI.{i+1} l="{l}"/>\n'
-
-        content = (
-            '<UPF version="2.0.1">\n'
-            '<PP_HEADER\n'
-            f'element="{element}"\n'
-            f'z_valence="{z_valence}"\n'
-            f'has_so="{has_so}"\n'
-            f'number_of_wfc="{number_of_wfc}"\n'
-            '/>\n'
-            '<PP_PSWFC>\n'
-            f'{ppchi}'
-            '</PP_PSWFC>\n'
-            '</UPF>\n'
-        )
-        stream = io.BytesIO(content.encode('utf-8'))
-        upf = UpfData(stream, filename=f'{filename}')
-
-        # I need to hack the md5
-        # upf.md5 = md5
-        upf.set_attribute(upf._key_md5, md5)  # pylint: disable=protected-access
-        # UpfData.store will check md5
-        # `PseudoPotentialData` is the parent class of `UpfData`, this will skip md5 check
-        super(PseudoPotentialData, upf).store()
-
-        return upf
-
-    return _generate_upf_data
 
 
 @pytest.fixture
@@ -459,7 +478,7 @@ def generate_workchain():
 
 
 @pytest.fixture
-def generate_inputs_pw(fixture_code, generate_structure, generate_kpoints_mesh, generate_upf_data):
+def generate_inputs_pw(fixture_code, generate_structure, generate_kpoints_mesh, get_sssp_upf):
     """Generate default inputs for a `PwCalculation."""
 
     def _generate_inputs_pw():
@@ -487,7 +506,7 @@ def generate_inputs_pw(fixture_code, generate_structure, generate_kpoints_mesh, 
             'kpoints': generate_kpoints_mesh(2),
             'parameters': parameters,
             'pseudos': {
-                'Si': generate_upf_data('Si')
+                'Si': get_sssp_upf('Si')
             },
             'metadata': {
                 'options': get_default_options()

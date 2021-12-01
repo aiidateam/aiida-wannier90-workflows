@@ -4,7 +4,7 @@ import typing as ty
 import numpy as np
 from aiida import orm
 
-__all__ = ('erfc_scdm', 'fit_scdm_mu_sigma', 'fit_scdm_mu_sigma_aiida', 'get_energy_of_projectability')
+__all__ = ('erfc_scdm', 'fit_scdm_mu_sigma_raw', 'fit_scdm_mu_sigma', 'get_energy_of_projectability')
 
 
 def erfc_scdm(x, mu, sigma):
@@ -21,10 +21,12 @@ def fit_erfc(f, xdata, ydata):  # pylint: disable=invalid-name
     return curve_fit(f, xdata, ydata, bounds=([-50, 0], [50, 50]))
 
 
-def fit_scdm_mu_sigma(bands: np.array,
-                      projections: np.array,
-                      sigma_factor: float = 3.0,
-                      return_data: bool = False) -> ty.Union[ty.Tuple[float, float], ty.Tuple[float, float, np.array]]:
+def fit_scdm_mu_sigma_raw(
+    bands: np.array,
+    projections: np.array,
+    sigma_factor: float = 3.0,
+    return_data: bool = False
+) -> ty.Union[ty.Tuple[float, float], ty.Tuple[float, float, np.array]]:
     """Fit mu parameter for the SCDM-k method.
 
     The projectability of all orbitals is fitted using an erfc(x) function.
@@ -32,7 +34,7 @@ def fit_scdm_mu_sigma(bands: np.array,
     with mu = mu_fit - k * sigma, sigma = sigma_fit and
     k a parameter with default k = 3.
 
-    This function accepts numpy array inputs, the function `fit_scdm_mu_sigma_aiida`
+    This function accepts numpy array inputs, the function `fit_scdm_mu_sigma`
     is the AiiDA wrapper which accepts AiiDA type as input parameters.
 
     :param bands: output of projwfc, it was computed in the nscf calc
@@ -61,7 +63,7 @@ def fit_scdm_mu_sigma(bands: np.array,
     return scdm_mu, scdm_sigma
 
 
-def fit_scdm_mu_sigma_aiida(
+def fit_scdm_mu_sigma(
     bands: orm.BandsData,
     projections: orm.ProjectionData,
     sigma_factor: orm.Float,
@@ -69,7 +71,7 @@ def fit_scdm_mu_sigma_aiida(
 ) -> ty.Union[ty.Tuple[float, float], ty.Tuple[float, float, np.array]]:
     """Fit scdm_mu & scdm_sigma based on projectability.
 
-    This is the AiiDA wrapper of `fit_scdm_mu_sigma`.
+    This is the AiiDA wrapper of `fit_scdm_mu_sigma_raw`.
 
     :param pw2wan_parameters: pw2wannier90 input parameters (the one to update with this calcfunction)
     :type pw2wan_parameters: orm.Dict
@@ -81,7 +83,7 @@ def fit_scdm_mu_sigma_aiida(
     :type sigma_factor: orm.Float
     """
     bands_array, projections_array = get_projectability_arrays(bands, projections)
-    return fit_scdm_mu_sigma(bands_array, projections_array, sigma_factor.value, return_data)
+    return fit_scdm_mu_sigma_raw(bands_array, projections_array, sigma_factor.value, return_data)
 
 
 def get_projectability_arrays(bands: orm.BandsData, projections: orm.ProjectionData):
