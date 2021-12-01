@@ -378,7 +378,7 @@ def get_nrpts_ndegen(cell: np.array, mp_grid: ty.Sequence[int]) -> int:
     :return: [description]
     :rtype: int
     """
-    from aiida_wannier90_workflows.utils.center import generate_supercell
+    from aiida_wannier90_workflows.utils.parser.center import generate_supercell
 
     # Wannier90 default
     ws_search_size = 2
@@ -737,10 +737,11 @@ def estimate_workflow(  # pylint: disable=too-many-statements
     """
     from aiida.plugins import GroupFactory
     from aiida.common import exceptions
-    from aiida_wannier90_workflows.utils.upf import get_wannier_number_of_bands, get_number_of_projections
-    from aiida_wannier90_workflows.utils.kmesh import create_kpoints_from_distance
-    from aiida_wannier90_workflows.workflows.wannier90 import get_pseudo_orbitals, get_semicore_list
-    from aiida_wannier90_workflows.utils.predict_smooth_grid import predict_smooth_grid
+    from aiida_wannier90_workflows.utils.pseudo import (
+        get_wannier_number_of_bands, get_number_of_projections, get_pseudo_orbitals, get_semicore_list
+    )
+    from aiida_wannier90_workflows.utils.kpoints import create_kpoints_from_distance
+    from aiida_wannier90_workflows.utils.workflows.estimator.predict_smooth_grid import predict_smooth_grid
 
     SsspFamily = GroupFactory('pseudo.family.sssp')
     PseudoDojoFamily = GroupFactory('pseudo.family.pseudo_dojo')

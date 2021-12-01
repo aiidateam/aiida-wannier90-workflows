@@ -2,7 +2,7 @@
 """Unit tests for the :py:mod:`~aiida_quantumespresso.utils.bands` module."""
 import numpy as np
 
-from aiida_wannier90_workflows.workflows.wannier90 import get_homo_lumo
+from aiida_wannier90_workflows.utils.bands import get_homo_lumo
 
 
 def test_get_homo_lumo():

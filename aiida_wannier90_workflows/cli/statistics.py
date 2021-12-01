@@ -19,7 +19,7 @@ def cmd_optimize(group):
     """Show number of optimization and bands distance of `Wannier90OptimizeWorkChain` in a group."""
     from tabulate import tabulate
     from aiida.common import LinkType
-    from aiida_wannier90_workflows.utils.node import get_last_calcjob
+    from aiida_wannier90_workflows.utils.workflows import get_last_calcjob
     from aiida_wannier90_workflows.workflows.optimize import Wannier90OptimizeWorkChain, get_bands_distance_ef2
 
     def get_minmax(workchain):

@@ -1,16 +1,56 @@
 # -*- coding: utf-8 -*-
 """Workchain to automatically optimize dis_proj_min/max for projectability disentanglement."""
-from copy import deepcopy
+import pathlib
 import numpy as np
+
 from aiida import orm
 from aiida.orm.nodes.data.base import to_aiida_type
 from aiida.common import AttributeDict
-from aiida.engine import while_, if_, ToContext, append_
+from aiida.engine import while_, if_, ToContext, append_, ProcessBuilder
+
 from aiida_quantumespresso.utils.mapping import prepare_process_inputs
-from aiida_wannier90_workflows.utils.node import get_last_calcjob
-from aiida_wannier90_workflows.utils.bandsdist import bands_distance
-from aiida_wannier90_workflows.workflows.base.wannier90 import Wannier90BaseWorkChain
-from aiida_wannier90_workflows.workflows.bands import Wannier90BandsWorkChain
+
+from aiida_wannier90_workflows.utils.workflows import get_last_calcjob
+from .base.wannier90 import Wannier90BaseWorkChain
+from .bands import Wannier90BandsWorkChain
+
+__all__ = ['validate_inputs', 'Wannier90OptimizeWorkChain']
+
+
+def validate_inputs(inputs, ctx=None):  # pylint: disable=unused-argument
+    """Validate the inputs of the entire input namespace of `Wannier90OptimizeWorkChain`."""
+    from .bands import validate_inputs as parent_validate_inputs
+
+    # Call parent validator
+    result = parent_validate_inputs(inputs)
+    if result is not None:
+        return result
+
+    parameters = inputs['wannier90']['wannier90']['parameters'].get_dict()
+
+    if inputs['optimize_disproj']:
+        if all(_ not in parameters for _ in ('dis_proj_min', 'dis_proj_max')):
+            return 'Trying to optimize dis_proj_min/max but no dis_proj_min/max in wannier90 parameters?'
+
+    if 'optimize_reference_bands' in inputs and not inputs['optimize_disproj']:
+        return '`optimize_reference_bands` is provided but `optimize_disproj = False`?'
+
+    if 'optimize_bands_distance_threshold' in inputs and 'optimize_reference_bands' not in inputs:
+        return 'No `optimize_reference_bands` but `optimize_bands_distance_threshold` is set?'
+
+    if inputs['separate_plotting']:
+        plot_inputs = [parameters.get(_, False) for _ in Wannier90OptimizeWorkChain._WANNIER90_PLOT_INPUTS]  # pylint: disable=protected-access
+        if not any(plot_inputs):
+            return (
+                'Trying to separate plotting routines but no '
+                f"{'/'.join(Wannier90OptimizeWorkChain._WANNIER90_PLOT_INPUTS)} in wannier90 parameters?"  # pylint: disable=protected-access
+            )
+
+    if inputs['optimize_disproj'] and not inputs['separate_plotting']:
+        return (
+            '`optimize_disproj = True` but `separate_plotting = False`. For optimizing projectability '
+            'disentanglement, it is highly recommended to run the plotting mode in a separate step.'
+        )
 
 
 class Wannier90OptimizeWorkChain(Wannier90BandsWorkChain):
@@ -40,7 +80,7 @@ class Wannier90OptimizeWorkChain(Wannier90BandsWorkChain):
         spec.input(
             'optimize_disproj',
             valid_type=orm.Bool,
-            default=lambda: orm.Bool(False),
+            default=lambda: orm.Bool(True),
             serializer=to_aiida_type,
             help=('If True iterate dis_proj_min/max to find the best MLWFs for projectability disentanglement.')
         )
@@ -89,15 +129,11 @@ class Wannier90OptimizeWorkChain(Wannier90BandsWorkChain):
                 'than this threshold, the optimization will stop.'
             )
         )
-        spec.inputs.validator = cls.validate_inputs
+        spec.inputs.validator = validate_inputs
 
         spec.outline(
             cls.setup,
             if_(cls.should_run_seekpath)(cls.run_seekpath,),
-            if_(cls.should_run_relax)(
-                cls.run_relax,
-                cls.inspect_relax,
-            ),
             if_(cls.should_run_scf)(
                 cls.run_scf,
                 cls.inspect_scf,
@@ -145,54 +181,51 @@ class Wannier90OptimizeWorkChain(Wannier90BandsWorkChain):
         )
 
         spec.exit_code(
-            490,
+            500,
             'ERROR_SUB_PROCESS_FAILED_WANNIER90_OPTIMIZE',
             message='All the trials on dis_proj_min/max have failed, cannot compare bands distance'
         )
         spec.exit_code(
-            491,
+            501,
             'ERROR_SUB_PROCESS_FAILED_WANNIER90_OPTIMIZE',
             message='All the trials on dis_proj_min/max have failed, cannot compare spreads'
         )
         spec.exit_code(
-            490,
+            500,
             'ERROR_SUB_PROCESS_FAILED_WANNIER90_PLOT',
             message='the Wannier90Calculation plotting sub process failed'
         )
 
-    @staticmethod
-    def validate_inputs(inputs, ctx=None):  # pylint: disable=unused-argument
-        """Validate the inputs of the entire input namespace."""
-        # Call parent validator
-        result = Wannier90BandsWorkChain.validate_inputs(inputs)
-        if result is not None:
-            return result
+    @classmethod
+    def get_protocol_filepath(cls) -> pathlib.Path:
+        """Return ``pathlib.Path`` to the ``.yaml`` file that defines the protocols."""
+        from importlib_resources import files
+        from . import protocols
+        return files(protocols) / 'optimize.yaml'
 
-        parameters = inputs['wannier90']['wannier90']['parameters'].get_dict()
+    @classmethod
+    def get_builder_from_protocol(  # pylint: disable=arguments-differ
+        cls, **kwargs
+    ) -> ProcessBuilder:
+        """Return a builder prepopulated with inputs selected according to the specified arguments.
 
-        if inputs['optimize_disproj']:
-            if all(_ not in parameters for _ in ('dis_proj_min', 'dis_proj_max')):
-                return 'Trying to optimize dis_proj_min/max but no dis_proj_min/max in wannier90 parameters?'
+        :return: [description]
+        :rtype: ProcessBuilder
+        """
+        from aiida_wannier90_workflows.utils.workflows.builder import recursive_merge_builder
 
-        if 'optimize_reference_bands' in inputs and not inputs['optimize_disproj']:
-            return '`optimize_reference_bands` is provided but `optimize_disproj = False`?'
+        parent_builder = super().get_builder_from_protocol(**kwargs)
 
-        if 'optimize_bands_distance_threshold' in inputs and 'optimize_reference_bands' not in inputs:
-            return 'No `optimize_reference_bands` but `optimize_bands_distance_threshold` is set?'
+        # Prepare workchain builder
+        builder = cls.get_builder()
 
-        if inputs['separate_plotting']:
-            plot_inputs = [parameters.get(_, False) for _ in Wannier90OptimizeWorkChain._WANNIER90_PLOT_INPUTS]
-            if not any(plot_inputs):
-                return (
-                    'Trying to separate plotting routines but no '
-                    f"{'/'.join(Wannier90OptimizeWorkChain._WANNIER90_PLOT_INPUTS)} in wannier90 parameters?"
-                )
+        inputs = cls.get_protocol_inputs(protocol=kwargs.get('protocol', None), overrides=kwargs.get('overrides', None))
+        builder = recursive_merge_builder(builder, inputs)
 
-        if inputs['optimize_disproj'] and not inputs['separate_plotting']:
-            return (
-                '`optimize_disproj = True` but `separate_plotting = False`. For optimizing projectability '
-                'disentanglement, it is highly recommended to run the plotting mode in a separate step.'
-            )
+        inputs = parent_builder._inputs(prune=True)  # pylint: disable=protected-access
+        builder = recursive_merge_builder(builder, inputs)
+
+        return builder
 
     def setup(self):
         """Define the current structure in the context to be the input structure."""
@@ -443,6 +476,8 @@ class Wannier90OptimizeWorkChain(Wannier90BandsWorkChain):
 
     def run_wannier90_plot(self):
         """Wannier90 plot step, also stash files."""
+        from copy import deepcopy
+
         base_inputs = AttributeDict(self.exposed_inputs(Wannier90BaseWorkChain, namespace='wannier90'))
         inputs = base_inputs['wannier90']
 
@@ -548,6 +583,8 @@ class Wannier90OptimizeWorkChain(Wannier90BandsWorkChain):
 
 def get_bands_distance_ef2(ref_bands: orm.BandsData, wannier_workchain: Wannier90BaseWorkChain) -> float:
     """Get bands distance for E <= Fermi energy + 2eV."""
+    from aiida_wannier90_workflows.utils.bands.distance import bands_distance
+
     wan_bands = wannier_workchain.outputs['interpolated_bands']
 
     wan_parameters = wannier_workchain.inputs['wannier90']['parameters'].get_dict()

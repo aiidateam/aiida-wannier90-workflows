@@ -3,19 +3,23 @@
 """Plot band structures."""
 import typing as ty
 import matplotlib.pyplot as plt
+
 from aiida import orm
+
 from aiida_quantumespresso.workflows.pw.base import PwBaseWorkChain
 from aiida_quantumespresso.workflows.pw.bands import PwBandsWorkChain
+
 from aiida_wannier90.calculations import Wannier90Calculation
+
 from aiida_wannier90_workflows.workflows import (
     Wannier90BaseWorkChain, Wannier90BandsWorkChain, Wannier90WorkChain, Wannier90OptimizeWorkChain
 )
-from aiida_wannier90_workflows.utils.scdm import erfc_scdm, fit_scdm_mu_sigma_aiida
+from aiida_wannier90_workflows.utils.scdm import erfc_scdm, fit_scdm_mu_sigma
 
 
 def plot_scdm_fit(workchain: int, save: bool = False):
     """Plot the projectabilities distribution of SCDM fitting."""
-    from aiida_wannier90_workflows.utils.node import get_last_calcjob
+    from aiida_wannier90_workflows.utils.workflows import get_last_calcjob
 
     valid_classes = [Wannier90BandsWorkChain, Wannier90WorkChain]
     if workchain.process_class not in valid_classes:
@@ -34,7 +38,7 @@ def plot_scdm_fit(workchain: int, save: bool = False):
     projections = projcalc.outputs.projections
     bands = projcalc.outputs.bands
 
-    mu_fit, sigma_fit, data = fit_scdm_mu_sigma_aiida(bands, projections, sigma_factor=orm.Float(0), return_data=True)
+    mu_fit, sigma_fit, data = fit_scdm_mu_sigma(bands, projections, sigma_factor=orm.Float(0), return_data=True)
 
     print(f'{formula:6s}:')
     print(f'        fermi_energy = {fermi_energy}, mu = {mu}, sigma = {sigma}')
@@ -150,14 +154,14 @@ def get_wannier_workchain_fermi_energy(workchain: ty.Union[Wannier90BaseWorkChai
     :return: [description]
     :rtype: float
     """
-    from aiida_wannier90_workflows.utils.node import get_last_calcjob
+    from aiida_wannier90_workflows.utils.workflows import get_last_calcjob
 
     if 'scf' in workchain.outputs:
         fermi_energy = workchain.outputs['scf']['output_parameters']['fermi_energy']
     else:
         if workchain.process_class == Wannier90BaseWorkChain:
             w90calc = get_last_calcjob(workchain)
-        elif workchain.process_class == Wannier90BandsWorkChain:
+        elif workchain.process_class in (Wannier90BandsWorkChain, Wannier90OptimizeWorkChain):
             w90calc = get_last_calcjob(workchain.get_outgoing(link_label_filter='wannier90').one().node)
         else:
             raise ValueError('Cannot find fermi energy')
