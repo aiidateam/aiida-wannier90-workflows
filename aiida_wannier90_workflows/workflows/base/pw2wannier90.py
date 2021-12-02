@@ -37,8 +37,8 @@ def validate_inputs(inputs: AttributeDict, ctx=None) -> None:  # pylint: disable
             return '`scdm_proj` is True but `bands_projections` or `bands` is empty'
 
         # Check `bands` and `bands_projections` are consistent
-        bands_num_kpoints, bands_num_bands = inputs.bands.attributes['array|bands']
-        projections_num_kpoints, projections_num_bands = inputs.bands_projections.attributes['array|proj_array_0']
+        bands_num_kpoints, bands_num_bands = inputs['bands'].attributes['array|bands']
+        projections_num_kpoints, projections_num_bands = inputs['bands_projections'].attributes['array|proj_array_0']
         if bands_num_kpoints != projections_num_kpoints:
             return (
                 '`bands` and `bands_projections` have different number of kpoints: '
@@ -187,7 +187,7 @@ class Pw2wannier90BaseWorkChain(ProtocolMixin, QeBaseRestartWorkChain):
         from aiida_wannier90_workflows.utils.scdm import fit_scdm_mu_sigma
 
         inputs = AttributeDict(self.exposed_inputs(Pw2wannier90Calculation, self._inputs_namespace))
-        parameters = inputs.parameter.get_dict().get('inputpp', {})
+        parameters = inputs['parameters'].get_dict().get('inputpp', {})
 
         scdm_proj = parameters.get('scdm_proj', False)
         scdm_entanglement = parameters.get('scdm_entanglement', None)
@@ -202,7 +202,9 @@ class Pw2wannier90BaseWorkChain(ProtocolMixin, QeBaseRestartWorkChain):
 
         if fit_scdm:
             try:
-                mu_new, sigma_new = fit_scdm_mu_sigma(inputs.bands, inputs.bands_projections, inputs.scdm_sigma_factor)  # pylint: disable=unbalanced-tuple-unpacking
+                mu_new, sigma_new = fit_scdm_mu_sigma(  # pylint: disable=unbalanced-tuple-unpacking
+                    self.inputs.bands, self.inputs.bands_projections, self.inputs.scdm_sigma_factor
+                )
             except ValueError:
                 # raise ValueError(f'SCDM mu/sigma fitting failed! {exc.args}') from exc
                 return self.exit_codes.ERROR_SCDM_FITTING
@@ -213,7 +215,7 @@ class Pw2wannier90BaseWorkChain(ProtocolMixin, QeBaseRestartWorkChain):
                 parameters['scdm_mu'] = mu_new
             if 'scdm_sigma' not in parameters:
                 parameters['scdm_sigma'] = sigma_new
-            inputs.parameters = orm.Dict(dict={'inputpp': parameters})
+            inputs['parameters'] = orm.Dict(dict={'inputpp': parameters})
 
         return inputs
 

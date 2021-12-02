@@ -8,6 +8,7 @@ from aiida.common import AttributeDict
 from aiida.engine import ProcessHandlerReport
 
 from aiida_wannier90.calculations import Wannier90Calculation
+
 from aiida_wannier90_workflows.workflows.base.wannier90 import Wannier90BaseWorkChain
 
 # pylint: disable=no-member,redefined-outer-name
@@ -75,8 +76,8 @@ def test_setup(generate_workchain_wannier90):
     assert isinstance(process.ctx.inputs, AttributeDict)
 
 
-def test_setup_additional_remote_symlink_list(generate_workchain_wannier90, generate_inputs_wannier90):
-    """Test `Wannier90BaseWorkChain.setup` for `additional_remote_symlink_list`."""
+def test_prepare_inputs_additional_remote_symlink_list(generate_workchain_wannier90, generate_inputs_wannier90):
+    """Test `Wannier90BaseWorkChain.prepare_inputs` for `additional_remote_symlink_list`."""
     from pathlib import Path
     from aiida import orm
 
@@ -99,6 +100,71 @@ def test_setup_additional_remote_symlink_list(generate_workchain_wannier90, gene
     }
     settings_dict = process.ctx.inputs.settings.get_dict()
     assert settings_dict == reference_dict
+
+
+@pytest.mark.parametrize(
+    'dis_froz_max',
+    (
+        (1, 2.82242466),  # LUMO + 1
+        (8, 3.98687455),  # min((num_wann-1)-th bands) - 1e-4
+    )
+)
+def test_prepare_inputs_shift_energy_windows(
+    generate_inputs_wannier90, generate_workchain_wannier90, generate_bands_data, dis_froz_max
+):
+    """Test `Wannier90BaseWorkChain.prepare_inputs` for `shift_energy_windows`."""
+    from aiida.orm import Dict, Bool
+
+    inputs = generate_inputs_wannier90()
+    parameters = inputs['parameters'].get_dict()
+
+    # Test SCDM fitting is working
+    parameters['fermi_energy'] = 1.2
+    parameters['dis_froz_max'] = dis_froz_max[0]
+    parameters['num_wann'] = 4
+    inputs['parameters'] = Dict(dict=parameters)
+
+    inputs = {'wannier90': inputs}
+    inputs['bands'] = generate_bands_data()
+    inputs['shift_energy_windows'] = Bool(True)
+
+    process = generate_workchain_wannier90(inputs=inputs)
+    inputs = process.prepare_inputs()
+
+    assert isinstance(inputs, AttributeDict)
+
+    parameters = inputs['parameters'].get_dict()
+    assert 'dis_froz_max' in parameters, parameters
+    assert abs(parameters['dis_froz_max'] - dis_froz_max[1]) < 1e-8, parameters
+
+
+def test_prepare_inputs_auto_energy_windows(
+    generate_inputs_wannier90, generate_workchain_wannier90, generate_bands_data, generate_projection_data
+):
+    """Test `Wannier90BaseWorkChain.prepare_inputs` for `auto_energy_windows`."""
+    from aiida.orm import Dict, Bool
+
+    inputs = generate_inputs_wannier90()
+    parameters = inputs['parameters'].get_dict()
+
+    # Test SCDM fitting is working
+    parameters['fermi_energy'] = 1.2
+    parameters['num_wann'] = 4
+    inputs['parameters'] = Dict(dict=parameters)
+
+    inputs = {'wannier90': inputs}
+    inputs['bands'] = generate_bands_data()
+    inputs['bands_projections'] = generate_projection_data()
+    inputs['auto_energy_windows'] = Bool(True)
+
+    process = generate_workchain_wannier90(inputs=inputs)
+    inputs = process.prepare_inputs()
+
+    assert isinstance(inputs, AttributeDict)
+
+    parameters = inputs['parameters'].get_dict()
+    assert 'dis_froz_max' in parameters, parameters
+    assert abs(parameters['dis_froz_max'] - 3.98687455) < 1e-8, parameters
 
 
 @pytest.mark.parametrize('num_procs', (

@@ -9,6 +9,7 @@ from aiida.common import AttributeDict
 from aiida.engine import ProcessHandlerReport
 
 from aiida_quantumespresso.calculations.pw2wannier90 import Pw2wannier90Calculation
+
 from aiida_wannier90_workflows.workflows.base.pw2wannier90 import Pw2wannier90BaseWorkChain
 
 # pylint: disable=no-member,redefined-outer-name
@@ -30,6 +31,8 @@ def generate_inputs_pw2wannier90(
         inputs = {
             'code':
             fixture_code('quantumespresso.pw2wannier90'),
+            'parameters':
+            orm.Dict(dict={'inputpp': {}}),
             'nnkp_file':
             orm.SinglefileData(file=nnkp_filepath).store(),
             'parent_folder':
@@ -76,6 +79,36 @@ def test_setup(generate_workchain_pw2wannier90):
     process.setup()
 
     assert isinstance(process.ctx.inputs, AttributeDict)
+
+
+def test_prepare_inputs(
+    generate_inputs_pw2wannier90, generate_workchain_pw2wannier90, generate_bands_data, generate_projection_data
+):
+    """Test `Pw2wannier90BaseWorkChain.prepare_inputs`."""
+    from aiida.orm import Dict
+
+    inputs = generate_inputs_pw2wannier90()
+    parameters = inputs['parameters'].get_dict()['inputpp']
+
+    # Test SCDM fitting is working
+    parameters['scdm_proj'] = True
+    parameters['scdm_entanglement'] = 'erfc'
+    inputs['parameters'] = Dict(dict={'inputpp': parameters})
+
+    inputs = {'pw2wannier90': inputs}
+    inputs['bands'] = generate_bands_data()
+    inputs['bands_projections'] = generate_projection_data()
+
+    process = generate_workchain_pw2wannier90(inputs=inputs)
+    inputs = process.prepare_inputs()
+
+    assert isinstance(inputs, AttributeDict)
+
+    parameters = inputs['parameters'].get_dict()['inputpp']
+    assert 'scdm_mu' in parameters, parameters
+    assert 'scdm_sigma' in parameters, parameters
+    assert abs(parameters['scdm_mu'] - 6.023033662603666) < 1e-5, parameters
+    assert abs(parameters['scdm_sigma'] - 0.21542103913166902) < 1e-5, parameters
 
 
 @pytest.mark.parametrize('npool_value', (

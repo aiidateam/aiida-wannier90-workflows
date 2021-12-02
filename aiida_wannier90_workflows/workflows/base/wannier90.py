@@ -28,7 +28,7 @@ def validate_inputs(inputs: AttributeDict, ctx=None) -> None:  # pylint: disable
     calc_parameters = calc_inputs.parameters.get_dict()
 
     # Check existence of `fermi_energy`
-    if inputs.shift_energy_windows:
+    if inputs['shift_energy_windows']:
         if 'fermi_energy' not in calc_parameters:
             return '`shift_energy_windows` is requested but no `fermi_energy` in input parameters'
         if 'bands' not in inputs:
@@ -36,23 +36,23 @@ def validate_inputs(inputs: AttributeDict, ctx=None) -> None:  # pylint: disable
 
     # Check `bands`
     if any(_ in inputs for _ in ('bands', 'bands_projections')
-           ) and (not inputs.shift_energy_windows or not inputs.auto_energy_windows):
+           ) and all(_ not in inputs for _ in ('shift_energy_windows', 'auto_energy_windows')):
         return (
             '`bands` and/or `bands_projections` are provided but both `shift_energy_windows` '
             'and `auto_energy_windows` are False?'
         )
 
     # Check `auto_energy_windows`
-    if inputs.auto_energy_windows:
-        if inputs.shift_energy_windows:
+    if inputs['auto_energy_windows']:
+        if inputs['shift_energy_windows']:
             return 'No need to shift energy windows when auto set energy windows'
 
         if any(_ not in inputs for _ in ('bands_projections', 'bands')):
             return '`auto_energy_windows` is requested but `bands_projections` or `bands` is empty'
 
         # Check bands and bands_projections are consistent
-        bands_num_kpoints, bands_num_bands = inputs.bands.attributes['array|bands']
-        projections_num_kpoints, projections_num_bands = inputs.bands_projections.attributes['array|proj_array_0']
+        bands_num_kpoints, bands_num_bands = inputs['bands'].attributes['array|bands']
+        projections_num_kpoints, projections_num_bands = inputs['bands_projections'].attributes['array|proj_array_0']
         if bands_num_kpoints != projections_num_kpoints:
             return (
                 '`bands` and `bands_projections` have different number of kpoints: '
@@ -66,7 +66,7 @@ def validate_inputs(inputs: AttributeDict, ctx=None) -> None:  # pylint: disable
 
     # Check `settings`
     if 'settings' in inputs:
-        settings = inputs.settings.get_dict()
+        settings = inputs['settings'].get_dict()
         valid_keys = ('remote_symlink_files',)
         for key in settings:
             if key not in valid_keys:
@@ -399,7 +399,7 @@ class Wannier90BaseWorkChain(ProtocolMixin, BaseRestartWorkChain):
         from aiida_wannier90_workflows.utils.scdm import get_energy_of_projectability
 
         inputs = AttributeDict(self.exposed_inputs(Wannier90Calculation, self._inputs_namespace))
-        parameters = inputs.parameter.get_dict()
+        parameters = inputs.parameters.get_dict()
 
         if self.inputs.shift_energy_windows:
             fermi_energy = parameters['fermi_energy']

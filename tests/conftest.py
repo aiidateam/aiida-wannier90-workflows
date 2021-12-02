@@ -435,22 +435,60 @@ def generate_bands_data():
 
     def _generate_bands_data():
         """Return a `BandsData` instance with some basic `kpoints` and `bands` arrays."""
-        import numpy
+        import numpy as np
         from aiida.plugins import DataFactory
+
         BandsData = DataFactory('array.bands')  #pylint: disable=invalid-name
         bands_data = BandsData()
 
-        bands_data.set_kpoints(numpy.array([[0., 0., 0.], [0.625, 0.25, 0.625]]))
+        bands_data.set_kpoints(np.array([[0., 0., 0.], [0.625, 0.25, 0.625]]))
 
         bands_data.set_bands(
-            numpy.array([[-5.64024889, 6.66929678, 6.66929678, 6.66929678, 8.91047649],
-                         [-1.71354964, -0.74425095, 1.82242466, 3.98697455, 7.37979746]]),
+            np.array([[-5.64024889, 6.66929678, 6.66929678, 6.66929678, 8.91047649],
+                      [-1.71354964, -0.74425095, 1.82242466, 3.98697455, 7.37979746]]),
             units='eV'
         )
 
         return bands_data
 
     return _generate_bands_data
+
+
+@pytest.fixture
+def generate_projection_data():
+    """Return a `ProjectionData` node."""
+
+    def _generate_projection_data():
+        """Return a `ProjectionData` instance with some basic `orbitals` and `projections` arrays."""
+        import numpy as np
+        from aiida.orm import ProjectionData
+        from aiida.tools.data.orbital.realhydrogen import RealhydrogenOrbital
+
+        orbital_dict = {
+            'position': [0.0, 0.0, 0.0],
+            'angular_momentum': 0,
+            'magnetic_number': 0,
+            'radial_nodes': 0,
+            'kind_name': 'He',
+            'spin': 0,
+            'x_orientation': None,
+            'z_orientation': None,
+            'spin_orientation': None,
+            'diffusivity': None
+        }
+        orbital = RealhydrogenOrbital(**orbital_dict)
+
+        projections = np.array([[1.0, 0.5, 0.5, 0.5, 0.0], [1.0, 1.0, 1.0, 0.9, 0.0]])
+
+        projection_data = ProjectionData()
+
+        projection_data.set_projectiondata(
+            list_of_orbitals=[orbital], list_of_projections=[projections], bands_check=False
+        )
+
+        return projection_data
+
+    return _generate_projection_data
 
 
 @pytest.fixture
