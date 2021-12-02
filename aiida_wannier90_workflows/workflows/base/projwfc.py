@@ -33,7 +33,7 @@ class ProjwfcBaseWorkChain(ProtocolMixin, QeBaseRestartWorkChain):
 
     @classmethod
     def get_builder_from_protocol(
-        cls, *, code: ty.Union[orm.Code, str, int], protocol: str = None, overrides: dict = None
+        cls, code: ty.Union[orm.Code, str, int], *, protocol: str = None, overrides: dict = None
     ) -> ProcessBuilder:
         """Return a builder prepopulated with inputs selected according to the chosen protocol.
 

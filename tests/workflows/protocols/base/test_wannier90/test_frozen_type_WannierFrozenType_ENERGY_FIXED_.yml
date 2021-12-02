@@ -17,8 +17,6 @@ wannier90:
     dis_conv_tol: 2.0e-07
     dis_froz_max: 2.0
     dis_num_iter: 4000
-    dis_proj_max: 0.95
-    dis_proj_min: 0.01
     mp_grid:
     - 11
     - 11

@@ -10,3 +10,4 @@ pw2wannier90:
   parameters:
     inputpp:
       atom_proj: true
+      fake_input: fake

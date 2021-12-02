@@ -23,9 +23,9 @@ wannier90:
     - 11
     - 11
     - 11
-    num_bands: 16
+    num_bands: 4
     num_cg_steps: 200
     num_iter: 4000
-    num_wann: 8
+    num_wann: 4
   settings: {}
   structure: Si2<None>

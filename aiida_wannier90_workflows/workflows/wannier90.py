@@ -172,8 +172,8 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):  # pylint: disable=too-many-
     @classmethod
     def get_builder_from_protocol(  # pylint: disable=unused-argument,too-many-statements
         cls,
-        *,
         codes: ty.Mapping[str, ty.Union[str, int, orm.Code]],
+        *,
         structure: orm.StructureData,
         protocol: str = None,
         overrides: dict = None,
@@ -283,7 +283,7 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):  # pylint: disable=too-many-
         inputs = cls.get_protocol_inputs(protocol, overrides)
         builder = recursive_merge_builder(builder, inputs)
 
-        builder.structure = structure
+        builder['structure'] = structure
 
         if not overrides:
             overrides = {}
@@ -350,7 +350,7 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):  # pylint: disable=too-many-
         # Remove workchain excluded inputs
         nscf_builder['pw'].pop('structure', None)
         nscf_builder.pop('clean_workdir', None)
-        builder.nscf = nscf_builder._inputs(prune=True)  # pylint: disable=protected-access
+        builder['nscf'] = nscf_builder._inputs(prune=True)  # pylint: disable=protected-access
 
         # Prepare projwfc
         if projection_type == WannierProjectionType.SCDM:
@@ -372,7 +372,7 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):  # pylint: disable=too-many-
         # Prepare pw2wannier90
         exclude_pswfcs = None
         if exclude_semicore:
-            pseudo_orbitals = get_pseudo_orbitals(builder.scf['pw']['pseudos'])
+            pseudo_orbitals = get_pseudo_orbitals(builder['scf']['pw']['pseudos'])
             exclude_pswfcs = get_semicore_list(structure, pseudo_orbitals)
         pw2wannier90_overrides = overrides.get('projwfc', {})
         pw2wannier90_builder = Pw2wannier90BaseWorkChain.get_builder_from_protocol(
@@ -385,7 +385,7 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):  # pylint: disable=too-many-
         )
         # Remove workchain excluded inputs
         pw2wannier90_builder.pop('clean_workdir', None)
-        builder.pw2wannier90 = pw2wannier90_builder._inputs(prune=True)  # pylint: disable=protected-access
+        builder['pw2wannier90'] = pw2wannier90_builder._inputs(prune=True)  # pylint: disable=protected-access
 
         # Apply several overrides
         protocol_overrides = cls.get_protocol_overrides()

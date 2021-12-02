@@ -33,7 +33,7 @@ class OpengridBaseWorkChain(ProtocolMixin, QeBaseRestartWorkChain):
 
     @classmethod
     def get_builder_from_protocol(
-        cls, code: ty.Union[orm.Code, str, int], protocol: str = None, overrides: dict = None
+        cls, code: ty.Union[orm.Code, str, int], *, protocol: str = None, overrides: dict = None
     ) -> ProcessBuilder:
         """Return a builder prepopulated with inputs selected according to the chosen protocol.
 
@@ -70,7 +70,7 @@ class OpengridBaseWorkChain(ProtocolMixin, QeBaseRestartWorkChain):
             builder[cls._inputs_namespace]['settings'] = orm.Dict(dict=inputs[cls._inputs_namespace]['settings'])
         if 'settings' in inputs:
             builder['settings'] = orm.Dict(dict=inputs['settings'])
-        builder.clean_workdir = orm.Bool(inputs['clean_workdir'])
+        builder['clean_workdir'] = orm.Bool(inputs['clean_workdir'])
         # pylint: enable=no-member
 
         return builder

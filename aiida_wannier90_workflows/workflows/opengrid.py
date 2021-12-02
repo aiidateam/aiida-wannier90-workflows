@@ -96,8 +96,8 @@ class Wannier90OpengridWorkChain(Wannier90WorkChain):
     @classmethod
     def get_builder_from_protocol(  # pylint: disable=arguments-differ
         cls,
-        *,
         codes: ty.Mapping[str, ty.Union[str, int, orm.Code]],
+        *,
         opengrid_only_scf: bool = True,
         **kwargs
     ) -> ProcessBuilder:

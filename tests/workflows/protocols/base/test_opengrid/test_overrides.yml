@@ -6,4 +6,4 @@ opengrid:
       max_wallclock_seconds: 43200
       resources:
         num_machines: 1
-      withmpi: true
+      withmpi: false

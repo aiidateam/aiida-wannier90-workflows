@@ -1,12 +1,12 @@
 clean_workdir: false
-pw2wannier90:
-  code: test.quantumespresso.pw2wannier90@localhost-test<None>
+projwfc:
+  code: test.quantumespresso.projwfc@localhost-test<None>
   metadata:
     options:
       max_wallclock_seconds: 43200
       resources:
         num_machines: 1
-      withmpi: true
+      withmpi: false
   parameters:
-    inputpp:
-      atom_proj: true
+    PROJWFC:
+      DeltaE: 0.2
