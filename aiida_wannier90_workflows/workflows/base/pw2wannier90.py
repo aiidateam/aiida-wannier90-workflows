@@ -9,8 +9,8 @@ from aiida.common import AttributeDict
 from aiida.common.lang import type_check
 from aiida.engine import process_handler
 from aiida.engine.processes.builder import ProcessBuilder
-from aiida_quantumespresso.common.types import ElectronicType
 
+from aiida_quantumespresso.common.types import ElectronicType
 from aiida_quantumespresso.workflows.protocols.utils import ProtocolMixin
 from aiida_quantumespresso.calculations.pw2wannier90 import Pw2wannier90Calculation
 
@@ -21,9 +21,9 @@ __all__ = ['validate_inputs', 'Pw2wannier90BaseWorkChain']
 
 
 def validate_inputs(inputs: AttributeDict, ctx=None) -> None:  # pylint: disable=unused-argument
-    """Validate the inputs of the entire input namespace."""
+    """Validate the inputs of the entire input namespace of `Pw2wannier90BaseWorkChain`."""
     calc_inputs = AttributeDict(inputs[Pw2wannier90BaseWorkChain._inputs_namespace])  # pylint: disable=protected-access
-    calc_parameters = calc_inputs.parameters.get_dict().get('inputpp', {})
+    calc_parameters = calc_inputs['parameters'].get_dict().get('inputpp', {})
 
     scdm_proj = calc_parameters.get('scdm_proj', False)
 
@@ -36,7 +36,7 @@ def validate_inputs(inputs: AttributeDict, ctx=None) -> None:  # pylint: disable
         if any(_ not in inputs for _ in ('bands_projections', 'bands')):
             return '`scdm_proj` is True but `bands_projections` or `bands` is empty'
 
-        # Check bands and bands_projections are consistent
+        # Check `bands` and `bands_projections` are consistent
         bands_num_kpoints, bands_num_bands = inputs.bands.attributes['array|bands']
         projections_num_kpoints, projections_num_bands = inputs.bands_projections.attributes['array|proj_array_0']
         if bands_num_kpoints != projections_num_kpoints:
@@ -90,8 +90,8 @@ class Pw2wannier90BaseWorkChain(ProtocolMixin, QeBaseRestartWorkChain):
     @classmethod
     def get_builder_from_protocol(
         cls,
-        *,
         code: ty.Union[orm.Code, str, int],
+        *,
         protocol: str = None,
         overrides: dict = None,
         electronic_type: ElectronicType = ElectronicType.METAL,
@@ -122,7 +122,7 @@ class Pw2wannier90BaseWorkChain(ProtocolMixin, QeBaseRestartWorkChain):
 
         # Update the parameters based on the protocol inputs
         inputs = cls.get_protocol_inputs(protocol, overrides)
-        parameters = inputs[cls._inputs_namespace]['parameters']
+        parameters = inputs[cls._inputs_namespace]['parameters']['inputpp']
         metadata = inputs[cls._inputs_namespace]['metadata']
 
         # Set projection
@@ -145,6 +145,8 @@ class Pw2wannier90BaseWorkChain(ProtocolMixin, QeBaseRestartWorkChain):
                 parameters['atom_proj_ext'] = True
                 parameters['atom_proj_dir'] = './'
                 raise NotImplementedError('OpenMX projector not implemented yet')
+
+        parameters = {'inputpp': parameters}
 
         # If overrides are provided, they take precedence over default protocol
         if overrides:

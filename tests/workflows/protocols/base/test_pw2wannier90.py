@@ -1,75 +1,84 @@
 # -*- coding: utf-8 -*-
-"""Tests for the ``PwBandsWorkChain.get_builder_from_protocol`` method."""
+"""Tests for the ``Pw2wannier90BaseWorkChain.get_builder_from_protocol`` method."""
 import pytest
 
 from aiida.engine import ProcessBuilder
 
-from aiida_quantumespresso.common.types import ElectronicType, RelaxType, SpinType
-from aiida_quantumespresso.workflows.pw.bands import PwBandsWorkChain
+from aiida_quantumespresso.common.types import ElectronicType
+
+from aiida_wannier90_workflows.common.types import WannierProjectionType
+from aiida_wannier90_workflows.workflows.base.pw2wannier90 import Pw2wannier90BaseWorkChain
 
 
 def test_get_available_protocols():
-    """Test ``PwBandsWorkChain.get_available_protocols``."""
-    protocols = PwBandsWorkChain.get_available_protocols()
+    """Test ``Pw2wannier90BaseWorkChain.get_available_protocols``."""
+    protocols = Pw2wannier90BaseWorkChain.get_available_protocols()
     assert sorted(protocols.keys()) == ['fast', 'moderate', 'precise']
     assert all('description' in protocol for protocol in protocols.values())
 
 
 def test_get_default_protocol():
-    """Test ``PwBandsWorkChain.get_default_protocol``."""
-    assert PwBandsWorkChain.get_default_protocol() == 'moderate'
+    """Test ``Pw2wannier90BaseWorkChain.get_default_protocol``."""
+    assert Pw2wannier90BaseWorkChain.get_default_protocol() == 'moderate'
 
 
-def test_default(fixture_code, generate_structure, data_regression, serialize_builder):
-    """Test ``PwBandsWorkChain.get_builder_from_protocol`` for the default protocol."""
-    code = fixture_code('quantumespresso.pw')
-    structure = generate_structure()
-    builder = PwBandsWorkChain.get_builder_from_protocol(code, structure)
+def test_default(fixture_code, data_regression, serialize_builder):
+    """Test ``Pw2wannier90BaseWorkChain.get_builder_from_protocol`` for the default protocol."""
+    code = fixture_code('quantumespresso.pw2wannier90')
+
+    builder = Pw2wannier90BaseWorkChain.get_builder_from_protocol(code=code)
 
     assert isinstance(builder, ProcessBuilder)
     data_regression.check(serialize_builder(builder))
 
 
-def test_electronic_type(fixture_code, generate_structure):
-    """Test ``PwBandsWorkChain.get_builder_from_protocol`` with ``electronic_type`` keyword."""
-    code = fixture_code('quantumespresso.pw')
-    structure = generate_structure()
+def test_overrides(fixture_code, data_regression, serialize_builder):
+    """Test ``Pw2wannier90BaseWorkChain.get_builder_from_protocol`` for the ``overrides`` input."""
+    code = fixture_code('quantumespresso.pw2wannier90')
 
-    with pytest.raises(NotImplementedError):
-        for electronic_type in [ElectronicType.AUTOMATIC]:
-            PwBandsWorkChain.get_builder_from_protocol(code, structure, electronic_type=electronic_type)
+    overrides = {'pw2wannier90': {'parameters': {'inputpp': {'fake_input': 'fake'}}}}
+    builder = Pw2wannier90BaseWorkChain.get_builder_from_protocol(code=code, overrides=overrides)
 
-    builder = PwBandsWorkChain.get_builder_from_protocol(code, structure, electronic_type=ElectronicType.INSULATOR)
-
-    for namespace in [builder.relax['base'], builder.scf, builder.bands]:
-        parameters = namespace['pw']['parameters'].get_dict()
-        assert parameters['SYSTEM']['occupations'] == 'fixed'
-        assert 'degauss' not in parameters['SYSTEM']
-        assert 'smearing' not in parameters['SYSTEM']
+    assert isinstance(builder, ProcessBuilder)
+    data_regression.check(serialize_builder(builder))
 
 
-def test_spin_type(fixture_code, generate_structure):
-    """Test ``PwBandsWorkChain.get_builder_from_protocol`` with ``spin_type`` keyword."""
-    code = fixture_code('quantumespresso.pw')
-    structure = generate_structure()
+@pytest.mark.parametrize('electronic_type', ((ElectronicType.INSULATOR, 'isolated'), (ElectronicType.METAL, 'erfc')))
+def test_electronic_type(fixture_code, electronic_type):
+    """Test ``Pw2wannier90BaseWorkChain.get_builder_from_protocol`` with ``electronic_type`` keyword."""
+    code = fixture_code('quantumespresso.pw2wannier90')
 
-    with pytest.raises(NotImplementedError):
-        for spin_type in [SpinType.NON_COLLINEAR, SpinType.SPIN_ORBIT]:
-            PwBandsWorkChain.get_builder_from_protocol(code, structure, spin_type=spin_type)
+    builder = Pw2wannier90BaseWorkChain.get_builder_from_protocol(
+        code=code, electronic_type=electronic_type[0], projection_type=WannierProjectionType.SCDM
+    )
 
-    builder = PwBandsWorkChain.get_builder_from_protocol(code, structure, spin_type=SpinType.COLLINEAR)
-
-    for namespace in [builder.relax['base'], builder.scf, builder.bands]:
-        parameters = namespace['pw']['parameters'].get_dict()
-        assert parameters['SYSTEM']['nspin'] == 2
-        assert parameters['SYSTEM']['starting_magnetization'] == {'Si': 0.1}
+    parameters = builder['pw2wannier90']['parameters'].get_dict()['inputpp']
+    assert parameters['scdm_entanglement'] == electronic_type[1]
 
 
-def test_relax_type(fixture_code, generate_structure):
-    """Test ``PwBandsWorkChain.get_builder_from_protocol`` setting the ``relax_type`` input."""
-    code = fixture_code('quantumespresso.pw')
-    structure = generate_structure()
+@pytest.mark.parametrize(
+    'projection_type',
+    ((WannierProjectionType.SCDM, 'scdm_proj'), (WannierProjectionType.ATOMIC_PROJECTORS_QE, 'atom_proj'))
+)
+def test_projection_type(fixture_code, projection_type):
+    """Test ``Pw2wannier90BaseWorkChain.get_builder_from_protocol`` with ``projection_type`` keyword."""
+    code = fixture_code('quantumespresso.pw2wannier90')
 
-    builder = PwBandsWorkChain.get_builder_from_protocol(code, structure, relax_type=RelaxType.NONE)
-    assert builder.relax['base']['pw']['parameters']['CONTROL']['calculation'] == 'scf'
-    assert 'CELL' not in builder.relax['base']['pw']['parameters'].get_dict()
+    builder = Pw2wannier90BaseWorkChain.get_builder_from_protocol(code=code, projection_type=projection_type[0])
+
+    parameters = builder['pw2wannier90']['parameters'].get_dict()['inputpp']
+    assert projection_type[1] in parameters
+    assert parameters[projection_type[1]]
+
+
+def test_exclude_pswfcs(fixture_code):
+    """Test ``Pw2wannier90BaseWorkChain.get_builder_from_protocol`` setting the ``exclude_pswfcs`` input."""
+    code = fixture_code('quantumespresso.pw2wannier90')
+
+    exclude_pswfcs = [2, 3]
+    builder = Pw2wannier90BaseWorkChain.get_builder_from_protocol(
+        code=code, projection_type=WannierProjectionType.ATOMIC_PROJECTORS_QE, exclude_pswfcs=exclude_pswfcs
+    )
+
+    parameters = builder['pw2wannier90']['parameters'].get_dict()['inputpp']
+    assert parameters['atom_proj_exclude'] == exclude_pswfcs

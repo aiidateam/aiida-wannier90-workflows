@@ -21,7 +21,7 @@ def cmd_node_show(ctx, nodes):  # pylint: disable=unused-argument
     """Show info of a node."""
     from pprint import pprint
     from aiida.cmdline.commands.cmd_node import node_show
-    from aiida_wannier90_workflows.utils.builder import serializer
+    from aiida_wannier90_workflows.utils.workflows.builder import serializer
     header = '\n--- Additional info: {:s} ---'
 
     for node in nodes:
@@ -44,7 +44,7 @@ def cmd_node_show(ctx, nodes):  # pylint: disable=unused-argument
 
 def find_calcjob(node: orm.Node, link_label: str) -> orm.CalcJobNode:
     """Find CalcJob of a workchain with the specified link label."""
-    from aiida_wannier90_workflows.utils.node import get_last_calcjob
+    from aiida_wannier90_workflows.utils.workflows import get_last_calcjob
 
     last_calcjob = None
     if isinstance(node, orm.CalcJobNode):
@@ -120,7 +120,7 @@ def cmd_node_inputcat(node, link_label, show_scheduler, show_remote):
     """Show input or scheduler submission file of a CalcJob."""
     from tempfile import NamedTemporaryFile
     from pprint import pprint
-    from aiida_wannier90_workflows.utils.builder import serializer
+    from aiida_wannier90_workflows.utils.workflows.builder import serializer
 
     def show_input(calcjob: orm.CalcJobNode, show_scheduler: bool, show_remote: bool) -> None:
         if show_remote:
@@ -302,7 +302,7 @@ def cmd_node_saveinput(ctx, workflow, path):
     from pathlib import Path
     from contextlib import redirect_stdout
     from aiida.cmdline.commands.cmd_calcjob import calcjob_inputcat
-    from aiida_wannier90_workflows.utils.node import get_last_calcjob
+    from aiida_wannier90_workflows.utils.workflows import get_last_calcjob
     from aiida_wannier90_workflows.workflows.wannier90 import Wannier90WorkChain
     from aiida_wannier90_workflows.workflows.opengrid import Wannier90OpengridWorkChain
     from aiida_wannier90_workflows.workflows.bands import Wannier90BandsWorkChain

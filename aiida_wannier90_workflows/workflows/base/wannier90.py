@@ -172,11 +172,12 @@ class Wannier90BaseWorkChain(ProtocolMixin, BaseRestartWorkChain):
     @classmethod
     def get_builder_from_protocol(  # pylint: disable=too-many-statements
         cls,
-        *,
         code: ty.Union[orm.Code, str, int],
+        *,
         structure: orm.StructureData,
         protocol: str = None,
         overrides: dict = None,
+        pseudo_family: str = None,
         electronic_type: ElectronicType = ElectronicType.METAL,
         spin_type: SpinType = SpinType.NONE,
         projection_type: WannierProjectionType = WannierProjectionType.ATOMIC_PROJECTORS_QE,
@@ -214,6 +215,14 @@ class Wannier90BaseWorkChain(ProtocolMixin, BaseRestartWorkChain):
         type_check(disentanglement_type, WannierDisentanglementType)
         type_check(frozen_type, WannierFrozenType)
 
+        if electronic_type in [ElectronicType.AUTOMATIC]:
+            raise NotImplementedError('`ElectronicType.AUTOMATIC` not implemented')
+
+        if spin_type == SpinType.COLLINEAR:
+            raise NotImplementedError('`SpinType.COLLINEAR` not implemented')
+        if spin_type == SpinType.SPIN_ORBIT and pseudo_family is None:
+            raise ValueError('Need to explicitly specify `pseudo_family` for SOC calculation')
+
         inputs = cls.get_protocol_inputs(protocol, overrides)
 
         # Update the parameters based on the protocol inputs
@@ -229,7 +238,10 @@ class Wannier90BaseWorkChain(ProtocolMixin, BaseRestartWorkChain):
         only_valence = electronic_type == ElectronicType.INSULATOR
         spin_polarized = spin_type == SpinType.COLLINEAR
         spin_orbit_coupling = spin_type == SpinType.SPIN_ORBIT
-        pseudos, _, _ = get_pseudo_and_cutoff(meta_parameters['pseudo_family'], structure)
+
+        if pseudo_family is None:
+            pseudo_family = meta_parameters['pseudo_family']
+        pseudos, _, _ = get_pseudo_and_cutoff(pseudo_family, structure)
 
         num_bands = get_wannier_number_of_bands(
             structure=structure,
@@ -244,7 +256,7 @@ class Wannier90BaseWorkChain(ProtocolMixin, BaseRestartWorkChain):
         )
 
         if electronic_type == ElectronicType.INSULATOR:
-            num_wann = parameters['num_bands']
+            num_wann = num_bands
         else:
             num_wann = num_projs
 
@@ -292,9 +304,13 @@ class Wannier90BaseWorkChain(ProtocolMixin, BaseRestartWorkChain):
         # Set disentanglement
         if disentanglement_type == WannierDisentanglementType.NONE:
             parameters['dis_num_iter'] = 0
+            parameters.pop('dis_froz_min', None)
+            parameters.pop('dis_froz_max', None)
+            parameters.pop('dis_win_min', None)
+            parameters.pop('dis_win_max', None)
         elif disentanglement_type == WannierDisentanglementType.SMV:
             if frozen_type == WannierFrozenType.ENERGY_FIXED:
-                inputs.shift_energy_windows = True
+                inputs['shift_energy_windows'] = True
                 parameters.update({
                     # Here +2 means fermi_energy + 2 eV, however Fermi energy is calculated at runtime
                     # inside Wannier90WorkChain, so it will add Fermi energy with this
@@ -303,19 +319,24 @@ class Wannier90BaseWorkChain(ProtocolMixin, BaseRestartWorkChain):
                 })
             elif frozen_type == WannierFrozenType.ENERGY_AUTO:
                 # ENERGY_AUTO needs projectability, will be set dynamically when workchain is running
-                inputs.auto_energy_windows = True
+                inputs['auto_energy_windows'] = True
             elif frozen_type == WannierFrozenType.PROJECTABILITY:
                 parameters.update({
                     'dis_proj_min': 0.01,
                     'dis_proj_max': 0.95,
                 })
             elif frozen_type == WannierFrozenType.FIXED_PLUS_PROJECTABILITY:
-                inputs.shift_energy_windows = True
+                inputs['shift_energy_windows'] = True
                 parameters.update({
                     'dis_proj_min': 0.01,
                     'dis_proj_max': 0.95,
                     'dis_froz_max': +2.0,  # relative to fermi_energy
                 })
+            elif frozen_type == WannierFrozenType.NONE:
+                parameters.pop('dis_froz_min', None)
+                parameters.pop('dis_froz_max', None)
+                parameters.pop('dis_win_min', None)
+                parameters.pop('dis_win_max', None)
             else:
                 raise ValueError(f'Not supported frozen type: {frozen_type}')
         else:
@@ -346,10 +367,10 @@ class Wannier90BaseWorkChain(ProtocolMixin, BaseRestartWorkChain):
             builder[cls._inputs_namespace]['settings'] = orm.Dict(dict=inputs[cls._inputs_namespace]['settings'])
         if 'settings' in inputs:
             builder['settings'] = orm.Dict(dict=inputs['settings'])
-        builder.clean_workdir = orm.Bool(inputs['clean_workdir'])
-        builder.shift_energy_windows = orm.Bool(inputs['shift_energy_windows'])
-        builder.auto_energy_windows = orm.Bool(inputs['auto_energy_windows'])
-        builder.auto_energy_windows_threshold = orm.Float(inputs['auto_energy_windows_threshold'])
+        builder['clean_workdir'] = orm.Bool(inputs['clean_workdir'])
+        builder['shift_energy_windows'] = orm.Bool(inputs['shift_energy_windows'])
+        builder['auto_energy_windows'] = orm.Bool(inputs['auto_energy_windows'])
+        builder['auto_energy_windows_threshold'] = orm.Float(inputs['auto_energy_windows_threshold'])
         # pylint: enable=no-member
 
         return builder

@@ -142,8 +142,8 @@ class Wannier90BandsWorkChain(Wannier90OpengridWorkChain):
     @classmethod
     def get_builder_from_protocol(  # pylint: disable=arguments-differ
         cls,
-        *,
         codes: ty.Mapping[str, ty.Union[str, int, orm.Code]],
+        *,
         structure: orm.StructureData,
         kpoint_path: orm.Dict = None,
         bands_kpoints: orm.KpointsData = None,

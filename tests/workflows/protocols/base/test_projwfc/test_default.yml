@@ -1,9 +1,12 @@
 clean_workdir: false
-opengrid:
-  code: test.quantumespresso.opengrid@localhost-test<None>
+projwfc:
+  code: test.quantumespresso.projwfc@localhost-test<None>
   metadata:
     options:
       max_wallclock_seconds: 43200
       resources:
         num_machines: 1
       withmpi: true
+  parameters:
+    PROJWFC:
+      DeltaE: 0.2

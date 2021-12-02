@@ -27,5 +27,8 @@ wannier90:
     num_cg_steps: 200
     num_iter: 4000
     num_wann: 8
-  settings: {}
+  settings:
+    cmdline:
+    - -nk
+    - 6
   structure: Si2<None>
