@@ -49,6 +49,9 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):  # pylint: disable=too-many-
     @classmethod
     def define(cls, spec):
         """Define the process spec."""
+        from .base.pw2wannier90 import validate_inputs_base as validate_inputs_base_pw2wannier90
+        from .base.wannier90 import validate_inputs_base as validate_inputs_base_wannier90
+
         super().define(spec)
 
         spec.input('structure', valid_type=orm.StructureData, help='The input structure.')
@@ -84,7 +87,7 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):  # pylint: disable=too-many-
         spec.expose_inputs(
             ProjwfcBaseWorkChain,
             namespace='projwfc',
-            exclude=('parent_folder',),
+            exclude=('clean_workdir', 'projwfc.parent_folder'),
             namespace_options={
                 'required': False,
                 'populate_defaults': False,
@@ -97,12 +100,15 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):  # pylint: disable=too-many-
             exclude=('clean_workdir', 'pw2wannier90.parent_folder', 'pw2wannier90.nnkp_file'),
             namespace_options={'help': 'Inputs for the `Pw2wannier90BaseWorkChain`.'}
         )
+        spec.inputs['pw2wannier90'].validator = validate_inputs_base_pw2wannier90
         spec.expose_inputs(
             Wannier90BaseWorkChain,
             namespace='wannier90',
             exclude=('clean_workdir', 'wannier90.structure'),
             namespace_options={'help': 'Inputs for the `Wannier90BaseWorkChain`.'}
         )
+        spec.inputs['wannier90'].validator = validate_inputs_base_wannier90
+
         spec.inputs.validator = validate_inputs
 
         spec.outline(
@@ -173,8 +179,8 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):  # pylint: disable=too-many-
     def get_builder_from_protocol(  # pylint: disable=unused-argument,too-many-statements
         cls,
         codes: ty.Mapping[str, ty.Union[str, int, orm.Code]],
-        *,
         structure: orm.StructureData,
+        *,
         protocol: str = None,
         overrides: dict = None,
         pseudo_family: str = None,
@@ -367,7 +373,7 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):  # pylint: disable=too-many-
             )
             # Remove workchain excluded inputs
             projwfc_builder.pop('clean_workdir', None)
-            builder.projwfc = projwfc_builder._inputs(prune=True)  # pylint: disable=protected-access
+            builder['projwfc'] = projwfc_builder._inputs(prune=True)  # pylint: disable=protected-access
 
         # Prepare pw2wannier90
         exclude_pswfcs = None
@@ -609,7 +615,7 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):  # pylint: disable=too-many-
         """
         base_inputs = AttributeDict(self.exposed_inputs(Pw2wannier90BaseWorkChain, namespace='pw2wannier90'))
         inputs = base_inputs['pw2wannier90']
-        parameters = inputs.parameter.get_dict().get('inputpp', {})
+        parameters = inputs.parameters.get_dict().get('inputpp', {})
 
         scdm_proj = parameters.get('scdm_proj', False)
         scdm_entanglement = parameters.get('scdm_entanglement', None)
@@ -621,8 +627,8 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):  # pylint: disable=too-many-
         if fit_scdm:
             if 'workchain_projwfc' not in self.ctx:
                 raise ValueError('Needs to run projwfc for SCDM projection')
-            inputs['bands'] = self.ctx.workchain_projwfc.outputs.bands
-            inputs['projections'] = self.ctx.workchain_projwfc.outputs.projections
+            base_inputs['bands'] = self.ctx.workchain_projwfc.outputs.bands
+            base_inputs['bands_projections'] = self.ctx.workchain_projwfc.outputs.projections
 
         inputs['parent_folder'] = self.ctx.current_folder
         inputs['nnkp_file'] = self.ctx.workchain_wannier90_pp.outputs.nnkp_file
@@ -727,7 +733,10 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):  # pylint: disable=too-many-
         )
         self.out_many(self.exposed_outputs(self.ctx.workchain_wannier90, Wannier90BaseWorkChain, namespace='wannier90'))
 
-        self.sanity_check()
+        result = self.sanity_check()
+        if result:
+            return result
+
         self.report(f'{self.get_name()} successfully completed')
 
     def sanity_check(self):

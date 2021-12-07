@@ -1,6 +1,6 @@
 clean_workdir: false
 opengrid:
-  code: test.quantumespresso.opengrid@localhost-test<None>
+  code: test.quantumespresso.opengrid@localhost-test
   metadata:
     options:
       max_wallclock_seconds: 43200

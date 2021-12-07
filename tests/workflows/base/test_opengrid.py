@@ -2,8 +2,6 @@
 """Tests for the `OpengridBaseWorkChain` class."""
 import pytest
 
-from plumpy import ProcessState
-
 from aiida.common import AttributeDict
 from aiida.engine import ProcessHandlerReport
 
@@ -14,57 +12,9 @@ from aiida_wannier90_workflows.workflows.base.opengrid import OpengridBaseWorkCh
 # pylint: disable=no-member,redefined-outer-name
 
 
-@pytest.fixture
-def generate_inputs_opengrid(fixture_sandbox, fixture_localhost, fixture_code, generate_remote_data):
-    """Generate default inputs for a `OpengridCalculation."""
-
-    def _generate_inputs_opengrid():
-        """Generate default inputs for a `OpengridCalculation."""
-        from aiida_quantumespresso.utils.resources import get_default_options
-
-        inputs = {
-            'code': fixture_code('quantumespresso.opengrid'),
-            'parent_folder':
-            generate_remote_data(fixture_localhost, fixture_sandbox.abspath, 'quantumespresso.opengrid'),
-            'metadata': {
-                'options': get_default_options()
-            }
-        }
-
-        return inputs
-
-    return _generate_inputs_opengrid
-
-
-@pytest.fixture
-def generate_workchain_opengrid(
-    generate_workchain, generate_inputs_opengrid, fixture_localhost, generate_calc_job_node
-):
-    """Generate an instance of a `OpengridBaseWorkChain`."""
-
-    def _generate_workchain_opengrid(exit_code=None, inputs=None, test_name=None):
-        entry_point = 'wannier90_workflows.base.opengrid'
-        if not inputs:
-            inputs = {'opengrid': generate_inputs_opengrid()}
-        process = generate_workchain(entry_point, inputs)
-
-        if exit_code is not None:
-            entry_point_calc_job = 'quantumespresso.opengrid'
-            node = generate_calc_job_node(entry_point_calc_job, fixture_localhost, test_name, inputs['opengrid'])
-            node.set_process_state(ProcessState.FINISHED)
-            node.set_exit_status(exit_code.status)
-
-            process.ctx.iteration = 1
-            process.ctx.children = [node]
-
-        return process
-
-    return _generate_workchain_opengrid
-
-
-def test_setup(generate_workchain_opengrid):
+def test_setup(generate_workchain_opengrid_base):
     """Test `OpengridBaseWorkChain.setup`."""
-    process = generate_workchain_opengrid()
+    process = generate_workchain_opengrid_base()
     process.setup()
 
     assert isinstance(process.ctx.inputs, AttributeDict)
@@ -78,11 +28,13 @@ def test_setup(generate_workchain_opengrid):
     '-nk',
     '-npools',
 ))
-def test_handle_output_stdout_incomplete(generate_workchain_opengrid, generate_inputs_opengrid, npool_key, npool_value):
+def test_handle_output_stdout_incomplete(
+    generate_workchain_opengrid_base, generate_inputs_opengrid_base, npool_key, npool_value
+):
     """Test `OpengridBaseWorkChain.handle_output_stdout_incomplete` for restarting from OOM."""
     from aiida import orm
 
-    inputs = {'opengrid': generate_inputs_opengrid()}
+    inputs = {'opengrid': generate_inputs_opengrid_base()}
     # E.g. when number of MPI procs = 4, the next trial is 2
     inputs['opengrid']['metadata']['options'] = {
         'resources': {
@@ -94,7 +46,7 @@ def test_handle_output_stdout_incomplete(generate_workchain_opengrid, generate_i
         'scheduler_stderr': '_scheduler-stderr.txt'
     }
     inputs['opengrid']['settings'] = orm.Dict(dict={'cmdline': [npool_key, f'{npool_value}']})
-    process = generate_workchain_opengrid(
+    process = generate_workchain_opengrid_base(
         exit_code=OpengridCalculation.exit_codes.ERROR_OUTPUT_STDOUT_INCOMPLETE,
         inputs=inputs,
         test_name='out_of_memory'

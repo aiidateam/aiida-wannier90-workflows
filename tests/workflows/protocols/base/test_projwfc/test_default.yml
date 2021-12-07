@@ -1,6 +1,6 @@
 clean_workdir: false
 projwfc:
-  code: test.quantumespresso.projwfc@localhost-test<None>
+  code: test.quantumespresso.projwfc@localhost-test
   metadata:
     options:
       max_wallclock_seconds: 43200

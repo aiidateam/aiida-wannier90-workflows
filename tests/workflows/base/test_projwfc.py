@@ -2,8 +2,6 @@
 """Tests for the `ProjwfcBaseWorkChain` class."""
 import pytest
 
-from plumpy import ProcessState
-
 from aiida.common import AttributeDict
 from aiida.engine import ProcessHandlerReport
 
@@ -14,55 +12,9 @@ from aiida_wannier90_workflows.workflows.base.projwfc import ProjwfcBaseWorkChai
 # pylint: disable=no-member,redefined-outer-name
 
 
-@pytest.fixture
-def generate_inputs_projwfc(fixture_sandbox, fixture_localhost, fixture_code, generate_remote_data):
-    """Generate default inputs for a `ProjwfcCalculation."""
-
-    def _generate_inputs_projwfc():
-        """Generate default inputs for a `ProjwfcCalculation."""
-        from aiida_quantumespresso.utils.resources import get_default_options
-
-        inputs = {
-            'code': fixture_code('quantumespresso.projwfc'),
-            'parent_folder':
-            generate_remote_data(fixture_localhost, fixture_sandbox.abspath, 'quantumespresso.projwfc'),
-            'metadata': {
-                'options': get_default_options()
-            }
-        }
-
-        return inputs
-
-    return _generate_inputs_projwfc
-
-
-@pytest.fixture
-def generate_workchain_projwfc(generate_workchain, generate_inputs_projwfc, fixture_localhost, generate_calc_job_node):
-    """Generate an instance of a `ProjwfcBaseWorkChain`."""
-
-    def _generate_workchain_projwfc(exit_code=None, inputs=None, test_name=None):
-        entry_point = 'wannier90_workflows.base.projwfc'
-        if not inputs:
-            inputs = {'projwfc': generate_inputs_projwfc()}
-        process = generate_workchain(entry_point, inputs)
-
-        if exit_code is not None:
-            entry_point_calc_job = 'quantumespresso.projwfc'
-            node = generate_calc_job_node(entry_point_calc_job, fixture_localhost, test_name, inputs['projwfc'])
-            node.set_process_state(ProcessState.FINISHED)
-            node.set_exit_status(exit_code.status)
-
-            process.ctx.iteration = 1
-            process.ctx.children = [node]
-
-        return process
-
-    return _generate_workchain_projwfc
-
-
-def test_setup(generate_workchain_projwfc):
+def test_setup(generate_workchain_projwfc_base):
     """Test `ProjwfcBaseWorkChain.setup`."""
-    process = generate_workchain_projwfc()
+    process = generate_workchain_projwfc_base()
     process.setup()
 
     assert isinstance(process.ctx.inputs, AttributeDict)
@@ -76,11 +28,13 @@ def test_setup(generate_workchain_projwfc):
     '-nk',
     '-npools',
 ))
-def test_handle_output_stdout_incomplete(generate_workchain_projwfc, generate_inputs_projwfc, npool_key, npool_value):
+def test_handle_output_stdout_incomplete(
+    generate_workchain_projwfc_base, generate_inputs_projwfc_base, npool_key, npool_value
+):
     """Test `ProjwfcBaseWorkChain.handle_output_stdout_incomplete` for restarting from OOM."""
     from aiida import orm
 
-    inputs = {'projwfc': generate_inputs_projwfc()}
+    inputs = {'projwfc': generate_inputs_projwfc_base()}
     # E.g. when number of MPI procs = 4, the next trial is 2
     inputs['projwfc']['metadata']['options'] = {
         'resources': {
@@ -92,7 +46,7 @@ def test_handle_output_stdout_incomplete(generate_workchain_projwfc, generate_in
         'scheduler_stderr': '_scheduler-stderr.txt'
     }
     inputs['projwfc']['settings'] = orm.Dict(dict={'cmdline': [npool_key, f'{npool_value}']})
-    process = generate_workchain_projwfc(
+    process = generate_workchain_projwfc_base(
         exit_code=ProjwfcCalculation.exit_codes.ERROR_OUTPUT_STDOUT_INCOMPLETE,
         inputs=inputs,
         test_name='out_of_memory'

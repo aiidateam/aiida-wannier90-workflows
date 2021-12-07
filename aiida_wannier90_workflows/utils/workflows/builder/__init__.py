@@ -12,7 +12,7 @@ from aiida_quantumespresso.common.types import ElectronicType
 from aiida_wannier90_workflows.common.types import WannierProjectionType, WannierDisentanglementType, WannierFrozenType
 
 
-def serializer(node: orm.Node) -> ty.Any:
+def serializer(node: orm.Node, show_pk: bool = True) -> ty.Any:
     """Serialize arbitrary aiida object to ordinary python type, for pretty print.
 
     Usage:
@@ -30,15 +30,15 @@ def serializer(node: orm.Node) -> ty.Any:
     if isinstance(node, orm.Dict):
         res = {}
         for key, val in node.get_dict().items():
-            res[key] = serializer(val)
+            res[key] = serializer(val, show_pk)
 
     elif isinstance(node, dict):
         res = {}
         for key, val in node.items():
-            res[key] = serializer(val)
+            res[key] = serializer(val, show_pk)
 
     elif isinstance(node, ProcessBuilderNamespace):
-        res = serializer(node._inputs(prune=True))  # pylint: disable=protected-access
+        res = serializer(node._inputs(prune=True), show_pk)  # pylint: disable=protected-access
 
     elif isinstance(node, (orm.Float, orm.Bool, orm.Int, orm.Str, orm.BaseType)):
         res = node.value
@@ -51,25 +51,37 @@ def serializer(node: orm.Node) -> ty.Any:
         num_kpoints, num_bands = node.attributes['array|bands']
         res = f'nkpt={num_kpoints},nbnd={num_bands}'
         if 'labels' in node.attributes:
-            res += f',{serialize_kpoints(node)}'
+            res += f',{serialize_kpoints(node, show_pk)}'
+        elif show_pk:
+            res = f'{res}<{node.pk}>'
 
     elif isinstance(node, orm.KpointsData):
-        res = serialize_kpoints(node)
+        res = serialize_kpoints(node, show_pk)
 
     elif isinstance(node, orm.Code):
-        res = f'{node.full_label}<{node.pk}>'
+        res = node.full_label
+        if show_pk:
+            res = f'{res}<{node.pk}>'
 
     elif isinstance(node, orm.StructureData):
-        res = f'{node.get_formula()}<{node.pk}>'
+        res = node.get_formula()
+        if show_pk:
+            res = f'{res}<{node.pk}>'
 
     elif isinstance(node, UpfData):
-        res = f'{node.filename}<{node.pk}>'
+        res = node.filename
+        if show_pk:
+            res = f'{res}<{node.pk}>'
 
     elif isinstance(node, (orm.WorkflowNode, orm.CalculationNode)):
-        res = f'{node.process_label}<{node.pk}>'
+        res = node.process_label
+        if show_pk:
+            res = f'{res}<{node.pk}>'
 
     elif isinstance(node, orm.RemoteData):
-        res = f'{node.__class__.__name__}<{node.pk}>'
+        res = node.__class__.__name__
+        if show_pk:
+            res = f'{res}<{node.pk}>'
 
     elif isinstance(node, range):
         res = list(node)
@@ -80,7 +92,7 @@ def serializer(node: orm.Node) -> ty.Any:
     return res
 
 
-def serialize_kpoints(kpoints: orm.KpointsData) -> str:
+def serialize_kpoints(kpoints: orm.KpointsData, show_pk: bool = True) -> str:
     """Return str representation of KpointsData.
 
     :param kpoints: [description]
@@ -93,9 +105,10 @@ def serialize_kpoints(kpoints: orm.KpointsData) -> str:
     elif 'mesh' in kpoints.attributes:
         res = f"{kpoints.attributes['mesh']} mesh + {kpoints.attributes['offset']} offset"
     else:
-        res = f"{kpoints.attributes['array|kpoints'][0]} points"
+        res = f"{kpoints.attributes['array|kpoints'][0]} kpts"
 
-    res += f'<{kpoints.pk}>'
+    if show_pk:
+        res = f'{res}<{kpoints.pk}>'
     return res
 
 
