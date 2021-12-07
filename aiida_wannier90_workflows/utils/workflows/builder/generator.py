@@ -61,7 +61,7 @@ def get_scf_builder(
     """Generate a `PwBaseWorkChain` builder for scf, with or without SOC."""
     from aiida_quantumespresso.workflows.pw.base import PwBaseWorkChain
 
-    overrides = kwargs.get('overrides', {})
+    overrides = kwargs.pop('overrides', {})
     if clean_workdir:
         overrides['clean_workdir'] = clean_workdir
     if kpoints_distance:
@@ -146,7 +146,7 @@ def get_nscf_builder(
 
     builder['pw']['parameters'] = orm.Dict(dict=parameters)
 
-    if not kpoints:
+    if kpoints:
         builder.pop('kpoints_distance', None)
         builder['kpoints'] = kpoints
 

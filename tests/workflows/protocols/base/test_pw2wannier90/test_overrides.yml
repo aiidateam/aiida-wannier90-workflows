@@ -1,6 +1,6 @@
 clean_workdir: false
 pw2wannier90:
-  code: test.quantumespresso.pw2wannier90@localhost-test<None>
+  code: test.quantumespresso.pw2wannier90@localhost-test
   metadata:
     options:
       max_wallclock_seconds: 43200

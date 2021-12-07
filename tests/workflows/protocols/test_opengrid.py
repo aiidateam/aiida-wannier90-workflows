@@ -12,25 +12,6 @@ from aiida_wannier90_workflows.common.types import WannierProjectionType
 Wannier90OpengridWorkChain = WorkflowFactory('wannier90_workflows.opengrid')
 
 
-@pytest.fixture
-def get_bands_generator_inputs(fixture_code, generate_structure):
-    """Generate a set of default inputs for the ``Wannier90OpengridWorkChain.get_builder_from_protocol()`` method."""
-
-    def _get_inputs(structure_id='Si'):
-        return {
-            'codes': {
-                'pw': fixture_code('quantumespresso.pw'),
-                'pw2wannier90': fixture_code('quantumespresso.pw2wannier90'),
-                'wannier90': fixture_code('wannier90.wannier90'),
-                'projwfc': fixture_code('quantumespresso.projwfc'),
-                'opengrid': fixture_code('quantumespresso.opengrid'),
-            },
-            'structure': generate_structure(structure_id=structure_id)
-        }
-
-    return _get_inputs
-
-
 def test_get_available_protocols():
     """Test ``Wannier90OpengridWorkChain.get_available_protocols``."""
     protocols = Wannier90OpengridWorkChain.get_available_protocols()
@@ -44,10 +25,10 @@ def test_get_default_protocol():
 
 
 @pytest.mark.parametrize('structure', ('Si', 'H2O', 'GaAs', 'BaTiO3'))
-def test_scdm(get_bands_generator_inputs, data_regression, serialize_builder, structure):
+def test_scdm(generate_builder_inputs, data_regression, serialize_builder, structure):
     """Test ``Wannier90OpengridWorkChain.get_builder_from_protocol`` for the default protocol."""
 
-    inputs = get_bands_generator_inputs(structure)
+    inputs = generate_builder_inputs(structure)
     builder = Wannier90OpengridWorkChain.get_builder_from_protocol(**inputs)
 
     assert isinstance(builder, ProcessBuilder)
@@ -55,10 +36,10 @@ def test_scdm(get_bands_generator_inputs, data_regression, serialize_builder, st
 
 
 @pytest.mark.parametrize('structure', ('Si', 'H2O', 'GaAs', 'BaTiO3'))
-def test_atomic_projectors_qe(get_bands_generator_inputs, data_regression, serialize_builder, structure):
+def test_atomic_projectors_qe(generate_builder_inputs, data_regression, serialize_builder, structure):
     """Test ``Wannier90OpengridWorkChain.get_builder_from_protocol`` for the default protocol."""
 
-    inputs = get_bands_generator_inputs(structure)
+    inputs = generate_builder_inputs(structure)
     builder = Wannier90OpengridWorkChain.get_builder_from_protocol(
         **inputs, projection_type=WannierProjectionType.ATOMIC_PROJECTORS_QE
     )
@@ -67,15 +48,15 @@ def test_atomic_projectors_qe(get_bands_generator_inputs, data_regression, seria
     data_regression.check(serialize_builder(builder))
 
 
-def test_electronic_type(get_bands_generator_inputs):
+def test_electronic_type(generate_builder_inputs):
     """Test ``Wannier90OpengridWorkChain.get_builder_from_protocol`` with ``electronic_type`` keyword."""
     with pytest.raises(NotImplementedError):
         builder = Wannier90OpengridWorkChain.get_builder_from_protocol(
-            **get_bands_generator_inputs(), electronic_type=ElectronicType.AUTOMATIC
+            **generate_builder_inputs(), electronic_type=ElectronicType.AUTOMATIC
         )
 
     builder = Wannier90OpengridWorkChain.get_builder_from_protocol(
-        **get_bands_generator_inputs(), electronic_type=ElectronicType.INSULATOR, opengrid_only_scf=False
+        **generate_builder_inputs(), electronic_type=ElectronicType.INSULATOR, opengrid_only_scf=False
     )
     for namespace, occupations in zip((builder.scf, builder.nscf), ('fixed', 'fixed')):
         parameters = namespace['pw']['parameters'].get_dict()
@@ -84,7 +65,7 @@ def test_electronic_type(get_bands_generator_inputs):
         assert 'smearing' not in parameters['SYSTEM']
 
     builder = Wannier90OpengridWorkChain.get_builder_from_protocol(
-        **get_bands_generator_inputs(), electronic_type=ElectronicType.METAL, opengrid_only_scf=False
+        **generate_builder_inputs(), electronic_type=ElectronicType.METAL, opengrid_only_scf=False
     )
     for namespace, occupations in zip((builder.scf, builder.nscf), ('smearing', 'smearing')):
         parameters = namespace['pw']['parameters'].get_dict()
@@ -93,16 +74,16 @@ def test_electronic_type(get_bands_generator_inputs):
         assert 'smearing' in parameters['SYSTEM']
 
 
-def test_spin_type(get_bands_generator_inputs):
+def test_spin_type(generate_builder_inputs):
     """Test ``Wannier90OpengridWorkChain.get_builder_from_protocol`` with ``spin_type`` keyword."""
     with pytest.raises(NotImplementedError):
         for spin_type in [SpinType.COLLINEAR, SpinType.NON_COLLINEAR]:
             builder = Wannier90OpengridWorkChain.get_builder_from_protocol(
-                **get_bands_generator_inputs(), spin_type=spin_type
+                **generate_builder_inputs(), spin_type=spin_type
             )
 
     builder = Wannier90OpengridWorkChain.get_builder_from_protocol(
-        **get_bands_generator_inputs(), spin_type=SpinType.NONE, opengrid_only_scf=False
+        **generate_builder_inputs(), spin_type=SpinType.NONE, opengrid_only_scf=False
     )
     for namespace in [builder.scf, builder.nscf]:
         parameters = namespace['pw']['parameters'].get_dict()
@@ -110,7 +91,7 @@ def test_spin_type(get_bands_generator_inputs):
         assert 'starting_magnetization' not in parameters['SYSTEM']
 
 
-def test_projection_type(get_bands_generator_inputs):
+def test_projection_type(generate_builder_inputs):
     """Test ``Wannier90OpengridWorkChain.get_builder_from_protocol`` with ``projection_type`` keyword."""
     # with pytest.raises(NotImplementedError):
     #     for projection_type in [
@@ -118,11 +99,11 @@ def test_projection_type(get_bands_generator_inputs):
     #         WannierProjectionType.ATOMIC_PROJECTORS_OPENMX
     #     ]:
     #         builder = Wannier90OpengridWorkChain.get_builder_from_protocol(
-    #             **get_bands_generator_inputs(), projection_type=projection_type
+    #             **generate_builder_inputs(), projection_type=projection_type
     #         )
 
     builder = Wannier90OpengridWorkChain.get_builder_from_protocol(
-        **get_bands_generator_inputs(), projection_type=WannierProjectionType.ATOMIC_PROJECTORS_QE
+        **generate_builder_inputs(), projection_type=WannierProjectionType.ATOMIC_PROJECTORS_QE
     )
     for namespace in [
         builder.wannier90,

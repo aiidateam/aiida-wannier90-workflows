@@ -17,11 +17,21 @@ from aiida_quantumespresso.calculations.pw2wannier90 import Pw2wannier90Calculat
 from aiida_wannier90_workflows.common.types import WannierProjectionType
 from .qebaserestart import QeBaseRestartWorkChain
 
-__all__ = ['validate_inputs', 'Pw2wannier90BaseWorkChain']
+__all__ = ['validate_inputs_base', 'validate_inputs', 'Pw2wannier90BaseWorkChain']
+
+
+def validate_inputs_base(inputs: AttributeDict, ctx=None) -> None:  # pylint: disable=unused-argument
+    """Validate the inputs of the entire input namespace."""
+    return
 
 
 def validate_inputs(inputs: AttributeDict, ctx=None) -> None:  # pylint: disable=unused-argument
     """Validate the inputs of the entire input namespace of `Pw2wannier90BaseWorkChain`."""
+
+    result = validate_inputs_base(inputs, ctx)  # pylint: disable=assignment-from-none
+    if result:
+        return result
+
     calc_inputs = AttributeDict(inputs[Pw2wannier90BaseWorkChain._inputs_namespace])  # pylint: disable=protected-access
     calc_parameters = calc_inputs['parameters'].get_dict().get('inputpp', {})
 

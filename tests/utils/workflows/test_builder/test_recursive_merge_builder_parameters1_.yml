@@ -1,5 +1,5 @@
-code: test.quantumespresso.pw@localhost-test<None>
-kpoints: '[2, 2, 2] mesh + [0.0, 0.0, 0.0] offset<None>'
+code: test.quantumespresso.pw@localhost-test
+kpoints: '[2, 2, 2] mesh + [0.0, 0.0, 0.0] offset'
 metadata:
   options:
     max_wallclock_seconds: 1800
@@ -20,5 +20,5 @@ parameters:
     ecutrho: 240.0
     ecutwfc: 30.0
 pseudos:
-  Si: Si.pbe-n-rrkjus_psl.1.0.0.UPF<14>
-structure: Si2<None>
+  Si: Si.pbe-n-rrkjus_psl.1.0.0.UPF
+structure: Si2

@@ -1,28 +1,32 @@
 clean_workdir: false
 opengrid:
-  code: test.quantumespresso.opengrid@localhost-test<None>
-  metadata:
-    options:
-      resources:
-        num_machines: 1
-        num_mpiprocs_per_machine: 1
-pw2wannier90:
-  pw2wannier90:
-    code: test.quantumespresso.pw2wannier90@localhost-test<None>
+  opengrid:
+    code: test.quantumespresso.opengrid@localhost-test
     metadata:
       options:
+        max_wallclock_seconds: 43200
         resources:
           num_machines: 1
           num_mpiprocs_per_machine: 1
+        withmpi: true
+pw2wannier90:
+  pw2wannier90:
+    code: test.quantumespresso.pw2wannier90@localhost-test
+    metadata:
+      options:
+        max_wallclock_seconds: 43200
+        resources:
+          num_machines: 1
+          num_mpiprocs_per_machine: 1
+        withmpi: true
     parameters:
       inputpp:
         atom_proj: true
-relative_dis_windows: true
 scf:
   kpoints_distance: 0.2
   kpoints_force_parity: false
   pw:
-    code: test.quantumespresso.pw@localhost-test<None>
+    code: test.quantumespresso.pw@localhost-test
     metadata:
       options:
         max_wallclock_seconds: 43200
@@ -49,16 +53,21 @@ scf:
         occupations: smearing
         smearing: cold
     pseudos:
-      Si: Si.pbe-n-rrkjus_psl.1.0.0.UPF<14>
-structure: Si2<None>
+      Si: Si.pbe-n-rrkjus_psl.1.0.0.UPF
+structure: Si2
 wannier90:
+  auto_energy_windows: false
+  auto_energy_windows_threshold: 0.9
+  shift_energy_windows: true
   wannier90:
-    code: test.wannier90.wannier90@localhost-test<None>
-    kpoints: 1331 points<None>
+    code: test.wannier90.wannier90@localhost-test
+    kpoints: 1331 kpts
     metadata:
       options:
+        max_wallclock_seconds: 43200
         resources:
           num_machines: 1
+        withmpi: true
     parameters:
       auto_projections: true
       conv_tol: 2.0e-07
@@ -73,6 +82,7 @@ wannier90:
       - 11
       - 11
       num_bands: 16
+      num_cg_steps: 200
       num_iter: 4000
       num_wann: 8
     settings: {}

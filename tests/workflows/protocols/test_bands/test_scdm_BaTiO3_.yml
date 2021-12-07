@@ -1,9 +1,9 @@
 clean_workdir: false
 nscf:
-  kpoints: 512 points<None>
+  kpoints: 512 kpts
   kpoints_force_parity: false
   pw:
-    code: test.quantumespresso.pw@localhost-test<None>
+    code: test.quantumespresso.pw@localhost-test
     metadata:
       options:
         max_wallclock_seconds: 43200
@@ -34,37 +34,41 @@ nscf:
         occupations: smearing
         smearing: cold
     pseudos:
-      Ba: Ba.pbe-spn-kjpaw_psl.1.0.0.UPF<56>
-      O: O.pbe-n-kjpaw_psl.0.1.UPF<8>
-      Ti: ti_pbe_v1.4.uspp.F.UPF<22>
+      Ba: Ba.pbe-spn-kjpaw_psl.1.0.0.UPF
+      O: O.pbe-n-kjpaw_psl.0.1.UPF
+      Ti: ti_pbe_v1.4.uspp.F.UPF
 projwfc:
-  code: test.quantumespresso.projwfc@localhost-test<None>
-  metadata:
-    options:
-      resources:
-        num_machines: 1
-        num_mpiprocs_per_machine: 1
-  parameters:
-    PROJWFC:
-      DeltaE: 0.2
-pw2wannier90:
-  pw2wannier90:
-    code: test.quantumespresso.pw2wannier90@localhost-test<None>
+  projwfc:
+    code: test.quantumespresso.projwfc@localhost-test
     metadata:
       options:
+        max_wallclock_seconds: 43200
         resources:
           num_machines: 1
           num_mpiprocs_per_machine: 1
+        withmpi: true
+    parameters:
+      PROJWFC:
+        DeltaE: 0.2
+pw2wannier90:
+  pw2wannier90:
+    code: test.quantumespresso.pw2wannier90@localhost-test
+    metadata:
+      options:
+        max_wallclock_seconds: 43200
+        resources:
+          num_machines: 1
+          num_mpiprocs_per_machine: 1
+        withmpi: true
     parameters:
       inputpp:
         scdm_entanglement: erfc
         scdm_proj: true
-relative_dis_windows: true
 scf:
   kpoints_distance: 0.2
   kpoints_force_parity: false
   pw:
-    code: test.quantumespresso.pw@localhost-test<None>
+    code: test.quantumespresso.pw@localhost-test
     metadata:
       options:
         max_wallclock_seconds: 43200
@@ -90,22 +94,28 @@ scf:
         occupations: smearing
         smearing: cold
     pseudos:
-      Ba: Ba.pbe-spn-kjpaw_psl.1.0.0.UPF<56>
-      O: O.pbe-n-kjpaw_psl.0.1.UPF<8>
-      Ti: ti_pbe_v1.4.uspp.F.UPF<22>
-structure: BaO3Ti<None>
+      Ba: Ba.pbe-spn-kjpaw_psl.1.0.0.UPF
+      O: O.pbe-n-kjpaw_psl.0.1.UPF
+      Ti: ti_pbe_v1.4.uspp.F.UPF
+structure: BaO3Ti
 wannier90:
+  auto_energy_windows: false
+  auto_energy_windows_threshold: 0.9
+  shift_energy_windows: false
   wannier90:
-    code: test.wannier90.wannier90@localhost-test<None>
-    kpoints: 512 points<None>
+    code: test.wannier90.wannier90@localhost-test
+    kpoints: 512 kpts
     metadata:
       options:
+        max_wallclock_seconds: 43200
         resources:
           num_machines: 1
+        withmpi: true
     parameters:
       auto_projections: true
       conv_tol: 5.0e-07
       conv_window: 3
+      dis_conv_tol: 5.0e-07
       dis_num_iter: 0
       exclude_bands:
       - 1
@@ -121,6 +131,7 @@ wannier90:
       - 8
       - 8
       num_bands: 46
+      num_cg_steps: 200
       num_iter: 4000
       num_wann: 19
     settings: {}

@@ -74,7 +74,10 @@ def serialize_builder():
     """
     from aiida_wannier90_workflows.utils.workflows.builder import serializer
 
-    return serializer
+    def _serializer(node):
+        return serializer(node, show_pk=False)
+
+    return _serializer
 
 
 @pytest.fixture(scope='session', autouse=True)
@@ -232,7 +235,13 @@ def generate_calc_job_node(fixture_localhost, filepath_fixtures):
         return flat_inputs
 
     def _generate_calc_job_node(
-        entry_point_name='base', computer=None, test_name=None, inputs=None, attributes=None, retrieve_temporary=None
+        entry_point_name='base',
+        computer=None,
+        test_name=None,
+        inputs=None,
+        attributes=None,
+        retrieve_temporary=None,
+        store=True
     ):
         """Fixture to generate a mock `CalcJobNode` for testing parsers.
 
@@ -298,7 +307,8 @@ def generate_calc_job_node(fixture_localhost, filepath_fixtures):
                 input_node.store()
                 node.add_incoming(input_node, link_type=LinkType.INPUT_CALC, link_label=link_label)
 
-        node.store()
+        if store:
+            node.store()
 
         if retrieve_temporary:
             dirpath, filenames = retrieve_temporary
@@ -458,7 +468,7 @@ def generate_bands_data():
 def generate_projection_data():
     """Return a `ProjectionData` node."""
 
-    def _generate_projection_data():
+    def _generate_projection_data(num_orbs=1):
         """Return a `ProjectionData` instance with some basic `orbitals` and `projections` arrays."""
         import numpy as np
         from aiida.orm import ProjectionData
@@ -476,14 +486,15 @@ def generate_projection_data():
             'spin_orientation': None,
             'diffusivity': None
         }
-        orbital = RealhydrogenOrbital(**orbital_dict)
+        # Cannot use [] * num_orbs because it is shallow copy
+        orbitals = [RealhydrogenOrbital(**orbital_dict) for _ in range(num_orbs)]
 
-        projections = np.array([[1.0, 0.5, 0.5, 0.5, 0.0], [1.0, 1.0, 1.0, 0.9, 0.0]])
+        projection = np.array([[1.0, 0.5, 0.5, 0.5, 0.0], [1.0, 1.0, 1.0, 0.9, 0.0]])
+        projections = [projection] * num_orbs
 
         projection_data = ProjectionData()
-
         projection_data.set_projectiondata(
-            list_of_orbitals=[orbital], list_of_projections=[projections], bands_check=False
+            list_of_orbitals=orbitals, list_of_projections=projections, bands_check=False
         )
 
         return projection_data

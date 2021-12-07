@@ -17,12 +17,27 @@ from aiida_wannier90.calculations import Wannier90Calculation
 
 from aiida_wannier90_workflows.common.types import WannierProjectionType, WannierDisentanglementType, WannierFrozenType
 
-__all__ = ['validate_inputs', 'Wannier90BaseWorkChain']
+__all__ = ['validate_inputs_base', 'validate_inputs', 'Wannier90BaseWorkChain']
+
+
+def validate_inputs_base(inputs: AttributeDict, ctx=None) -> None:  # pylint: disable=unused-argument
+    """Validate the inputs of the entire input namespace."""
+    # Check `settings`
+    if 'settings' in inputs:
+        settings = inputs['settings'].get_dict()
+        valid_keys = ('remote_symlink_files',)
+        for key in settings:
+            if key not in valid_keys:
+                return f'Invalid settings: `{key}`, valid keys are: {valid_keys}'
 
 
 def validate_inputs(inputs: AttributeDict, ctx=None) -> None:  # pylint: disable=unused-argument
     """Validate the inputs of the entire input namespace."""
     # pylint: disable=too-many-return-statements
+
+    result = validate_inputs_base(inputs, ctx)
+    if result:
+        return result
 
     calc_inputs = AttributeDict(inputs[Wannier90BaseWorkChain._inputs_namespace])  # pylint: disable=protected-access
     calc_parameters = calc_inputs.parameters.get_dict()
@@ -63,14 +78,6 @@ def validate_inputs(inputs: AttributeDict, ctx=None) -> None:  # pylint: disable
                 '`bands` and `bands_projections` have different number of bands: '
                 f'{bands_num_bands} != {projections_num_bands}'
             )
-
-    # Check `settings`
-    if 'settings' in inputs:
-        settings = inputs['settings'].get_dict()
-        valid_keys = ('remote_symlink_files',)
-        for key in settings:
-            if key not in valid_keys:
-                return f'Invalid settings: `{key}`, valid keys are: {valid_keys}'
 
 
 class Wannier90BaseWorkChain(ProtocolMixin, BaseRestartWorkChain):
@@ -361,6 +368,7 @@ class Wannier90BaseWorkChain(ProtocolMixin, BaseRestartWorkChain):
         builder = cls.get_builder()
         builder[cls._inputs_namespace]['code'] = code
         builder[cls._inputs_namespace]['structure'] = structure
+        builder[cls._inputs_namespace]['kpoints'] = inputs['kpoints']
         builder[cls._inputs_namespace]['parameters'] = orm.Dict(dict=parameters)
         builder[cls._inputs_namespace]['metadata'] = metadata
         if 'settings' in inputs[cls._inputs_namespace]:

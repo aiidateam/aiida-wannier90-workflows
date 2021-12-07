@@ -3,7 +3,8 @@ auto_energy_windows_threshold: 0.9
 clean_workdir: false
 shift_energy_windows: true
 wannier90:
-  code: test.wannier90.wannier90@localhost-test<None>
+  code: test.wannier90.wannier90@localhost-test
+  kpoints: 1331 kpts
   metadata:
     options:
       max_wallclock_seconds: 43200
@@ -28,4 +29,4 @@ wannier90:
     num_iter: 4000
     num_wann: 4
   settings: {}
-  structure: Si2<None>
+  structure: Si2
