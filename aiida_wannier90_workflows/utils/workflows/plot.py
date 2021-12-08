@@ -2,24 +2,21 @@
 # -*- coding: utf-8 -*-
 """Plot band structures."""
 import typing as ty
-import matplotlib.pyplot as plt
 
 from aiida import orm
+from aiida.plugins import WorkflowFactory
 
-from aiida_quantumespresso.workflows.pw.base import PwBaseWorkChain
-from aiida_quantumespresso.workflows.pw.bands import PwBandsWorkChain
-
-from aiida_wannier90.calculations import Wannier90Calculation
-
-from aiida_wannier90_workflows.workflows import (
-    Wannier90BaseWorkChain, Wannier90BandsWorkChain, Wannier90WorkChain, Wannier90OptimizeWorkChain
-)
-from aiida_wannier90_workflows.utils.scdm import erfc_scdm, fit_scdm_mu_sigma
+Wannier90BaseWorkChain = WorkflowFactory('wannier90_workflows.base.wannier90')
+Wannier90WorkChain = WorkflowFactory('wannier90_workflows.wannier90')
+Wannier90BandsWorkChain = WorkflowFactory('wannier90_workflows.bands')
+Wannier90OptimizeWorkChain = WorkflowFactory('wannier90_workflows.optimize')
 
 
 def plot_scdm_fit(workchain: int, save: bool = False):
     """Plot the projectabilities distribution of SCDM fitting."""
+    import matplotlib.pyplot as plt
     from aiida_wannier90_workflows.utils.workflows import get_last_calcjob
+    from aiida_wannier90_workflows.utils.scdm import erfc_scdm, fit_scdm_mu_sigma
 
     valid_classes = [Wannier90BandsWorkChain, Wannier90WorkChain]
     if workchain.process_class not in valid_classes:
@@ -108,6 +105,9 @@ def get_mpl_code_for_bands(dft_bands, wan_bands, fermi_energy=None, title=None, 
 
 def get_mpl_code_for_workchains(workchain0, workchain1, title=None, save=False, filename=None):
     """Return matplotlib code for comparing band structures of two workchains."""
+    from aiida_quantumespresso.workflows.pw.base import PwBaseWorkChain
+    from aiida_quantumespresso.workflows.pw.bands import PwBandsWorkChain
+    from aiida_wannier90.calculations import Wannier90Calculation
 
     def get_output_bands(workchain):
         if workchain.process_class == PwBaseWorkChain:
@@ -246,6 +246,7 @@ def export_bands_for_group(
     :type match_by_formula: bool, optional
     """
     import os.path
+    from aiida_wannier90.calculations import Wannier90Calculation
 
     if isinstance(wan_group, str):
         wan_group = orm.load_group(wan_group)

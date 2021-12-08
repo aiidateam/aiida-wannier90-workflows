@@ -50,6 +50,8 @@ good-names = [
     'SsspFamily',
     'PseudoDojoFamily',
     'CutoffsPseudoPotentialFamily',
+    'Wannier90BandsWorkChain',
+    'Wannier90OptimizeWorkChain',
 ]
 
 [tool.pytest.ini_options]

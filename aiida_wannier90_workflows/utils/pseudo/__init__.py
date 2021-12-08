@@ -11,11 +11,6 @@ SsspFamily = GroupFactory('pseudo.family.sssp')
 PseudoDojoFamily = GroupFactory('pseudo.family.pseudo_dojo')
 CutoffsPseudoPotentialFamily = GroupFactory('pseudo.family.cutoffs')
 
-__all__ = (
-    'get_pseudo_and_cutoff',
-    'get_pseudo_orbitals',
-)
-
 
 def get_pseudo_and_cutoff(pseudo_family: str,
                           structure: orm.StructureData) -> ty.Tuple[ty.Mapping[str, PseudoPotentialData], float, float]:

@@ -41,7 +41,7 @@ def format_option(function):
 def cmd_estimate_group(group, formatted, hdf_file):
     """Estimate file size of all the structure in a group."""
     import os.path
-    from aiida_wannier90_workflows.utils.estimator import (
+    from aiida_wannier90_workflows.utils.workflows.estimator import (
         WannierFileFormat, estimate_structure_group, print_estimation
     )
 
@@ -63,7 +63,9 @@ def cmd_estimate_group(group, formatted, hdf_file):
 @decorators.with_dbenv()
 def cmd_estimate_structure(data, formatted):
     """Estimate file size of a structure."""
-    from aiida_wannier90_workflows.utils.estimator import (WannierFileFormat, estimate_workflow, human_readable_size)
+    from aiida_wannier90_workflows.utils.workflows.estimator import (
+        WannierFileFormat, estimate_workflow, human_readable_size
+    )
 
     file_format = WannierFileFormat.FORTRAN_UNFORMATTED
     if formatted:
@@ -81,7 +83,7 @@ def cmd_estimate_structure(data, formatted):
 @click.argument('hdf-file', type=click.Path(exists=True, readable=True))
 def cmd_estimate_plot(hdf_file):
     """Plot a histogram of results in a HDF5 file."""
-    from aiida_wannier90_workflows.utils.estimator import print_estimation, plot_histogram
+    from aiida_wannier90_workflows.utils.workflows.estimator import print_estimation, plot_histogram
 
     print_estimation(hdf_file)
     echo.echo('')

@@ -3,10 +3,11 @@
 """Functions to generator relax/scf/nscf builder."""
 from aiida import orm
 from aiida.engine import ProcessBuilder
+from aiida.plugins import WorkflowFactory
 
 from aiida_quantumespresso.common.types import SpinType
 
-from aiida_wannier90_workflows.workflows.bands import Wannier90BandsWorkChain
+Wannier90BandsWorkChain = WorkflowFactory('wannier90_workflows.bands')
 
 
 def get_relax_builder(

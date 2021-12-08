@@ -4,13 +4,20 @@ repos:
     hooks:
       - id: double-quote-string-fixer
       - id: end-of-file-fixer
+        exclude: >-
+          (?x)^(
+              tests/.*.*out|
+              tests/.*.in|
+              examples/.*.xsf
+          )$
       - id: fix-encoding-pragma
       - id: mixed-line-ending
       - id: trailing-whitespace
         exclude: >-
           (?x)^(
               tests/.*.*out|
-              tests/.*.in$
+              tests/.*.in|
+              examples/.*.xsf
           )$
 
   - repo: https://github.com/ikamensh/flynt/
@@ -25,7 +32,8 @@ repos:
       - id: pydocstyle
         exclude: &exclude_files >
           (?x)^(
-              aiida_quantumespresso/parsers/.*|
+              aiida_wannier90_workflows/utils/.*/predict_smooth_grid.py|
+              aiida_wannier90_workflows/utils/.*/get_w90model_from_aiida.py|
               docs/.*|
               tests/.*(?<!\.py)$
           )$
