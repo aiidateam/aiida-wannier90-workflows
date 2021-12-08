@@ -1,5 +1,4 @@
 include setup.json
-#include LICENSE.txt
-#include aiida_quantumespresso/utils/protocols/*.json
-#recursive-include aiida_quantumespresso/parsers/parse_xml *.xsd
-#recursive-include aiida_quantumespresso/workflows/protocols *.yaml
+include LICENSE.txt
+recursive-include aiida_wannier90_workflows/utils/pseudo/data *.json
+recursive-include aiida_wannier90_workflows/workflows/protocols *.yaml
