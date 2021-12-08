@@ -55,7 +55,10 @@
         "aiida-wannier90 @ git+https://git@github.com/qiaojunfeng/aiida-wannier90@parser_restart#egg=aiida-wannier90",
         "aiida-pseudo~=0.6",
         "click~=7.0",
-        "click-completion~=0.5"
+        "click-completion~=0.5",
+        "colorama",
+        "pandas",
+        "sklearn"
     ],
     "keywords": "aiida wannier90 workflows",
     "license": "Private code",
