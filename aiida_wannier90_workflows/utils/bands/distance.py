@@ -139,13 +139,14 @@ def bands_distance_for_group(  # pylint: disable=too-many-statements
     :return: [description]
     :rtype: pd.DataFrame
     """
+    from aiida.plugins import WorkflowFactory
     from aiida_quantumespresso.calculations.pw import PwCalculation
     from aiida_quantumespresso.workflows.pw.base import PwBaseWorkChain
     from aiida_quantumespresso.workflows.pw.bands import PwBandsWorkChain
     from aiida_wannier90.calculations import Wannier90Calculation
-    from aiida_wannier90_workflows.workflows.bands import Wannier90BandsWorkChain
-    from aiida_wannier90_workflows.workflows.optimize import Wannier90OptimizeWorkChain
     from aiida_wannier90_workflows.utils.workflows.plot import get_mapping_for_group, get_wannier_workchain_fermi_energy
+    Wannier90BandsWorkChain = WorkflowFactory('wannier90_workflows.bands')
+    Wannier90OptimizeWorkChain = WorkflowFactory('wannier90_workflows.optimize')
 
     if isinstance(wan_group, str):
         wan_group = orm.load_group(wan_group)

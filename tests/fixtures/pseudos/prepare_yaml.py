@@ -4,7 +4,7 @@
 import yaml
 
 from aiida import orm
-from aiida_wannier90_workflows.utils.upf import (
+from aiida_wannier90_workflows.utils.pseudo.upf import (
     get_number_of_electrons_from_upf, get_number_of_projections_from_upf, get_upf_content, parse_pswfc_nosoc
 )
 

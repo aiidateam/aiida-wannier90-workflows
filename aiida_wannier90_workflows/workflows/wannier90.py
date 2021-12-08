@@ -744,7 +744,7 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):  # pylint: disable=too-many-
 
         Not necessary but it is good to check it.
         """
-        from ..utils.pseudo import get_number_of_electrons, get_number_of_projections
+        from aiida_wannier90_workflows.utils.pseudo import get_number_of_electrons, get_number_of_projections
 
         # 1. the calculated number of projections is consistent with QE projwfc.x
         if 'scf' in self.inputs:
