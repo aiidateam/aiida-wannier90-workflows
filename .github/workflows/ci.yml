@@ -66,4 +66,11 @@ jobs:
           pip install -e .[tests]
           reentry scan
       - name: Run pytest
-        run: pytest -sv tests
+        run: pytest --cov=aiida_wannier90_workflows --cov-report=xml -sv
+        working-directory: tests
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v2
+        with:
+          fail_ci_if_error: true
+          verbose: true
+          working-directory: tests
