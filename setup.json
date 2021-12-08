@@ -9,6 +9,7 @@
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
         "Topic :: Scientific/Engineering :: Physics"
     ],
     "description": "Advanced AiiDA workflows for Wannier90",
@@ -48,8 +49,10 @@
     },
     "install_requires": [
         "aiida-core~=1.6",
-        "aiida-quantumespresso~=3.4",
-        "aiida-wannier90>=2.0.1",
+        // "aiida-quantumespresso~=3.4",
+        // "aiida-wannier90>=2.0.1",
+        "aiida-quantumespresso @ git+https://git@github.com/qiaojunfeng/aiida-quantumespresso@lumi#egg=aiida-quantumespresso",
+        "aiida-wannier90 @ git+https://git@github.com/qiaojunfeng/aiida-wannier90@parser_restart#egg=aiida-wannier90",
         "aiida-pseudo~=0.6",
         "click~=7.0",
         "click-completion~=0.5"
