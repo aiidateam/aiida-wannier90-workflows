@@ -58,7 +58,7 @@
         "click-completion~=0.5",
         "colorama",
         "pandas",
-        "sklearn"
+        "scikit-learn"
     ],
     "keywords": "aiida wannier90 workflows",
     "license": "Private code",
