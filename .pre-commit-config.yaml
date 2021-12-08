@@ -8,7 +8,9 @@ repos:
           (?x)^(
               tests/.*.*out|
               tests/.*.in|
-              examples/.*.xsf
+              examples/.*.xsf|
+              docs/.*.agr|
+              docs/.*.xsf
           )$
       - id: fix-encoding-pragma
       - id: mixed-line-ending
@@ -17,7 +19,9 @@ repos:
           (?x)^(
               tests/.*.*out|
               tests/.*.in|
-              examples/.*.xsf
+              examples/.*.xsf|
+              docs/.*.agr|
+              docs/.*.xsf
           )$
 
   - repo: https://github.com/ikamensh/flynt/
