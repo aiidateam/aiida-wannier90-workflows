@@ -29,7 +29,7 @@ def test_scdm(generate_builder_inputs, data_regression, serialize_builder, struc
     """Test ``Wannier90OpengridWorkChain.get_builder_from_protocol`` for the default protocol."""
 
     inputs = generate_builder_inputs(structure)
-    builder = Wannier90OpengridWorkChain.get_builder_from_protocol(**inputs)
+    builder = Wannier90OpengridWorkChain.get_builder_from_protocol(**inputs, print_summary=False)
 
     assert isinstance(builder, ProcessBuilder)
     data_regression.check(serialize_builder(builder))
@@ -41,7 +41,7 @@ def test_atomic_projectors_qe(generate_builder_inputs, data_regression, serializ
 
     inputs = generate_builder_inputs(structure)
     builder = Wannier90OpengridWorkChain.get_builder_from_protocol(
-        **inputs, projection_type=WannierProjectionType.ATOMIC_PROJECTORS_QE
+        **inputs, projection_type=WannierProjectionType.ATOMIC_PROJECTORS_QE, print_summary=False
     )
 
     assert isinstance(builder, ProcessBuilder)
@@ -52,11 +52,14 @@ def test_electronic_type(generate_builder_inputs):
     """Test ``Wannier90OpengridWorkChain.get_builder_from_protocol`` with ``electronic_type`` keyword."""
     with pytest.raises(NotImplementedError):
         builder = Wannier90OpengridWorkChain.get_builder_from_protocol(
-            **generate_builder_inputs(), electronic_type=ElectronicType.AUTOMATIC
+            **generate_builder_inputs(), electronic_type=ElectronicType.AUTOMATIC, print_summary=False
         )
 
     builder = Wannier90OpengridWorkChain.get_builder_from_protocol(
-        **generate_builder_inputs(), electronic_type=ElectronicType.INSULATOR, opengrid_only_scf=False
+        **generate_builder_inputs(),
+        electronic_type=ElectronicType.INSULATOR,
+        opengrid_only_scf=False,
+        print_summary=False
     )
     for namespace, occupations in zip((builder.scf, builder.nscf), ('fixed', 'fixed')):
         parameters = namespace['pw']['parameters'].get_dict()
@@ -65,7 +68,7 @@ def test_electronic_type(generate_builder_inputs):
         assert 'smearing' not in parameters['SYSTEM']
 
     builder = Wannier90OpengridWorkChain.get_builder_from_protocol(
-        **generate_builder_inputs(), electronic_type=ElectronicType.METAL, opengrid_only_scf=False
+        **generate_builder_inputs(), electronic_type=ElectronicType.METAL, opengrid_only_scf=False, print_summary=False
     )
     for namespace, occupations in zip((builder.scf, builder.nscf), ('smearing', 'smearing')):
         parameters = namespace['pw']['parameters'].get_dict()
@@ -79,11 +82,11 @@ def test_spin_type(generate_builder_inputs):
     with pytest.raises(NotImplementedError):
         for spin_type in [SpinType.COLLINEAR, SpinType.NON_COLLINEAR]:
             builder = Wannier90OpengridWorkChain.get_builder_from_protocol(
-                **generate_builder_inputs(), spin_type=spin_type
+                **generate_builder_inputs(), spin_type=spin_type, print_summary=False
             )
 
     builder = Wannier90OpengridWorkChain.get_builder_from_protocol(
-        **generate_builder_inputs(), spin_type=SpinType.NONE, opengrid_only_scf=False
+        **generate_builder_inputs(), spin_type=SpinType.NONE, opengrid_only_scf=False, print_summary=False
     )
     for namespace in [builder.scf, builder.nscf]:
         parameters = namespace['pw']['parameters'].get_dict()
@@ -103,7 +106,7 @@ def test_projection_type(generate_builder_inputs):
     #         )
 
     builder = Wannier90OpengridWorkChain.get_builder_from_protocol(
-        **generate_builder_inputs(), projection_type=WannierProjectionType.ATOMIC_PROJECTORS_QE
+        **generate_builder_inputs(), projection_type=WannierProjectionType.ATOMIC_PROJECTORS_QE, print_summary=False
     )
     for namespace in [
         builder.wannier90,
