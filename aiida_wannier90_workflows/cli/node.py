@@ -279,8 +279,20 @@ def cmd_node_clean(workflows):
             try:
                 calc.outputs.remote_folder._clean()  # pylint: disable=protected-access
                 cleaned_calcs.append(calc.pk)
-            except (IOError, OSError, KeyError, NotExistentAttributeError):
+            except NotExistentAttributeError:
                 # NotExistentAttributeError: when calc was excepted and has no remote_folder
+                # Some times if the CalcJob is killed and has no outputs.remote_folder,
+                # I need to remove it manually.
+                from aiida.orm.utils.remote import clean_remote
+                remote_dir = calc.get_remote_workdir()
+                if remote_dir is None:
+                    continue
+                authinfo = calc.get_authinfo()
+                transport = authinfo.get_transport()
+                with transport:
+                    clean_remote(transport, remote_dir)
+                cleaned_calcs.append(calc.pk)
+            except (IOError, OSError, KeyError):
                 pass
         if len(cleaned_calcs) > 0:
             echo.echo(f"cleaned remote folders of calculations: {' '.join(map(str, cleaned_calcs))}")
