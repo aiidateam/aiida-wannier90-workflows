@@ -52,15 +52,19 @@ def bands_distance_raw(
     # Check that the number of kpoints is the same
     assert dft_bands_filtered.shape[0] == wannier_bands.shape[
         0], f'Different number of kpoints {dft_bands_filtered.shape[0]} {wannier_bands.shape[0]}'
-    assert dft_bands_filtered.shape[1] >= wannier_bands.shape[
-        1], f'Too few DFT bands w.r.t. Wannier {dft_bands_filtered.shape[1]} {wannier_bands.shape[1]}'
+    # assert dft_bands_filtered.shape[1] >= wannier_bands.shape[
+    #     1], f'Too few DFT bands w.r.t. Wannier {dft_bands_filtered.shape[1]} {wannier_bands.shape[1]}'
+    if dft_bands_filtered.shape[1] <= wannier_bands.shape[1]:
+        wannier_bands_filtered = wannier_bands[:, :dft_bands_filtered.shape[1]]
+    else:
+        wannier_bands_filtered = wannier_bands
 
-    dft_bands_to_compare = dft_bands_filtered[:, :wannier_bands.shape[1]]
+    dft_bands_to_compare = dft_bands_filtered[:, :wannier_bands_filtered.shape[1]]
 
-    bands_energy_difference = (dft_bands_to_compare - wannier_bands)
+    bands_energy_difference = (dft_bands_to_compare - wannier_bands_filtered)
     bands_weight_dft = fermi_dirac(dft_bands_to_compare, mu,
                                    sigma) * compute_lower_cutoff(dft_bands_to_compare, lower_cutoff)
-    bands_weight_wannier = fermi_dirac(wannier_bands, mu,
+    bands_weight_wannier = fermi_dirac(wannier_bands_filtered, mu,
                                        sigma) * compute_lower_cutoff(dft_bands_to_compare, lower_cutoff)
     bands_weight = np.sqrt(bands_weight_dft * bands_weight_wannier)
 
