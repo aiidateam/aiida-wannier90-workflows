@@ -183,7 +183,7 @@ class Wannier90BandsWorkChain(Wannier90OpengridWorkChain):
         """
         from aiida.tools import get_explicit_kpoints_path
         from aiida_quantumespresso.common.types import SpinType
-        from aiida_wannier90_workflows.utils.workflows.builder import recursive_merge_builder
+        from aiida_wannier90_workflows.utils.workflows.builder import recursive_merge_builder, recursive_merge_container
 
         if sum(_ is not None for _ in (kpoint_path, bands_kpoints, bands_kpoints_distance)) > 1:
             raise ValueError('Can only specify one of the `kpoint_path`, `bands_kpoints` and `bands_kpoints_distance`')
@@ -265,12 +265,17 @@ class Wannier90BandsWorkChain(Wannier90OpengridWorkChain):
                 parent_builder.bands_kpoints = bands_kpoints
 
         # Prepare workchain builder
-        builder = cls.get_builder()
+        # I need to explicitly write `Wannier90BandsWorkChain.get_builder()` instead of
+        # `cls.get_builder()`, otherwise for a subclass ,e.g. `Wannier90OptimizeWorkChain`,
+        # it will return the builder of the subclass.
+        builder = Wannier90BandsWorkChain.get_builder()
 
-        inputs = cls.get_protocol_inputs(protocol=kwargs.get('protocol', None), overrides=kwargs.get('overrides', None))
-        builder = recursive_merge_builder(builder, inputs)
-
+        protocol_inputs = Wannier90BandsWorkChain.get_protocol_inputs(
+            protocol=kwargs.get('protocol', None), overrides=kwargs.get('overrides', None)
+        )
         inputs = parent_builder._inputs(prune=True)  # pylint: disable=protected-access
+
+        inputs = recursive_merge_container(inputs, protocol_inputs)
         builder = recursive_merge_builder(builder, inputs)
 
         if print_summary:

@@ -217,9 +217,11 @@ class Wannier90OptimizeWorkChain(Wannier90BandsWorkChain):
         parent_builder = super().get_builder_from_protocol(**kwargs)
 
         # Prepare workchain builder
-        builder = cls.get_builder()
+        builder = Wannier90OptimizeWorkChain.get_builder()
 
-        inputs = cls.get_protocol_inputs(protocol=kwargs.get('protocol', None), overrides=kwargs.get('overrides', None))
+        inputs = Wannier90OptimizeWorkChain.get_protocol_inputs(
+            protocol=kwargs.get('protocol', None), overrides=kwargs.get('overrides', None)
+        )
         builder = recursive_merge_builder(builder, inputs)
 
         inputs = parent_builder._inputs(prune=True)  # pylint: disable=protected-access

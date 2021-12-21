@@ -94,9 +94,12 @@ class Wannier90BaseWorkChain(ProtocolMixin, BaseRestartWorkChain):
     @classmethod
     def define(cls, spec) -> None:
         """Define the process spec."""
+        from aiida_wannier90.calculations import validate_inputs_base as validate_inputs_base_wannier90
+
         super().define(spec)
 
         spec.expose_inputs(Wannier90Calculation, namespace=cls._inputs_namespace)
+        spec.inputs['wannier90'].validator = validate_inputs_base_wannier90
 
         spec.input(
             'shift_energy_windows',
