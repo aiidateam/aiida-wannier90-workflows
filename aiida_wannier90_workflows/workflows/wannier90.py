@@ -285,8 +285,12 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):  # pylint: disable=too-many-
                                                                            )['meta_parameters']['pseudo_family']
 
         # Prepare workchain builder
-        builder = cls.get_builder()
-        inputs = cls.get_protocol_inputs(protocol, overrides)
+        # I need to use explicitly `Wannier90WorkChain.get_protocol_inputs()` instead of
+        # `cls.get_protocol_inputs()`, because for a subclass of Wannier90WorkChain,
+        # `cls.get_protocol_inputs()` will call the `get_protocol_inputs` of that subclass,
+        # which might be different from this base class.
+        builder = Wannier90WorkChain.get_builder()
+        inputs = Wannier90WorkChain.get_protocol_inputs(protocol, overrides)
         builder = recursive_merge_builder(builder, inputs)
 
         builder['structure'] = structure
@@ -394,7 +398,7 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):  # pylint: disable=too-many-
         builder['pw2wannier90'] = pw2wannier90_builder._inputs(prune=True)  # pylint: disable=protected-access
 
         # Apply several overrides
-        protocol_overrides = cls.get_protocol_overrides()
+        protocol_overrides = Wannier90WorkChain.get_protocol_overrides()
         if plot_wannier_functions:
             builder = recursive_merge_builder(builder, protocol_overrides['plot_wannier_functions'])
         if retrieve_hamiltonian:

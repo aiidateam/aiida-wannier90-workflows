@@ -119,9 +119,11 @@ class Wannier90OpengridWorkChain(Wannier90WorkChain):
         print_summary = kwargs.pop('print_summary', True)
 
         # Prepare workchain builder
-        builder = cls.get_builder()
+        builder = Wannier90OpengridWorkChain.get_builder()
 
-        inputs = cls.get_protocol_inputs(protocol=kwargs.get('protocol', None), overrides=kwargs.get('overrides', None))
+        inputs = Wannier90OpengridWorkChain.get_protocol_inputs(
+            protocol=kwargs.get('protocol', None), overrides=kwargs.get('overrides', None)
+        )
         builder = recursive_merge_builder(builder, inputs)
 
         parent_builder = super().get_builder_from_protocol(codes=codes, summary=summary, print_summary=False, **kwargs)

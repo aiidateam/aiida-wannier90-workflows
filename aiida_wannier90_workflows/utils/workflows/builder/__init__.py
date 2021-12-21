@@ -310,6 +310,14 @@ def recursive_merge_container(left: ty.Union[ty.Mapping, ty.Iterable],
             else:
                 merged[key] = right_dict[key]
         merged = orm.Dict(dict=merged)
+    elif isinstance(left, orm.Dict) and isinstance(right, abc.Mapping):
+        merged = copy.copy(left.get_dict())
+        for key in right:
+            if key in merged:
+                merged[key] = recursive_merge_container(merged[key], right[key])
+            else:
+                merged[key] = right[key]
+        merged = orm.Dict(dict=merged)
     else:
         merged = right
 
@@ -317,7 +325,7 @@ def recursive_merge_container(left: ty.Union[ty.Mapping, ty.Iterable],
 
 
 def recursive_merge_builder(builder: ProcessBuilderNamespace, right: ty.Mapping) -> ProcessBuilder:
-    """Recursively merge a dictionaries into a ProcessBuilderNamespace.
+    """Recursively merge a dictionaries into a ``ProcessBuilderNamespace``.
 
     If any key is present in both ``left`` and ``right`` dictionaries, the value of the ``right`` dictionary is
     merged into (instead of replace) the builder.
@@ -328,6 +336,9 @@ def recursive_merge_builder(builder: ProcessBuilderNamespace, right: ty.Mapping)
     """
     inputs = builder._inputs(prune=True)  # pylint: disable=protected-access
     inputs = recursive_merge_container(inputs, right)
-    builder.update(inputs)
+    try:
+        builder.update(inputs)
+    except ValueError as exc:
+        raise ValueError(f'{exc}\n{builder=}\n{inputs=}') from exc
 
     return builder

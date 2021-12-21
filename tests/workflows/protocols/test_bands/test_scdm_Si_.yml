@@ -109,6 +109,7 @@ wannier90:
         withmpi: true
     parameters:
       auto_projections: true
+      bands_plot: true
       conv_tol: 2.0e-07
       conv_window: 3
       dis_conv_tol: 2.0e-07
