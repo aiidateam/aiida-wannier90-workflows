@@ -258,8 +258,17 @@ def cmd_node_gotocomputer(ctx, node, link_label):
 
 @cmd_node.command('cleanworkdir')
 @arguments.WORKFLOWS('workflows')
-def cmd_node_clean(workflows):
+@click.option(
+    '-unk',
+    '--only-unk',
+    is_flag=True,
+    default=False,
+    show_default=True,
+    help='Only clean UNK* symlinks of finished Wannier90Calculation.'
+)  # pylint: disable=too-many-statements
+def cmd_node_clean(workflows, only_unk):
     """Clean the workdir of CalcJobNode/WorkChainNode."""
+    from aiida_wannier90.calculations import Wannier90Calculation
     from aiida.common.exceptions import NotExistentAttributeError
 
     for node in workflows:
@@ -274,8 +283,35 @@ def cmd_node_clean(workflows):
         else:
             echo.echo_critical(f'Unsupported type of node: {node}')
 
+        if only_unk:
+            # In Wannier90OptimizeWorkChain, if there are many iterations, there might be
+            # a large amount of UNK* symlinks wasting inodes. Here I only remove the UNK*
+            # of finished Wannier90Calculation.
+            calcs = filter(lambda _: _.process_class == Wannier90Calculation, calcs)
+            calcs = filter(lambda _: _.is_finished, calcs)
+            calcs = list(calcs)
+
         cleaned_calcs = []
         for calc in calcs:
+            if only_unk:
+                try:
+                    remote_dir = calc.get_remote_workdir()
+                    if remote_dir is None:
+                        continue
+                    authinfo = calc.get_authinfo()
+                    transport = authinfo.get_transport()
+                    with transport:
+                        transport.chdir(remote_dir)
+                        # for file_name in transport.listdir():
+                        #     if file_name.startswith('UNK'):
+                        #         transport.rmtree(file_name)
+                        # This is much faster
+                        transport.exec_command_wait('rm UNK*')
+                    cleaned_calcs.append(calc.pk)
+                except (IOError, OSError, KeyError):
+                    pass
+                continue
+
             try:
                 calc.outputs.remote_folder._clean()  # pylint: disable=protected-access
                 cleaned_calcs.append(calc.pk)
@@ -294,8 +330,12 @@ def cmd_node_clean(workflows):
                 cleaned_calcs.append(calc.pk)
             except (IOError, OSError, KeyError):
                 pass
+
         if len(cleaned_calcs) > 0:
-            echo.echo(f"cleaned remote folders of calculations: {' '.join(map(str, cleaned_calcs))}")
+            if only_unk:
+                echo.echo(f"cleaned UNK* symlinks of calculations: {' '.join(map(str, cleaned_calcs))}")
+            else:
+                echo.echo(f"cleaned remote folders of calculations: {' '.join(map(str, cleaned_calcs))}")
 
 
 @cmd_node.command('saveinput')
