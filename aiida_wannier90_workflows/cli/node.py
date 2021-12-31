@@ -264,14 +264,23 @@ def cmd_node_gotocomputer(ctx, node, link_label):
     is_flag=True,
     default=False,
     show_default=True,
-    help='Only clean UNK* symlinks of finished Wannier90Calculation.'
+    help='Only clean UNK* symlinks of finished Wannier90Calculation.',
+)
+@click.option(
+    '-f',
+    '--fast',
+    is_flag=True,
+    default=False,
+    show_default=True,
+    help='Reuse transport to speed up the cleaning.',
 )  # pylint: disable=too-many-statements
-def cmd_node_clean(workflows, only_unk):
+def cmd_node_clean(workflows, only_unk, fast):
     """Clean the workdir of CalcJobNode/WorkChainNode."""
-    from aiida_wannier90.calculations import Wannier90Calculation
     from aiida.common.exceptions import NotExistentAttributeError
+    from aiida.orm.utils.remote import clean_remote
+    from aiida_wannier90.calculations import Wannier90Calculation
 
-    for node in workflows:
+    for node in workflows:  # pylint: disable=too-many-statements,too-many-nested-blocks
         calcs = []
         if isinstance(node, orm.CalcJobNode):
             calcs.append(node)
@@ -292,44 +301,70 @@ def cmd_node_clean(workflows, only_unk):
             calcs = list(calcs)
 
         cleaned_calcs = []
-        for calc in calcs:
-            if only_unk:
+        if fast:
+            if len(calcs) > 0:
+                calc_computers = [_.computer.uuid for _ in calcs]
+                if len(set(calc_computers)) > 1:
+                    echo.echo_error(
+                        'Cannot reuse transport: the CalcJobs of the workchain are not on the same computer.'
+                    )
+                    return
+                authinfo = calcs[0].get_authinfo()
+                transport = authinfo.get_transport()
+                transport.open()
+            for calc in calcs:
                 try:
                     remote_dir = calc.get_remote_workdir()
                     if remote_dir is None:
                         continue
-                    authinfo = calc.get_authinfo()
-                    transport = authinfo.get_transport()
-                    with transport:
+                    if only_unk:
                         transport.chdir(remote_dir)
-                        # for file_name in transport.listdir():
-                        #     if file_name.startswith('UNK'):
-                        #         transport.rmtree(file_name)
-                        # This is much faster
                         transport.exec_command_wait('rm UNK*')
-                    cleaned_calcs.append(calc.pk)
+                        cleaned_calcs.append(calc.pk)
+                    else:
+                        clean_remote(transport, remote_dir)
+                        cleaned_calcs.append(calc.pk)
                 except (IOError, OSError, KeyError):
                     pass
-                continue
-
-            try:
-                calc.outputs.remote_folder._clean()  # pylint: disable=protected-access
-                cleaned_calcs.append(calc.pk)
-            except NotExistentAttributeError:
-                # NotExistentAttributeError: when calc was excepted and has no remote_folder
-                # Some times if the CalcJob is killed and has no outputs.remote_folder,
-                # I need to remove it manually.
-                from aiida.orm.utils.remote import clean_remote
-                remote_dir = calc.get_remote_workdir()
-                if remote_dir is None:
-                    continue
-                authinfo = calc.get_authinfo()
-                transport = authinfo.get_transport()
-                with transport:
-                    clean_remote(transport, remote_dir)
-                cleaned_calcs.append(calc.pk)
-            except (IOError, OSError, KeyError):
-                pass
+            if len(calcs) > 0:
+                transport.close()
+        else:
+            for calc in calcs:
+                if only_unk:
+                    try:
+                        remote_dir = calc.get_remote_workdir()
+                        if remote_dir is None:
+                            continue
+                        authinfo = calc.get_authinfo()
+                        transport = authinfo.get_transport()
+                        with transport:
+                            transport.chdir(remote_dir)
+                            # for file_name in transport.listdir():
+                            #     if file_name.startswith('UNK'):
+                            #         transport.rmtree(file_name)
+                            # This is much faster
+                            transport.exec_command_wait('rm UNK*')
+                        cleaned_calcs.append(calc.pk)
+                    except (IOError, OSError, KeyError):
+                        pass
+                else:
+                    try:
+                        calc.outputs.remote_folder._clean()  # pylint: disable=protected-access
+                        cleaned_calcs.append(calc.pk)
+                    except NotExistentAttributeError:
+                        # NotExistentAttributeError: when calc was excepted and has no remote_folder
+                        # Some times if the CalcJob is killed and has no outputs.remote_folder,
+                        # I need to remove it manually.
+                        remote_dir = calc.get_remote_workdir()
+                        if remote_dir is None:
+                            continue
+                        authinfo = calc.get_authinfo()
+                        transport = authinfo.get_transport()
+                        with transport:
+                            clean_remote(transport, remote_dir)
+                        cleaned_calcs.append(calc.pk)
+                    except (IOError, OSError, KeyError):
+                        pass
 
         if len(cleaned_calcs) > 0:
             if only_unk:
