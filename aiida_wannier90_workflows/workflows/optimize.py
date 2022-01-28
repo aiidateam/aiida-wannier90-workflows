@@ -505,7 +505,13 @@ class Wannier90OptimizeWorkChain(Wannier90BandsWorkChain):
         for key in last_calc.inputs:
             inputs[key] = last_calc.inputs[key]
 
+        # Do not use `current_folder` which points to the optimal wannier90 folder, since if we
+        # do not symlink UNK files in that folder, the plot calculation would fail. We should
+        # point the `remote_input_folder` to the folder of pw2wannier90.
         inputs['remote_input_folder'] = self.ctx.current_folder
+        # However we also need the chk file, so we cannot just use the pw2wan folder,
+        # TODO in aiida-w90, let Calculation accepts an optional SinglefileData for chk  # pylint: disable=fixme
+        # inputs['remote_input_folder'] = self.ctx.workchain_pw2wannier90.outputs.remote_folder
 
         # Restore stash files
         if stash:
