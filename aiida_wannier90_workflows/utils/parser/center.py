@@ -45,7 +45,7 @@ def get_wf_centers(calculation: Wannier90Calculation) -> tuple:
     return cell, atoms, wf_centers
 
 
-def generate_supercell(cell: np.array, size: ty.Union[int, list, np.array] = 2) -> list[np.array, np.array]:
+def generate_supercell(cell: np.array, size: ty.Union[int, list, np.array] = 2) -> ty.Tuple[np.array, np.array]:
     """Generate a supercell for finding nearest neighbours.
 
     :param cell: each row is a lattice vector
@@ -103,7 +103,7 @@ def generate_supercell(cell: np.array, size: ty.Union[int, list, np.array] = 2) 
     return supercell, supercell_translations
 
 
-def find_wf_nearest_atom(cell: np.array, atoms: np.array, wf_centers: np.array) -> tuple[np.array, np.array]:
+def find_wf_nearest_atom(cell: np.array, atoms: np.array, wf_centers: np.array) -> ty.Tuple[np.array, np.array]:
     """Find the nearest atom for each Wannier function center.
 
     :param cell: each row is a lattice vector
@@ -263,12 +263,15 @@ def get_last_wan_calc(node: ty.Union[orm.WorkChainNode, orm.CalcJobNode]) -> Wan
     from aiida_wannier90_workflows.workflows.opengrid import Wannier90OpengridWorkChain
     from aiida_wannier90_workflows.workflows.wannier90 import Wannier90WorkChain
     from aiida_wannier90_workflows.workflows.base.wannier90 import Wannier90BaseWorkChain
+    from aiida_wannier90_workflows.workflows.optimize import Wannier90OptimizeWorkChain
     from aiida_wannier90_workflows.utils.workflows import get_last_calcjob
 
     supported_workchains = (Wannier90BandsWorkChain, Wannier90OpengridWorkChain, Wannier90WorkChain)
 
     if isinstance(node, orm.WorkChainNode):
-        if node.process_class in supported_workchains:
+        if node.process_class == Wannier90OptimizeWorkChain:
+            calc = node.outputs.wannier90_optimal.output_parameters.creator
+        elif node.process_class in supported_workchains:
             calc = node.get_outgoing(link_type=(LinkType.CALL_CALC, LinkType.CALL_WORK),
                                      link_label_filter='wannier90').one().node
             if calc.process_class == Wannier90BaseWorkChain:
