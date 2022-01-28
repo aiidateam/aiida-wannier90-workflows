@@ -65,34 +65,63 @@ def plot_scdm_fit(workchain: int, save: bool = False):
         plt.show()
 
 
-def get_mpl_code_for_bands(dft_bands, wan_bands, fermi_energy=None, title=None, save=False, filename=None):
+def get_mpl_code_for_bands(
+    dft_bands, wan_bands, *, fermi_energy=None, shift_fermi=False, title=None, save=False, filename=None
+):
     """Return matplotlib code for comparing band structures."""
 
+    if fermi_energy is None and shift_fermi:
+        raise ValueError('shift_fermi requested but no fermi_energy provided?')
+
     # dft_bands.show_mpl()
-    dft_mpl_code = dft_bands._exportcontent(fileformat='mpl_singlefile', legend=f'{dft_bands.pk}', main_file_name='')[0]  # pylint: disable=protected-access
+    legend = f'{dft_bands.pk}' if dft_bands.pk else 'DFT'
+    dft_mpl_code = dft_bands._exportcontent(fileformat='mpl_singlefile', legend=legend, main_file_name='')[0]  # pylint: disable=protected-access
+    legend = f'{wan_bands.pk}' if wan_bands.pk else 'W90'
     wan_mpl_code = wan_bands._exportcontent(  # pylint: disable=protected-access
         fileformat='mpl_singlefile',
-        legend=f'{wan_bands.pk}',
+        legend=legend,
         main_file_name='',
         bands_color='r',
         bands_linestyle='dashed'
     )[0]
 
+    if fermi_energy is not None:
+        replacement = f'fermi_energy = {fermi_energy}\n\n'
+        if shift_fermi:
+            replacement += "p.axhline(y=0, color='blue', linestyle='--', label='Fermi', zorder=-1)\n"
+        else:
+            replacement += "p.axhline(y=fermi_energy, color='blue', linestyle='--', label='Fermi', zorder=-1)\n"
+        replacement += 'pl.legend()\n\n'
+        replacement += 'for path in paths:'
+        dft_mpl_code = dft_mpl_code.replace(b'for path in paths:', replacement.encode())
+
     dft_mpl_code = dft_mpl_code.replace(b'pl.show()', b'')
+
     wan_mpl_code = wan_mpl_code.replace(b'fig = pl.figure()', b'')
     wan_mpl_code = wan_mpl_code.replace(b'p = fig.add_subplot(1,1,1)', b'')
+
+    if shift_fermi:
+        dft_mpl_code = dft_mpl_code.replace(
+            b'p.plot(x, band, label=label,', b'p.plot(x, [_-fermi_energy for _ in band], label=label,'
+        )
+        wan_mpl_code = wan_mpl_code.replace(
+            b'p.plot(x, band, label=label,', b'p.plot(x, [_-fermi_energy for _ in band], label=label,'
+        )
+        dft_mpl_code = dft_mpl_code.replace(
+            b"p.set_ylim([all_data['y_min_lim'], all_data['y_max_lim']])",
+            b"p.set_ylim([all_data['y_min_lim']-fermi_energy, all_data['y_max_lim']-fermi_energy])"
+        )
+        wan_mpl_code = wan_mpl_code.replace(
+            b"p.set_ylim([all_data['y_min_lim'], all_data['y_max_lim']])",
+            b"p.set_ylim([all_data['y_min_lim']-fermi_energy, all_data['y_max_lim']-fermi_energy])"
+        )
+
     mpl_code = dft_mpl_code + wan_mpl_code
 
     if title is None:
         title = f'1st bands pk {dft_bands.pk}, 2nd bands pk {wan_bands.pk}'
     replacement = f'p.set_title("{title}")\npl.show()'
     mpl_code = mpl_code.replace(b'pl.show()', replacement.encode())
-
-    if fermi_energy is not None:
-        replacement = f'\nfermi_energy =  {fermi_energy}\n'
-        replacement += "p.axhline(y=fermi_energy, color='blue', linestyle='--', label='Fermi', zorder=-1)\n"
-        replacement += 'pl.legend()\npl.show()\n'
-        mpl_code = mpl_code.replace(b'pl.show()', replacement.encode())
 
     if save:
         if filename is None:
@@ -141,7 +170,9 @@ def get_mpl_code_for_workchains(workchain0, workchain1, title=None, save=False, 
         else:
             raise ValueError('Cannot find fermi energy')
 
-    mpl_code = get_mpl_code_for_bands(dft_bands, wan_bands, fermi_energy, title, save, filename)
+    mpl_code = get_mpl_code_for_bands(
+        dft_bands, wan_bands, fermi_energy=fermi_energy, shift_fermi=False, title=title, save=save, filename=filename
+    )
 
     return mpl_code
 
@@ -190,6 +221,8 @@ def get_mapping_for_group(
     value. If not found the value is ``None``.
     :rtype: dict
     """
+    from aiida_quantumespresso.workflows.pw.bands import PwBandsWorkChain
+
     if isinstance(wan_group, str):
         wan_group = orm.load_group(wan_group)
     if isinstance(dft_group, str):
@@ -203,10 +236,15 @@ def get_mapping_for_group(
         print(f'Wannier group<{wan_group.pk}> is empty')
         return None
 
-    if 'structure' in dft_group.nodes[0].inputs:
-        dft_structures = {_.inputs.structure: _ for _ in dft_group.nodes}
-    elif 'structure' in dft_group.nodes[0].inputs['pw']:
-        dft_structures = {_.inputs.pw.structure: _ for _ in dft_group.nodes}
+    # PwBandsWorkChain calls seekpath, I need to use seekpath reduced structure
+    if dft_group.nodes[0].process_class == PwBandsWorkChain:
+        dft_structures = {_.outputs.primitive_structure: _ for _ in dft_group.nodes}
+    else:
+        # Just check the input structure
+        if 'structure' in dft_group.nodes[0].inputs:
+            dft_structures = {_.inputs.structure: _ for _ in dft_group.nodes}
+        elif 'structure' in dft_group.nodes[0].inputs['pw']:
+            dft_structures = {_.inputs.pw.structure: _ for _ in dft_group.nodes}
     if match_by_formula:
         dft_structures = {k.get_formula(): v for k, v in dft_structures.items()}
     # print(f'Found DFT calculations: {dft_structures}')
