@@ -259,6 +259,14 @@ def cmd_node_gotocomputer(ctx, node, link_label):
 @cmd_node.command('cleanworkdir')
 @arguments.WORKFLOWS('workflows')
 @click.option(
+    '-r',
+    '--raw',
+    is_flag=True,
+    default=False,
+    show_default=True,
+    help='Only print the remote dir of CalcJobs.',
+)
+@click.option(
     '-unk',
     '--only-unk',
     is_flag=True,
@@ -274,7 +282,7 @@ def cmd_node_gotocomputer(ctx, node, link_label):
     show_default=True,
     help='Reuse transport to speed up the cleaning.',
 )  # pylint: disable=too-many-statements
-def cmd_node_clean(workflows, only_unk, fast):
+def cmd_node_clean(workflows, only_unk, fast, raw):
     """Clean the workdir of CalcJobNode/WorkChainNode."""
     from aiida.common.exceptions import NotExistentAttributeError
     from aiida.orm.utils.remote import clean_remote
@@ -299,6 +307,14 @@ def cmd_node_clean(workflows, only_unk, fast):
             calcs = filter(lambda _: _.process_class == Wannier90Calculation, calcs)
             calcs = filter(lambda _: _.is_finished, calcs)
             calcs = list(calcs)
+
+        if raw:
+            for calc in calcs:
+                remote_dir = calc.get_remote_workdir()
+                if remote_dir is None:
+                    continue
+                print(remote_dir)
+            continue
 
         cleaned_calcs = []
         if fast:
