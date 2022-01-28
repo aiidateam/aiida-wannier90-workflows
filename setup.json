@@ -60,6 +60,7 @@
         "click-completion~=0.5",
         "colorama",
         "pandas",
+        "tables",
         "scikit-learn"
     ],
     "keywords": "aiida wannier90 workflows",
