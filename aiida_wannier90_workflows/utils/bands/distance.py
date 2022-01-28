@@ -211,7 +211,14 @@ def bands_distance_for_group(  # pylint: disable=too-many-statements
                 exclude_list_dft = []
         elif wan_wc.process_class in (Wannier90BandsWorkChain, Wannier90OptimizeWorkChain):
             fermi_energy = get_wannier_workchain_fermi_energy(wan_wc)
-            bands_wannier_node = wan_wc.outputs.band_structure
+            # In very rare cases, the workchain did not output a correct bands,
+            # e.g. the bands file was not correctly written due to disk issue,
+            # so the outputs.band_structure might be empty.
+            # Here if the band is empty, I try to use another output BandsData,
+            # in principle they should be the same.
+            bands_wannier_node = wan_wc.outputs.wannier90_optimal.interpolated_bands
+            if np.prod(bands_wannier_node.attributes['array|bands']) == 0:
+                bands_wannier_node = wan_wc.outputs.band_structure
             try:
                 last_wan = wan_wc.get_outgoing(link_label_filter='wannier90').one().node
                 if 'parameters' in last_wan.inputs:
