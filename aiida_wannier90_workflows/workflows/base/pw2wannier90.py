@@ -60,6 +60,11 @@ def validate_inputs(inputs: AttributeDict, ctx=None) -> None:  # pylint: disable
                 f'{bands_num_bands} != {projections_num_bands}'
             )
 
+    atom_proj = calc_parameters.get('atom_proj', False)
+    atom_proj_ext = calc_parameters.get('atom_proj_ext', None)
+    if atom_proj and not atom_proj_ext:
+        return '`atom_proj_ext` must be specified when using external projectors.'
+
 
 class Pw2wannier90BaseWorkChain(ProtocolMixin, QeBaseRestartWorkChain):
     """Workchain to run a pw2wannier90 calculation with automated error handling and restarts."""
@@ -106,7 +111,8 @@ class Pw2wannier90BaseWorkChain(ProtocolMixin, QeBaseRestartWorkChain):
         overrides: dict = None,
         electronic_type: ElectronicType = ElectronicType.METAL,
         projection_type: WannierProjectionType = WannierProjectionType.ATOMIC_PROJECTORS_QE,
-        exclude_pswfcs: list = None
+        exclude_projectors: list = None,
+        external_projectors_path: str = None,
     ) -> ProcessBuilder:
         """Return a builder prepopulated with inputs selected according to the chosen protocol.
 
@@ -149,12 +155,13 @@ class Pw2wannier90BaseWorkChain(ProtocolMixin, QeBaseRestartWorkChain):
             WannierProjectionType.ATOMIC_PROJECTORS_OPENMX,
         ]:
             parameters['atom_proj'] = True
-            if exclude_pswfcs is not None and len(exclude_pswfcs) > 0:
-                parameters['atom_proj_exclude'] = list(exclude_pswfcs)
+            if exclude_projectors is not None and len(exclude_projectors) > 0:
+                parameters['atom_proj_exclude'] = list(exclude_projectors)
             if projection_type == WannierProjectionType.ATOMIC_PROJECTORS_OPENMX:
                 parameters['atom_proj_ext'] = True
-                parameters['atom_proj_dir'] = './'
-                raise NotImplementedError('OpenMX projector not implemented yet')
+                if external_projectors_path is None:
+                    raise ValueError(f'Must specify `external_projectors_path` when using {projection_type}')
+                parameters['atom_proj_dir'] = external_projectors_path
 
         parameters = {'inputpp': parameters}
 
