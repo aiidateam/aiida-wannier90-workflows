@@ -105,13 +105,13 @@ def cmd_plot_bands(ctx, pw, wannier, save):
 @click.option('-s', '--save', is_flag=True, default=False, help='Save bands distance as HDF5')
 @click.option(
     '-m',
-    '--match-by-structure',
+    '--match-by-formula',
     is_flag=True,
     default=False,
-    help='Find PwBandsWorkChain by structure instead of structure formula'
+    help='Find PwBandsWorkChain by formula instead of structure structure'
 )
 @decorators.with_dbenv()
-def cmd_plot_bandsdist(pw, wannier, save, match_by_structure):
+def cmd_plot_bandsdist(pw, wannier, save, match_by_formula):
     """Plot bands distance for a group of PwBandsWorkChain and a group of Wannier90BandsWorkChain.
 
     PW is the PK of a group which contains PwBandsWorkChain,
@@ -121,7 +121,7 @@ def cmd_plot_bandsdist(pw, wannier, save, match_by_structure):
         bands_distance_for_group, plot_distance, save_distance, standardize_groupname
     )
 
-    df = bands_distance_for_group(wannier, pw, match_by_formula=not match_by_structure)
+    df = bands_distance_for_group(wannier, pw, match_by_formula=match_by_formula)
     plot_distance(df)
 
     if save:
