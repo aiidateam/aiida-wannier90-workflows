@@ -191,6 +191,7 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):  # pylint: disable=too-many-
         disentanglement_type: WannierDisentanglementType = None,
         frozen_type: WannierFrozenType = None,
         exclude_semicore: bool = True,
+        external_projectors_path: str = None,
         plot_wannier_functions: bool = False,
         retrieve_hamiltonian: bool = False,
         retrieve_matrices: bool = False,
@@ -275,6 +276,11 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):  # pylint: disable=too-many-
             disentanglement_type=disentanglement_type,
             frozen_type=frozen_type
         )
+
+        if projection_type == WannierProjectionType.ATOMIC_PROJECTORS_OPENMX:
+            if external_projectors_path is None:
+                raise ValueError(f'Must specify `external_projectors_path` when using {projection_type}')
+            type_check(external_projectors_path, str)
 
         if pseudo_family is None:
             if spin_type == SpinType.SPIN_ORBIT:
@@ -380,10 +386,10 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):  # pylint: disable=too-many-
             builder['projwfc'] = projwfc_builder._inputs(prune=True)  # pylint: disable=protected-access
 
         # Prepare pw2wannier90
-        exclude_pswfcs = None
+        exclude_projectors = None
         if exclude_semicore:
             pseudo_orbitals = get_pseudo_orbitals(builder['scf']['pw']['pseudos'])
-            exclude_pswfcs = get_semicore_list(structure, pseudo_orbitals)
+            exclude_projectors = get_semicore_list(structure, pseudo_orbitals)
         pw2wannier90_overrides = overrides.get('projwfc', {})
         pw2wannier90_builder = Pw2wannier90BaseWorkChain.get_builder_from_protocol(
             code=codes['pw2wannier90'],
@@ -391,7 +397,8 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):  # pylint: disable=too-many-
             overrides=pw2wannier90_overrides,
             electronic_type=electronic_type,
             projection_type=projection_type,
-            exclude_pswfcs=exclude_pswfcs
+            exclude_projectors=exclude_projectors,
+            external_projectors_path=external_projectors_path
         )
         # Remove workchain excluded inputs
         pw2wannier90_builder.pop('clean_workdir', None)
