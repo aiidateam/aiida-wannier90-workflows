@@ -97,6 +97,7 @@ class Wannier90OpengridWorkChain(Wannier90WorkChain):
     def get_builder_from_protocol(  # pylint: disable=arguments-differ
         cls,
         codes: ty.Mapping[str, ty.Union[str, int, orm.Code]],
+        structure: orm.StructureData,
         *,
         opengrid_only_scf: bool = True,
         **kwargs
@@ -126,7 +127,9 @@ class Wannier90OpengridWorkChain(Wannier90WorkChain):
         )
         builder = recursive_merge_builder(builder, inputs)
 
-        parent_builder = super().get_builder_from_protocol(codes=codes, summary=summary, print_summary=False, **kwargs)
+        parent_builder = super().get_builder_from_protocol(
+            codes, structure, summary=summary, print_summary=False, **kwargs
+        )
         inputs = parent_builder._inputs(prune=True)  # pylint: disable=protected-access
         builder = recursive_merge_builder(builder, inputs)
 
