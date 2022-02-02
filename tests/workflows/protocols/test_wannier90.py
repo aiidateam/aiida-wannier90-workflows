@@ -110,3 +110,12 @@ def test_projection_type(generate_builder_inputs):
     ]:
         parameters = namespace['wannier90']['parameters'].get_dict()
         assert 'auto_projections' in parameters
+
+    builder = Wannier90WorkChain.get_builder_from_protocol(
+        **generate_builder_inputs(), projection_type=WannierProjectionType.ANALYTIC, print_summary=False
+    )
+    for namespace in [
+        builder.wannier90,
+    ]:
+        assert 'projections' in namespace['wannier90']
+        assert namespace['wannier90']['projections'].get_list() == ['Si:s', 'Si:p']
