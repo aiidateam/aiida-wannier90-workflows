@@ -259,16 +259,17 @@ class Wannier90BandsWorkChain(Wannier90OpengridWorkChain):
             parent_builder = parent_class.get_builder_from_protocol(  # pylint: disable=too-many-function-args
                 codes, structure, **kwargs, summary=summary, print_summary=False
             )
-            if kpoint_path:
-                parent_builder.kpoint_path = kpoint_path
-            if bands_kpoints:
-                parent_builder.bands_kpoints = bands_kpoints
 
         # Prepare workchain builder
         # I need to explicitly write `Wannier90BandsWorkChain.get_builder()` instead of
         # `cls.get_builder()`, otherwise for a subclass ,e.g. `Wannier90OptimizeWorkChain`,
         # it will return the builder of the subclass.
         builder = Wannier90BandsWorkChain.get_builder()
+
+        if kpoint_path:
+            builder.kpoint_path = kpoint_path
+        if bands_kpoints:
+            builder.bands_kpoints = bands_kpoints
 
         protocol_inputs = Wannier90BandsWorkChain.get_protocol_inputs(
             protocol=kwargs.get('protocol', None), overrides=kwargs.get('overrides', None)
