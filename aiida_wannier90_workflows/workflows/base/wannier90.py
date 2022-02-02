@@ -299,13 +299,13 @@ class Wannier90BaseWorkChain(ProtocolMixin, BaseRestartWorkChain):
         elif projection_type == WannierProjectionType.ANALYTIC:
             pseudo_orbitals = get_pseudo_orbitals(pseudos)
             projections = []
-            for site in structure.sites:
-                for orb in pseudo_orbitals[site.kind_name]['pswfcs']:
+            for kind in structure.kinds:
+                for orb in pseudo_orbitals[kind.name]['pswfcs']:
                     if meta_parameters['exclude_semicore']:
-                        if orb in pseudo_orbitals[site.kind_name]['semicores']:
+                        if orb in pseudo_orbitals[kind.name]['semicores']:
                             continue
-                    projections.append(f'{site.kind_name}:{orb[-1].lower()}')
-            inputs['projections'] = projections
+                    projections.append(f'{kind.name}:{orb[-1].lower()}')
+            inputs[cls._inputs_namespace]['projections'] = orm.List(list=projections)
         elif projection_type == WannierProjectionType.RANDOM:
             inputs['settings'].update({'random_projections': True})
         else:
@@ -374,6 +374,8 @@ class Wannier90BaseWorkChain(ProtocolMixin, BaseRestartWorkChain):
         builder[cls._inputs_namespace]['kpoints'] = inputs['kpoints']
         builder[cls._inputs_namespace]['parameters'] = orm.Dict(dict=parameters)
         builder[cls._inputs_namespace]['metadata'] = metadata
+        if 'projections' in inputs[cls._inputs_namespace]:
+            builder[cls._inputs_namespace]['projections'] = inputs[cls._inputs_namespace]['projections']
         if 'settings' in inputs[cls._inputs_namespace]:
             builder[cls._inputs_namespace]['settings'] = orm.Dict(dict=inputs[cls._inputs_namespace]['settings'])
         if 'settings' in inputs:
