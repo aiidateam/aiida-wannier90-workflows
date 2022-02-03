@@ -193,12 +193,12 @@ class Wannier90OpengridWorkChain(Wannier90WorkChain):
 
         self.ctx.current_folder = workchain.outputs.remote_folder
 
-    def prepare_wannier90_inputs(self):
+    def prepare_wannier90_pp_inputs(self):
         """Override the parent method in `Wannier90WorkChain`.
 
         The wannier input kpoints are set as the parsed output from `OpengridBaseWorkChain`.
         """
-        base_inputs = super().prepare_wannier90_inputs()
+        base_inputs = super().prepare_wannier90_pp_inputs()
         inputs = base_inputs['wannier90']
 
         if self.should_run_opengrid():

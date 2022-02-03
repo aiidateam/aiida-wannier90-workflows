@@ -540,7 +540,7 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):  # pylint: disable=too-many-
             self.report(f'{workchain.process_label} failed with exit status {workchain.exit_status}')
             return self.exit_codes.ERROR_SUB_PROCESS_FAILED_PROJWFC
 
-    def prepare_wannier90_inputs(self):  # pylint: disable=too-many-statements
+    def prepare_wannier90_pp_inputs(self):  # pylint: disable=too-many-statements
         """Prepare the inputs of wannier90 calculation before submission.
 
         This method will be called by the workchain at runtime, to fill some parameters such as
@@ -565,6 +565,18 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):  # pylint: disable=too-many-
         parameters['fermi_energy'] = fermi_energy
 
         inputs.parameters = orm.Dict(dict=parameters)
+
+        # Add `postproc_setup`
+        if 'settings' in inputs:
+            settings = inputs['settings'].get_dict()
+        else:
+            settings = {}
+        settings['postproc_setup'] = True
+        inputs['settings'] = settings
+
+        # I should not stash files in postproc, otherwise there is a RemoteStashFolderData in outputs
+        inputs['metadata']['options'].pop('stash', None)
+
         base_inputs['wannier90'] = inputs
 
         if base_inputs['shift_energy_windows']:
@@ -580,29 +592,16 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):  # pylint: disable=too-many-
             base_inputs.bands = self.ctx.workchain_projwfc.outputs.bands
             base_inputs.bands_projections = self.ctx.workchain_projwfc.outputs.projections
 
+        base_inputs['clean_workdir'] = orm.Bool(False)
+
         return base_inputs
 
     def run_wannier90_pp(self):
         """Wannier90 post processing step."""
-        base_inputs = self.prepare_wannier90_inputs()
-        inputs = base_inputs['wannier90']
+        inputs = self.prepare_wannier90_pp_inputs()
+        inputs['metadata'] = {'call_link_label': 'wannier90_pp'}
 
-        # Add `postproc_setup`
-        if 'settings' in inputs:
-            settings = inputs['settings'].get_dict()
-        else:
-            settings = {}
-        settings['postproc_setup'] = True
-        inputs['settings'] = settings
-
-        # I should not stash files in postproc, otherwise there is a RemoteStashFolderData in outputs
-        inputs['metadata']['options'].pop('stash', None)
-
-        base_inputs['wannier90'] = inputs
-        base_inputs['metadata'] = {'call_link_label': 'wannier90_pp'}
-        base_inputs['clean_workdir'] = orm.Bool(False)
-        inputs = prepare_process_inputs(Wannier90BaseWorkChain, base_inputs)
-
+        inputs = prepare_process_inputs(Wannier90BaseWorkChain, inputs)
         running = self.submit(Wannier90BaseWorkChain, **inputs)
         self.report(f'launching {running.process_label}<{running.pk}> in postproc mode')
 
@@ -669,12 +668,26 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):  # pylint: disable=too-many-
 
         self.ctx.current_folder = workchain.outputs.remote_folder
 
-    def run_wannier90(self):
-        """Wannier90 step for MLWF."""
+    def prepare_wannier90_inputs(self):  # pylint: disable=too-many-statements
+        """Prepare the inputs of wannier90 calculation before submission.
+
+        This method will be called by the workchain at runtime, to fill some parameters such as
+        Fermi energy which can only be retrieved after scf step.
+        Moreover, this allows overriding the method in derived classes to further modify the inputs.
+        """
         from copy import deepcopy
         from aiida_wannier90_workflows.utils.workflows import get_last_calcjob
 
         base_inputs = AttributeDict(self.exposed_inputs(Wannier90BaseWorkChain, namespace='wannier90'))
+
+        # I need to disable Fermi energy shifting since this is done in postproc step,
+        # otherwise it will be shifted twice!
+        base_inputs.pop('shift_energy_windows', None)
+        base_inputs.pop('auto_energy_windows', None)
+        base_inputs.pop('auto_energy_windows_threshold', None)
+        base_inputs.pop('bands', None)
+        base_inputs.pop('bands_projections', None)
+
         inputs = base_inputs['wannier90']
 
         # I should stash files, which was removed from metadata in the postproc step
@@ -705,10 +718,16 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):  # pylint: disable=too-many-
             inputs['metadata']['options'] = options
 
         base_inputs['wannier90'] = inputs
-        base_inputs['metadata'] = {'call_link_label': 'wannier90'}
         base_inputs['clean_workdir'] = orm.Bool(False)
-        inputs = prepare_process_inputs(Wannier90BaseWorkChain, base_inputs)
 
+        return base_inputs
+
+    def run_wannier90(self):
+        """Wannier90 step for MLWF."""
+        inputs = self.prepare_wannier90_inputs()
+        inputs['metadata'] = {'call_link_label': 'wannier90'}
+
+        inputs = prepare_process_inputs(Wannier90BaseWorkChain, inputs)
         running = self.submit(Wannier90BaseWorkChain, **inputs)
         self.report(f'launching {running.process_label}<{running.pk}>')
 

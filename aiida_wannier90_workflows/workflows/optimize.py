@@ -297,13 +297,13 @@ class Wannier90OptimizeWorkChain(Wannier90BandsWorkChain):
         """Whether to run wannier90 maximal localisation and plotting in two steps or in one step."""
         return self.inputs['separate_plotting']
 
-    def prepare_wannier90_inputs(self):
+    def prepare_wannier90_pp_inputs(self):
         """Override parent method.
 
         :return: the inputs port
         :rtype: InputPort
         """
-        base_inputs = super().prepare_wannier90_inputs()
+        base_inputs = super().prepare_wannier90_pp_inputs()
         inputs = base_inputs['wannier90']
 
         parameters = inputs.parameters.get_dict()
@@ -372,10 +372,9 @@ class Wannier90OptimizeWorkChain(Wannier90BandsWorkChain):
             workchain.outputs.output_parameters['wannier_functions_output']
         )
 
-    def run_wannier90_optimize(self):
-        """Optimize dis_proj_min/max."""
-
-        base_inputs = AttributeDict(self.exposed_inputs(Wannier90BaseWorkChain, namespace='wannier90'))
+    def prepare_wannier90_optimize_inputs(self):
+        """Prepare inputs for optimize run."""
+        base_inputs = super().prepare_wannier90_inputs()
         inputs = base_inputs['wannier90']
 
         # I need to save `inputs.wannier90.metadata.options.resources`, somehow it is missing if I
@@ -408,17 +407,25 @@ class Wannier90OptimizeWorkChain(Wannier90BandsWorkChain):
             inputs['metadata']['options'].pop('stash', None)
 
         base_inputs['wannier90'] = inputs
-        iteration = len(self.ctx.optimize_minmax) + 1  # Start from 1
-        base_inputs['metadata'] = {'call_link_label': f'wannier90_optimize_iteration{iteration}'}
         base_inputs['clean_workdir'] = orm.Bool(False)
+
+        return base_inputs
+
+    def run_wannier90_optimize(self):
+        """Optimize dis_proj_min/max."""
+        inputs = self.prepare_wannier90_optimize_inputs()
+
+        iteration = len(self.ctx.optimize_minmax) + 1  # Start from 1
+        inputs['metadata'] = {'call_link_label': f'wannier90_optimize_iteration{iteration}'}
 
         # Disable the error handler which might modify dis_proj_min
         handler_overrides = {'handle_disentanglement_not_enough_states': False}
-        base_inputs['handler_overrides'] = orm.Dict(dict=handler_overrides)
+        inputs['handler_overrides'] = orm.Dict(dict=handler_overrides)
 
-        inputs = prepare_process_inputs(Wannier90BaseWorkChain, base_inputs)
-
+        inputs = prepare_process_inputs(Wannier90BaseWorkChain, inputs)
         running = self.submit(Wannier90BaseWorkChain, **inputs)
+
+        dis_proj_min, dis_proj_max = self.ctx.optimize_minmax_new[0]
         self.report(
             f'launching {running.process_label}<{running.pk}> with dis_proj_min={dis_proj_min} '
             f'dis_proj_max={dis_proj_max}'
@@ -480,18 +487,12 @@ class Wannier90OptimizeWorkChain(Wannier90BandsWorkChain):
 
         self.ctx.current_folder = workchains[self.ctx.optimize_best].outputs.remote_folder
 
-    def run_wannier90_plot(self):
+    def prepare_wannier90_plot_inputs(self):
         """Wannier90 plot step, also stash files."""
-        from copy import deepcopy
-
-        base_inputs = AttributeDict(self.exposed_inputs(Wannier90BaseWorkChain, namespace='wannier90'))
+        # Note with `Wannier90WorkChain.prepare_wannier90_inputs()`, the stash setting
+        # has been restored.
+        base_inputs = super().prepare_wannier90_inputs()
         inputs = base_inputs['wannier90']
-
-        # I should stash files, which was removed from metadata in the postproc step
-        stash = None
-        if 'stash' in inputs['metadata']['options']:
-            # I deepcopy it to avoid it being overwritten
-            stash = deepcopy(inputs['metadata']['options']['stash'])
 
         # Use the corrected parameters
         if self.has_run_wannier90_optimize():
@@ -513,10 +514,6 @@ class Wannier90OptimizeWorkChain(Wannier90BandsWorkChain):
         # TODO in aiida-w90, let Calculation accepts an optional SinglefileData for chk  # pylint: disable=fixme
         # inputs['remote_input_folder'] = self.ctx.workchain_pw2wannier90.outputs.remote_folder
 
-        # Restore stash files
-        if stash:
-            inputs['metadata']['options']['stash'] = stash
-
         # Restore plotting related tags
         parameters = inputs.parameters.get_dict()
         for key in self.ctx.saved_parameters:
@@ -532,10 +529,16 @@ class Wannier90OptimizeWorkChain(Wannier90BandsWorkChain):
                 inputs.bands_kpoints = self.ctx.current_bands_kpoints
 
         base_inputs['wannier90'] = inputs
-        base_inputs['metadata'] = {'call_link_label': 'wannier90_plot'}
         base_inputs['clean_workdir'] = orm.Bool(False)
-        inputs = prepare_process_inputs(Wannier90BaseWorkChain, base_inputs)
 
+        return base_inputs
+
+    def run_wannier90_plot(self):
+        """Wannier90 plot step, also stash files."""
+        inputs = self.prepare_wannier90_plot_inputs()
+        inputs['metadata'] = {'call_link_label': 'wannier90_plot'}
+
+        inputs = prepare_process_inputs(Wannier90BaseWorkChain, inputs)
         running = self.submit(Wannier90BaseWorkChain, **inputs)
         self.report(f'launching {running.process_label}<{running.pk}> in plotting mode')
 
