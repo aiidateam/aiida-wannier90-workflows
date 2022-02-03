@@ -71,14 +71,14 @@ def test_projection_type(fixture_code, projection_type):
     assert parameters[projection_type[1]]
 
 
-def test_exclude_pswfcs(fixture_code):
-    """Test ``Pw2wannier90BaseWorkChain.get_builder_from_protocol`` setting the ``exclude_pswfcs`` input."""
+def test_exclude_projectors(fixture_code):
+    """Test ``Pw2wannier90BaseWorkChain.get_builder_from_protocol`` setting the ``exclude_projectors`` input."""
     code = fixture_code('quantumespresso.pw2wannier90')
 
-    exclude_pswfcs = [2, 3]
+    exclude_projectors = [2, 3]
     builder = Pw2wannier90BaseWorkChain.get_builder_from_protocol(
-        code=code, projection_type=WannierProjectionType.ATOMIC_PROJECTORS_QE, exclude_pswfcs=exclude_pswfcs
+        code=code, projection_type=WannierProjectionType.ATOMIC_PROJECTORS_QE, exclude_projectors=exclude_projectors
     )
 
     parameters = builder['pw2wannier90']['parameters'].get_dict()['inputpp']
-    assert parameters['atom_proj_exclude'] == exclude_pswfcs
+    assert parameters['atom_proj_exclude'] == exclude_projectors

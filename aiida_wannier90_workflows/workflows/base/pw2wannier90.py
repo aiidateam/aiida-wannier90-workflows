@@ -61,9 +61,10 @@ def validate_inputs(inputs: AttributeDict, ctx=None) -> None:  # pylint: disable
             )
 
     atom_proj = calc_parameters.get('atom_proj', False)
-    atom_proj_ext = calc_parameters.get('atom_proj_ext', None)
-    if atom_proj and not atom_proj_ext:
-        return '`atom_proj_ext` must be specified when using external projectors.'
+    atom_proj_ext = calc_parameters.get('atom_proj_ext', False)
+    atom_proj_dir = calc_parameters.get('atom_proj_dir', None)
+    if atom_proj and atom_proj_ext and not atom_proj_dir:
+        return '`atom_proj_dir` must be specified when using external projectors.'
 
 
 class Pw2wannier90BaseWorkChain(ProtocolMixin, QeBaseRestartWorkChain):
