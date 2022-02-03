@@ -443,14 +443,14 @@ class Wannier90BaseWorkChain(ProtocolMixin, BaseRestartWorkChain):
 
         # Prevent error:
         #   dis_windows: More states in the frozen window than target WFs
-        if 'dis_froz_max' in parameters:
+        if 'dis_froz_max' in parameters and 'bands' in self.inputs:
             bands = self.inputs.bands.get_bands()
             if parameters.get('exclude_bands', None):
                 # Index of parameters['exclude_bands'] starts from 1,
                 # I need to change it to 0-based
                 exclude_bands = [_ - 1 for _ in parameters['exclude_bands']]
                 bands = remove_exclude_bands(bands=bands, exclude_bands=exclude_bands)
-            highest_band = bands[:, parameters['num_wann'] - 1]
+            highest_band = bands[:, min(parameters['num_wann'], bands.shape[1]) - 1]
             # There must be more than 1 available bands for disentanglement,
             # this sets the upper limit of `dis_froz_max`.
             max_froz_energy = np.min(highest_band)

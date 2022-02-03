@@ -330,9 +330,9 @@ class Wannier90BandsWorkChain(Wannier90OpengridWorkChain):
         self.out('primitive_structure', result['primitive_structure'])
         self.out('seekpath_parameters', result['parameters'])
 
-    def prepare_wannier90_inputs(self):
+    def prepare_wannier90_pp_inputs(self):
         """Override parent method."""
-        base_inputs = super().prepare_wannier90_inputs()
+        base_inputs = super().prepare_wannier90_pp_inputs()
         inputs = base_inputs['wannier90']
 
         parameters = inputs.parameters.get_dict()
