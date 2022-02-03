@@ -39,9 +39,16 @@ def cmd_plot_scdm(workchain, save):
     default=False,
     help='save as a python plotting script instead of showing matplotlib window'
 )
+@click.option(
+    '-f',
+    '--save_format',
+    type=str,
+    default=None,
+    help='Save as a python plotting script (default) or png/pdf',
+)
 @decorators.with_dbenv()
 @click.pass_context  # pylint: disable=invalid-name
-def cmd_plot_bands(ctx, pw, wannier, save):
+def cmd_plot_bands(ctx, pw, wannier, save, save_format):
     """Compare DFT and Wannier band structures.
 
     PW is the PK of a PwBaseWorkChain, or a BandsData,
@@ -93,6 +100,15 @@ def cmd_plot_bands(ctx, pw, wannier, save):
         print(f'  PW     : {type(pw)}')
         print(f'  WANNIER: {type(wannier)}')
         sys.exit()
+
+    if save_format:
+        formula = wannier.inputs.structure.get_formula()
+        filename = f'bandsdiff_{formula}_{pw.pk}_{wannier.pk}.{save_format}'
+        replacement = f'pl.savefig("{filename}")'
+        mpl_code = mpl_code.replace(b'pl.show()', replacement.encode())
+        # print(mpl_code.decode())
+        exec(mpl_code, {})  # pylint: disable=exec-used
+        return
 
     if not save:
         # print(mpl_code.decode())
