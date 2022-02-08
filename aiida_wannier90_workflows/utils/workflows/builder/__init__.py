@@ -12,7 +12,7 @@ from aiida_quantumespresso.common.types import ElectronicType
 from aiida_wannier90_workflows.common.types import WannierProjectionType, WannierDisentanglementType, WannierFrozenType
 
 
-def serializer(node: orm.Node, show_pk: bool = True) -> ty.Any:
+def serializer(node: orm.Node, show_pk: bool = True) -> ty.Any:  # pylint: disable=too-many-statements
     """Serialize arbitrary aiida object to ordinary python type, for pretty print.
 
     Usage:
@@ -79,6 +79,11 @@ def serializer(node: orm.Node, show_pk: bool = True) -> ty.Any:
             res = f'{res}<{node.pk}>'
 
     elif isinstance(node, orm.RemoteData):
+        res = node.__class__.__name__
+        if show_pk:
+            res = f'{res}<{node.pk}>'
+
+    elif isinstance(node, orm.FolderData):
         res = node.__class__.__name__
         if show_pk:
             res = f'{res}<{node.pk}>'
