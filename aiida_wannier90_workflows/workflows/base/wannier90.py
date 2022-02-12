@@ -451,11 +451,15 @@ class Wannier90BaseWorkChain(ProtocolMixin, BaseRestartWorkChain):
                 exclude_bands = [_ - 1 for _ in parameters['exclude_bands']]
                 bands = remove_exclude_bands(bands=bands, exclude_bands=exclude_bands)
             highest_band = bands[:, min(parameters['num_wann'], bands.shape[1]) - 1]
-            # There must be more than 1 available bands for disentanglement,
+            # This is the energy to freeze all the num_wann bands
+            max_froz_energy = np.max(highest_band)
+            # Cannot freeze more bands than num_wann,
             # this sets the upper limit of `dis_froz_max`.
-            max_froz_energy = np.min(highest_band)
-            # I subtract a small value for safety
-            max_froz_energy -= 1e-4
+            if bands.shape[1] > parameters['num_wann']:
+                min_next_band = np.min(bands[:, parameters['num_wann']])
+                # I subtract a small value for safety
+                min_next_band -= 1e-4
+                max_froz_energy = min(max_froz_energy, min_next_band)
             # `dis_froz_max` should be smaller than this max_froz_energy
             # to allow doing disentanglement
             dis_froz_max = min(max_froz_energy, parameters['dis_froz_max'])

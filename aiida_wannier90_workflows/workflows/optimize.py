@@ -333,6 +333,18 @@ class Wannier90OptimizeWorkChain(Wannier90BandsWorkChain):
 
             base_inputs['wannier90'] = inputs
 
+        # This will use the input bands which usually is a bands along kpath,
+        # also used to calculate bands distance.
+        # However in Wannier90BaseWorkChain, this bands will also be used to
+        # set the max of dis_froz_max (in `prepare_inputs()`), however, if
+        # the number of bands of this input is too small, this will lead to
+        # too small max limit of dis_froz_max, essentially causing a very low
+        # dis_froz_max in the actual wannier90 calculation.
+        # In such case, it is safer to use the output_band of scf or nscf step
+        # inside the workflow, however
+        # these are bands on a grid, usually their LUMO is a bit larger than
+        # LUMO from bands along kpath, so when shifting dis_froz_max w.r.t. LUMO,
+        # it might be a bit inaccurate.
         if self.inputs.optimize_disproj and 'optimize_reference_bands' in self.inputs:
             base_inputs.bands = self.inputs.optimize_reference_bands
 
