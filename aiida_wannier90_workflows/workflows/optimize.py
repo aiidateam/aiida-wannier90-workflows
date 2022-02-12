@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """Workchain to automatically optimize dis_proj_min/max for projectability disentanglement."""
+import typing as ty
 import pathlib
 import numpy as np
 
@@ -205,7 +206,13 @@ class Wannier90OptimizeWorkChain(Wannier90BandsWorkChain):
 
     @classmethod
     def get_builder_from_protocol(  # pylint: disable=arguments-differ
-        cls, **kwargs
+        cls,
+        codes: ty.Mapping[str, ty.Union[str, int, orm.Code]],
+        structure: orm.StructureData,
+        *,
+        reference_bands: orm.BandsData = None,
+        bands_distance_threshold: float = 1e-2,  # unit is eV
+        **kwargs
     ) -> ProcessBuilder:
         """Return a builder prepopulated with inputs selected according to the specified arguments.
 
@@ -214,7 +221,7 @@ class Wannier90OptimizeWorkChain(Wannier90BandsWorkChain):
         """
         from aiida_wannier90_workflows.utils.workflows.builder import recursive_merge_builder
 
-        parent_builder = super().get_builder_from_protocol(**kwargs)
+        parent_builder = super().get_builder_from_protocol(codes, structure, **kwargs)
 
         # Prepare workchain builder
         builder = Wannier90OptimizeWorkChain.get_builder()
@@ -226,6 +233,13 @@ class Wannier90OptimizeWorkChain(Wannier90BandsWorkChain):
 
         inputs = parent_builder._inputs(prune=True)  # pylint: disable=protected-access
         builder = recursive_merge_builder(builder, inputs)
+
+        # Inputs for optimizing dis_proj_min/max
+        if reference_bands:
+            builder.separate_plotting = True
+            builder.optimize_disproj = True
+            builder.optimize_reference_bands = reference_bands
+            builder.optimize_bands_distance_threshold = bands_distance_threshold
 
         return builder
 
@@ -319,6 +333,9 @@ class Wannier90OptimizeWorkChain(Wannier90BandsWorkChain):
                 inputs.pop('bands_kpoints', None)
 
             base_inputs['wannier90'] = inputs
+
+        if self.inputs.optimize_disproj and 'optimize_reference_bands' in self.inputs:
+            base_inputs.bands = self.inputs.optimize_reference_bands
 
         return base_inputs
 
