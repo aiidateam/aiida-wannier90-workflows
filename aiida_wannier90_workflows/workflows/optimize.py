@@ -6,7 +6,6 @@ import numpy as np
 
 from aiida import orm
 from aiida.orm.nodes.data.base import to_aiida_type
-from aiida.common import AttributeDict
 from aiida.engine import while_, if_, ToContext, append_, ProcessBuilder
 
 from aiida_quantumespresso.utils.mapping import prepare_process_inputs
@@ -341,35 +340,15 @@ class Wannier90OptimizeWorkChain(Wannier90BandsWorkChain):
 
     def run_wannier90(self):
         """Overide parent, pop stash settings."""
-        base_inputs = AttributeDict(self.exposed_inputs(Wannier90BaseWorkChain, namespace='wannier90'))
-        inputs = base_inputs['wannier90']
-
-        # Use the Wannier90BaseWorkChain-corrected parameters
-        last_calc = get_last_calcjob(self.ctx.workchain_wannier90_pp)
-        # copy postproc inputs, especially the `kmesh_tol` might have been corrected
-        for key in last_calc.inputs:
-            inputs[key] = last_calc.inputs[key]
-
-        inputs['remote_input_folder'] = self.ctx.current_folder
-
-        if 'settings' in inputs:
-            settings = inputs.settings.get_dict()
-        else:
-            settings = {}
-        settings['postproc_setup'] = False
-
-        inputs.settings = settings
+        inputs = self.prepare_wannier90_inputs()
 
         # I should not stash files if there is an additional plotting step,
         # otherwise there is a RemoteStashFolderData in outputs
         if self.should_run_wannier90_plot():
-            inputs['metadata']['options'].pop('stash', None)
+            inputs['wannier90']['metadata']['options'].pop('stash', None)
 
-        base_inputs['wannier90'] = inputs
-        base_inputs['metadata'] = {'call_link_label': 'wannier90'}
-        base_inputs['clean_workdir'] = orm.Bool(False)
-        inputs = prepare_process_inputs(Wannier90BaseWorkChain, base_inputs)
-
+        inputs['metadata'] = {'call_link_label': 'wannier90'}
+        inputs = prepare_process_inputs(Wannier90BaseWorkChain, inputs)
         running = self.submit(Wannier90BaseWorkChain, **inputs)
         self.report(f'launching {running.process_label}<{running.pk}>')
 
@@ -523,13 +502,19 @@ class Wannier90OptimizeWorkChain(Wannier90BandsWorkChain):
         for key in last_calc.inputs:
             inputs[key] = last_calc.inputs[key]
 
-        # Do not use `current_folder` which points to the optimal wannier90 folder, since if we
-        # do not symlink UNK files in that folder, the plot calculation would fail. We should
-        # point the `remote_input_folder` to the folder of pw2wannier90.
+        # Use `current_folder` which points to the optimal wannier90 folder, since we need the chk file.
+        # However we need to explicitly
+        # symlink UNK files in that folder, otherwise the plot calculation would fail.
         inputs['remote_input_folder'] = self.ctx.current_folder
-        # However we also need the chk file, so we cannot just use the pw2wan folder,
-        # TODO in aiida-w90, let Calculation accepts an optional SinglefileData for chk  # pylint: disable=fixme
-        # inputs['remote_input_folder'] = self.ctx.workchain_pw2wannier90.outputs.remote_folder
+        # Maybe in aiida-w90, should let Calculation accepts an optional SinglefileData? for chk,
+        # so we don't need to explicitly symlink.
+        settings = inputs.settings.get_dict()
+        remote_input_folder_uuid = self.ctx.workchain_pw2wannier90.outputs.remote_folder.computer.uuid
+        remote_input_folder_path = pathlib.Path(self.ctx.workchain_pw2wannier90.outputs.remote_folder.get_remote_path())
+        additional_remote_symlink_list = settings.get('additional_remote_symlink_list', [])
+        additional_remote_symlink_list += [(remote_input_folder_uuid, str(remote_input_folder_path / 'UNK*'), '.')]
+        settings['additional_remote_symlink_list'] = additional_remote_symlink_list
+        inputs.settings = orm.Dict(dict=settings)
 
         # Restore plotting related tags
         parameters = inputs.parameters.get_dict()
