@@ -255,7 +255,7 @@ class Wannier90OptimizeWorkChain(Wannier90BandsWorkChain):
         self.ctx.optimize_minmax = []
         self.ctx.optimize_bandsdist = []
         self.ctx.optimize_spreads_imbalence = []
-        # The index of the optimal wannier90 workchain
+        # The optimal wannier90 workchain
         self.ctx.optimize_best = None
 
         # For separate_plotting, restore these inputs when running plotting calc.
@@ -472,28 +472,43 @@ class Wannier90OptimizeWorkChain(Wannier90BandsWorkChain):
 
         workchains = self.ctx.workchain_wannier90_optimize
 
-        # The index of the optimal wannier90 workchain
+        # The optimal wannier90 workchain
         self.ctx.optimize_best = None
 
         if 'optimize_reference_bands' in self.inputs:
             # Usually good bands distance means MLWFs have good spreads
-            bandsdist = np.array([_ if _ else 1e5 for _ in self.ctx.optimize_bandsdist])
+            fake_max = 1e5
+            bandsdist = np.array([_ if _ else fake_max for _ in self.ctx.optimize_bandsdist])
             idx = np.argmin(bandsdist)
-            self.ctx.optimize_best = idx
-            minmax = self.ctx.optimize_minmax[idx]
+            if bandsdist[idx] < min(fake_max, self.ctx.workchain_wannier90_bandsdist):
+                self.ctx.optimize_best = workchains[idx]
+                opt_bandsdist = bandsdist[idx]
+                minmax = self.ctx.optimize_minmax[idx]
+            else:
+                # All optimizations failed, just output the initial w90
+                self.ctx.optimize_best = self.ctx.workchain_wannier90
+                opt_bandsdist = self.ctx.workchain_wannier90_bandsdist
+                # dis_proj_min/max might be corrected by error handlers,
+                # output the last min/max.
+                last_calc = get_last_calcjob(self.ctx.optimize_best)
+                params = last_calc.inputs.parameters.get_dict()
+                minmax = (
+                    params.get('dis_proj_min', None),
+                    params.get('dis_proj_max', None),
+                )
             self.report(
-                f'Optimal bands distance={bandsdist[idx]:.2e}, '
+                f'Optimal bands distance={opt_bandsdist:.2e}, '
                 f'dis_proj_min={minmax[0]} dis_proj_max={minmax[1]}'
             )
         else:
             # I only check the spreads are balenced
             spreads = np.array([_ if _ else 1e5 for _ in self.ctx.optimize_spreads_imbalence])
             idx = np.argmin(spreads)
-            self.ctx.optimize_best = idx
+            self.ctx.optimize_best = workchains[idx]
             minmax = self.ctx.optimize_minmax[idx]
             self.report(f'Optimal spreads={spreads[idx]}, ' f'dis_proj_min={minmax[0]} dis_proj_max={minmax[1]}')
 
-        self.ctx.current_folder = workchains[self.ctx.optimize_best].outputs.remote_folder
+        self.ctx.current_folder = self.ctx.optimize_best.outputs.remote_folder
 
     def prepare_wannier90_plot_inputs(self):
         """Wannier90 plot step, also stash files."""
@@ -505,7 +520,7 @@ class Wannier90OptimizeWorkChain(Wannier90BandsWorkChain):
         # Use the corrected parameters
         if self.has_run_wannier90_optimize():
             # Use the optimal parameters
-            optimal_workchain = self.ctx.workchain_wannier90_optimize[self.ctx.optimize_best]
+            optimal_workchain = self.ctx.optimize_best
         else:
             # Just use the base workchain
             optimal_workchain = self.ctx.workchain_wannier90
@@ -574,7 +589,7 @@ class Wannier90OptimizeWorkChain(Wannier90BandsWorkChain):
 
         if self.inputs['optimize_disproj']:
             if self.has_run_wannier90_optimize():
-                optimal_workchain = self.ctx.workchain_wannier90_optimize[self.ctx.optimize_best]
+                optimal_workchain = self.ctx.optimize_best
             else:
                 optimal_workchain = self.ctx.workchain_wannier90
             self.out_many(
@@ -593,7 +608,7 @@ class Wannier90OptimizeWorkChain(Wannier90BandsWorkChain):
 
         if 'optimize_reference_bands' in self.inputs:
             if self.has_run_wannier90_optimize():
-                optimal_workchain = self.ctx.workchain_wannier90_optimize[self.ctx.optimize_best]
+                optimal_workchain = self.ctx.optimize_best
             else:
                 # Even if I haven't run optimization, I still output bands distance if reference bands is present
                 optimal_workchain = self.ctx.workchain_wannier90
