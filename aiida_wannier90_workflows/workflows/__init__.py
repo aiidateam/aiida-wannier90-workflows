@@ -10,8 +10,10 @@ from .wannier90 import Wannier90WorkChain
 from .opengrid import Wannier90OpengridWorkChain
 from .bands import Wannier90BandsWorkChain
 from .optimize import Wannier90OptimizeWorkChain
+from .projwfcbands import ProjwfcBandsWorkChain
 
 __all__ = (
     'Wannier90BaseWorkChain', 'OpengridBaseWorkChain', 'ProjwfcBaseWorkChain', 'Pw2wannier90BaseWorkChain',
-    'Wannier90WorkChain', 'Wannier90OpengridWorkChain', 'Wannier90BandsWorkChain', 'Wannier90OptimizeWorkChain'
+    'Wannier90WorkChain', 'Wannier90OpengridWorkChain', 'Wannier90BandsWorkChain', 'Wannier90OptimizeWorkChain',
+    'ProjwfcBandsWorkChain'
 )
