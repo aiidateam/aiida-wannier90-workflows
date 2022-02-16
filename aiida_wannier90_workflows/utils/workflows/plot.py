@@ -137,11 +137,14 @@ def get_mpl_code_for_workchains(workchain0, workchain1, title=None, save=False, 
     from aiida_quantumespresso.workflows.pw.base import PwBaseWorkChain
     from aiida_quantumespresso.workflows.pw.bands import PwBandsWorkChain
     from aiida_wannier90.calculations import Wannier90Calculation
+    from aiida_wannier90_workflows.workflows.projwfcbands import ProjwfcBandsWorkChain
 
     def get_output_bands(workchain):
         if workchain.process_class == PwBaseWorkChain:
             return workchain.outputs.output_band
-        if workchain.process_class in (PwBandsWorkChain, Wannier90BandsWorkChain, Wannier90OptimizeWorkChain):
+        if workchain.process_class in (
+            PwBandsWorkChain, ProjwfcBandsWorkChain, Wannier90BandsWorkChain, Wannier90OptimizeWorkChain
+        ):
             return workchain.outputs.band_structure
         if workchain.process_class in (Wannier90Calculation, Wannier90BaseWorkChain):
             return workchain.outputs.interpolated_bands
@@ -162,7 +165,7 @@ def get_mpl_code_for_workchains(workchain0, workchain1, title=None, save=False, 
     if save and (filename is None):
         filename = f'bandsdiff_{formula}_{workchain0.pk}_{workchain1.pk}.py'
 
-    if workchain1.process_class in (Wannier90BaseWorkChain, Wannier90BandsWorkChain):
+    if workchain1.process_class in (Wannier90BaseWorkChain, Wannier90BandsWorkChain, Wannier90OptimizeWorkChain):
         fermi_energy = get_wannier_workchain_fermi_energy(workchain1)
     else:
         if workchain0.process_class == PwBandsWorkChain:

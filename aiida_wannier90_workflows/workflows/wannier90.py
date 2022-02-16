@@ -776,6 +776,13 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):  # pylint: disable=too-many-
         """
         from aiida_wannier90_workflows.utils.pseudo import get_number_of_electrons, get_number_of_projections
 
+        # If using external atomic projectors, disable sanity check
+        p2w_params = self.ctx.workchain_pw2wannier90.inputs['pw2wannier90']['parameters'].get_dict()['inputpp']
+        atom_proj = p2w_params.get('atom_proj', False)
+        atom_proj_ext = p2w_params.get('atom_proj_ext', False)
+        if atom_proj and atom_proj_ext:
+            return
+
         # 1. the calculated number of projections is consistent with QE projwfc.x
         if 'scf' in self.inputs:
             pseudos = self.inputs['scf']['pw']['pseudos']
