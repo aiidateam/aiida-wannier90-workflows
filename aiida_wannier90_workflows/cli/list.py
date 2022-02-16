@@ -25,10 +25,6 @@ def print_process_table(
     if group:
         relationships['with_node'] = group
 
-        # If group is present, I will auto set process_label
-        if len(group.nodes) > 0 and 'process_label' in dir(group.nodes[0]):
-            process_label = group.nodes[0].process_label
-
     builder = CalculationQueryBuilder()
     filters = builder.get_filters(all_entries, process_state, process_label, paused, exit_status, failed)
     query_set = builder.get_query_set(
@@ -67,7 +63,7 @@ def print_process_table(
     '-L',
     '--process-label',
     type=str,
-    default='Wannier90BandsWorkChain',
+    default=None,
     show_default=True,
     help='Process label to filter. If group is provided, the process label is ignored.'
 )
@@ -127,6 +123,14 @@ def cmd_list(
 
     # Copied from process_list
     # from aiida.cmdline.utils.common import check_worker_load
+
+    if process_label is None:
+        # If group is present, I will auto set process_label
+        if group:
+            if len(group.nodes) > 0 and 'process_label' in dir(group.nodes[0]):
+                process_label = group.nodes[0].process_label
+        else:
+            process_label = 'Wannier90BandsWorkChain'
 
     print_process_table(
         process_label, all_entries, group, process_state, paused, exit_status, failed, past_days, limit, project, raw,
