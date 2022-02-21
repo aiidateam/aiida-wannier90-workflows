@@ -37,6 +37,11 @@ def validate_inputs(inputs, ctx=None):  # pylint: disable=unused-argument
     if auto_energy_windows and scdm_proj:
         return '`auto_energy_windows` is incompatible with SCDM'
 
+    # Cannot specify both `auto_energy_windows` and `shift_energy_windows`
+    shift_energy_windows = inputs['wannier90'].get('shift_energy_windows', False)
+    if auto_energy_windows and shift_energy_windows:
+        return '`auto_energy_windows` and `shift_energy_windows` are incompatible'
+
 
 # pylint: disable=fixme,too-many-lines
 class Wannier90WorkChain(ProtocolMixin, WorkChain):  # pylint: disable=too-many-public-methods
@@ -579,7 +584,7 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):  # pylint: disable=too-many-
 
         base_inputs['wannier90'] = inputs
 
-        if base_inputs['shift_energy_windows']:
+        if base_inputs['shift_energy_windows'] and 'bands' not in base_inputs:
             if 'workchain_scf' in self.ctx:
                 output_band = self.ctx.workchain_scf.outputs.output_band
             elif 'workchain_nscf' in self.ctx:
@@ -589,8 +594,10 @@ class Wannier90WorkChain(ProtocolMixin, WorkChain):  # pylint: disable=too-many-
             base_inputs.bands = output_band
 
         if base_inputs['auto_energy_windows']:
-            base_inputs.bands = self.ctx.workchain_projwfc.outputs.bands
-            base_inputs.bands_projections = self.ctx.workchain_projwfc.outputs.projections
+            if 'bands' not in base_inputs:
+                base_inputs.bands = self.ctx.workchain_projwfc.outputs.bands
+            if 'bands_projections' not in base_inputs:
+                base_inputs.bands_projections = self.ctx.workchain_projwfc.outputs.projections
 
         base_inputs['clean_workdir'] = orm.Bool(False)
 
