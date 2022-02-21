@@ -19,6 +19,7 @@ __all__ = ['validate_inputs', 'Wannier90OptimizeWorkChain']
 
 def validate_inputs(inputs, ctx=None):  # pylint: disable=unused-argument
     """Validate the inputs of the entire input namespace of `Wannier90OptimizeWorkChain`."""
+    import warnings
     from .bands import validate_inputs as parent_validate_inputs
 
     # Call parent validator
@@ -33,7 +34,7 @@ def validate_inputs(inputs, ctx=None):  # pylint: disable=unused-argument
             return 'Trying to optimize dis_proj_min/max but no dis_proj_min/max in wannier90 parameters?'
 
     if 'optimize_reference_bands' in inputs and not inputs['optimize_disproj']:
-        return '`optimize_reference_bands` is provided but `optimize_disproj = False`?'
+        warnings.warn('`optimize_reference_bands` is provided but `optimize_disproj = False`?')
 
     if 'optimize_bands_distance_threshold' in inputs and 'optimize_reference_bands' not in inputs:
         return 'No `optimize_reference_bands` but `optimize_bands_distance_threshold` is set?'
@@ -47,7 +48,7 @@ def validate_inputs(inputs, ctx=None):  # pylint: disable=unused-argument
             )
 
     if inputs['optimize_disproj'] and not inputs['separate_plotting']:
-        return (
+        warnings.warn(
             '`optimize_disproj = True` but `separate_plotting = False`. For optimizing projectability '
             'disentanglement, it is highly recommended to run the plotting mode in a separate step.'
         )
@@ -345,6 +346,10 @@ class Wannier90OptimizeWorkChain(Wannier90BandsWorkChain):
         # these are bands on a grid, usually their LUMO is a bit larger than
         # LUMO from bands along kpath, so when shifting dis_froz_max w.r.t. LUMO,
         # it might be a bit inaccurate.
+        #
+        # The parent class Wannier90BandsWorkChain.inputs.wannier90.bands is empty,
+        # so it will use output_band of scf or nscf. Here I explicitly overwrite the
+        # wannier90.bands by the reference_bands.
         if self.inputs.optimize_disproj and 'optimize_reference_bands' in self.inputs:
             base_inputs.bands = self.inputs.optimize_reference_bands
 
