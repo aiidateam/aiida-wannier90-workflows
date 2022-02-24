@@ -35,6 +35,10 @@ def cmd_node_show(ctx, nodes):  # pylint: disable=unused-argument
             path = f'{node._repository._get_base_folder().abspath}'  # pylint: disable=protected-access
             echo.echo(header.format('path'))
             echo.echo(f'{path}')
+        elif isinstance(node, orm.RemoteStashFolderData):
+            path = f'{node.attributes["target_basepath"]}'
+            echo.echo(header.format('path'))
+            echo.echo(f'{path}')
         elif isinstance(node, (orm.CalculationNode, orm.WorkflowNode)):
             inputs = {}
             for key in node.inputs:
