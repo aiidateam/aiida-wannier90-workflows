@@ -290,12 +290,13 @@ class Wannier90BandsWorkChain(Wannier90OpengridWorkChain):
 
         super().setup()
 
+        self.ctx.current_kpoint_path = None
+        self.ctx.current_bands_kpoints = None
+
         if not self.should_run_seekpath():
-            self.ctx.current_kpoint_path = None
             if 'kpoint_path' in self.inputs:
                 self.ctx.current_kpoint_path = get_path_from_kpoints(self.inputs.kpoint_path)
 
-            self.ctx.current_bands_kpoints = None
             if 'bands_kpoints' in self.inputs:
                 self.ctx.current_bands_kpoints = self.inputs.bands_kpoints
 
