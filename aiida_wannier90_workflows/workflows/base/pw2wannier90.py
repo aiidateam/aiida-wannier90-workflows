@@ -36,13 +36,14 @@ def validate_inputs(inputs: AttributeDict, ctx=None) -> None:  # pylint: disable
     calc_parameters = calc_inputs['parameters'].get_dict().get('inputpp', {})
 
     scdm_proj = calc_parameters.get('scdm_proj', False)
+    scdm_entanglement = calc_parameters.get('scdm_entanglement', 'isolated')
 
     # Check `bands`
     if any(_ in inputs for _ in ('bands', 'bands_projections')) and not scdm_proj:
         return '`bands` and/or `bands_projections` are provided but `scdm_proj` is False?'
 
     # Check scdm_proj
-    if scdm_proj:
+    if scdm_proj and scdm_entanglement != 'isolated':
         if any(_ not in inputs for _ in ('bands_projections', 'bands')):
             return '`scdm_proj` is True but `bands_projections` or `bands` is empty'
 
