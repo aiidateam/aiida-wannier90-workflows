@@ -7,15 +7,22 @@ from aiida import orm
 from aiida_wannier90.calculations import Wannier90Calculation
 
 
-def get_wf_spreads(calculation: Wannier90Calculation) -> tuple:
+def get_wf_spreads(calculation: Wannier90Calculation, initial: bool = False) -> tuple:
     """Get Wannier function spreads.
 
     :param calculation: A finished ``Wannier90Calculation``.
     :type calculation: Wannier90Calculation
+    :param initial: Get initial or final WF center.
+    :type initial: bool
     :return:
     :rtype: tuple
     """
-    wf_outputs = calculation.outputs.output_parameters['wannier_functions_output']
+    if initial:
+        wf_outputs_key = 'wannier_functions_initial'
+    else:
+        wf_outputs_key = 'wannier_functions_output'
+
+    wf_outputs = calculation.outputs.output_parameters[wf_outputs_key]
     wf_spreads = np.zeros(len(wf_outputs))
     for wf in wf_outputs:  # pylint: disable=invalid-name
         wf_id = wf['wf_ids'] - 1
