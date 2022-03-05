@@ -7,11 +7,13 @@ from aiida import orm
 from aiida_wannier90.calculations import Wannier90Calculation
 
 
-def get_wf_centers(calculation: Wannier90Calculation) -> tuple:
+def get_wf_centers(calculation: Wannier90Calculation, initial: bool = False) -> tuple:
     """Get Wannier function centers.
 
     :param calculation: A finished ``Wannier90Calculation``.
     :type calculation: Wannier90Calculation
+    :param initial: Get initial or final WF center.
+    :type initial: bool
     :return: ``cell``, ``atoms``, ``wf_centers``. ``atoms`` are the atomic positions,
     both ``atoms`` and ``wf_centers`` are in Cartesian coordinates and are translated back into the cell.
     :rtype: tuple
@@ -20,7 +22,12 @@ def get_wf_centers(calculation: Wannier90Calculation) -> tuple:
 
     structure = calculation.inputs.structure
 
-    wf_outputs = calculation.outputs.output_parameters['wannier_functions_output']
+    if initial:
+        wf_outputs_key = 'wannier_functions_initial'
+    else:
+        wf_outputs_key = 'wannier_functions_output'
+
+    wf_outputs = calculation.outputs.output_parameters[wf_outputs_key]
     wf_centers = np.zeros(shape=(len(wf_outputs), 3))
     for wf in wf_outputs:  # pylint: disable=invalid-name
         wf_id = wf['wf_ids'] - 1
@@ -151,16 +158,18 @@ def find_wf_nearest_atom(cell: np.array, atoms: np.array, wf_centers: np.array) 
     return neighbour_distance, neighbour_atom
 
 
-def get_wf_center_distances(calculation: Wannier90Calculation) -> tuple:
+def get_wf_center_distances(calculation: Wannier90Calculation, initial: bool = False) -> tuple:
     """Calculate distances between Wannier function centers and its nearest neighbour.
 
     :param calculation: a ``Wannier90Calculation``.
     :type calculation: Wannier90Calculation
+    :param initial: Get initial or final WF center.
+    :type initial: bool
     :return: distance, nearest_atom, cell_translation, structure_ase
     :rtype: tuple
     """
 
-    cell, atoms, wf_centers = get_wf_centers(calculation)
+    cell, atoms, wf_centers = get_wf_centers(calculation, initial=initial)
 
     distance, atom_translation = find_wf_nearest_atom(cell, atoms, wf_centers)
 
