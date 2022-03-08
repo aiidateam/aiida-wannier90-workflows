@@ -110,7 +110,13 @@ def generate_supercell(cell: np.array, size: ty.Union[int, list, np.array] = 2) 
     return supercell, supercell_translations
 
 
-def find_wf_nearest_atom(cell: np.array, atoms: np.array, wf_centers: np.array) -> ty.Tuple[np.array, np.array]:
+def find_wf_nearest_atom(
+    cell: np.array,
+    atoms: np.array,
+    wf_centers: np.array,
+    *,
+    nth_neighbour: int = 1,
+) -> ty.Tuple[np.array, np.array]:
     """Find the nearest atom for each Wannier function center.
 
     :param cell: each row is a lattice vector
@@ -119,6 +125,8 @@ def find_wf_nearest_atom(cell: np.array, atoms: np.array, wf_centers: np.array) 
     :type atoms: np.array, num_atoms x 3
     :param wf_centers: Wannier function centers, in Cartesian coordinates.
     :type wf_centers: np.array, num_wf x 3
+    :param nth_neighbour: Get 1st, 2nd, ... nth neighbouring atom.
+    :type nth_neighbour: int >= 1
     :return: nearest atom distance, nearest atom index.
     nearest atom distance: num_wf x 3
     nearest atom index: num_wf x 4, 0th column is the atom index of ``atoms``,
@@ -126,8 +134,10 @@ def find_wf_nearest_atom(cell: np.array, atoms: np.array, wf_centers: np.array) 
     translation applied) is the atom which is nearest to the Wannier function).
     :rtype: tuple[np.array, np.array]
     """
-
     from scipy.spatial import cKDTree
+
+    if not isinstance(nth_neighbour, int) and nth_neighbour < 1:
+        raise ValueError(f'nth_neighbour {nth_neighbour} not integer or < 1')
 
     num_atoms = atoms.shape[0]
 
@@ -148,7 +158,11 @@ def find_wf_nearest_atom(cell: np.array, atoms: np.array, wf_centers: np.array) 
 
     # KD tree for to find nearest neighbours
     kdtree = cKDTree(supercell_with_atoms)
-    neighbour_distance, neighbour_indexes = kdtree.query(wf_centers, k=1)
+    # neighbour_distance, neighbour_indexes = kdtree.query(wf_centers, k=1)
+    neighbour_distance, neighbour_indexes = kdtree.query(wf_centers, k=[nth_neighbour])
+    # print(f"{neighbour_distance = } {neighbour_indexes = }")
+    neighbour_distance = neighbour_distance.flatten()
+    neighbour_indexes = neighbour_indexes.flatten()
     num_centers = len(wf_centers)
 
     neighbour_atom = np.zeros((num_centers, supercell_translation_with_atoms.shape[1]), dtype=int)
@@ -158,20 +172,29 @@ def find_wf_nearest_atom(cell: np.array, atoms: np.array, wf_centers: np.array) 
     return neighbour_distance, neighbour_atom
 
 
-def get_wf_center_distances(calculation: Wannier90Calculation, initial: bool = False) -> tuple:
+def get_wf_center_distances(
+    calculation: Wannier90Calculation,
+    *,
+    nth_neighbour: int = 1,
+    initial: bool = False,
+) -> tuple:
     """Calculate distances between Wannier function centers and its nearest neighbour.
 
     :param calculation: a ``Wannier90Calculation``.
     :type calculation: Wannier90Calculation
+    :param nth_neighbour: Get 1st, 2nd, ... nth neighbouring atom.
+    :type nth_neighbour: int >= 1
     :param initial: Get initial or final WF center.
     :type initial: bool
     :return: distance, nearest_atom, cell_translation, structure_ase
     :rtype: tuple
     """
+    if nth_neighbour < 1:
+        raise ValueError(f'nth_neighbour {nth_neighbour} < 1')
 
     cell, atoms, wf_centers = get_wf_centers(calculation, initial=initial)
 
-    distance, atom_translation = find_wf_nearest_atom(cell, atoms, wf_centers)
+    distance, atom_translation = find_wf_nearest_atom(cell, atoms, wf_centers, nth_neighbour=nth_neighbour)
 
     nearest_atom = atom_translation[:, 0]
     cell_translation = atom_translation[:, 1:]
@@ -243,9 +266,28 @@ def test_plot_voronoi():
 
 def test_find_nearest():
     """Test the function."""
-    cell, atoms, wf_centers = get_wf_centers(orm.load_node(-1))
+    # cell, atoms, wf_centers = get_wf_centers(orm.load_node(124310))
+    cell = np.array([
+        [0.0, 2.6988037626031, 2.6988037626031],
+        [2.6988037626031, 0.0, 2.6988037626031],
+        [2.6988037626031, 2.6988037626031, 0.0],
+    ])
+    atoms = np.array([
+        [1.34940188, 1.34940188, 1.34940188],
+        [0., 0., 0.],
+    ])
+    wf_centers = np.array([
+        [1.34939724e+00, 1.34939400e+00, 1.34937924e+00],
+        [2.69880776e+00, 2.69881176e+00, 2.30000000e-05],
+        [1.34940924e+00, 1.34932000e+00, 1.34946624e+00],
+        [1.34942924e+00, 1.34935000e+00, 1.34936224e+00],
+        [1.34932524e+00, 1.34944400e+00, 1.34935224e+00],
+        [2.69887476e+00, 2.69885476e+00, 5.39754153e+00],
+        [2.69877776e+00, 7.30000000e-05, 2.69883976e+00],
+        [2.69880876e+00, 2.69875976e+00, 5.70000000e-05],
+    ])
     # wannier_function_coordinates = [[3.20056284, 3.20056284, 3.20056284]])
-    distance, nearest_atoms = find_wf_nearest_atom(cell, atoms, wf_centers)
+    distance, nearest_atoms = find_wf_nearest_atom(cell, atoms, wf_centers, nth_neighbour=2)
 
     print('==== cell ====')
     print(cell)
