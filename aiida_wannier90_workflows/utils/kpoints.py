@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 """Functions for processing kpoints."""
+import typing as ty
 import numpy as np
+
 from aiida import orm
 
 
-def get_explicit_kpoints(kmesh):
+def get_explicit_kpoints(kmesh: orm.KpointsData) -> orm.KpointsData:
     """Work just like `kmesh.pl` of Wannier90.
 
     :param kmesh: contains a N1 * N2 * N3 mesh
@@ -37,7 +39,7 @@ def get_explicit_kpoints(kmesh):
         return klist
 
 
-def create_kpoints_from_distance(structure, distance):
+def create_kpoints_from_distance(structure: orm.StructureData, distance: ty.Union[float, orm.Float]) -> orm.KpointsData:
     """Create KpointsData from a given distance.
 
     :param structure: [description]
@@ -56,7 +58,9 @@ def create_kpoints_from_distance(structure, distance):
     return kpoints
 
 
-def get_explicit_kpoints_from_distance(structure, distance):
+def get_explicit_kpoints_from_distance(
+    structure: orm.StructureData, distance: ty.Union[float, orm.Float]
+) -> orm.KpointsData:
     """Create an explicit list of kpoints with a given distance.
 
     :param structure: [description]
@@ -70,6 +74,42 @@ def get_explicit_kpoints_from_distance(structure, distance):
     kpoints = get_explicit_kpoints(kpoints)
 
     return kpoints
+
+
+def cartesian_product(*arrays: np.array) -> np.array:
+    """Cartesian product.
+
+    :return: _description_
+    :rtype: np.array
+    """
+    la = len(arrays)  # pylint: disable=invalid-name
+    dtype = np.result_type(*arrays)
+    arr = np.empty([len(a) for a in arrays] + [la], dtype=dtype)
+    for i, a in enumerate(np.ix_(*arrays)):  # pylint: disable=invalid-name
+        arr[..., i] = a
+    return arr.reshape(-1, la)
+
+
+def get_mesh_from_kpoints(kpoints: orm.KpointsData) -> ty.List:
+    """From .
+
+    :param kpoints: contains a N1 * N2 * N3 mesh
+    :type kpoints: aiida.orm.KpointsData
+    :raises AttributeError: if kmesh does not contains a mesh
+    :return: an explicit list of kpoints
+    :rtype: aiida.orm.KpointsData
+    """
+    try:  # test if it is a mesh
+        mesh, _ = kpoints.get_kpoints_mesh()
+    except AttributeError:
+        klist = kpoints.get_kpoints(also_weights=False, cartesian=False)
+        mesh = [0, 0, 0]
+        # 3 directions
+        for i in range(3):
+            uniq_kpt = np.sort((np.unique(klist[:, i])))
+            mesh[i] = len(uniq_kpt)
+
+    return mesh
 
 
 def get_path_from_kpoints(kpoints: orm.KpointsData) -> orm.Dict:
