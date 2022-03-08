@@ -216,7 +216,10 @@ def bands_distance_for_group(  # pylint: disable=too-many-statements
             # so the outputs.band_structure might be empty.
             # Here if the band is empty, I try to use another output BandsData,
             # in principle they should be the same.
-            bands_wannier_node = wan_wc.outputs.wannier90_optimal.interpolated_bands
+            if wan_wc.process_class == Wannier90OptimizeWorkChain:
+                bands_wannier_node = wan_wc.outputs.wannier90_optimal.interpolated_bands
+            else:
+                bands_wannier_node = wan_wc.outputs.wannier90.interpolated_bands
             if np.prod(bands_wannier_node.attributes['array|bands']) == 0:
                 bands_wannier_node = wan_wc.outputs.band_structure
             try:
