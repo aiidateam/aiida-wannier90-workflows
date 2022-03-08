@@ -104,10 +104,18 @@ def get_mesh_from_kpoints(kpoints: orm.KpointsData) -> ty.List:
     except AttributeError:
         klist = kpoints.get_kpoints(also_weights=False, cartesian=False)
         mesh = [0, 0, 0]
+        kmin = [0, 0, 0]
+        kmax = [0, 0, 0]
         # 3 directions
         for i in range(3):
             uniq_kpt = np.sort((np.unique(klist[:, i])))
+            kmin[i] = uniq_kpt[0]
+            kmax[i] = uniq_kpt[-1]
             mesh[i] = len(uniq_kpt)
+
+        klist_recovered = cartesian_product(*[np.linspace(kmin[_], kmax[_], mesh[_]) for _ in range(3)])
+        if not np.allclose(klist, klist_recovered):
+            raise ValueError(f'Cannot convert kpoints {kpoints} to a mesh')  # pylint: disable=raise-missing-from
 
     return mesh
 
