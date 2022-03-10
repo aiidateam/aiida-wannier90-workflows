@@ -120,6 +120,44 @@ def get_mesh_from_kpoints(kpoints: orm.KpointsData) -> ty.List:
     return mesh
 
 
+def create_kpoints_from_mesh(structure: orm.StructureData, mesh: ty.List[int]) -> orm.KpointsData:
+    """Create KpointsData from a given distance.
+
+    :param structure: [description]
+    :type structure: [type]
+    :param mesh: [description]
+    :type mesh: [type]
+    :return: [description]
+    :rtype: [type]
+    """
+    kpoints = orm.KpointsData()
+    kpoints.set_cell_from_structure(structure)
+    if isinstance(distance, orm.Float):
+        distance = distance.value
+    kpoints.set_kpoints_mesh(mesh)
+
+    return kpoints
+
+
+def get_explicit_kpoints_from_mesh(
+    structure: orm.StructureData,
+    mesh: ty.List[int],
+) -> orm.KpointsData:
+    """Create an explicit list of kpoints with a given distance.
+
+    :param structure: [description]
+    :type structure: [type]
+    :param mesh: [description]
+    :type mesh: [type]
+    :return: [description]
+    :rtype: [type]
+    """
+    kpoints = create_kpoints_from_mesh(structure, mesh)
+    kpoints = get_explicit_kpoints(kpoints)
+
+    return kpoints
+
+
 def get_path_from_kpoints(kpoints: orm.KpointsData) -> orm.Dict:
     """Translate bands kpoints path objects.
 
