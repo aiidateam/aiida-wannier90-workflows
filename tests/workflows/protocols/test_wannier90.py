@@ -119,3 +119,15 @@ def test_projection_type(generate_builder_inputs):
     ]:
         assert 'projections' in namespace['wannier90']
         assert namespace['wannier90']['projections'].get_list() == ['Si:s', 'Si:p']
+
+
+def test_force_parity(generate_builder_inputs, data_regression, serialize_builder):
+    """Test ``Wannier90WorkChain.get_builder_from_protocol`` for the force_parity."""
+
+    inputs = generate_builder_inputs('Si')
+
+    overrides = {'wannier90': {'meta_parameters': {'kpoints_force_parity': True}}}
+    builder = Wannier90WorkChain.get_builder_from_protocol(**inputs, overrides=overrides, print_summary=False)
+
+    assert isinstance(builder, ProcessBuilder)
+    data_regression.check(serialize_builder(builder))
