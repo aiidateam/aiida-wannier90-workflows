@@ -39,13 +39,22 @@ def get_explicit_kpoints(kmesh: orm.KpointsData) -> orm.KpointsData:
         return klist
 
 
-def create_kpoints_from_distance(structure: orm.StructureData, distance: ty.Union[float, orm.Float]) -> orm.KpointsData:
-    """Create KpointsData from a given distance.
+def create_kpoints_from_distance(
+    structure: orm.StructureData,
+    distance: ty.Union[float, orm.Float],
+    force_parity: ty.Union[bool, orm.Bool] = False,
+) -> orm.KpointsData:
+    """Create ``KpointsData`` from a given distance.
+
+    Different from ``aiida_quantumespresso.calculations.functions.create_kpoints_from_distance``,
+    this is not a ``calcfunction``, so the AiiDA database is unchanged.
 
     :param structure: [description]
     :type structure: [type]
     :param distance: [description]
     :type distance: [type]
+    :param force_parity: whether the generated mesh is even or odd.
+    :type force_parity: bool, aiida.orm.Bool
     :return: [description]
     :rtype: [type]
     """
@@ -53,7 +62,7 @@ def create_kpoints_from_distance(structure: orm.StructureData, distance: ty.Unio
     kpoints.set_cell_from_structure(structure)
     if isinstance(distance, orm.Float):
         distance = distance.value
-    kpoints.set_kpoints_mesh_from_density(distance, force_parity=False)
+    kpoints.set_kpoints_mesh_from_density(distance, force_parity=force_parity)
 
     return kpoints
 

@@ -356,7 +356,11 @@ class Wannier90BaseWorkChain(ProtocolMixin, BaseRestartWorkChain):
         # If inputs.kpoints is a kmesh, mp_grid will be auto-set by `Wannier90Calculation`,
         # otherwise we need to set it manually. If use opengrid, kpoints will be set dynamically
         # after opengrid calculation.
-        kpoints = create_kpoints_from_distance(structure, meta_parameters['kpoints_distance'])
+        kpoints = create_kpoints_from_distance(
+            structure,
+            distance=meta_parameters['kpoints_distance'],
+            force_parity=meta_parameters['kpoints_force_parity'],
+        )
         inputs['kpoints'] = get_explicit_kpoints(kpoints)
         parameters['mp_grid'] = kpoints.get_kpoints_mesh()[0]
 

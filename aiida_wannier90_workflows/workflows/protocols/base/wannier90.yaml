@@ -8,6 +8,7 @@ default_inputs:
         dis_conv_tol_per_atom: 1.e-7
         num_bands_factor: 2.0
         kpoints_distance: 0.2
+        kpoints_force_parity: False
         pseudo_family: 'SSSP/1.1/PBE/efficiency'
         exclude_semicore: True
     wannier90:

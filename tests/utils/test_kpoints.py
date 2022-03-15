@@ -16,6 +16,13 @@ def test_create_kpoints_from_distance(generate_structure):
     assert np.allclose(mesh, [11, 11, 11])
     assert np.allclose(offset, [0.0, 0.0, 0.0])
 
+    # Test force_parity
+    kpoints = create_kpoints_from_distance(structure, 0.2, force_parity=True)
+    mesh, offset = kpoints.get_kpoints_mesh()
+
+    assert np.allclose(mesh, [12, 12, 12])
+    assert np.allclose(offset, [0.0, 0.0, 0.0])
+
 
 def test_get_mesh_from_kpoints():
     """Test the function ``aiida_wannier90_workflows.utils.kpoints.get_mesh_from_kpoints``."""
