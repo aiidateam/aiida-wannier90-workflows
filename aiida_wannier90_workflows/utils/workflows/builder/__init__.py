@@ -117,7 +117,7 @@ def serialize_kpoints(kpoints: orm.KpointsData, show_pk: bool = True) -> str:
     return res
 
 
-def print_builder(builder: ProcessBuilderNamespace) -> None:
+def print_builder(builder: ty.Union[ProcessBuilderNamespace, dict]) -> None:
     """Pretty print builder.
 
     :param builder: [description]
@@ -133,7 +133,10 @@ def print_builder(builder: ProcessBuilderNamespace) -> None:
     #                               'pw': {'metadata': {'options': {'stash': {}}},
     #                                      'pseudos': {}}},
     #            'metadata': {}},
-    pruned_builder = builder._inputs(prune=True)  # pylint: disable=protected-access
+    if isinstance(builder, ProcessBuilderNamespace):
+        pruned_builder = builder._inputs(prune=True)  # pylint: disable=protected-access
+    else:
+        pruned_builder = builder
 
     pprint(serializer(pruned_builder))
 
@@ -342,7 +345,7 @@ def recursive_merge_builder(builder: ProcessBuilderNamespace, right: ty.Mapping)
     inputs = builder._inputs(prune=True)  # pylint: disable=protected-access
     inputs = recursive_merge_container(inputs, right)
     try:
-        builder.update(inputs)
+        builder._update(inputs)  # pylint: disable=protected-access
     except ValueError as exc:
         raise ValueError(f'{exc}\n{builder=}\n{inputs=}') from exc
 
