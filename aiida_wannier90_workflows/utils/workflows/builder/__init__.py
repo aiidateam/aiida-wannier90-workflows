@@ -350,3 +350,121 @@ def recursive_merge_builder(builder: ProcessBuilderNamespace, right: ty.Mapping)
         raise ValueError(f'{exc}\n{builder=}\n{inputs=}') from exc
 
     return builder
+
+
+def set_parallelization(  # pylint: disable=too-many-locals
+    builder: ProcessBuilder, parallelization: dict = None
+) -> ProcessBuilder:
+    """Set parallelization for Wannier90BandsWorkChain.
+
+    :param builder: [description]
+    :type builder: ProcessBuilder
+    :return: [description]
+    :rtype: ProcessBuilder
+    """
+    from copy import deepcopy
+
+    default_max_wallclock_seconds = 5 * 3600
+    default_num_mpiprocs_per_machine = 1
+    default_npool = 1
+    default_num_machines = 1
+
+    if parallelization is None:
+        parallelization = {}
+
+    max_wallclock_seconds = parallelization.get('max_wallclock_seconds', default_max_wallclock_seconds)
+    num_mpiprocs_per_machine = parallelization.get('num_mpiprocs_per_machine', default_num_mpiprocs_per_machine)
+    npool = parallelization.get('npool', default_npool)
+    num_machines = parallelization.get('num_machines', default_num_machines)
+
+    # I need to prune the builder, otherwise e.g. initially builder.relax is
+    # an empty dict but the following code will change it to non-empty,
+    # leading to invalid process spec such as code not found for PwRelaxWorkChain.
+    pruned_builder = builder._inputs(prune=True)  # pylint: disable=protected-access
+    if 'scf' in pruned_builder and 'parallelization' in builder.scf['pw']:
+        pw_parallelization = builder.scf['pw']['parallelization'].get_dict()
+    else:
+        pw_parallelization = {}
+
+    pw_parallelization['npool'] = npool
+    metadata = get_metadata(
+        num_mpiprocs_per_machine=num_mpiprocs_per_machine,
+        max_wallclock_seconds=max_wallclock_seconds,
+        num_machines=num_machines,
+    )
+    settings = get_settings_for_kpool(npool=npool)
+
+    if 'relax' in pruned_builder:
+        builder.relax['pw']['parallelization'] = orm.Dict(dict=pw_parallelization)
+        builder.relax['pw']['metadata'] = metadata
+
+    if 'scf' in pruned_builder:
+        builder.scf['pw']['parallelization'] = orm.Dict(dict=pw_parallelization)
+        builder.scf['pw']['metadata'] = metadata
+
+    if 'nscf' in pruned_builder and 'pw' in builder.nscf:
+        builder.nscf['pw']['parallelization'] = orm.Dict(dict=pw_parallelization)
+        builder.nscf['pw']['metadata'] = metadata
+
+    if 'opengrid' in pruned_builder:
+        # builder.opengrid['metadata'] = metadata
+        # builder.opengrid['settings'] = settings
+        # For now opengrid has memory issue, I run it with less cores
+        opengrid_metadata = deepcopy(metadata)
+        opengrid_metadata['options']['resources']['num_mpiprocs_per_machine'] = (num_mpiprocs_per_machine // npool)
+        builder.opengrid['metadata'] = opengrid_metadata
+
+    if 'projwfc' in pruned_builder:
+        builder.projwfc['metadata'] = metadata
+        builder.projwfc['settings'] = settings
+
+    builder.pw2wannier90['pw2wannier90']['metadata'] = metadata
+    builder.pw2wannier90['pw2wannier90']['settings'] = settings
+
+    builder.wannier90['wannier90']['metadata'] = metadata
+
+    return builder
+
+
+def get_metadata(num_mpiprocs_per_machine: int, max_wallclock_seconds: int, num_machines: int) -> dict:
+    """Return metadata with the given number of mpiproces.
+
+    :param num_mpiprocs_per_machine: [description]
+    :type num_mpiprocs_per_machine: int
+    :param max_wallclock_seconds: [description]
+    :type max_wallclock_seconds: int
+    :return: [description]
+    :rtype: dict
+    """
+    metadata = {
+        'options': {
+            'resources': {
+                'num_machines': num_machines,
+                'num_mpiprocs_per_machine': num_mpiprocs_per_machine,
+                # 'num_mpiprocs_per_machine': num_mpiprocs_per_machine // npool,
+                # memory is not enough if I use 128 cores
+                # 'num_mpiprocs_per_machine': 16,
+                #
+                # 'tot_num_mpiprocs': ,
+                # 'num_cores_per_machine': ,
+                # 'num_cores_per_mpiproc': ,
+            },
+            'max_wallclock_seconds': max_wallclock_seconds,
+            'withmpi': True,
+        }
+    }
+
+    return metadata
+
+
+def get_settings_for_kpool(npool: int):
+    """Return settings for kpool parallelization.
+
+    :param npool: [description]
+    :type npool: int
+    :return: [description]
+    :rtype: [type]
+    """
+    settings = orm.Dict(dict={'cmdline': ['-nk', f'{npool}']})
+
+    return settings
