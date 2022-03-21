@@ -52,6 +52,10 @@ class QeBaseRestartWorkChain(BaseRestartWorkChain):
         """Define the process spec."""
         super().define(spec)
         spec.expose_inputs(cls._process_class, namespace=cls._inputs_namespace)
+        spec.inputs[cls._inputs_namespace]['metadata']['options']['resources'].default = {
+            'num_machines': 1,
+            'num_mpiprocs_per_machine': 1,
+        }
 
         spec.outline(
             cls.setup,
