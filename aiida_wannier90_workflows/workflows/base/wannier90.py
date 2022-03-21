@@ -99,6 +99,11 @@ class Wannier90BaseWorkChain(ProtocolMixin, BaseRestartWorkChain):
         super().define(spec)
 
         spec.expose_inputs(Wannier90Calculation, namespace=cls._inputs_namespace)
+        spec.inputs[cls._inputs_namespace]['metadata']['options']['resources'].default = {
+            'num_machines': 1,
+            'num_mpiprocs_per_machine': 1,
+        }
+
         spec.inputs['wannier90'].validator = validate_inputs_base_wannier90
 
         spec.input(
