@@ -141,8 +141,8 @@ def create_kpoints_from_mesh(structure: orm.StructureData, mesh: ty.List[int]) -
     """
     kpoints = orm.KpointsData()
     kpoints.set_cell_from_structure(structure)
-    if isinstance(distance, orm.Float):
-        distance = distance.value
+    if isinstance(mesh, orm.List):
+        mesh = mesh.get_list()
     kpoints.set_kpoints_mesh(mesh)
 
     return kpoints
@@ -221,3 +221,36 @@ def get_path_from_kpoints(kpoints: orm.KpointsData) -> orm.Dict:
 
     ret = {'path': path, 'point_coords': point_coords}
     return orm.Dict(dict=ret)
+
+
+def get_kpoints_from_bands(bands: orm.BandsData) -> orm.KpointsData:
+    """Create a ``KpointsData`` from a ``BandsData``.
+
+    :param bands: the input ``BandsData`` object .
+    :type bands: aiida.orm.BandsData
+    :return: the returned ``KpointsData`` must contain ``labels``.
+    :rtype: aiida.orm.KpointsData
+    """
+    kpoints = orm.KpointsData()
+
+    cell = bands.attributes['cell']
+    kpoints.set_cell(cell)
+
+    kpoints.set_attribute_many({
+        'pbc1': bands.attributes['pbc1'],
+        'pbc2': bands.attributes['pbc2'],
+        'pbc3': bands.attributes['pbc3'],
+    })
+
+    # default in crystal coordinates
+    explicit_kpoints = bands.get_kpoints()
+
+    # e.g. ['GAMMA', 'X', 'U', 'K', 'GAMMA', 'L', 'W', 'X']
+    labels = bands.attributes['labels']
+    # e.g. [0, 100, 135, 136, 242, 329, 400, 450]
+    label_numbers = bands.attributes['label_numbers']
+
+    labels = list(zip(label_numbers, labels))
+    kpoints.set_kpoints(kpoints=explicit_kpoints, labels=labels)
+
+    return kpoints
