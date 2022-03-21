@@ -81,9 +81,14 @@ def serializer(node: orm.Node, show_pk: bool = True) -> ty.Any:  # pylint: disab
     elif isinstance(node, orm.RemoteData):
         res = node.__class__.__name__
         if show_pk:
-            res = f'{res}<{node.pk}>'
+            res = f'{res}@{node.computer.label}<{node.pk}>'
 
     elif isinstance(node, orm.FolderData):
+        res = node.__class__.__name__
+        if show_pk:
+            res = f'{res}<{node.pk}>'
+
+    elif isinstance(node, orm.SinglefileData):
         res = node.__class__.__name__
         if show_pk:
             res = f'{res}<{node.pk}>'
