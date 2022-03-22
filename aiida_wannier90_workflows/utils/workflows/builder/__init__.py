@@ -473,3 +473,21 @@ def get_settings_for_kpool(npool: int):
     settings = orm.Dict(dict={'cmdline': ['-nk', f'{npool}']})
 
     return settings
+
+
+def submit_and_add_group(builder: ProcessBuilder, group: orm.Group = None) -> None:
+    """Submit a builder and add to a group.
+
+    :param builder: the builder to be submitted.
+    :type builder: ProcessBuilder
+    :param group: the group to add the submitted workflow.
+    :type group: orm.Group
+    """
+    from aiida.engine import submit
+
+    result = submit(builder)
+    print(f'Submitted {result.process_label}<{result.pk}>')
+
+    if group:
+        group.add_nodes([result])
+        print(f'Added to group {group.label}<{group.pk}>')
