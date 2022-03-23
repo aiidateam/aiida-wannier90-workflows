@@ -3,18 +3,25 @@
 """Plot band structures."""
 import typing as ty
 
-from aiida import orm
-from aiida.plugins import WorkflowFactory
+import matplotlib.pyplot as plt
 
-Wannier90BaseWorkChain = WorkflowFactory('wannier90_workflows.base.wannier90')
-Wannier90WorkChain = WorkflowFactory('wannier90_workflows.wannier90')
-Wannier90BandsWorkChain = WorkflowFactory('wannier90_workflows.bands')
-Wannier90OptimizeWorkChain = WorkflowFactory('wannier90_workflows.optimize')
+from aiida import orm
+
+from aiida_quantumespresso.calculations.pw import PwCalculation
+from aiida_quantumespresso.workflows.pw.base import PwBaseWorkChain
+from aiida_quantumespresso.workflows.pw.bands import PwBandsWorkChain
+
+from aiida_wannier90.calculations import Wannier90Calculation
+
+from aiida_wannier90_workflows.workflows.base.wannier90 import Wannier90BaseWorkChain
+from aiida_wannier90_workflows.workflows.wannier90 import Wannier90WorkChain
+from aiida_wannier90_workflows.workflows.bands import Wannier90BandsWorkChain
+from aiida_wannier90_workflows.workflows.optimize import Wannier90OptimizeWorkChain
+from aiida_wannier90_workflows.workflows.projwfcbands import ProjwfcBandsWorkChain
 
 
 def plot_scdm_fit(workchain: int, save: bool = False):
     """Plot the projectabilities distribution of SCDM fitting."""
-    import matplotlib.pyplot as plt
     from aiida_wannier90_workflows.utils.workflows import get_last_calcjob
     from aiida_wannier90_workflows.utils.scdm import erfc_scdm, fit_scdm_mu_sigma
 
@@ -134,10 +141,6 @@ def get_mpl_code_for_bands(
 
 def get_mpl_code_for_workchains(workchain0, workchain1, title=None, save=False, filename=None):
     """Return matplotlib code for comparing band structures of two workchains."""
-    from aiida_quantumespresso.workflows.pw.base import PwBaseWorkChain
-    from aiida_quantumespresso.workflows.pw.bands import PwBandsWorkChain
-    from aiida_wannier90.calculations import Wannier90Calculation
-    from aiida_wannier90_workflows.workflows.projwfcbands import ProjwfcBandsWorkChain
 
     def get_output_bands(workchain):
         if workchain.process_class == PwBaseWorkChain:
@@ -166,7 +169,7 @@ def get_mpl_code_for_workchains(workchain0, workchain1, title=None, save=False, 
         filename = f'bandsdiff_{formula}_{workchain0.pk}_{workchain1.pk}.py'
 
     if workchain1.process_class in (Wannier90BaseWorkChain, Wannier90BandsWorkChain, Wannier90OptimizeWorkChain):
-        fermi_energy = get_wannier_workchain_fermi_energy(workchain1)
+        fermi_energy = get_workchain_fermi_energy(workchain1)
     else:
         if workchain0.process_class == PwBandsWorkChain:
             fermi_energy = workchain0.outputs['scf_parameters']['fermi_energy']
@@ -180,7 +183,7 @@ def get_mpl_code_for_workchains(workchain0, workchain1, title=None, save=False, 
     return mpl_code
 
 
-def get_wannier_workchain_fermi_energy(workchain: ty.Union[Wannier90BaseWorkChain, Wannier90BandsWorkChain]) -> float:
+def get_workchain_fermi_energy(workchain: ty.Union[Wannier90BaseWorkChain, Wannier90BandsWorkChain]) -> float:
     """Get Fermi energy of Wannier90BandsWorkChain.
 
     :param workchain: [description]
@@ -189,20 +192,26 @@ def get_wannier_workchain_fermi_energy(workchain: ty.Union[Wannier90BaseWorkChai
     :rtype: float
     """
     from aiida_wannier90_workflows.utils.workflows import get_last_calcjob
+    from aiida_wannier90_workflows.utils.workflows.pw import get_fermi_energy, get_fermi_energy_from_nscf
 
     if 'scf' in workchain.outputs:
-        fermi_energy = workchain.outputs['scf']['output_parameters']['fermi_energy']
+        fermi_energy = get_fermi_energy(workchain.outputs['scf']['output_parameters'])
     else:
-        if workchain.process_class == Wannier90BaseWorkChain:
-            w90calc = get_last_calcjob(workchain)
-        elif workchain.process_class in (Wannier90BandsWorkChain, Wannier90OptimizeWorkChain):
-            w90calc = get_last_calcjob(workchain.get_outgoing(link_label_filter='wannier90').one().node)
+        if workchain.process_class in (PwBaseWorkChain, PwCalculation):
+            pw_calc = get_last_calcjob(workchain)
+            fermi_energy = get_fermi_energy_from_nscf(pw_calc)
         else:
-            raise ValueError('Cannot find fermi energy')
-        if 'fermi_energy' in w90calc.inputs.parameters.get_dict():
-            fermi_energy = w90calc.inputs.parameters.get_dict()['fermi_energy']
-        else:
-            raise ValueError('Cannot find fermi energy')
+            if workchain.process_class == Wannier90BaseWorkChain:
+                w90calc = get_last_calcjob(workchain)
+            elif workchain.process_class in (Wannier90BandsWorkChain, Wannier90OptimizeWorkChain):
+                w90calc = get_last_calcjob(workchain.get_outgoing(link_label_filter='wannier90').one().node)
+            else:
+                raise ValueError('Cannot find fermi energy')
+
+            if 'fermi_energy' in w90calc.inputs.parameters.get_dict():
+                fermi_energy = w90calc.inputs.parameters.get_dict()['fermi_energy']
+            else:
+                raise ValueError('Cannot find fermi energy')
 
     return fermi_energy
 
@@ -224,8 +233,6 @@ def get_mapping_for_group(
     value. If not found the value is ``None``.
     :rtype: dict
     """
-    from aiida_quantumespresso.workflows.pw.bands import PwBandsWorkChain
-
     if isinstance(wan_group, str):
         wan_group = orm.load_group(wan_group)
     if isinstance(dft_group, str):
@@ -287,7 +294,6 @@ def export_bands_for_group(
     :type match_by_formula: bool, optional
     """
     import os.path
-    from aiida_wannier90.calculations import Wannier90Calculation
 
     if isinstance(wan_group, str):
         wan_group = orm.load_group(wan_group)
@@ -350,3 +356,278 @@ def bands_py_to_png(py_dir: str, png_dir: str):
             print(f'{py_dir}/{filename} -> {png_dir}/{png_filename}')
             mplcode = mplcode.replace('pl.show()', f"pl.savefig('{png_dir}/{png_filename}', bbox_inches='tight')")
             exec(mplcode)  # pylint: disable=exec-used
+
+
+def get_band_dict(band: ty.Union[dict, orm.BandsData], /) -> dict:
+    """Get a dictonary of BandsData.
+
+    :param band: _description_
+    :type band: ty.Union[dict, orm.BandsData]
+    :raises ValueError: _description_
+    :return: _description_
+    :rtype: dict
+    """
+    if isinstance(band, dict):
+        return band
+
+    if isinstance(band, orm.BandsData):
+        # band_json, _ = band._exportcontent(fileformat='json')
+        # # band_json = band_json.decode()
+        # band_dict = json.loads(band_json)
+        band_dict = band._matplotlib_get_dict()  # pylint: disable=protected-access
+        return band_dict
+
+    raise ValueError(f'Unsupported type {band}')
+
+
+def plot_band(  # pylint: disable=too-many-statements
+    band: ty.Union[dict, orm.BandsData],
+    ref_zero: float = 0,
+    ax=None,
+):
+    """Plot aiida exported json bands.
+
+    :param band: _description_
+    :type band: dict
+    :param ref_zero: _description_, defaults to 0
+    :type ref_zero: float, optional
+    :param ax: _description_, defaults to None
+    :type ax: _type_, optional
+    """
+    from matplotlib import rc
+
+    if ref_zero is None:
+        ref_zero = 0
+
+    # Uncomment to change default font
+    #rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
+    rc('font', **{'family': 'serif', 'serif': ['Computer Modern', 'CMU Serif', 'Times New Roman', 'DejaVu Serif']})
+    # To use proper font for, e.g., Gamma if usetex is set to False
+    rc('mathtext', fontset='cm')
+
+    rc('text', usetex=True)
+    plt.rcParams.update({'text.latex.preview': True})
+
+    print_comment = False
+
+    all_data = get_band_dict(band)
+
+    if not all_data.get('use_latex', False):
+        rc('text', usetex=False)
+
+    #x = all_data['x']
+    #bands = all_data['bands']
+    paths = all_data['paths']
+    tick_pos = all_data['tick_pos']
+    tick_labels = all_data['tick_labels']
+
+    # Option for bands (all, or those of type 1 if there are two spins)
+    further_plot_options1 = {}
+    further_plot_options1['color'] = all_data.get('bands_color', 'k')
+    further_plot_options1['linewidth'] = all_data.get('bands_linewidth', 0.5)
+    further_plot_options1['linestyle'] = all_data.get('bands_linestyle', None)
+    further_plot_options1['marker'] = all_data.get('bands_marker', None)
+    further_plot_options1['markersize'] = all_data.get('bands_markersize', None)
+    further_plot_options1['markeredgecolor'] = all_data.get('bands_markeredgecolor', None)
+    further_plot_options1['markeredgewidth'] = all_data.get('bands_markeredgewidth', None)
+    further_plot_options1['markerfacecolor'] = all_data.get('bands_markerfacecolor', None)
+
+    # Options for second-type of bands if present (e.g. spin up vs. spin down)
+    further_plot_options2 = {}
+    further_plot_options2['color'] = all_data.get('bands_color2', 'r')
+    # Use the values of further_plot_options1 by default
+    further_plot_options2['linewidth'] = all_data.get('bands_linewidth2', further_plot_options1['linewidth'])
+    further_plot_options2['linestyle'] = all_data.get('bands_linestyle2', further_plot_options1['linestyle'])
+    further_plot_options2['marker'] = all_data.get('bands_marker2', further_plot_options1['marker'])
+    further_plot_options2['markersize'] = all_data.get('bands_markersize2', further_plot_options1['markersize'])
+    further_plot_options2['markeredgecolor'] = all_data.get(
+        'bands_markeredgecolor2', further_plot_options1['markeredgecolor']
+    )
+    further_plot_options2['markeredgewidth'] = all_data.get(
+        'bands_markeredgewidth2', further_plot_options1['markeredgewidth']
+    )
+    further_plot_options2['markerfacecolor'] = all_data.get(
+        'bands_markerfacecolor2', further_plot_options1['markerfacecolor']
+    )
+
+    if ax is None:
+        fig = plt.figure()
+        p = fig.add_subplot(1, 1, 1)  # pylint: disable=invalid-name
+    else:
+        p = ax  # pylint: disable=invalid-name
+
+    first_band_1 = True
+    first_band_2 = True
+
+    for path in paths:
+        if path['length'] <= 1:
+            # Avoid printing empty lines
+            continue
+        x = path['x']
+        #for band in bands:
+        # pylint: disable=redefined-argument-from-local
+        for band, band_type in zip(path['values'], all_data['band_type_idx']):
+
+            # For now we support only two colors
+            if band_type % 2 == 0:
+                further_plot_options = further_plot_options1
+            else:
+                further_plot_options = further_plot_options2
+
+            # Put the legend text only once
+            label = None
+            if first_band_1 and band_type % 2 == 0:
+                first_band_1 = False
+                label = all_data.get('legend_text', None)
+            elif first_band_2 and band_type % 2 == 1:
+                first_band_2 = False
+                label = all_data.get('legend_text2', None)
+
+            p.plot(x, [_ - ref_zero for _ in band], label=label, **further_plot_options)
+
+    p.set_xticks(tick_pos)
+    p.set_xticklabels(tick_labels)
+    p.set_xlim([all_data['x_min_lim'], all_data['x_max_lim']])
+    p.set_ylim([all_data['y_min_lim'] - ref_zero, all_data['y_max_lim'] - ref_zero])
+    p.xaxis.grid(True, which='major', color='#888888', linestyle='-', linewidth=0.5)
+
+    if all_data.get('plot_zero_axis', False):
+        p.axhline(
+            0.,
+            color=all_data.get('zero_axis_color', '#888888'),
+            linestyle=all_data.get('zero_axis_linestyle', '--'),
+            linewidth=all_data.get('zero_axis_linewidth', 0.5),
+        )
+    if all_data['title']:
+        p.set_title(all_data['title'])
+    if all_data['legend_text']:
+        p.legend(loc='best')
+    p.set_ylabel(all_data['yaxis_label'])
+
+    try:
+        if print_comment:
+            print(all_data['comment'])
+    except KeyError:
+        pass
+
+    if ax is None:
+        plt.show()
+
+
+def plot_bands_diff(
+    qe: ty.Union[dict, orm.BandsData],
+    w90: ty.Union[dict, orm.BandsData],
+    fermi_energy: float = None,
+    dis_froz_max: float = None,
+    ax: plt.Axes = None,
+    save: bool = False,
+    filename: str = None,
+):
+    """Plot bands difference.
+
+    :param qe: _description_
+    :type qe: ty.Union[dict, orm.BandsData]
+    :param w90: _description_
+    :type w90: ty.Union[dict, orm.BandsData]
+    :param fermi_energy: _description_, defaults to None
+    :type fermi_energy: float, optional
+    :param dis_froz_max: _description_, defaults to None
+    :type dis_froz_max: float, optional
+    :param ax: _description_, defaults to None
+    :type ax: plt.Axes, optional
+    :param save: _description_, defaults to False
+    :type save: bool, optional
+    :param filename: _description_, defaults to None
+    :type filename: str, optional
+    """
+
+    show_fig = False
+    if ax is None:
+        show_fig = True
+        _, ax = plt.subplots()
+    if save:
+        show_fig = False
+        if filename is None:
+            filename = f'bandsdiff-{qe}-{w90}.png'
+
+    qe = get_band_dict(qe)
+    w90 = get_band_dict(w90)
+
+    qe['yaxis_label'] = 'E (eV)'
+    qe['legend_text'] = 'QE'
+    qe['plot_zero_axis'] = True
+
+    plot_band(qe, ref_zero=fermi_energy, ax=ax)
+
+    w90['yaxis_label'] = 'E (eV)'
+    w90['legend_text'] = 'W90'
+    w90['bands_color'] = 'red'
+    # w90['bands_linestyle'] = 'dashed'
+
+    plot_band(w90, ref_zero=fermi_energy, ax=ax)
+
+    ax.legend(loc='lower right')
+
+    # dis_froz_max, relative to Ef
+    if dis_froz_max is not None:
+        y = dis_froz_max
+        if fermi_energy is not None:
+            y -= fermi_energy
+        ax.axhline(
+            y,
+            color='b',
+            linestyle='--',
+            linewidth=0.5,
+            zorder=-1,
+        )
+
+    plt.autoscale(axis='y')
+
+    if save:
+        ax.figure.savefig(filename)
+
+    if show_fig:
+        plt.show()
+
+    # plt.close(ax.figure)
+
+
+def get_workflow_output_band(
+    node: ty.Union[PwBandsWorkChain, Wannier90BandsWorkChain, Wannier90OptimizeWorkChain, ProjwfcBandsWorkChain,
+                   orm.BandsData], /
+) -> orm.BandsData:
+    """Get BandsData of workchain outputs.
+
+    :param node: _description_
+    :type node: ty.Union[PwBandsWorkChain, Wannier90BandsWorkChain,
+    Wannier90OptimizeWorkChain, ProjwfcBandsWorkChain, orm.BandsData]
+    :raises ValueError: _description_
+    :return: _description_
+    :rtype: orm.BandsData
+    """
+    if isinstance(node, orm.BandsData):
+        return node
+
+    # procss_class = node.process_class
+
+    # # print(f'{procss_class=}')
+
+    # if procss_class in [
+    #         PwBandsWorkChain, ProjwfcBandsWorkChain, Wannier90BandsWorkChain,
+    #         Wannier90OptimizeWorkChain,
+    # ]:
+    #     band = node.outputs.band_structure
+    # elif procss_class in [PwBaseWorkChain]:
+    #     band = node.outputs.output_band
+    # elif procss_class in [Wannier90BaseWorkChain, Wannier90Calculation]:
+    #     band = node.outputs.interpolated_bands
+    # else:
+    #     raise ValueError(f'Unsupported workflow type {node}')
+    # return band
+
+    if isinstance(node, orm.WorkflowNode):
+        for out in ['band_structure', 'output_band', 'interpolated_bands']:
+            if out in node.outputs:
+                return node.outputs[out]
+
+    raise ValueError(f'Unsupported workflow type {node}')

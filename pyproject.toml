@@ -41,6 +41,7 @@ good-names = [
     'ax',
     'pw',
     'pk',
+    'qe',
     'wannier',
     'SsspFamily',
     'StructureData',

@@ -148,7 +148,7 @@ def bands_distance_for_group(  # pylint: disable=too-many-statements
     from aiida_quantumespresso.workflows.pw.base import PwBaseWorkChain
     from aiida_quantumespresso.workflows.pw.bands import PwBandsWorkChain
     from aiida_wannier90.calculations import Wannier90Calculation
-    from aiida_wannier90_workflows.utils.workflows.plot import get_mapping_for_group, get_wannier_workchain_fermi_energy
+    from aiida_wannier90_workflows.utils.workflows.plot import get_mapping_for_group, get_workchain_fermi_energy
     Wannier90BandsWorkChain = WorkflowFactory('wannier90_workflows.bands')
     Wannier90OptimizeWorkChain = WorkflowFactory('wannier90_workflows.optimize')
 
@@ -210,7 +210,7 @@ def bands_distance_for_group(  # pylint: disable=too-many-statements
             except KeyError:
                 exclude_list_dft = []
         elif wan_wc.process_class in (Wannier90BandsWorkChain, Wannier90OptimizeWorkChain):
-            fermi_energy = get_wannier_workchain_fermi_energy(wan_wc)
+            fermi_energy = get_workchain_fermi_energy(wan_wc)
             # In very rare cases, the workchain did not output a correct bands,
             # e.g. the bands file was not correctly written due to disk issue,
             # so the outputs.band_structure might be empty.
