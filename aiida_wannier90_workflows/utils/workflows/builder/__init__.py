@@ -463,11 +463,11 @@ def set_parallelization(  # pylint: disable=too-many-locals
         # For now opengrid has memory issue, I run it with less cores
         opengrid_metadata = deepcopy(metadata)
         opengrid_metadata['options']['resources']['num_mpiprocs_per_machine'] = (num_mpiprocs_per_machine // npool)
-        builder.opengrid['metadata'] = opengrid_metadata
+        builder.opengrid['opengrid']['metadata'] = opengrid_metadata
 
     if 'projwfc' in pruned_builder:
-        builder.projwfc['metadata'] = metadata
-        builder.projwfc['settings'] = settings
+        builder.projwfc['projwfc']['metadata'] = metadata
+        builder.projwfc['projwfc']['settings'] = settings
 
     builder.pw2wannier90['pw2wannier90']['metadata'] = metadata
     builder.pw2wannier90['pw2wannier90']['settings'] = settings
