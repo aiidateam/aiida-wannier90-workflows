@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """Unit tests for the :py:mod:`~aiida_quantumespresso.utils.workflows.builder` module."""
 import pytest
+import numpy as np
 
 from aiida import orm
 
@@ -82,3 +83,22 @@ def test_recursive_merge_builder(generate_inputs_pw, data_regression, serialize_
     builder = recursive_merge_builder(builder, right)
 
     data_regression.check(serialize_builder(builder))
+
+
+@pytest.mark.parametrize(
+    'inout', (
+        ([0, 1, 2, 3], [0, 1, 2, 3]),
+        (np.arange(4), [0, 1, 2, 3]),
+        (list(np.arange(4)), [0, 1, 2, 3]),
+        ({
+            'a': np.arange(4)
+        }, {
+            'a': [0, 1, 2, 3]
+        }),
+    )
+)
+def test_serializer(inout):
+    """Test the function ``serializer``."""
+    from aiida_wannier90_workflows.utils.workflows.builder import serializer
+
+    assert serializer(inout[0]) == inout[1], inout

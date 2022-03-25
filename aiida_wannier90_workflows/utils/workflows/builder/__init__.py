@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 """Functions for manipulating builder."""
 import typing as ty
+import numpy as np
 
 from aiida import orm
 from aiida.common.lang import type_check
@@ -44,7 +45,7 @@ def serializer(node: orm.Node, show_pk: bool = True) -> ty.Any:  # pylint: disab
         res = node.value
 
     elif isinstance(node, orm.List):
-        res = node.get_list()
+        res = serializer(node.get_list())
 
     # BandsData is a subclass of KpointsData, need to before KpointsData
     elif isinstance(node, orm.BandsData):
@@ -96,8 +97,53 @@ def serializer(node: orm.Node, show_pk: bool = True) -> ty.Any:  # pylint: disab
     elif isinstance(node, range):
         res = list(node)
 
+    # pytest_regressions.data_regression cannot dump np.array
+    # https://github.com/ESSS/pytest-regressions/issues/26
+    elif isinstance(node, (list, np.ndarray)):
+        res = [serializer(_) for _ in node]
+
+    # Is numpy type?
+    # 'numpy' == 'numpy'
+    elif type(node).__module__ == np.__name__:
+        res = node.item()
+
     else:
         res = node
+
+    return res
+
+
+def serialize_numpy(array: ty.Union[list, np.ndarray]) -> list:
+    """Serialize numpy array, list of numpy type to python list.
+
+    Consider the following cases, e.g.
+    1. np.array([...], dtype=np.int64)
+    2. [np.int64, np.int64, ...]
+    3. [int, int, ...]
+
+    This is useful in the following case:
+    pytest_regressions.data_regression cannot dump np.array
+    https://github.com/ESSS/pytest-regressions/issues/26
+
+    :param array: list, numpy array, or list of numpy type
+    :type array: ty.Union[list, np.ndarray]
+    :return: list of ordinary python type
+    :rtype: list
+    """
+
+    if isinstance(array, np.ndarray):
+        res = array.tolist()
+    elif isinstance(array, list):
+        res = []
+        for i in array:
+            # Is numpy type?
+            # 'numpy' == 'numpy'
+            if type(i).__module__ == np.__name__:
+                res.append(i.item())
+            else:
+                res.append(i)
+    else:
+        raise ValueError(f'Unsupported type {type(array)} for {array}')
 
     return res
 
