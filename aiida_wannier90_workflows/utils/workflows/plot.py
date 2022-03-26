@@ -20,10 +20,63 @@ from aiida_wannier90_workflows.workflows.optimize import Wannier90OptimizeWorkCh
 from aiida_wannier90_workflows.workflows.projwfcbands import ProjwfcBandsWorkChain
 
 
+def plot_scdm_fit_raw(
+    sorted_bands: ty.Sequence,
+    sorted_projwfc: ty.Sequence,
+    mu_fit: float,
+    sigma_fit: float,
+    sigma_factor: float,
+    fermi_energy: float = None,
+    *,
+    title: str = None,
+    ax: plt.Axes = None,
+) -> plt.Axes:
+    """Plot SCDM erfc fitting.
+
+    :param sorted_bands: 1D array for eigenvalues
+    :type sorted_bands: ty.Sequence
+    :param sorted_projwfc: 1D array for projectabilities
+    :type sorted_projwfc: ty.Sequence
+    :param title: title, defaults to None
+    :type title: str, optional
+    :param ax: reuse this matplotlib axes, defaults to None
+    :type ax: plt.Axes, optional
+    :return: matplotlib axes
+    :rtype: plt.Axes
+    """
+    from aiida_wannier90_workflows.utils.scdm import erfc_scdm
+
+    if ax is None:
+        _, ax = plt.subplots()
+
+    ax.plot(sorted_bands, sorted_projwfc, 'o')
+    ax.plot(sorted_bands, erfc_scdm(sorted_bands, mu_fit, sigma_fit))
+
+    ax.axvline([mu_fit], color='red', label=r'$\mu$')
+    ax.axvline(
+        [mu_fit - sigma_factor * sigma_fit],
+        color='orange',
+        label=r'$\mu-' + str(sigma_factor) + r'\sigma$',
+    )
+
+    if fermi_energy:
+        ax.axvline([fermi_energy], color='green', label=r'$E_f$')
+
+    if title is None:
+        title = 'SCDM erfc fitting'
+    ax.set_title(title)
+
+    ax.set_xlabel('Energy [eV]')
+    ax.set_ylabel('Projectability')
+    ax.legend(loc='best')
+
+    return ax
+
+
 def plot_scdm_fit(workchain: int, save: bool = False):
     """Plot the projectabilities distribution of SCDM fitting."""
     from aiida_wannier90_workflows.utils.workflows import get_last_calcjob
-    from aiida_wannier90_workflows.utils.scdm import erfc_scdm, fit_scdm_mu_sigma
+    from aiida_wannier90_workflows.utils.scdm import fit_scdm_mu_sigma
 
     valid_classes = [Wannier90BandsWorkChain, Wannier90WorkChain]
     if workchain.process_class not in valid_classes:
@@ -55,16 +108,19 @@ def plot_scdm_fit(workchain: int, save: bool = False):
     sorted_bands = data[0, :]
     sorted_projwfc = data[1, :]
 
-    plt.figure()
-    plt.plot(sorted_bands, sorted_projwfc, 'o')
-    plt.plot(sorted_bands, erfc_scdm(sorted_bands, mu_fit, sigma_fit))
-    plt.axvline([mu_fit], color='red', label=r'$\mu$')
-    plt.axvline([mu_fit - sigma_factor * sigma_fit], color='orange', label=r'$\mu-' + str(sigma_factor) + r'\sigma$')
-    plt.axvline([fermi_energy], color='green', label=r'$E_f$')
-    plt.title(f'{workchain.process_label}<{workchain.pk}>: {formula}')
-    plt.xlabel('Energy [eV]')
-    plt.ylabel('Projectability')
-    plt.legend(loc='best')
+    _, ax = plt.subplots()
+
+    title = f'{workchain.process_label}<{workchain.pk}>: {formula}'
+    plot_scdm_fit_raw(
+        sorted_bands,
+        sorted_projwfc,
+        mu_fit,
+        sigma_fit,
+        sigma_factor,
+        fermi_energy,
+        title=title,
+        ax=ax,
+    )
 
     if save:
         plt.savefig(f'scdmfit_{formula}_{workchain.pk}.png')
