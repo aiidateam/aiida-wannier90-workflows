@@ -10,7 +10,11 @@ from aiida.engine import ProcessBuilder, ProcessBuilderNamespace
 
 from aiida_quantumespresso.common.types import ElectronicType
 
+from aiida_wannier90.calculations import Wannier90Calculation
+
 from aiida_wannier90_workflows.common.types import WannierProjectionType, WannierDisentanglementType, WannierFrozenType
+from aiida_wannier90_workflows.workflows.base.wannier90 import Wannier90BaseWorkChain
+from aiida_wannier90_workflows.workflows.bands import Wannier90BandsWorkChain
 
 
 def serializer(node: orm.Node, show_pk: bool = True) -> ty.Any:  # pylint: disable=too-many-statements
@@ -537,3 +541,80 @@ def submit_and_add_group(builder: ProcessBuilder, group: orm.Group = None) -> No
     if group:
         group.add_nodes([result])
         print(f'Added to group {group.label}<{group.pk}>')
+
+
+def set_kpoints(
+    builder: ProcessBuilderNamespace,
+    kpoints: orm.KpointsData,
+    process_class: ty.Union[Wannier90Calculation,
+                            Wannier90BaseWorkChain,
+                            Wannier90BandsWorkChain,
+                            ] = None,
+) -> ProcessBuilderNamespace:
+    """Set ``kpoints`` and ``mp_grid`` of e.g. ``Wannier90BaseWorkChain``.
+
+    :param builder: a builder or its subport.
+    :type builder: ProcessBuilderNamespace
+    :param kpoints: a kpoints mesh or a list of kpoints
+    :type kpoints: orm.KpointsData
+    :param process_class: WorkChain class of the builder
+    :type process_class: Wannier90Calculation, Wannier90BaseWorkChain, Wannier90BandsWorkChain
+    :return: modified builder
+    :rtype: ProcessBuilderNamespace
+    """
+    from aiida_wannier90_workflows.utils.kpoints import get_explicit_kpoints, get_mesh_from_kpoints
+
+    if process_class not in (
+        None,
+        Wannier90Calculation,
+        Wannier90BaseWorkChain,
+        Wannier90BandsWorkChain,
+    ):
+        raise ValueError(f'Not supported process_class {process_class}')
+
+    if process_class is None:
+        calc_fields = set(Wannier90Calculation.spec().inputs.keys())
+        basewkchain_fields = set(Wannier90BaseWorkChain.spec().inputs.keys())
+        bandswkchain_fields = set(Wannier90BandsWorkChain.spec().inputs.keys())
+
+        valid_fields = set(builder._valid_fields)  # pylint: disable=protected-access
+
+        print(f'{calc_fields=}')
+        print(f'{basewkchain_fields=}')
+        print(f'{bandswkchain_fields=}')
+        print(f'{valid_fields=}')
+
+        if calc_fields in valid_fields:
+            process_class = Wannier90Calculation
+        elif basewkchain_fields in valid_fields:
+            process_class = Wannier90BaseWorkChain
+        elif bandswkchain_fields in valid_fields:
+            process_class = Wannier90BandsWorkChain
+        else:
+            raise ValueError(f'Not supported builder {builder}')
+
+    # Test if it is a mesh
+    try:
+        kpoints.get_kpoints_mesh()
+    except AttributeError:
+        kpoints_explicit = kpoints
+    else:
+        kpoints_explicit = get_explicit_kpoints(kpoints)
+    mp_grid = get_mesh_from_kpoints(kpoints_explicit)
+
+    if process_class == Wannier90Calculation:
+        calc_builder = builder
+    elif process_class == Wannier90BaseWorkChain:
+        calc_builder = builder['wannier90']
+    elif process_class == Wannier90BandsWorkChain:
+        calc_builder = builder['wannier90']['wannier90']
+
+        # builder["scf"]["kpoints"] = kpoints_explicit
+        builder['nscf']['kpoints'] = kpoints_explicit
+
+    calc_builder['kpoints'] = kpoints_explicit
+    params = calc_builder['parameters'].get_dict()
+    params['mp_grid'] = mp_grid
+    calc_builder['parameters'] = orm.Dict(dict=params)
+
+    return builder
