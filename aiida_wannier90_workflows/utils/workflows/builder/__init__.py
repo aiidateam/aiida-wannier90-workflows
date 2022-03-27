@@ -9,11 +9,23 @@ from aiida.common.lang import type_check
 from aiida.engine import ProcessBuilder, ProcessBuilderNamespace
 
 from aiida_quantumespresso.common.types import ElectronicType
+from aiida_quantumespresso.calculations import BasePwCpInputGenerator
+from aiida_quantumespresso.calculations.pw import PwCalculation
+from aiida_quantumespresso.calculations.namelists import NamelistsCalculation
+# from aiida_quantumespresso.calculations.opengrid import OpengridCalculation
+# from aiida_quantumespresso.calculations.projwfc import ProjwfcCalculation
+# from aiida_quantumespresso.calculations.pw2wannier90 import Pw2wannier90Calculation
+from aiida_quantumespresso.workflows.pw.base import PwBaseWorkChain
+from aiida_quantumespresso.workflows.pw.relax import PwRelaxWorkChain
+from aiida_quantumespresso.workflows.pw.bands import PwBandsWorkChain
 
 from aiida_wannier90.calculations import Wannier90Calculation
 
 from aiida_wannier90_workflows.common.types import WannierProjectionType, WannierDisentanglementType, WannierFrozenType
 from aiida_wannier90_workflows.workflows.base.wannier90 import Wannier90BaseWorkChain
+from aiida_wannier90_workflows.workflows.base.opengrid import OpengridBaseWorkChain
+from aiida_wannier90_workflows.workflows.base.projwfc import ProjwfcBaseWorkChain
+from aiida_wannier90_workflows.workflows.base.pw2wannier90 import Pw2wannier90BaseWorkChain
 from aiida_wannier90_workflows.workflows.bands import Wannier90BandsWorkChain
 
 
@@ -407,41 +419,54 @@ def recursive_merge_builder(builder: ProcessBuilderNamespace, right: ty.Mapping)
     return builder
 
 
-def set_parallelization(  # pylint: disable=too-many-locals
-    builder: ProcessBuilder, parallelization: dict = None
-) -> ProcessBuilder:
+def set_parallelization(  # pylint: disable=too-many-locals,too-many-statements
+    builder: ProcessBuilderNamespace,
+    parallelization: dict = None,
+    process_class: ty.Union[
+        PwCalculation,
+        PwBaseWorkChain,
+        PwRelaxWorkChain,
+        PwBandsWorkChain,
+        Wannier90Calculation,
+        Wannier90BaseWorkChain,
+        Wannier90BandsWorkChain,
+    ] = Wannier90BandsWorkChain,
+):
     """Set parallelization for Wannier90BandsWorkChain.
 
-    :param builder: [description]
-    :type builder: ProcessBuilder
-    :return: [description]
-    :rtype: ProcessBuilder
+    :param builder: a ``ProcessBuilder`` or its subport
+    :type builder: ProcessBuilderNamespace
     """
-    from copy import deepcopy
-
-    default_max_wallclock_seconds = 5 * 3600
-    default_num_mpiprocs_per_machine = 1
+    default_max_wallclock_seconds = 6 * 3600
+    default_num_mpiprocs_per_machine = None
     default_npool = 1
     default_num_machines = 1
 
     if parallelization is None:
         parallelization = {}
 
-    max_wallclock_seconds = parallelization.get('max_wallclock_seconds', default_max_wallclock_seconds)
-    num_mpiprocs_per_machine = parallelization.get('num_mpiprocs_per_machine', default_num_mpiprocs_per_machine)
-    npool = parallelization.get('npool', default_npool)
-    num_machines = parallelization.get('num_machines', default_num_machines)
+    max_wallclock_seconds = parallelization.get(
+        'max_wallclock_seconds',
+        default_max_wallclock_seconds,
+    )
+    num_mpiprocs_per_machine = parallelization.get(
+        'num_mpiprocs_per_machine',
+        default_num_mpiprocs_per_machine,
+    )
+    npool = parallelization.get(
+        'npool',
+        default_npool,
+    )
+    num_machines = parallelization.get(
+        'num_machines',
+        default_num_machines,
+    )
 
     # I need to prune the builder, otherwise e.g. initially builder.relax is
     # an empty dict but the following code will change it to non-empty,
     # leading to invalid process spec such as code not found for PwRelaxWorkChain.
     pruned_builder = builder._inputs(prune=True)  # pylint: disable=protected-access
-    if 'scf' in pruned_builder and 'parallelization' in builder.scf['pw']:
-        pw_parallelization = builder.scf['pw']['parallelization'].get_dict()
-    else:
-        pw_parallelization = {}
 
-    pw_parallelization['npool'] = npool
     metadata = get_metadata(
         num_mpiprocs_per_machine=num_mpiprocs_per_machine,
         max_wallclock_seconds=max_wallclock_seconds,
@@ -449,53 +474,171 @@ def set_parallelization(  # pylint: disable=too-many-locals
     )
     settings = get_settings_for_kpool(npool=npool)
 
-    if 'relax' in pruned_builder:
-        builder.relax['pw']['parallelization'] = orm.Dict(dict=pw_parallelization)
-        builder.relax['pw']['metadata'] = metadata
+    # PwCalculation is a subclass of BasePwCpInputGenerator,
+    # `parallelization` is defined in BasePwCpInputGenerator
+    if issubclass(process_class, BasePwCpInputGenerator):
+        if 'parallelization' in builder:
+            base_parallelization = builder['parallelization'].get_dict()
+        else:
+            base_parallelization = {}
 
-    if 'scf' in pruned_builder:
-        builder.scf['pw']['parallelization'] = orm.Dict(dict=pw_parallelization)
-        builder.scf['pw']['metadata'] = metadata
+        base_parallelization['npool'] = npool
 
-    if 'nscf' in pruned_builder and 'pw' in builder.nscf:
-        builder.nscf['pw']['parallelization'] = orm.Dict(dict=pw_parallelization)
-        builder.nscf['pw']['metadata'] = metadata
+        builder['parallelization'] = orm.Dict(dict=base_parallelization)
+        builder['metadata'] = metadata
 
-    if 'opengrid' in pruned_builder:
-        # builder.opengrid['metadata'] = metadata
-        # builder.opengrid['settings'] = settings
+    elif process_class == PwBaseWorkChain:
+        set_parallelization(
+            builder['pw'],
+            parallelization=parallelization,
+            process_class=BasePwCpInputGenerator,
+        )
+
+    # Includes PwCalculation, OpengridCalculation, ProjwfcCalculation
+    elif issubclass(process_class, NamelistsCalculation):
+        builder['metadata'] = metadata
+        builder['settings'] = settings
+
+    elif process_class == OpengridBaseWorkChain:
+        set_parallelization(
+            builder['opengrid'],
+            parallelization=parallelization,
+            process_class=NamelistsCalculation,
+        )
         # For now opengrid has memory issue, I run it with less cores
-        opengrid_metadata = deepcopy(metadata)
-        opengrid_metadata['options']['resources']['num_mpiprocs_per_machine'] = (num_mpiprocs_per_machine // npool)
-        builder.opengrid['opengrid']['metadata'] = opengrid_metadata
+        # opengrid_metadata = copy.deepcopy(metadata)
+        # opengrid_metadata['options']['resources']['num_mpiprocs_per_machine'] = (num_mpiprocs_per_machine // npool)
+        # builder.opengrid['opengrid']['metadata'] = opengrid_metadata
 
-    if 'projwfc' in pruned_builder:
-        builder.projwfc['projwfc']['metadata'] = metadata
-        builder.projwfc['projwfc']['settings'] = settings
+    elif process_class == ProjwfcBaseWorkChain:
+        set_parallelization(
+            builder['projwfc'],
+            parallelization=parallelization,
+            process_class=NamelistsCalculation,
+        )
 
-    builder.pw2wannier90['pw2wannier90']['metadata'] = metadata
-    builder.pw2wannier90['pw2wannier90']['settings'] = settings
+    elif process_class == Pw2wannier90BaseWorkChain:
+        set_parallelization(
+            builder['pw2wannier90'],
+            parallelization=parallelization,
+            process_class=NamelistsCalculation,
+        )
 
-    builder.wannier90['wannier90']['metadata'] = metadata
+    elif process_class == Wannier90Calculation:
+        builder['metadata'] = metadata
 
-    return builder
+    elif process_class == Wannier90BaseWorkChain:
+        set_parallelization(
+            builder['wannier90'],
+            parallelization=parallelization,
+            process_class=Wannier90Calculation,
+        )
+
+    elif process_class == PwRelaxWorkChain:
+        if 'base' in pruned_builder:
+            set_parallelization(
+                builder['base'],
+                parallelization=parallelization,
+                process_class=PwBaseWorkChain,
+            )
+        if 'base_final_scf' in pruned_builder:
+            set_parallelization(
+                builder['base_final_scf'],
+                parallelization=parallelization,
+                process_class=PwBaseWorkChain,
+            )
+
+    elif process_class == PwBandsWorkChain:
+
+        if 'relax' in pruned_builder:
+            set_parallelization(
+                builder['relax'],
+                parallelization=parallelization,
+                process_class=PwRelaxWorkChain,
+            )
+
+        if 'scf' in pruned_builder:
+            set_parallelization(
+                builder['scf'],
+                parallelization=parallelization,
+                process_class=PwBaseWorkChain,
+            )
+
+        if 'bands' in pruned_builder:
+            set_parallelization(
+                builder['bands'],
+                parallelization=parallelization,
+                process_class=PwBaseWorkChain,
+            )
+
+    elif process_class == Wannier90BandsWorkChain:
+
+        if 'scf' in pruned_builder:
+            set_parallelization(
+                builder['scf'],
+                parallelization=parallelization,
+                process_class=PwBaseWorkChain,
+            )
+
+        if 'nscf' in pruned_builder:
+            set_parallelization(
+                builder['nscf'],
+                parallelization=parallelization,
+                process_class=PwBaseWorkChain,
+            )
+
+        if 'opengrid' in pruned_builder:
+            set_parallelization(
+                builder['opengrid'],
+                parallelization=parallelization,
+                process_class=OpengridBaseWorkChain,
+            )
+
+        if 'projwfc' in pruned_builder:
+            set_parallelization(
+                builder['projwfc'],
+                parallelization=parallelization,
+                process_class=ProjwfcBaseWorkChain,
+            )
+
+        if 'pw2wannier90' in pruned_builder:
+            set_parallelization(
+                builder['pw2wannier90'],
+                parallelization=parallelization,
+                process_class=Pw2wannier90BaseWorkChain,
+            )
+
+        if 'wannier90' in pruned_builder:
+            set_parallelization(
+                builder['wannier90'],
+                parallelization=parallelization,
+                process_class=Wannier90BaseWorkChain,
+            )
 
 
-def get_metadata(num_mpiprocs_per_machine: int, max_wallclock_seconds: int, num_machines: int) -> dict:
+def get_metadata(
+    *,
+    num_mpiprocs_per_machine: int = None,
+    max_wallclock_seconds: int = 24 * 3600,
+    num_machines: int = 1,
+) -> dict:
     """Return metadata with the given number of mpiproces.
 
-    :param num_mpiprocs_per_machine: [description]
-    :type num_mpiprocs_per_machine: int
-    :param max_wallclock_seconds: [description]
-    :type max_wallclock_seconds: int
-    :return: [description]
+    :param num_mpiprocs_per_machine: defaults to None, meaning it is not set
+    and will the default number of CPUs in the `computer` configuration.
+    :type num_mpiprocs_per_machine: int, optional
+    :param max_wallclock_seconds: defaults to 24*3600
+    :type max_wallclock_seconds: int, optional
+    :param num_machines: defaults to 1
+    :type num_machines: int, optional
+    :return: metadata dict
     :rtype: dict
     """
     metadata = {
         'options': {
             'resources': {
                 'num_machines': num_machines,
-                'num_mpiprocs_per_machine': num_mpiprocs_per_machine,
+                # 'num_mpiprocs_per_machine': num_mpiprocs_per_machine,
                 # 'num_mpiprocs_per_machine': num_mpiprocs_per_machine // npool,
                 # memory is not enough if I use 128 cores
                 # 'num_mpiprocs_per_machine': 16,
@@ -508,6 +651,8 @@ def get_metadata(num_mpiprocs_per_machine: int, max_wallclock_seconds: int, num_
             'withmpi': True,
         }
     }
+    if num_mpiprocs_per_machine:
+        metadata['options']['resources']['num_mpiprocs_per_machine'] = num_mpiprocs_per_machine
 
     return metadata
 
@@ -550,7 +695,7 @@ def set_kpoints(
                             Wannier90BaseWorkChain,
                             Wannier90BandsWorkChain,
                             ] = None,
-) -> ProcessBuilderNamespace:
+):
     """Set ``kpoints`` and ``mp_grid`` of e.g. ``Wannier90BaseWorkChain``.
 
     :param builder: a builder or its subport.
@@ -559,8 +704,6 @@ def set_kpoints(
     :type kpoints: orm.KpointsData
     :param process_class: WorkChain class of the builder
     :type process_class: Wannier90Calculation, Wannier90BaseWorkChain, Wannier90BandsWorkChain
-    :return: modified builder
-    :rtype: ProcessBuilderNamespace
     """
     from aiida_wannier90_workflows.utils.kpoints import get_explicit_kpoints, get_mesh_from_kpoints
 
@@ -616,5 +759,3 @@ def set_kpoints(
     params = calc_builder['parameters'].get_dict()
     params['mp_grid'] = mp_grid
     calc_builder['parameters'] = orm.Dict(dict=params)
-
-    return builder
