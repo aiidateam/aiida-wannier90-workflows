@@ -462,7 +462,9 @@ def plot_band(  # pylint: disable=too-many-statements
     rc('mathtext', fontset='cm')
 
     rc('text', usetex=True)
-    plt.rcParams.update({'text.latex.preview': True})
+    # Deprecated
+    # https://github.com/matplotlib/matplotlib/blob/main/doc/api/prev_api_changes/api_changes_3.3.0/deprecations.rst#textlatexpreview-rcparam
+    # plt.rcParams.update({'text.latex.preview': True})
 
     print_comment = False
 
