@@ -257,7 +257,9 @@ def get_workchain_fermi_energy(workchain: ty.Union[Wannier90BaseWorkChain, Wanni
             pw_calc = get_last_calcjob(workchain)
             fermi_energy = get_fermi_energy_from_nscf(pw_calc)
         else:
-            if workchain.process_class == Wannier90BaseWorkChain:
+            if workchain.process_class == Wannier90Calculation:
+                w90calc = workchain
+            elif workchain.process_class == Wannier90BaseWorkChain:
                 w90calc = get_last_calcjob(workchain)
             elif workchain.process_class in (Wannier90BandsWorkChain, Wannier90OptimizeWorkChain):
                 w90calc = get_last_calcjob(workchain.get_outgoing(link_label_filter='wannier90').one().node)
