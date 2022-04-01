@@ -5,6 +5,7 @@ import typing as ty
 import numpy as np
 
 from aiida import orm
+from aiida.common import AttributeDict
 from aiida.common.lang import type_check
 from aiida.engine import ProcessBuilder, ProcessBuilderNamespace
 
@@ -26,6 +27,7 @@ from aiida_wannier90_workflows.workflows.base.wannier90 import Wannier90BaseWork
 from aiida_wannier90_workflows.workflows.base.opengrid import OpengridBaseWorkChain
 from aiida_wannier90_workflows.workflows.base.projwfc import ProjwfcBaseWorkChain
 from aiida_wannier90_workflows.workflows.base.pw2wannier90 import Pw2wannier90BaseWorkChain
+from aiida_wannier90_workflows.workflows.wannier90 import Wannier90WorkChain
 from aiida_wannier90_workflows.workflows.bands import Wannier90BandsWorkChain
 
 
@@ -420,7 +422,7 @@ def recursive_merge_builder(builder: ProcessBuilderNamespace, right: ty.Mapping)
 
 
 def set_parallelization(  # pylint: disable=too-many-locals,too-many-statements
-    builder: ProcessBuilderNamespace,
+    builder: ty.Union[ProcessBuilder, ProcessBuilderNamespace, AttributeDict],
     parallelization: dict = None,
     process_class: ty.Union[
         PwCalculation,
@@ -434,7 +436,7 @@ def set_parallelization(  # pylint: disable=too-many-locals,too-many-statements
 ):
     """Set parallelization for Wannier90BandsWorkChain.
 
-    :param builder: a ``ProcessBuilder`` or its subport
+    :param builder: a builder or its subport, or a ``AttributeDict`` which is the inputs for the builder.
     :type builder: ProcessBuilderNamespace
     """
     default_max_wallclock_seconds = 6 * 3600
@@ -689,7 +691,7 @@ def submit_and_add_group(builder: ProcessBuilder, group: orm.Group = None) -> No
 
 
 def set_kpoints(
-    builder: ProcessBuilderNamespace,
+    builder: ty.Union[ProcessBuilder, ProcessBuilderNamespace, AttributeDict],
     kpoints: orm.KpointsData,
     process_class: ty.Union[Wannier90Calculation,
                             Wannier90BaseWorkChain,
@@ -698,7 +700,7 @@ def set_kpoints(
 ):
     """Set ``kpoints`` and ``mp_grid`` of e.g. ``Wannier90BaseWorkChain``.
 
-    :param builder: a builder or its subport.
+    :param builder: a builder or its subport, or a ``AttributeDict`` which is the inputs for the builder.
     :type builder: ProcessBuilderNamespace
     :param kpoints: a kpoints mesh or a list of kpoints
     :type kpoints: orm.KpointsData
@@ -712,7 +714,7 @@ def set_kpoints(
         Wannier90Calculation,
         Wannier90BaseWorkChain,
         Wannier90BandsWorkChain,
-    ):
+    ) or not issubclass(process_class, Wannier90WorkChain):
         raise ValueError(f'Not supported process_class {process_class}')
 
     if process_class is None:
@@ -749,7 +751,7 @@ def set_kpoints(
         calc_builder = builder
     elif process_class == Wannier90BaseWorkChain:
         calc_builder = builder['wannier90']
-    elif process_class == Wannier90BandsWorkChain:
+    elif issubclass(process_class, Wannier90WorkChain):
         calc_builder = builder['wannier90']['wannier90']
 
         # builder["scf"]["kpoints"] = kpoints_explicit
