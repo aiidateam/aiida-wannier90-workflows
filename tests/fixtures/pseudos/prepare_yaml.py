@@ -100,7 +100,8 @@ if __name__ == '__main__':
     # write_yaml(pseudo_group_label, out_file)
 
     # from aiida_wannier90_workflows.utils.bands.distance import standardize_groupname
-    pseudo_group_label = 'PseudoDojo/0.4/PBE/SR/standard/upf'
+    # pseudo_group_label = 'PseudoDojo/0.4/PBE/SR/standard/upf'
+    pseudo_group_label = 'PseudoDojo/0.4/LDA/SR/standard/upf'
     # out_file = standardize_groupname(group_label) + '.json'
-    out_file = 'PseudoDojo_0.4_PBE_SR_standard_upf.json'
+    out_file = pseudo_group_label.replace('/', '_') + '.json'
     write_json(pseudo_group_label, out_file)
