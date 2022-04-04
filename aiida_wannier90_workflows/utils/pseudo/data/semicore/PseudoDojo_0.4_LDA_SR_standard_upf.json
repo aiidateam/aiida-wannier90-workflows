@@ -1,7 +1,7 @@
 {
     "Ag": {
         "filename": "Ag.upf",
-        "md5": "5c15ac5abd22ca6a4a3ac0571d057869",
+        "md5": "c899f98d55bad44a876361cbd565d8cf",
         "pswfcs": [
             "4S",
             "4P",
@@ -15,7 +15,7 @@
     },
     "Al": {
         "filename": "Al.upf",
-        "md5": "a92309766db89a6b54a5f8790cc4d69e",
+        "md5": "ba9f5f198b9667a0d06c5b1d7daf412e",
         "pswfcs": [
             "3S",
             "3P"
@@ -24,7 +24,7 @@
     },
     "Ar": {
         "filename": "Ar.upf",
-        "md5": "44bfab7b7a851456669622f2cdae7e2d",
+        "md5": "1a30379f55e953f612d245050c44870c",
         "pswfcs": [
             "3S",
             "3P"
@@ -33,7 +33,7 @@
     },
     "As": {
         "filename": "As.upf",
-        "md5": "bfe1a874457ce592347346129958e7cf",
+        "md5": "33c531620a5edaf59d417d4ab58437b1",
         "pswfcs": [
             "3D",
             "4S",
@@ -45,7 +45,7 @@
     },
     "Au": {
         "filename": "Au.upf",
-        "md5": "4138a9cf3cc3e90cfb01cf510d76862a",
+        "md5": "6c0150b1f6ba9da31511298d0bc4a7ea",
         "pswfcs": [
             "5S",
             "5P",
@@ -59,7 +59,7 @@
     },
     "B": {
         "filename": "B.upf",
-        "md5": "72f82fc31bc892420d0cab7e25c88ab8",
+        "md5": "69d4ef3dbc0509a37f66397c3ecc5321",
         "pswfcs": [
             "2S",
             "2P"
@@ -68,7 +68,7 @@
     },
     "Ba": {
         "filename": "Ba.upf",
-        "md5": "d1993ebf099ea5c29fdb9ecc5bd2bc91",
+        "md5": "cb7d7370cc32797d871a14e89d75fea6",
         "pswfcs": [
             "5S",
             "5P",
@@ -81,7 +81,7 @@
     },
     "Be": {
         "filename": "Be.upf",
-        "md5": "1ec65472a666abaa159cc5a9486ad01e",
+        "md5": "e162c4f623b66583b289bd4306d53955",
         "pswfcs": [
             "1S",
             "2S"
@@ -92,7 +92,7 @@
     },
     "Bi": {
         "filename": "Bi.upf",
-        "md5": "200c63f77f1a5690b65e64056759e8a3",
+        "md5": "56dda99c34bc3f5cc94f668e0bde5a74",
         "pswfcs": [
             "5D",
             "6S",
@@ -104,7 +104,7 @@
     },
     "Br": {
         "filename": "Br.upf",
-        "md5": "68275ccec8d7d9019ef58dac33cdd12b",
+        "md5": "279e723dabc259e39da0b35054823436",
         "pswfcs": [
             "4S",
             "4P"
@@ -113,7 +113,7 @@
     },
     "C": {
         "filename": "C.upf",
-        "md5": "34a24e64c0a39f27c6c36b90a16ac686",
+        "md5": "c9bd9c91d9c48f3c1b9c51e450525728",
         "pswfcs": [
             "2S",
             "2P"
@@ -122,7 +122,7 @@
     },
     "Ca": {
         "filename": "Ca.upf",
-        "md5": "70c88f1a6e4e81b49168c3af07036c03",
+        "md5": "fb35e07cf17db997d712d8f6aae9d6a1",
         "pswfcs": [
             "3S",
             "3P",
@@ -135,7 +135,7 @@
     },
     "Cd": {
         "filename": "Cd.upf",
-        "md5": "e777d9872058904c317639d7175bcad4",
+        "md5": "6e6da7d2cfec00e386c83663a29781df",
         "pswfcs": [
             "4S",
             "4P",
@@ -149,7 +149,7 @@
     },
     "Cl": {
         "filename": "Cl.upf",
-        "md5": "3907b9d6e2fcd34dd737a713d16902d8",
+        "md5": "fffe7892173ded9d5414cccb931a4309",
         "pswfcs": [
             "3S",
             "3P"
@@ -158,7 +158,7 @@
     },
     "Co": {
         "filename": "Co.upf",
-        "md5": "b62ec28937178f21c72520159cfcee23",
+        "md5": "68ba37d8a77f02e466392996cd3f0968",
         "pswfcs": [
             "3S",
             "3P",
@@ -172,7 +172,7 @@
     },
     "Cr": {
         "filename": "Cr.upf",
-        "md5": "41892f80c335c8b1e803fd21ab4016b0",
+        "md5": "9332952f98df5a55106659bd4400fc87",
         "pswfcs": [
             "3S",
             "3P",
@@ -186,7 +186,7 @@
     },
     "Cs": {
         "filename": "Cs.upf",
-        "md5": "d01c53d012be9123745781bcb8b00a26",
+        "md5": "6e1613574406d8442f3a0ce9c1d73f22",
         "pswfcs": [
             "5S",
             "5P",
@@ -199,7 +199,7 @@
     },
     "Cu": {
         "filename": "Cu.upf",
-        "md5": "5fe87f3b4a9befbfed2d60ad3362dad9",
+        "md5": "ae556be2de06564ee3d0b7fce0b5f5ee",
         "pswfcs": [
             "3S",
             "3P",
@@ -213,7 +213,7 @@
     },
     "F": {
         "filename": "F.upf",
-        "md5": "e79d493a50113cefedcefee2f1adb6e7",
+        "md5": "3dea638f9c9153f3282cad43c3474f58",
         "pswfcs": [
             "2S",
             "2P"
@@ -222,7 +222,7 @@
     },
     "Fe": {
         "filename": "Fe.upf",
-        "md5": "a5f07f5dca5be6cacb81ceb54992e4ae",
+        "md5": "b1fb9d3cb1d156aba92c681262384fac",
         "pswfcs": [
             "3S",
             "3P",
@@ -236,7 +236,7 @@
     },
     "Ga": {
         "filename": "Ga.upf",
-        "md5": "2bb81bf6f0a8d9832cf3329850435ecf",
+        "md5": "1297264db1911d3fa8c63c42f023f390",
         "pswfcs": [
             "3D",
             "4S",
@@ -248,7 +248,7 @@
     },
     "Ge": {
         "filename": "Ge.upf",
-        "md5": "087fa14d6c89b52166990835c3b338da",
+        "md5": "3c5982c5f6431d50af6a48c86403f59b",
         "pswfcs": [
             "3D",
             "4S",
@@ -260,7 +260,7 @@
     },
     "H": {
         "filename": "H.upf",
-        "md5": "e96aa7e3e4a958db16958554ea960e2a",
+        "md5": "785d664e2740b342582c379770e72c80",
         "pswfcs": [
             "1S"
         ],
@@ -268,7 +268,7 @@
     },
     "He": {
         "filename": "He.upf",
-        "md5": "bea2bb8a1cebdc3616da13d914a49928",
+        "md5": "7b577d6af2a81230f4e90b0445d4945d",
         "pswfcs": [
             "1S"
         ],
@@ -276,7 +276,7 @@
     },
     "Hf": {
         "filename": "Hf.upf",
-        "md5": "54f7ec7f43d5d93247b4f856bff61d17",
+        "md5": "36aa33fc184847c2e8d4ad1d932960b2",
         "pswfcs": [
             "5S",
             "5P",
@@ -290,7 +290,7 @@
     },
     "Hg": {
         "filename": "Hg.upf",
-        "md5": "c897849fa28beee15c5add2cfc35ddc0",
+        "md5": "7d52dd4f1c18f71240b5f48369e33b07",
         "pswfcs": [
             "5S",
             "5P",
@@ -304,7 +304,7 @@
     },
     "I": {
         "filename": "I.upf",
-        "md5": "d5cbca53f7cc673a7c5c719d79970e64",
+        "md5": "37b3402d197c10a8a0514fb01996ce4d",
         "pswfcs": [
             "5S",
             "5P"
@@ -313,7 +313,7 @@
     },
     "In": {
         "filename": "In.upf",
-        "md5": "835f4bf908c982ff75c88e16816a8d7f",
+        "md5": "316c759078946be75a88f78b0f6c9212",
         "pswfcs": [
             "4D",
             "5S",
@@ -325,7 +325,7 @@
     },
     "Ir": {
         "filename": "Ir.upf",
-        "md5": "5d86907028ee51f3866c208bf0ae0585",
+        "md5": "a27f687fefba38e612468aebf196183c",
         "pswfcs": [
             "5S",
             "5P",
@@ -339,7 +339,7 @@
     },
     "K": {
         "filename": "K.upf",
-        "md5": "0aa97b2c023445f040759afc9fdb6c80",
+        "md5": "85ac93a9e8e2143ae953dda232653120",
         "pswfcs": [
             "3S",
             "3P",
@@ -352,30 +352,16 @@
     },
     "Kr": {
         "filename": "Kr.upf",
-        "md5": "0d9703b6c7da1839731aa1c7f7ea0b0a",
+        "md5": "ec19bd962143af8696624b30a928ff39",
         "pswfcs": [
             "4S",
             "4P"
         ],
         "semicores": []
     },
-    "La": {
-        "filename": "La.upf",
-        "md5": "cd9f961d044315b77468ddb00b57bfe4",
-        "pswfcs": [
-            "5S",
-            "5P",
-            "5D",
-            "6S"
-        ],
-        "semicores": [
-            "5S",
-            "5P"
-        ]
-    },
     "Li": {
         "filename": "Li.upf",
-        "md5": "dbcf0ea72988e720c8c712b432d51b0d",
+        "md5": "cbd9518a540ce8f7f4a0218f2f072fdd",
         "pswfcs": [
             "1S",
             "2S"
@@ -384,24 +370,9 @@
             "1S"
         ]
     },
-    "Lu": {
-        "filename": "Lu.upf",
-        "md5": "4e3a157830d2f353b16c6afd4fe1ab4b",
-        "pswfcs": [
-            "5S",
-            "5P",
-            "4F",
-            "5D",
-            "6S"
-        ],
-        "semicores": [
-            "5S",
-            "5P"
-        ]
-    },
     "Mg": {
         "filename": "Mg.upf",
-        "md5": "4c04d8c6e0476e83eaecaf72fa8acc4d",
+        "md5": "b625b74613aebb94f78e131e92efc946",
         "pswfcs": [
             "2S",
             "2P",
@@ -414,7 +385,7 @@
     },
     "Mn": {
         "filename": "Mn.upf",
-        "md5": "ae71e1481ef25a952ba54bed1e0db183",
+        "md5": "afd384e79e0f6cf20ba43d0a169cbe96",
         "pswfcs": [
             "3S",
             "3P",
@@ -428,7 +399,7 @@
     },
     "Mo": {
         "filename": "Mo.upf",
-        "md5": "7ca7a9feba7bf08d88d14bc7fbf60c1e",
+        "md5": "757ed1ca8eaf384e7a6ffdf32476f2ff",
         "pswfcs": [
             "4S",
             "4P",
@@ -442,7 +413,7 @@
     },
     "N": {
         "filename": "N.upf",
-        "md5": "d34365f73bb0e2ee98afc20ec3e87676",
+        "md5": "f7cfb052850314c53fa2901765c0b356",
         "pswfcs": [
             "2S",
             "2P"
@@ -451,7 +422,7 @@
     },
     "Na": {
         "filename": "Na.upf",
-        "md5": "ed5af011864af3d1529ce3b51bbccf87",
+        "md5": "c314469419d1e94e2d8780387804b670",
         "pswfcs": [
             "2S",
             "2P",
@@ -464,7 +435,7 @@
     },
     "Nb": {
         "filename": "Nb.upf",
-        "md5": "712dd6877a67fb2d3f70e8edbadf3134",
+        "md5": "bf2f17bdaa18d0922ff8e27074aea7bf",
         "pswfcs": [
             "4S",
             "4P",
@@ -478,7 +449,7 @@
     },
     "Ne": {
         "filename": "Ne.upf",
-        "md5": "95efbc8bd1c68b7fd47562d26f966a2e",
+        "md5": "4fe887f722f2cdc4cea4a66ab59ea4d3",
         "pswfcs": [
             "2S",
             "2P"
@@ -487,7 +458,7 @@
     },
     "Ni": {
         "filename": "Ni.upf",
-        "md5": "2b0a79d100e227970886d6963e34175b",
+        "md5": "f8d7392b8bff9c8663086e03b8bdac12",
         "pswfcs": [
             "3S",
             "3P",
@@ -501,7 +472,7 @@
     },
     "O": {
         "filename": "O.upf",
-        "md5": "3e3f909f7470e8921608ab6b1f57bbae",
+        "md5": "86ed389b6a5065e60c3f64c68a612de9",
         "pswfcs": [
             "2S",
             "2P"
@@ -510,7 +481,7 @@
     },
     "Os": {
         "filename": "Os.upf",
-        "md5": "8d1eac4ed302a563f1ddab43ce4a219c",
+        "md5": "b04c9200326ddb10076179cf6edfcc6c",
         "pswfcs": [
             "5S",
             "5P",
@@ -524,7 +495,7 @@
     },
     "P": {
         "filename": "P.upf",
-        "md5": "c802fd0635a0ed1615482a1b584dae5b",
+        "md5": "824d338e0d93d7715c4db7037825a857",
         "pswfcs": [
             "3S",
             "3P"
@@ -533,7 +504,7 @@
     },
     "Pb": {
         "filename": "Pb.upf",
-        "md5": "465799cf2c9ea2062203eb79f5a7a375",
+        "md5": "8ad8d2bb8df011aab85e70b3f3e56d27",
         "pswfcs": [
             "5D",
             "6S",
@@ -545,7 +516,7 @@
     },
     "Pd": {
         "filename": "Pd.upf",
-        "md5": "3237c1aa6638f9b139e09b989780d9a7",
+        "md5": "0c723bcd194125e86631dc196889cf13",
         "pswfcs": [
             "4S",
             "4P",
@@ -558,7 +529,7 @@
     },
     "Po": {
         "filename": "Po.upf",
-        "md5": "7d7cd96537e8ce84ceba4e6044c58fe7",
+        "md5": "deb9729bc1f5fc4e643d58bddcad4e0d",
         "pswfcs": [
             "5D",
             "6S",
@@ -570,7 +541,7 @@
     },
     "Pt": {
         "filename": "Pt.upf",
-        "md5": "3caa314b32314335c676ebce8d0bd64e",
+        "md5": "46f0f412be8eb0095dc195e029f4c5cf",
         "pswfcs": [
             "5S",
             "5P",
@@ -584,7 +555,7 @@
     },
     "Rb": {
         "filename": "Rb.upf",
-        "md5": "22fbbf5dec0687b4ff1c40fc0c33943f",
+        "md5": "5737d4fd00a4b7df5dfc4815e8e394a2",
         "pswfcs": [
             "4S",
             "4P",
@@ -597,7 +568,7 @@
     },
     "Re": {
         "filename": "Re.upf",
-        "md5": "e6039e10307dbe25c1a4d858b238c644",
+        "md5": "30e33727d72fd9495a2d29acea5ecc13",
         "pswfcs": [
             "5S",
             "5P",
@@ -611,7 +582,7 @@
     },
     "Rh": {
         "filename": "Rh.upf",
-        "md5": "cb63436a43bd782c4ab6a7e8a595cc6f",
+        "md5": "18a4ddd39f65b1d986feb1e4eafa90ac",
         "pswfcs": [
             "4S",
             "4P",
@@ -625,7 +596,7 @@
     },
     "Rn": {
         "filename": "Rn.upf",
-        "md5": "630351c567d8e55a6d77ac85a2ee1a2a",
+        "md5": "aa85d3f347ba1322379d852fca45868e",
         "pswfcs": [
             "5D",
             "6S",
@@ -637,7 +608,7 @@
     },
     "Ru": {
         "filename": "Ru.upf",
-        "md5": "78a51ae3c73412a4f6c3a5ef1ff27895",
+        "md5": "135c955005f995d41380fc9ea06eaa28",
         "pswfcs": [
             "4S",
             "4P",
@@ -651,7 +622,7 @@
     },
     "S": {
         "filename": "S.upf",
-        "md5": "6027e7704d67ae28863b2247926ce6f3",
+        "md5": "cb156da9049275a86b4f507c9016d0ed",
         "pswfcs": [
             "3S",
             "3P"
@@ -660,7 +631,7 @@
     },
     "Sb": {
         "filename": "Sb.upf",
-        "md5": "127f69b6101c45666faeae1b5d611565",
+        "md5": "7f611d33cada28a8ba2468ea7ddc75dd",
         "pswfcs": [
             "4D",
             "5S",
@@ -672,7 +643,7 @@
     },
     "Sc": {
         "filename": "Sc.upf",
-        "md5": "57c0f277cdb60d5e61f5803919373288",
+        "md5": "56cd400105314c06b46e8a2d37de69d1",
         "pswfcs": [
             "3S",
             "3P",
@@ -686,7 +657,7 @@
     },
     "Se": {
         "filename": "Se.upf",
-        "md5": "3cc46b3642295b3f4fdae63b742ce36d",
+        "md5": "134c4c62ae1a1890f780526fdd37a254",
         "pswfcs": [
             "3D",
             "4S",
@@ -698,7 +669,7 @@
     },
     "Si": {
         "filename": "Si.upf",
-        "md5": "02fab3f35e82123ef5bf1cb05d5b1a5e",
+        "md5": "9e2d726316af3d4752eea8ab0afbb951",
         "pswfcs": [
             "3S",
             "3P"
@@ -707,7 +678,7 @@
     },
     "Sn": {
         "filename": "Sn.upf",
-        "md5": "78e6386ae56e929f0568ae8bf606a80c",
+        "md5": "6c8a2279cd16821172ba4f79df864cf0",
         "pswfcs": [
             "4D",
             "5S",
@@ -719,7 +690,7 @@
     },
     "Sr": {
         "filename": "Sr.upf",
-        "md5": "b0778dfcb5475fa9ec855a14b36b97c8",
+        "md5": "b41d062cbb592ee2e882ab16a046f6b8",
         "pswfcs": [
             "4S",
             "4P",
@@ -732,7 +703,7 @@
     },
     "Ta": {
         "filename": "Ta.upf",
-        "md5": "8e973c4b372b7a84c0ed3006b119f040",
+        "md5": "6c5ebfe36b4859fd5643897bc3848f37",
         "pswfcs": [
             "5S",
             "5P",
@@ -746,7 +717,7 @@
     },
     "Tc": {
         "filename": "Tc.upf",
-        "md5": "21efa644d62205c874e8b99fac84aa08",
+        "md5": "718b4656d695332742794392c246040a",
         "pswfcs": [
             "4S",
             "4P",
@@ -760,7 +731,7 @@
     },
     "Te": {
         "filename": "Te.upf",
-        "md5": "3368f43c0236043475348b0373f3ab9d",
+        "md5": "9e5fa41a0f35f73a43f6ccd2b2523ade",
         "pswfcs": [
             "4D",
             "5S",
@@ -772,7 +743,7 @@
     },
     "Ti": {
         "filename": "Ti.upf",
-        "md5": "0b3868d933a8ea9356727c02a1b807de",
+        "md5": "53bc0dda610e2d65968e83073ef0f8f1",
         "pswfcs": [
             "3S",
             "3P",
@@ -786,7 +757,7 @@
     },
     "Tl": {
         "filename": "Tl.upf",
-        "md5": "9c4ed9af7f0a8b978976503dddc2e553",
+        "md5": "0cee8da3a5c8941c5992251bc176ca3c",
         "pswfcs": [
             "5D",
             "6S",
@@ -798,7 +769,7 @@
     },
     "V": {
         "filename": "V.upf",
-        "md5": "40fb93c06b4f9d8c28c5ccd071294a04",
+        "md5": "9ff7100dab4087ade382bd607ce62d07",
         "pswfcs": [
             "3S",
             "3P",
@@ -812,7 +783,7 @@
     },
     "W": {
         "filename": "W.upf",
-        "md5": "cb94e439a9e4ea809831d6e90c63864e",
+        "md5": "8a49e2019fff0b057ab5fe5c9a0ca531",
         "pswfcs": [
             "5S",
             "5P",
@@ -826,7 +797,7 @@
     },
     "Xe": {
         "filename": "Xe.upf",
-        "md5": "1e5bae58bb7ebcb91a0c236e8c96e37e",
+        "md5": "d84153a8e410213c4a4a261af448080c",
         "pswfcs": [
             "5S",
             "5P"
@@ -835,7 +806,7 @@
     },
     "Y": {
         "filename": "Y.upf",
-        "md5": "28b7a77fe5d3539441de961898735449",
+        "md5": "8921302f115ef558eb5171d57e2cbc1e",
         "pswfcs": [
             "4S",
             "4P",
@@ -849,7 +820,7 @@
     },
     "Zn": {
         "filename": "Zn.upf",
-        "md5": "9b7be680307954c2706c150df658ede8",
+        "md5": "492e12d15cacde48a98384ec5dd6fb31",
         "pswfcs": [
             "3S",
             "3P",
@@ -863,7 +834,7 @@
     },
     "Zr": {
         "filename": "Zr.upf",
-        "md5": "8ea2969ae37cb4187a0232e4a563b421",
+        "md5": "2a09112f08ea66ae975fb6c82f4e2890",
         "pswfcs": [
             "4S",
             "4P",
