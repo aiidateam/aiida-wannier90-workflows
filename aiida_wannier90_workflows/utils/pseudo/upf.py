@@ -283,6 +283,63 @@ def parse_pswfc_nosoc(upf_content: str) -> list:
     return projections
 
 
+def parse_pswfc_energy_nosoc(upf_content: str) -> list:
+    """Parse pswfc pseudo_energy for non-SOC pseudo.
+
+    :param upf_content: [description]
+    :type upf_content: str
+    :return: list of dict, each dict contains 1 key for quantum number l
+    :rtype: list
+    """
+    if is_soc_pseudo(upf_content):
+        raise ValueError('Only accept non-SOC pseudo')
+    upf_content = upf_content.split('\n')
+    # get PP_PSWFC block
+    pswfc_block = ''
+    found_begin = False
+    found_end = False
+    for line in upf_content:
+        if 'PP_PSWFC' in line:
+            pswfc_block += line + '\n'
+            if not found_begin:
+                found_begin = True
+                continue
+            if not found_end:
+                found_end = True
+                break
+        if found_begin:
+            pswfc_block += line + '\n'
+
+    projections = []
+    # parse XML
+    PP_PSWFC = ET.XML(pswfc_block)  # pylint: disable=invalid-name
+    if len(list(PP_PSWFC)) == 0:
+        raise NotImplementedError
+        #  pylint: disable=unreachable
+        # old upf format
+        import re
+        r = re.compile(r'[\d]([SPDF])')  # pylint: disable=invalid-name
+        spdf = r.findall(PP_PSWFC.text)
+        for orbit in spdf:
+            orbit = orbit.lower()
+            if orbit == 's':
+                l = 0
+            elif orbit == 'p':
+                l = 1
+            elif orbit == 'd':
+                l = 2
+            elif orbit == 'f':
+                l = 3
+            projections.append({'l': l})
+    else:
+        # upf format 2.0.1
+        for child in PP_PSWFC:
+            pseudo_energy = float(child.get('pseudo_energy'))
+            label = str(child.get('label'))
+            projections.append({'pseudo_energy': pseudo_energy, 'label': label})
+    return projections
+
+
 def get_projections_from_upf(upf: orm.UpfData):
     """Return a list of strings for Wannier90 projection block.
 

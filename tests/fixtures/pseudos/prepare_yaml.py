@@ -5,7 +5,8 @@ import yaml
 
 from aiida import orm
 from aiida_wannier90_workflows.utils.pseudo.upf import (
-    get_number_of_electrons_from_upf, get_number_of_projections_from_upf, get_upf_content, parse_pswfc_nosoc
+    get_number_of_electrons_from_upf, get_number_of_projections_from_upf, get_upf_content, parse_pswfc_energy_nosoc,
+    parse_pswfc_nosoc
 )
 
 
@@ -47,8 +48,59 @@ def write_yaml(group_label: str, filename: str) -> None:
     print(f'Written to file "{filename}"')
 
 
-if __name__ == '__main__':
-    SSSP_GROUP_LABEL = 'SSSP/1.1/PBE/efficiency'
-    OUT_FILE = 'SSSP_1.1_PBE_efficiency.yaml'
+def write_json(group_label: str, filename: str) -> None:
+    """Write a yaml file containing meta data for a group of pseudopotentials.
 
-    write_yaml(SSSP_GROUP_LABEL, OUT_FILE)
+    The yaml file will be used to generate pytest fixtures for SSSP.
+    The script searches your AiiDA database for the SSSP, and write to a yaml file which contains
+    the number of electrons and number of pseudo wavefunctions of SSSP pseudopotentials.
+
+    :param group_label: [description]
+    :type group_label: str
+    :param filename: [description]
+    :type filename: str
+    """
+    import json
+
+    pseudo_group = orm.load_group(group_label)
+    results = {}
+
+    for upf_data in pseudo_group.nodes:
+        upf_content = get_upf_content(upf_data)
+        energy = parse_pswfc_energy_nosoc(upf_content)
+
+        pswfcs = [_['label'] for _ in energy]
+        # pseudo_energy = [_['pseudo_energy'] for _ in energy]
+        # If pseudo_energy < energy_threshold, treat it as semicore,
+        # a crude estimate, need to refine manually.
+        energy_threshold = -1
+        semicores = [_['label'] for _ in energy if _['pseudo_energy'] < energy_threshold]
+
+        upf_dict = {
+            'filename': upf_data.filename,
+            'md5': upf_data.md5,
+            'pswfcs': pswfcs,
+            'semicores': semicores,
+            # 'pseudo_energy': pseudo_energy,
+        }
+
+        results[upf_data.element] = upf_dict
+
+    with open(filename, 'w') as file:
+        json.dump(results, file, indent=4, sort_keys=True)
+
+    print(f'Written to file "{filename}"')
+
+
+if __name__ == '__main__':
+    #  pylint: disable=invalid-name
+    # pseudo_group_label = 'SSSP/1.1/PBE/efficiency'
+    # out_file = 'SSSP_1.1_PBE_efficiency.yaml'
+
+    # write_yaml(pseudo_group_label, out_file)
+
+    # from aiida_wannier90_workflows.utils.bands.distance import standardize_groupname
+    pseudo_group_label = 'PseudoDojo/0.4/PBE/SR/standard/upf'
+    # out_file = standardize_groupname(group_label) + '.json'
+    out_file = 'PseudoDojo_0.4_PBE_SR_standard_upf.json'
+    write_json(pseudo_group_label, out_file)
