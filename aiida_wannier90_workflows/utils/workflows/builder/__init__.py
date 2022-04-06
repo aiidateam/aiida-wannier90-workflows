@@ -439,10 +439,12 @@ def set_parallelization(  # pylint: disable=too-many-locals,too-many-statements
     :param builder: a builder or its subport, or a ``AttributeDict`` which is the inputs for the builder.
     :type builder: ProcessBuilderNamespace
     """
-    default_max_wallclock_seconds = 6 * 3600
+    default_max_wallclock_seconds = 12 * 3600
     default_num_mpiprocs_per_machine = None
     default_npool = 1
     default_num_machines = 1
+    default_queue_name = None
+    default_account = None
 
     if parallelization is None:
         parallelization = {}
@@ -463,6 +465,14 @@ def set_parallelization(  # pylint: disable=too-many-locals,too-many-statements
         'num_machines',
         default_num_machines,
     )
+    queue_name = parallelization.get(
+        'queue_name',
+        default_queue_name,
+    )
+    account = parallelization.get(
+        'account',
+        default_account,
+    )
 
     # I need to prune the builder, otherwise e.g. initially builder.relax is
     # an empty dict but the following code will change it to non-empty,
@@ -473,6 +483,8 @@ def set_parallelization(  # pylint: disable=too-many-locals,too-many-statements
         num_mpiprocs_per_machine=num_mpiprocs_per_machine,
         max_wallclock_seconds=max_wallclock_seconds,
         num_machines=num_machines,
+        queue_name=queue_name,
+        account=account,
     )
     settings = get_settings_for_kpool(npool=npool)
 
@@ -623,6 +635,8 @@ def get_metadata(
     num_mpiprocs_per_machine: int = None,
     max_wallclock_seconds: int = 24 * 3600,
     num_machines: int = 1,
+    queue_name: str = None,
+    account: str = None,
 ) -> dict:
     """Return metadata with the given number of mpiproces.
 
@@ -633,6 +647,10 @@ def get_metadata(
     :type max_wallclock_seconds: int, optional
     :param num_machines: defaults to 1
     :type num_machines: int, optional
+    :param queue_name: slurm queue name
+    :type queue_name: str, optional
+    :param account: slurm account
+    :type account: str, optional
     :return: metadata dict
     :rtype: dict
     """
@@ -655,6 +673,10 @@ def get_metadata(
     }
     if num_mpiprocs_per_machine:
         metadata['options']['resources']['num_mpiprocs_per_machine'] = num_mpiprocs_per_machine
+    if queue_name:
+        metadata['options']['queue_name'] = queue_name
+    if queue_name:
+        metadata['options']['account'] = account
 
     return metadata
 
@@ -714,7 +736,7 @@ def set_kpoints(
         Wannier90Calculation,
         Wannier90BaseWorkChain,
         Wannier90BandsWorkChain,
-    ) or not issubclass(process_class, Wannier90WorkChain):
+    ) and not issubclass(process_class, Wannier90WorkChain):
         raise ValueError(f'Not supported process_class {process_class}')
 
     if process_class is None:
