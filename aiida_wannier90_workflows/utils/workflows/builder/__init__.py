@@ -637,8 +637,26 @@ def get_metadata(
     num_machines: int = 1,
     queue_name: str = None,
     account: str = None,
+    **_,
 ) -> dict:
-    """Return metadata with the given number of mpiproces.
+    """Return metadata with the given MPI specification.
+
+    Usage
+    ```
+    # Create a dict
+    parallelization = {
+        'max_wallclock_seconds': 1800,
+        'num_machines': 10,
+        'npool': 3*10,
+        'num_mpiprocs_per_machine': 12,
+        'queue_name': 'debug',
+        'account': 'mr0',
+    }
+    # The dict can be used by
+    # set_parallelization(builder, parallelization)
+    # Or
+    metadata = get_metadata(**parallelization)
+    ```
 
     :param num_mpiprocs_per_machine: defaults to None, meaning it is not set
     and will the default number of CPUs in the `computer` configuration.
