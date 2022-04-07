@@ -433,7 +433,7 @@ def set_parallelization(  # pylint: disable=too-many-locals,too-many-statements
         Wannier90BaseWorkChain,
         Wannier90BandsWorkChain,
     ] = Wannier90BandsWorkChain,
-):
+) -> None:
     """Set parallelization for Wannier90BandsWorkChain.
 
     :param builder: a builder or its subport, or a ``AttributeDict`` which is the inputs for the builder.
@@ -712,14 +712,49 @@ def submit_and_add_group(builder: ProcessBuilder, group: orm.Group = None) -> No
         print(f'Added to group {group.label}<{group.pk}>')
 
 
+def guess_process_class_from_builder(builder: ty.Union[ProcessBuilder, ProcessBuilderNamespace]) -> orm.ProcessNode:
+    """Try to guess the process class of the ``builder``.
+
+    May fail.
+
+    :param builder: a builder or its subport
+    :type builder: ty.Union[ProcessBuilder, ProcessBuilderNamespace]
+    :return: its process class, e.g. ``Wannier90BandsWorkChain``
+    :rtype: orm.ProcessNode
+    """
+    supported_classes = [
+        Wannier90Calculation,
+        Wannier90BaseWorkChain,
+        Wannier90BandsWorkChain,
+        PwCalculation,
+        PwBaseWorkChain,
+        PwBandsWorkChain,
+    ]
+
+    valid_fields = set(builder._valid_fields)  # pylint: disable=protected-access
+
+    for proc in supported_classes:
+        fields = set(proc.spec().inputs.keys())
+        # print(f"{proc} {field=}")
+        if valid_fields in fields:
+            process_class = proc
+            break
+    else:
+        raise ValueError(f'{builder=}\nis not one of supported classes: {supported_classes}')
+
+    return process_class
+
+
 def set_kpoints(
     builder: ty.Union[ProcessBuilder, ProcessBuilderNamespace, AttributeDict],
     kpoints: orm.KpointsData,
-    process_class: ty.Union[Wannier90Calculation,
+    process_class: ty.Union[PwCalculation,
+                            PwBaseWorkChain,
+                            Wannier90Calculation,
                             Wannier90BaseWorkChain,
                             Wannier90BandsWorkChain,
                             ] = None,
-):
+) -> None:
     """Set ``kpoints`` and ``mp_grid`` of e.g. ``Wannier90BaseWorkChain``.
 
     :param builder: a builder or its subport, or a ``AttributeDict`` which is the inputs for the builder.
@@ -731,55 +766,114 @@ def set_kpoints(
     """
     from aiida_wannier90_workflows.utils.kpoints import get_explicit_kpoints, get_mesh_from_kpoints
 
+    if process_class is None:
+        process_class = guess_process_class_from_builder(builder)
+
     if process_class not in (
-        None,
+        PwCalculation,
+        PwBaseWorkChain,
         Wannier90Calculation,
         Wannier90BaseWorkChain,
         Wannier90BandsWorkChain,
     ) and not issubclass(process_class, Wannier90WorkChain):
         raise ValueError(f'Not supported process_class {process_class}')
 
-    if process_class is None:
-        calc_fields = set(Wannier90Calculation.spec().inputs.keys())
-        basewkchain_fields = set(Wannier90BaseWorkChain.spec().inputs.keys())
-        bandswkchain_fields = set(Wannier90BandsWorkChain.spec().inputs.keys())
-
-        valid_fields = set(builder._valid_fields)  # pylint: disable=protected-access
-
-        print(f'{calc_fields=}')
-        print(f'{basewkchain_fields=}')
-        print(f'{bandswkchain_fields=}')
-        print(f'{valid_fields=}')
-
-        if calc_fields in valid_fields:
-            process_class = Wannier90Calculation
-        elif basewkchain_fields in valid_fields:
-            process_class = Wannier90BaseWorkChain
-        elif bandswkchain_fields in valid_fields:
-            process_class = Wannier90BandsWorkChain
+    if process_class == Wannier90Calculation:
+        # Test if it is a mesh
+        try:
+            kpoints.get_kpoints_mesh()
+        except AttributeError:
+            kpoints_explicit = kpoints
         else:
-            raise ValueError(f'Not supported builder {builder}')
+            kpoints_explicit = get_explicit_kpoints(kpoints)
+        mp_grid = get_mesh_from_kpoints(kpoints_explicit)
 
-    # Test if it is a mesh
-    try:
-        kpoints.get_kpoints_mesh()
-    except AttributeError:
-        kpoints_explicit = kpoints
-    else:
-        kpoints_explicit = get_explicit_kpoints(kpoints)
-    mp_grid = get_mesh_from_kpoints(kpoints_explicit)
+        builder['kpoints'] = kpoints_explicit
+        params = builder['parameters'].get_dict()
+        params['mp_grid'] = mp_grid
+        builder['parameters'] = orm.Dict(dict=params)
+
+    elif process_class == Wannier90BaseWorkChain:
+        set_kpoints(builder['wannier90'], kpoints, process_class=Wannier90Calculation)
+
+    elif issubclass(process_class, Wannier90WorkChain):
+        set_kpoints(builder['wannier90'], kpoints, process_class=Wannier90BaseWorkChain)
+
+        kpoints_explicit = builder['wannier90']['wannier90']['kpoints']
+        set_kpoints(builder['scf'], kpoints, process_class=PwBaseWorkChain)
+        set_kpoints(builder['nscf'], kpoints_explicit, process_class=PwBaseWorkChain)
+
+    elif process_class == PwCalculation:
+        builder['kpoints'] = kpoints
+
+    elif process_class == PwBaseWorkChain:
+        builder['kpoints'] = kpoints
+
+    elif process_class == PwBandsWorkChain:
+        set_kpoints(builder['bands'], kpoints, process_class=PwBaseWorkChain)
+
+
+def set_num_bands(
+    builder: ty.Union[ProcessBuilder, ProcessBuilderNamespace, AttributeDict],
+    num_bands: int,
+    exclude_bands: ty.Sequence = None,
+    process_class: ty.Union[PwCalculation,
+                            PwBaseWorkChain,
+                            PwBandsWorkChain,
+                            Wannier90Calculation,
+                            Wannier90BaseWorkChain,
+                            Wannier90BandsWorkChain,
+                            ] = None,
+) -> None:
+    """Set number of bands of for various ``WorkChain``.
+
+    :param builder: a builder or its subport, or a ``AttributeDict`` which is the inputs for the builder.
+    :type builder: ProcessBuilderNamespace
+    :param num_bands: number of bands, including excluded bands.
+    Specifically, this is the ``nbnd`` for ``pw.x``, NOT the `num_bands` for ``wannier90.x``.
+    :type num_bands: int
+    :param exclude_bands: a list of band index to be excluded, starting from 1.
+    Only useful for wannier90 related ``WorkChain``s.
+    :type exclude_bands: ty.Sequence
+    :param process_class: WorkChain class of the builder
+    :type process_class: Wannier90Calculation, Wannier90BaseWorkChain, Wannier90BandsWorkChain
+    """
+    if process_class is None:
+        process_class = guess_process_class_from_builder(builder)
+
+    if process_class not in (
+        PwCalculation,
+        PwBaseWorkChain,
+        PwBandsWorkChain,
+        Wannier90Calculation,
+        Wannier90BaseWorkChain,
+        Wannier90BandsWorkChain,
+    ) and not issubclass(process_class, Wannier90WorkChain):
+        raise ValueError(f'Not supported process_class {process_class}')
 
     if process_class == Wannier90Calculation:
-        calc_builder = builder
+        # W90 needs to subtract excluded bands
+        params = builder['parameters'].get_dict()
+        if exclude_bands:
+            num_bands -= len(exclude_bands)
+            params['exclude_bands'] = exclude_bands
+        params['num_bands'] = num_bands
+        builder['parameters'] = orm.Dict(dict=params)
+
     elif process_class == Wannier90BaseWorkChain:
-        calc_builder = builder['wannier90']
+        set_num_bands(builder['wannier90'], num_bands, exclude_bands, process_class=Wannier90Calculation)
+
     elif issubclass(process_class, Wannier90WorkChain):
-        calc_builder = builder['wannier90']['wannier90']
+        set_num_bands(builder['wannier90'], num_bands, exclude_bands, process_class=Wannier90BaseWorkChain)
+        set_num_bands(builder['nscf'], num_bands, process_class=PwBaseWorkChain)
 
-        # builder["scf"]["kpoints"] = kpoints_explicit
-        builder['nscf']['kpoints'] = kpoints_explicit
+    elif process_class == PwCalculation:
+        params = builder['parameters'].get_dict()
+        params['SYSTEM']['nbnd'] = num_bands
+        builder['parameters'] = orm.Dict(dict=params)
 
-    calc_builder['kpoints'] = kpoints_explicit
-    params = calc_builder['parameters'].get_dict()
-    params['mp_grid'] = mp_grid
-    calc_builder['parameters'] = orm.Dict(dict=params)
+    elif process_class == PwBaseWorkChain:
+        set_num_bands(builder['pw'], num_bands, process_class=PwCalculation)
+
+    elif process_class == PwBandsWorkChain:
+        set_num_bands(builder['bands'], num_bands, process_class=PwBaseWorkChain)
