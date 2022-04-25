@@ -52,10 +52,22 @@ class QeBaseRestartWorkChain(BaseRestartWorkChain):
         """Define the process spec."""
         super().define(spec)
         spec.expose_inputs(cls._process_class, namespace=cls._inputs_namespace)
-        spec.inputs[cls._inputs_namespace]['metadata']['options']['resources'].default = {
-            'num_machines': 1,
-            'num_mpiprocs_per_machine': 1,
-        }
+        # spec.inputs[cls._inputs_namespace]['metadata']['options']['resources'].default = {
+        #     'num_machines': 1,
+        #     'num_mpiprocs_per_machine': 1,
+        # }
+        # Set `required=False` but provide a default, otherwise
+        # `Wannier90BandsWorkChain.get_builder_restart()` will complain that
+        # "`metadata.options.resources` is required but is not specified"
+        spec.input(
+            f'{cls._inputs_namespace}.metadata.options.resources',
+            valid_type=dict,
+            default={
+                'num_machines': 1,
+                'num_mpiprocs_per_machine': 1,
+            },
+            required=False,
+        )
 
         spec.outline(
             cls.setup,
