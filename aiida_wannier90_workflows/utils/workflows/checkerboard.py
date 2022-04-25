@@ -3,6 +3,8 @@
 """Functions to calculate bands distance for Wannier90OptimizeWorkChain."""
 import typing as ty
 import numpy as np
+import matplotlib.pyplot as plt
+
 from aiida_wannier90_workflows.workflows.optimize import Wannier90OptimizeWorkChain
 
 
@@ -66,7 +68,13 @@ def compute_checkerboard(optimize_workchain: Wannier90OptimizeWorkChain) -> ty.T
 
 
 def plot_checkerboard_raw(
-    checkerboard: np.array, max_range: np.array, min_range: np.array, title: str = None, show: bool = False
+    checkerboard: np.array,
+    max_range: np.array,
+    min_range: np.array,
+    eta_index: int = None,
+    title: str = None,
+    ax: plt.Axes = None,
+    show: bool = False,
 ) -> None:
     """Plot bands distance checkerboard from raw data.
 
@@ -76,18 +84,28 @@ def plot_checkerboard_raw(
     :type max_range: np.array
     :param min_range: [description]
     :type min_range: np.array
+    :param eta_index: select which distance to plot, i.e. z index of ``checkerboard``,
+    ``range(6)``, defaults to None
+    :type eta_index: int, optional
     :param title: [description], defaults to None
     :type title: str, optional
     :raises ValueError: [description]
     """
-    import matplotlib.pyplot as plt
     from mpl_toolkits.axes_grid1 import make_axes_locatable
 
     num_x, num_y, num_z = checkerboard.shape
     if num_x != len(max_range) or num_y != len(min_range) or num_z != 6:
         raise ValueError('Incompatible input array dimensions')
 
-    fig, axs = plt.subplots(3, 2, figsize=(24, 8))
+    if eta_index < 0 or eta_index >= num_z:
+        raise ValueError(f'eta_index {eta_index} is out of range')
+
+    if ax is None:
+        fig, axs = plt.subplots(3, 2, figsize=(24, 8))
+        axs_flat = axs.flat
+    else:
+        fig = plt.gcf()
+        axs_flat = None
 
     # To meV
     checkerboard = checkerboard * 1e3
@@ -96,23 +114,30 @@ def plot_checkerboard_raw(
     # print(checkerboard[:, :, -1])
 
     # To percentage
-    label_x = np.array([f'{_*100}' for _ in max_range])
-    label_y = np.array([f'{_*100}' for _ in min_range])
+    # label_x = np.array([f'{_*100}' for _ in max_range])
+    # label_y = np.array([f'{_*100}' for _ in min_range])
+    label_x = np.array([_ * 100 for _ in max_range])
+    label_y = np.array([_ * 100 for _ in min_range])
 
     # Rearrange in ascending order
     ind_sort_x = np.argsort(max_range)
     ind_sort_y = np.argsort(min_range)
 
-    axs_flat = axs.flat
+    if eta_index is not None:
+        plot_indexes = [eta_index]
+    else:
+        plot_indexes = range(num_z)
 
-    for idx_z in range(num_z):
+    for idx_z in plot_indexes:
         sorted_checkerboard = checkerboard[:, :, idx_z]
         sorted_checkerboard = sorted_checkerboard[ind_sort_x, :]
         sorted_checkerboard = sorted_checkerboard[:, ind_sort_y]
         # Note the transpose
         sorted_checkerboard = sorted_checkerboard.T
 
-        ax = axs_flat[idx_z]
+        if axs_flat is not None:
+            ax = axs_flat[idx_z]
+
         im = ax.imshow(sorted_checkerboard, origin='lower', cmap='RdYlBu_r')  # pylint: disable=invalid-name
         ax.set_title(f'E <= EF+{idx_z}eV (meV)')
         ax.set_xticks(range(len(label_x)))
