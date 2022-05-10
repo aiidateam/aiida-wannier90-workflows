@@ -1,7 +1,7 @@
-# -*- coding: utf-8 -*-
-import math
-import numpy as np
 from collections import defaultdict
+import math
+
+import numpy as np
 
 
 def get_prime_factors(number):
@@ -84,7 +84,9 @@ def grid_set_vectorized(bg, gcut, nr1, nr2, nr3):
     Approximately 16x faster.
     """
     # calculate moduli of G vectors and the range of indices where |G|^2 < gcut
-    indices = np.meshgrid(range(-nr1, nr1 + 1), range(-nr2, nr2 + 1), range(-nr3, nr3 + 1))
+    indices = np.meshgrid(
+        range(-nr1, nr1 + 1), range(-nr2, nr2 + 1), range(-nr3, nr3 + 1)
+    )
     indices = np.array(indices)
     vectors = np.tensordot(indices, bg, axes=(0, 0))
     norms = np.linalg.norm(vectors, axis=-1)
@@ -113,7 +115,7 @@ def get_smooth_grid_internal(wfc_cutoff_ry, max_kpt, cell_ang):
 
     # this is sqrt(gcutw), in a sense
     # I use: hbar^2 /2 / electron mass  in angstrom^2 * eV = 3.80998208
-    k_radius_inv_angstrom = np.sqrt(wfc_cutoff_eV / 3.80998208) / 2. / math.pi
+    k_radius_inv_angstrom = np.sqrt(wfc_cutoff_eV / 3.80998208) / 2.0 / math.pi
     # Factor 1/2pi to get in units of 2pi/ang
 
     # kcut in the code is the max norm of kpoints, that we get here from the
@@ -182,7 +184,7 @@ def get_dense_grid_internal(rho_cutoff_ry, cell_ang):
 
     # this is sqrt(gcutm), in a sense
     # I use: hbar^2 /2 / electron mass  in angstrom^2 * eV = 3.80998208
-    k_radius_inv_angstrom = np.sqrt(rho_cutoff_eV / 3.80998208) / 2. / math.pi
+    k_radius_inv_angstrom = np.sqrt(rho_cutoff_eV / 3.80998208) / 2.0 / math.pi
     # Factor 1/2pi to get in units of 2pi/ang
 
     # in init_dimensions (data_structure.f90):
@@ -214,7 +216,9 @@ def get_dense_grid_internal(rho_cutoff_ry, cell_ang):
 
 def get_actual_max_kpt(calc):
     # Need to check the grid of the SCF, not of the bands
-    kpoints_rel = calc.inputs.parent_folder.creator.outputs.output_band.get_array('kpoints')
+    kpoints_rel = calc.inputs.parent_folder.creator.outputs.output_band.get_array(
+        "kpoints"
+    )
     rec_cell = np.linalg.inv(calc.inputs.structure.cell).T  # In units of 2pi/ang
     kpoints_abs = np.matmul(kpoints_rel, rec_cell)
     return np.sqrt((kpoints_abs**2).sum(axis=1)).max()
@@ -226,11 +230,11 @@ def get_uniform_grid(n1, n2, n3, shift1=False, shift2=False, shift3=False):
     dir2 = np.linspace(0, 1, n2, endpoint=False)
     dir3 = np.linspace(0, 1, n3, endpoint=False)
     if shift1:
-        dir1 += 1. / n1 / 2.
+        dir1 += 1.0 / n1 / 2.0
     if shift2:
-        dir2 += 1. / n2 / 2.
+        dir2 += 1.0 / n2 / 2.0
     if shift3:
-        dir3 += 1. / n3 / 2.
+        dir3 += 1.0 / n3 / 2.0
 
     dir1v, dir2v, dir3v = np.meshgrid(dir1, dir2, dir3)
 
@@ -244,7 +248,7 @@ def get_predicted_max_kpt(structure):
     kpoints_rel = get_uniform_grid(10, 10, 10)
 
     # Move values from the range [0,1[ to the range [-0.5, 0.5[
-    kpoints_rel = ((kpoints_rel + 0.5) % 1.) - 0.5
+    kpoints_rel = ((kpoints_rel + 0.5) % 1.0) - 0.5
     rec_cell = np.linalg.inv(structure.cell).T  # In units of 2pi/ang
     kpoints_abs = np.matmul(kpoints_rel, rec_cell)
     return np.sqrt((kpoints_abs**2).sum(axis=1)).max()
@@ -266,41 +270,105 @@ def predict_dense_grid(structure, ecutrho):
 
 def compare_grid(calc):
     structure = calc.inputs.structure
-    print('**', calc.pk)
+    print("**", calc.pk)
 
-    #actual_ecutwfc = calc.inputs.parameters.dict.SYSTEM['ecutwfc']
-    #predicted_ecutwfc = get_cutoffs(structure, 'SSSP/v1.1/efficiency/PBE')[0]
-    #print("  ACTUAL vs PREDICTED ECUTWFC:", actual_ecutwfc, predicted_ecutwfc)
+    # actual_ecutwfc = calc.inputs.parameters.dict.SYSTEM['ecutwfc']
+    # predicted_ecutwfc = get_cutoffs(structure, 'SSSP/v1.1/efficiency/PBE')[0]
+    # print("  ACTUAL vs PREDICTED ECUTWFC:", actual_ecutwfc, predicted_ecutwfc)
 
     actual_max_kpt = get_actual_max_kpt(calc)
     predicted_max_kpt = get_predicted_max_kpt(structure)
-    print('  ACTUAL vs PREDICTED MAX_KPT:', actual_max_kpt, predicted_max_kpt)
+    print("  ACTUAL vs PREDICTED MAX_KPT:", actual_max_kpt, predicted_max_kpt)
 
     actual_grid = calc.res.smooth_fft_grid
     predicted_grid = predict_smooth_grid(structure)
-    print('  ACTUAL vs PREDICTED GRID:', actual_grid, predicted_grid)
-    return (np.prod(predicted_grid) / np.prod(actual_grid))
+    print("  ACTUAL vs PREDICTED GRID:", actual_grid, predicted_grid)
+    return np.prod(predicted_grid) / np.prod(actual_grid)
 
 
 def test_get_dense_grid_internal():
-    cell_ang = np.array([[0.0000000000, 2.8400940897, 2.8400940897], [2.8400940897, 0.0000000000, 2.8400940897],
-                         [2.8400940897, 2.8400940897, 0.0000000000]])
+    cell_ang = np.array(
+        [
+            [0.0000000000, 2.8400940897, 2.8400940897],
+            [2.8400940897, 0.0000000000, 2.8400940897],
+            [2.8400940897, 2.8400940897, 0.0000000000],
+        ]
+    )
     rho_cutoff_ry = 280
     for i in range(20):
         get_dense_grid_internal(rho_cutoff_ry, cell_ang)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
 
     # test_get_dense_grid_internal()
 
     from aiida.orm import load_node
+
     pks = [
-        142016, 183805, 183884, 184002, 183926, 184078, 183811, 184023, 183978, 183891, 184296, 184144, 183872, 184493,
-        184100, 183941, 184121, 183935, 184032, 183914, 184471, 184050, 184396, 187927, 184208, 184373, 184173, 198863,
-        184535, 188705, 184555, 184365, 184600, 184202, 201441, 184509, 184756, 184447, 185122, 184840, 185046, 185134,
-        184826, 185036, 185501, 184750, 184895, 185273, 184732, 185017, 189199, 184976, 184561, 185031, 185608, 184772,
-        185596, 184762, 184948, 185561, 185113, 185642, 187992
+        142016,
+        183805,
+        183884,
+        184002,
+        183926,
+        184078,
+        183811,
+        184023,
+        183978,
+        183891,
+        184296,
+        184144,
+        183872,
+        184493,
+        184100,
+        183941,
+        184121,
+        183935,
+        184032,
+        183914,
+        184471,
+        184050,
+        184396,
+        187927,
+        184208,
+        184373,
+        184173,
+        198863,
+        184535,
+        188705,
+        184555,
+        184365,
+        184600,
+        184202,
+        201441,
+        184509,
+        184756,
+        184447,
+        185122,
+        184840,
+        185046,
+        185134,
+        184826,
+        185036,
+        185501,
+        184750,
+        184895,
+        185273,
+        184732,
+        185017,
+        189199,
+        184976,
+        184561,
+        185031,
+        185608,
+        184772,
+        185596,
+        184762,
+        184948,
+        185561,
+        185113,
+        185642,
+        187992,
     ]
 
     ratios = {}

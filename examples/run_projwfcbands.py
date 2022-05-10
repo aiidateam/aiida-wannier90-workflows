@@ -1,15 +1,15 @@
 #!/usr/bin/env runaiida
-# -*- coding: utf-8 -*-
 """Launch a projected bands workflow."""
 from aiida import orm
 from aiida.engine import submit
-from aiida_wannier90_workflows.workflows import ProjwfcBandsWorkChain
+
 from aiida_wannier90_workflows.utils.workflows.builder import print_builder
+from aiida_wannier90_workflows.workflows import ProjwfcBandsWorkChain
 
 # pylint: disable=invalid-name,undefined-variable
 
-pw_code = 'qe-git-pw@localhost'
-projwfc_code = 'qe-git-projwfc@localhost'
+pw_code = "qe-git-pw@localhost"
+projwfc_code = "qe-git-projwfc@localhost"
 
 # pw_code = 'qe-git-pw@prnmarvelcompute5'
 # projwfc_code = 'qe-git-projwfc@prnmarvelcompute5'
@@ -25,4 +25,4 @@ print_builder(builder)
 
 wkchain = submit(builder)
 
-print(f'Submitted workflow<{wkchain.pk}> for {structure.get_formula()}')
+print(f"Submitted workflow<{wkchain.pk}> for {structure.get_formula()}")

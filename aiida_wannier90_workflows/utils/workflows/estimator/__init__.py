@@ -1,12 +1,14 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """Storage estimators for files related to wannier90."""
-import typing as ty
-from dataclasses import dataclass
 from collections import namedtuple
+from dataclasses import dataclass
+import typing as ty
+
 import numpy as np
+
 # import numpy.typing as npt
 from aiida import orm
+
 from aiida_wannier90_workflows.common.types import WannierFileFormat
 
 # pylint: disable=too-many-lines
@@ -34,7 +36,7 @@ def estimate_amn(
     num_bands: int,
     num_wann: int,
     num_kpts: int,
-    file_format: WannierFileFormat = WannierFileFormat.FORTRAN_FORMATTED
+    file_format: WannierFileFormat = WannierFileFormat.FORTRAN_FORMATTED,
 ) -> int:
     """Estimate file size of seedname.amn.
 
@@ -56,7 +58,9 @@ def estimate_amn(
         # 2nd line
         total_size += 12 * 3 + _SIZE_LINE_FEED
         # data
-        total_size += (5 * 3 + 18 * 2 + _SIZE_LINE_FEED) * num_bands * num_wann * num_kpts
+        total_size += (
+            (5 * 3 + 18 * 2 + _SIZE_LINE_FEED) * num_bands * num_wann * num_kpts
+        )
         return total_size
 
     if file_format == WannierFileFormat.FORTRAN_UNFORMATTED:
@@ -65,17 +69,22 @@ def estimate_amn(
         # 2nd line
         total_size += _SIZE_INTEGER * 3 + _SIZE_RECORD_OVERHEAD
         # data
-        total_size += (_SIZE_INTEGER * 3 + _SIZE_COMPLEX_DP + _SIZE_RECORD_OVERHEAD) * num_bands * num_wann * num_kpts
+        total_size += (
+            (_SIZE_INTEGER * 3 + _SIZE_COMPLEX_DP + _SIZE_RECORD_OVERHEAD)
+            * num_bands
+            * num_wann
+            * num_kpts
+        )
         return total_size
 
-    raise ValueError(f'Not supported type {file_format}')
+    raise ValueError(f"Not supported type {file_format}")
 
 
 def estimate_mmn(
     num_bands: int,
     num_kpts: int,
     nntot: int,
-    file_format: WannierFileFormat = WannierFileFormat.FORTRAN_FORMATTED
+    file_format: WannierFileFormat = WannierFileFormat.FORTRAN_FORMATTED,
 ) -> int:
     """Estimate file size of seedname.mmn.
 
@@ -111,14 +120,21 @@ def estimate_mmn(
         # record for ik, ikp, (g_kpb(ipol,ik,ib), ipol=1,3)
         total_size += (_SIZE_INTEGER * 5 + _SIZE_RECORD_OVERHEAD) * num_kpts * nntot
         # record for MMN
-        total_size += (_SIZE_COMPLEX_DP + _SIZE_RECORD_OVERHEAD) * num_bands**2 * num_kpts * nntot
+        total_size += (
+            (_SIZE_COMPLEX_DP + _SIZE_RECORD_OVERHEAD)
+            * num_bands**2
+            * num_kpts
+            * nntot
+        )
         return total_size
 
-    raise ValueError(f'Not supported type {file_format}')
+    raise ValueError(f"Not supported type {file_format}")
 
 
 def estimate_eig(
-    num_bands: int, num_kpts: int, file_format: WannierFileFormat = WannierFileFormat.FORTRAN_FORMATTED
+    num_bands: int,
+    num_kpts: int,
+    file_format: WannierFileFormat = WannierFileFormat.FORTRAN_FORMATTED,
 ) -> int:
     """Estimate file size of seedname.mmn.
 
@@ -138,10 +154,14 @@ def estimate_eig(
         return total_size
 
     if file_format == WannierFileFormat.FORTRAN_UNFORMATTED:
-        total_size = (_SIZE_INTEGER * 2 + _SIZE_REAL_DP + _SIZE_RECORD_OVERHEAD) * num_bands * num_kpts
+        total_size = (
+            (_SIZE_INTEGER * 2 + _SIZE_REAL_DP + _SIZE_RECORD_OVERHEAD)
+            * num_bands
+            * num_kpts
+        )
         return total_size
 
-    raise ValueError(f'Not supported type {file_format}')
+    raise ValueError(f"Not supported type {file_format}")
 
 
 def estimate_unk(
@@ -151,7 +171,7 @@ def estimate_unk(
     num_bands: int,
     num_kpts: int,
     reduce_unk: bool,
-    file_format: WannierFileFormat = WannierFileFormat.FORTRAN_FORMATTED
+    file_format: WannierFileFormat = WannierFileFormat.FORTRAN_FORMATTED,
 ) -> int:
     """Estimate total file size of all the UNK* files.
 
@@ -173,17 +193,23 @@ def estimate_unk(
         # header
         total_size = (12 * 5 + _SIZE_LINE_FEED) * num_kpts
         # data
-        total_size += (20 * 2 + _SIZE_LINE_FEED) * nr1 * nr2 * nr3 * num_bands * num_kpts
+        total_size += (
+            (20 * 2 + _SIZE_LINE_FEED) * nr1 * nr2 * nr3 * num_bands * num_kpts
+        )
         return total_size
 
     if file_format == WannierFileFormat.FORTRAN_UNFORMATTED:
         # header
         total_size = (_SIZE_INTEGER * 5 + _SIZE_RECORD_OVERHEAD) * num_kpts
         # data
-        total_size += (_SIZE_COMPLEX_DP * nr1 * nr2 * nr3 + _SIZE_RECORD_OVERHEAD) * num_bands * num_kpts
+        total_size += (
+            (_SIZE_COMPLEX_DP * nr1 * nr2 * nr3 + _SIZE_RECORD_OVERHEAD)
+            * num_bands
+            * num_kpts
+        )
         return total_size
 
-    raise ValueError(f'Not supported type {file_format}')
+    raise ValueError(f"Not supported type {file_format}")
 
 
 @dataclass(order=True)
@@ -233,7 +259,7 @@ def estimate_chk(
     num_kpts: int,
     nntot: int,
     have_disentangled: bool,
-    file_format: WannierFileFormat = WannierFileFormat.FORTRAN_FORMATTED
+    file_format: WannierFileFormat = WannierFileFormat.FORTRAN_FORMATTED,
 ) -> int:
     """Estimate total file size of all the UNK* files.
 
@@ -251,9 +277,13 @@ def estimate_chk(
         # header
         total_size = _SIZE_CHARACTER * 33 + _SIZE_LINE_FEED
         # num_bands
-        total_size += _SIZE_CHARACTER * get_number_of_digits(num_bands) + _SIZE_LINE_FEED
+        total_size += (
+            _SIZE_CHARACTER * get_number_of_digits(num_bands) + _SIZE_LINE_FEED
+        )
         # num_exclude_bands
-        total_size += _SIZE_CHARACTER * get_number_of_digits(num_bands) + _SIZE_LINE_FEED
+        total_size += (
+            _SIZE_CHARACTER * get_number_of_digits(num_bands) + _SIZE_LINE_FEED
+        )
         # exclude_bands(num_exclude_bands), this is not exact, to be accurate I nned the exclude_bands
         total_size += (_SIZE_CHARACTER + _SIZE_LINE_FEED) * num_exclude_bands
         # real_lattice
@@ -286,7 +316,9 @@ def estimate_chk(
         # u_matrix
         total_size += (25 * 2 + _SIZE_LINE_FEED) * num_wann * num_wann * num_kpts
         # m_matrix
-        total_size += (25 * 2 + _SIZE_LINE_FEED) * num_wann * num_wann * nntot * num_kpts
+        total_size += (
+            (25 * 2 + _SIZE_LINE_FEED) * num_wann * num_wann * nntot * num_kpts
+        )
         # wannier_centres
         total_size += (25 * 3 + _SIZE_LINE_FEED) * num_wann
         # wannier_spreads
@@ -328,18 +360,26 @@ def estimate_chk(
             # ndimwin
             total_size += _SIZE_INTEGER * num_kpts + _SIZE_RECORD_OVERHEAD
             # u_matrix_opt
-            total_size += _SIZE_COMPLEX_DP * num_bands * num_wann * num_kpts + _SIZE_RECORD_OVERHEAD
+            total_size += (
+                _SIZE_COMPLEX_DP * num_bands * num_wann * num_kpts
+                + _SIZE_RECORD_OVERHEAD
+            )
         # u_matrix
-        total_size += _SIZE_COMPLEX_DP * num_wann * num_wann * num_kpts + _SIZE_RECORD_OVERHEAD
+        total_size += (
+            _SIZE_COMPLEX_DP * num_wann * num_wann * num_kpts + _SIZE_RECORD_OVERHEAD
+        )
         # m_matrix
-        total_size += _SIZE_COMPLEX_DP * num_wann * num_wann * nntot * num_kpts + _SIZE_RECORD_OVERHEAD
+        total_size += (
+            _SIZE_COMPLEX_DP * num_wann * num_wann * nntot * num_kpts
+            + _SIZE_RECORD_OVERHEAD
+        )
         # wannier_centres
         total_size += _SIZE_REAL_DP * 3 * num_wann + _SIZE_RECORD_OVERHEAD
         # wannier_spreads
         total_size += _SIZE_REAL_DP * num_wann + _SIZE_RECORD_OVERHEAD
         return total_size
 
-    raise ValueError(f'Not supported type {file_format}')
+    raise ValueError(f"Not supported type {file_format}")
 
 
 # This is not working
@@ -382,7 +422,7 @@ def get_nrpts_ndegen(cell: np.array, mp_grid: ty.Sequence[int]) -> int:
 
     # Wannier90 default
     ws_search_size = 2
-    ws_distance_tol = 1.e-5
+    ws_distance_tol = 1.0e-5
 
     # Get the WS cell of the supercell
     supercell = cell * np.array(mp_grid)
@@ -403,7 +443,10 @@ def get_nrpts_ndegen(cell: np.array, mp_grid: ty.Sequence[int]) -> int:
     # Count number of True
     nrpts = np.sum(is_in_wscell)
 
-    is_degen = np.abs(dist[is_in_wscell, :] - dist_min[is_in_wscell, np.newaxis]) < ws_distance_tol
+    is_degen = (
+        np.abs(dist[is_in_wscell, :] - dist_min[is_in_wscell, np.newaxis])
+        < ws_distance_tol
+    )
     ndegen = np.sum(is_degen, axis=1)
 
     return nrpts, ndegen
@@ -419,18 +462,112 @@ def test_get_nrpts_ndegen():
     # mp_grid = [2, 3, 4]
 
     # cell = np.eye(3)
-    cell = np.array([[-2.69880000000000, 0.000000000000000E+000, 2.69880000000000],
-                     [0.000000000000000E+000, 2.69880000000000, 2.69880000000000],
-                     [-2.69880000000000, 2.69880000000000, 0.000000000000000E+00]])
+    cell = np.array(
+        [
+            [-2.69880000000000, 0.000000000000000e000, 2.69880000000000],
+            [0.000000000000000e000, 2.69880000000000, 2.69880000000000],
+            [-2.69880000000000, 2.69880000000000, 0.000000000000000e00],
+        ]
+    )
     mp_grid = [4, 4, 4]
 
     nrpts, ndegen = get_nrpts_ndegen(cell, mp_grid)
 
     nrpts_ref = 93
     ndegen_ref = [
-        4, 6, 2, 2, 2, 1, 2, 2, 1, 1, 2, 6, 2, 2, 2, 6, 2, 2, 4, 1, 1, 1, 4, 1, 1, 1, 1, 2, 1, 1, 1, 2, 2, 1, 1, 2, 4,
-        2, 1, 2, 1, 1, 1, 1, 2, 1, 1, 1, 2, 1, 1, 1, 1, 2, 1, 2, 4, 2, 1, 1, 2, 2, 1, 1, 1, 2, 1, 1, 1, 1, 4, 1, 1, 1,
-        4, 2, 2, 6, 2, 2, 2, 6, 2, 1, 1, 2, 2, 1, 2, 2, 2, 6, 4
+        4,
+        6,
+        2,
+        2,
+        2,
+        1,
+        2,
+        2,
+        1,
+        1,
+        2,
+        6,
+        2,
+        2,
+        2,
+        6,
+        2,
+        2,
+        4,
+        1,
+        1,
+        1,
+        4,
+        1,
+        1,
+        1,
+        1,
+        2,
+        1,
+        1,
+        1,
+        2,
+        2,
+        1,
+        1,
+        2,
+        4,
+        2,
+        1,
+        2,
+        1,
+        1,
+        1,
+        1,
+        2,
+        1,
+        1,
+        1,
+        2,
+        1,
+        1,
+        1,
+        1,
+        2,
+        1,
+        2,
+        4,
+        2,
+        1,
+        1,
+        2,
+        2,
+        1,
+        1,
+        1,
+        2,
+        1,
+        1,
+        1,
+        1,
+        4,
+        1,
+        1,
+        1,
+        4,
+        2,
+        2,
+        6,
+        2,
+        2,
+        2,
+        6,
+        2,
+        1,
+        1,
+        2,
+        2,
+        1,
+        2,
+        2,
+        2,
+        6,
+        4,
     ]
 
     assert nrpts == nrpts_ref
@@ -569,7 +706,7 @@ def estimate_xsf(
     nr2: int,
     nr3: int,
     reduce_unk: bool = False,
-    wannier_plot_supercell: int = 2
+    wannier_plot_supercell: int = 2,
 ) -> int:
     """Estimate seedname_0000*.xsf file size.
 
@@ -640,7 +777,9 @@ def estimate_xsf(
     return total_size
 
 
-def get_number_of_nearest_neighbors(recip_lattice: np.array, kmesh: ty.List[int]) -> int:
+def get_number_of_nearest_neighbors(
+    recip_lattice: np.array, kmesh: ty.List[int]
+) -> int:
     """Find the number of nearest neighors.
 
     :param recip_lattice: reciprocal lattice, 3x3, each row is a lattice vector
@@ -684,45 +823,45 @@ def get_number_of_nearest_neighbors(recip_lattice: np.array, kmesh: ty.List[int]
 
 
 WannierFileSize = namedtuple(
-    'WannierFileSize',
+    "WannierFileSize",
     [
         # files
-        'amn',
-        'mmn',
-        'eig',
-        'unk',
-        'unk_reduce',
-        'chk',
+        "amn",
+        "mmn",
+        "eig",
+        "unk",
+        "unk_reduce",
+        "chk",
         # files for Hamiltonian
-        'centres_xyz',
-        'hr_dat',
-        'r_dat',
-        'wsvec_dat',
-        'tb_dat',
-        'xsf',
-        'xsf_reduce',
-        'xsf_supercell3',
-        'xsf_reduce_supercell3',
+        "centres_xyz",
+        "hr_dat",
+        "r_dat",
+        "wsvec_dat",
+        "tb_dat",
+        "xsf",
+        "xsf_reduce",
+        "xsf_supercell3",
+        "xsf_reduce_supercell3",
         # 'cube',
         # parameters
-        'structure',  # formula
-        'structure_pk',
-        'num_bands',
-        'num_exclude_bands',
-        'num_wann',
-        'num_kpts',
-        'nntot',
-        'nr1',
-        'nr2',
-        'nr3',
-        'nrpts',
-    ]
+        "structure",  # formula
+        "structure_pk",
+        "num_bands",
+        "num_exclude_bands",
+        "num_wann",
+        "num_kpts",
+        "nntot",
+        "nr1",
+        "nr2",
+        "nr3",
+        "nrpts",
+    ],
 )
 
 
 def estimate_workflow(  # pylint: disable=too-many-statements
     structure: orm.StructureData,
-    file_format: WannierFileFormat = WannierFileFormat.FORTRAN_FORMATTED
+    file_format: WannierFileFormat = WannierFileFormat.FORTRAN_FORMATTED,
 ) -> WannierFileSize:
     """Estimate AMN/MMN/EIG/UNK/CHK file sizes of a structure.
 
@@ -735,34 +874,46 @@ def estimate_workflow(  # pylint: disable=too-many-statements
     :return: [description]
     :rtype: WannierFileSize
     """
-    from aiida.plugins import GroupFactory
     from aiida.common import exceptions
-    from aiida_wannier90_workflows.utils.pseudo import (
-        get_wannier_number_of_bands, get_number_of_projections, get_pseudo_orbitals, get_semicore_list
-    )
+    from aiida.plugins import GroupFactory
+
     from aiida_wannier90_workflows.utils.kpoints import create_kpoints_from_distance
-    from aiida_wannier90_workflows.utils.workflows.estimator.predict_smooth_grid import predict_smooth_grid
+    from aiida_wannier90_workflows.utils.pseudo import (
+        get_number_of_projections,
+        get_pseudo_orbitals,
+        get_semicore_list,
+        get_wannier_number_of_bands,
+    )
+    from aiida_wannier90_workflows.utils.workflows.estimator.predict_smooth_grid import (
+        predict_smooth_grid,
+    )
 
-    SsspFamily = GroupFactory('pseudo.family.sssp')
-    PseudoDojoFamily = GroupFactory('pseudo.family.pseudo_dojo')
-    CutoffsPseudoPotentialFamily = GroupFactory('pseudo.family.cutoffs')
+    SsspFamily = GroupFactory("pseudo.family.sssp")
+    PseudoDojoFamily = GroupFactory("pseudo.family.pseudo_dojo")
+    CutoffsPseudoPotentialFamily = GroupFactory("pseudo.family.cutoffs")
 
-    pseudo_family = 'SSSP/1.1/PBE/efficiency'
+    pseudo_family = "SSSP/1.1/PBE/efficiency"
     try:
         pseudo_set = (PseudoDojoFamily, SsspFamily, CutoffsPseudoPotentialFamily)
-        pseudo_family = orm.QueryBuilder().append(pseudo_set, filters={'label': pseudo_family}).one()[0]
+        pseudo_family = (
+            orm.QueryBuilder()
+            .append(pseudo_set, filters={"label": pseudo_family})
+            .one()[0]
+        )
     except exceptions.NotExistent as exception:
         raise ValueError(
-            f'required pseudo family `{pseudo_family}` is not installed. Please use `aiida-pseudo install` to'
-            'install it.'
+            f"required pseudo family `{pseudo_family}` is not installed. Please use `aiida-pseudo install` to"
+            "install it."
         ) from exception
     pseudos = pseudo_family.get_pseudos(structure=structure)
 
     try:
-        cutoff_wfc, cutoff_rho = pseudo_family.get_recommended_cutoffs(structure=structure, unit='Ry')  # pylint: disable=unused-variable
+        cutoff_wfc, cutoff_rho = pseudo_family.get_recommended_cutoffs(
+            structure=structure, unit="Ry"
+        )  # pylint: disable=unused-variable
     except ValueError as exception:
         raise ValueError(
-            f'failed to obtain recommended cutoffs for pseudo family `{pseudo_family}`: {exception}'
+            f"failed to obtain recommended cutoffs for pseudo family `{pseudo_family}`: {exception}"
         ) from exception
 
     nbands_factor = 2.0
@@ -772,7 +923,7 @@ def estimate_workflow(  # pylint: disable=too-many-statements
         factor=nbands_factor,
         only_valence=False,
         spin_polarized=False,
-        spin_orbit_coupling=False
+        spin_orbit_coupling=False,
     )
 
     pseudo_orbitals = get_pseudo_orbitals(pseudos)
@@ -808,14 +959,35 @@ def estimate_workflow(  # pylint: disable=too-many-statements
     # print(f"{nr3=}")
     # print(f"{num_exclude_bands=}")
 
-    amn_size = estimate_amn(num_bands=num_bands, num_wann=num_wann, num_kpts=num_kpts, file_format=file_format)
-    mmn_size = estimate_mmn(num_bands=num_bands, num_kpts=num_kpts, nntot=nntot, file_format=file_format)
-    eig_size = estimate_eig(num_bands=num_bands, num_kpts=num_kpts, file_format=file_format)
+    amn_size = estimate_amn(
+        num_bands=num_bands,
+        num_wann=num_wann,
+        num_kpts=num_kpts,
+        file_format=file_format,
+    )
+    mmn_size = estimate_mmn(
+        num_bands=num_bands, num_kpts=num_kpts, nntot=nntot, file_format=file_format
+    )
+    eig_size = estimate_eig(
+        num_bands=num_bands, num_kpts=num_kpts, file_format=file_format
+    )
     unk_size = estimate_unk(
-        nr1=nr1, nr2=nr2, nr3=nr3, num_bands=num_bands, num_kpts=num_kpts, reduce_unk=False, file_format=file_format
+        nr1=nr1,
+        nr2=nr2,
+        nr3=nr3,
+        num_bands=num_bands,
+        num_kpts=num_kpts,
+        reduce_unk=False,
+        file_format=file_format,
     )
     unk_reduce = estimate_unk(
-        nr1=nr1, nr2=nr2, nr3=nr3, num_bands=num_bands, num_kpts=num_kpts, reduce_unk=True, file_format=file_format
+        nr1=nr1,
+        nr2=nr2,
+        nr3=nr3,
+        num_bands=num_bands,
+        num_kpts=num_kpts,
+        reduce_unk=True,
+        file_format=file_format,
     )
     # default chk is unformatted
     chk_size = estimate_chk(
@@ -826,7 +998,7 @@ def estimate_workflow(  # pylint: disable=too-many-statements
         nntot=nntot,
         have_disentangled=True,
         # file_format=WannierFileFormat.FORTRAN_UNFORMATTED
-        file_format=file_format
+        file_format=file_format,
     )
 
     nrpts, _ = get_nrpts_ndegen(structure.cell, kmesh)
@@ -877,7 +1049,9 @@ def estimate_workflow(  # pylint: disable=too-many-statements
     return sizes
 
 
-def estimate_structure_group(group: ty.Union[orm.Group, str], hdf_file: str, file_format: WannierFileFormat):
+def estimate_structure_group(
+    group: ty.Union[orm.Group, str], hdf_file: str, file_format: WannierFileFormat
+):
     """Estimate AMN/MMN/EIG/UNK/CHK file sizes of all the structures in a group.
 
     :param group: the group containing all the structures to be estimated.
@@ -897,7 +1071,7 @@ def estimate_structure_group(group: ty.Union[orm.Group, str], hdf_file: str, fil
     results = []
     for i, structure in enumerate(group.nodes):
         size = estimate_workflow(structure, file_format)
-        print(f'{i+1}/{num_total}', size)
+        print(f"{i+1}/{num_total}", size)
         results.append(size)
 
     store = pd.HDFStore(hdf_file)
@@ -905,13 +1079,13 @@ def estimate_structure_group(group: ty.Union[orm.Group, str], hdf_file: str, fil
     # print(df)
 
     # save it
-    store['df'] = df
+    store["df"] = df
     store.close()
 
     print(f'Estimation for structure group "{group.label}" stored in {hdf_file}')
 
 
-def human_readable_size(num: int, suffix: str = 'B') -> str:
+def human_readable_size(num: int, suffix: str = "B") -> str:
     """Return a human-readable file size for a given file size in bytes.
 
     :param num: file size, in bytes.
@@ -921,11 +1095,11 @@ def human_readable_size(num: int, suffix: str = 'B') -> str:
     :return: human-readable file size, e.g. 2.2MiB.
     :rtype: str
     """
-    for unit in ['', 'Ki', 'Mi', 'Gi', 'Ti', 'Pi', 'Ei', 'Zi']:
+    for unit in ["", "Ki", "Mi", "Gi", "Ti", "Pi", "Ei", "Zi"]:
         if abs(num) < 1024.0:
-            return f'{num:3.1f}{unit}{suffix}'
+            return f"{num:3.1f}{unit}{suffix}"
         num /= 1024.0
-    return f'{num:.1f}Yi{suffix}'
+    return f"{num:.1f}Yi{suffix}"
 
 
 def print_estimation(hdf_file: str):
@@ -936,32 +1110,46 @@ def print_estimation(hdf_file: str):
     :raises ValueError: [description]
     """
     import os.path
+
     import pandas as pd
     from tabulate import tabulate
 
     if not os.path.exists(hdf_file):
-        raise ValueError(f'File not existed: {hdf_file}')
+        raise ValueError(f"File not existed: {hdf_file}")
 
     store = pd.HDFStore(hdf_file)
 
     # load it
-    df = store['df']
+    df = store["df"]
     store.close()
 
     num_structures = len(df)
-    print(f'{num_structures=}')
+    print(f"{num_structures=}")
 
     total = np.sum(df.amn) + np.sum(df.mmn) + np.sum(df.eig) + np.sum(df.chk)
-    print(f'total_w/o_unk={human_readable_size(total)}')
+    print(f"total_w/o_unk={human_readable_size(total)}")
     total += np.sum(df.unk)
-    print(f'total_w/_unk={human_readable_size(total)}')
+    print(f"total_w/_unk={human_readable_size(total)}")
     print()
 
-    headers = ['file', 'min', 'max', 'average', 'total']
+    headers = ["file", "min", "max", "average", "total"]
     table = []
     for key in [
-        'amn', 'mmn', 'eig', 'unk', 'unk_reduce', 'chk', 'centres_xyz', 'hr_dat', 'r_dat', 'wsvec_dat', 'tb_dat', 'xsf',
-        'xsf_reduce', 'xsf_supercell3', 'xsf_reduce_supercell3'
+        "amn",
+        "mmn",
+        "eig",
+        "unk",
+        "unk_reduce",
+        "chk",
+        "centres_xyz",
+        "hr_dat",
+        "r_dat",
+        "wsvec_dat",
+        "tb_dat",
+        "xsf",
+        "xsf_reduce",
+        "xsf_supercell3",
+        "xsf_reduce_supercell3",
     ]:
         minval = human_readable_size(min(df[key]))
         maxval = human_readable_size(max(df[key]))
@@ -971,15 +1159,21 @@ def print_estimation(hdf_file: str):
     print(tabulate(table, headers))
     print()
 
-    print('Estimation for saving Wannier Hamiltonian')
-    scheme_minimum = ['hr_dat', 'wsvec_dat', 'centres_xyz']
-    scheme_medium1 = ['hr_dat', 'wsvec_dat', 'r_dat']
-    scheme_medium2 = ['tb_dat', 'wsvec_dat']
-    scheme_medium3 = ['tb_dat', 'wsvec_dat', 'xsf_reduce']
-    scheme_maximum = ['tb_dat', 'wsvec_dat', 'xsf']
-    headers = ['files', 'min', 'max', 'average', 'total']
+    print("Estimation for saving Wannier Hamiltonian")
+    scheme_minimum = ["hr_dat", "wsvec_dat", "centres_xyz"]
+    scheme_medium1 = ["hr_dat", "wsvec_dat", "r_dat"]
+    scheme_medium2 = ["tb_dat", "wsvec_dat"]
+    scheme_medium3 = ["tb_dat", "wsvec_dat", "xsf_reduce"]
+    scheme_maximum = ["tb_dat", "wsvec_dat", "xsf"]
+    headers = ["files", "min", "max", "average", "total"]
     table = []
-    for scheme in [scheme_minimum, scheme_medium1, scheme_medium2, scheme_medium3, scheme_maximum]:
+    for scheme in [
+        scheme_minimum,
+        scheme_medium1,
+        scheme_medium2,
+        scheme_medium3,
+        scheme_maximum,
+    ]:
         total_size = np.zeros_like(df[scheme[0]], dtype=int)
         for key in scheme:
             total_size += df[key]
@@ -987,13 +1181,22 @@ def print_estimation(hdf_file: str):
         maxval = human_readable_size(max(total_size))
         average = human_readable_size(np.average(total_size))
         total = human_readable_size(np.sum(total_size))
-        table.append(['+'.join(scheme), minval, maxval, average, total])
+        table.append(["+".join(scheme), minval, maxval, average, total])
     print(tabulate(table, headers))
     print()
 
-    headers = ['param', 'min', 'max', 'average']
+    headers = ["param", "min", "max", "average"]
     table = []
-    for key in ['num_bands', 'num_exclude_bands', 'num_wann', 'num_kpts', 'nr1', 'nr2', 'nr3', 'nrpts']:
+    for key in [
+        "num_bands",
+        "num_exclude_bands",
+        "num_wann",
+        "num_kpts",
+        "nr1",
+        "nr2",
+        "nr3",
+        "nrpts",
+    ]:
         minval = min(df[key])
         maxval = max(df[key])
         average = np.average(df[key])
@@ -1009,9 +1212,10 @@ def plot_histogram(hdf_file: str):
     :raises ValueError: [description]
     """
     import os.path
-    import pandas as pd
-    import matplotlib.pyplot as plt
+
     from ase.formula import Formula
+    import matplotlib.pyplot as plt
+    import pandas as pd
 
     def get_num_bins(x, step):
         """Calculate number of bins in histogram."""
@@ -1036,15 +1240,15 @@ def plot_histogram(hdf_file: str):
     get_num_atoms = lambda _: len(Formula(_))
 
     if not os.path.exists(hdf_file):
-        raise ValueError(f'File not existed: {hdf_file}')
+        raise ValueError(f"File not existed: {hdf_file}")
 
     store = pd.HDFStore(hdf_file)
 
     # load it
-    df = store['df']
+    df = store["df"]
     store.close()
 
-    num_atoms = list(map(get_num_atoms, df['structure']))
+    num_atoms = list(map(get_num_atoms, df["structure"]))
     # print(num_atoms)
 
     fig, axs = plt.subplots(2, 3)
@@ -1052,27 +1256,27 @@ def plot_histogram(hdf_file: str):
     step = 1
     num_bins = get_num_bins(num_atoms, step)
 
-    print('Processing #atoms histogram')
+    print("Processing #atoms histogram")
     axs[0, 0].hist(num_atoms, num_bins)
-    axs[0, 0].set_title('Histogram for number of atoms')
-    axs[0, 0].set_ylabel('Count')
-    axs[0, 0].set_xlabel('number of atoms')
-    axs[0, 0].set_xscale('log')
+    axs[0, 0].set_title("Histogram for number of atoms")
+    axs[0, 0].set_ylabel("Count")
+    axs[0, 0].set_xlabel("number of atoms")
+    axs[0, 0].set_xscale("log")
 
     ax_iter = iter(fig.axes)
     next(ax_iter)
 
-    for ftype in ['amn', 'mmn', 'eig', 'unk', 'chk']:
-        print(f'Processing {ftype} histogram')
+    for ftype in ["amn", "mmn", "eig", "unk", "chk"]:
+        print(f"Processing {ftype} histogram")
         amn_x, amn_y = get_size_histogram(num_atoms, df[ftype].to_numpy(), step)
         # Convert into GiB
         amn_y = np.cumsum(amn_y / 1024**3)
         ax = next(ax_iter)
         ax.bar(amn_x, amn_y, width=1.5)
-        ax.set_title(f'Cumulative sum for {ftype}')
-        ax.set_ylabel('File size / GiB')
-        ax.set_xlabel('number of atoms')
-        ax.set_xscale('log')
+        ax.set_title(f"Cumulative sum for {ftype}")
+        ax.set_ylabel("File size / GiB")
+        ax.set_xlabel("number of atoms")
+        ax.set_xscale("log")
 
     plt.show()
 
@@ -1085,9 +1289,10 @@ def plot_histogram_hamiltonian(hdf_file: str):  # pylint: disable=too-many-state
     :raises ValueError: [description]
     """
     import os.path
-    import pandas as pd
-    import matplotlib.pyplot as plt
+
     from ase.formula import Formula
+    import matplotlib.pyplot as plt
+    import pandas as pd
 
     def get_num_bins(x, step):
         """Calculate number of bins in histogram."""
@@ -1112,15 +1317,15 @@ def plot_histogram_hamiltonian(hdf_file: str):  # pylint: disable=too-many-state
     get_num_atoms = lambda _: len(Formula(_))
 
     if not os.path.exists(hdf_file):
-        raise ValueError(f'File not existed: {hdf_file}')
+        raise ValueError(f"File not existed: {hdf_file}")
 
     store = pd.HDFStore(hdf_file)
 
     # load it
-    df = store['df']
+    df = store["df"]
     store.close()
 
-    num_atoms = list(map(get_num_atoms, df['structure']))
+    num_atoms = list(map(get_num_atoms, df["structure"]))
     # print(num_atoms)
 
     fig, axs = plt.subplots(2, 3)
@@ -1128,12 +1333,12 @@ def plot_histogram_hamiltonian(hdf_file: str):  # pylint: disable=too-many-state
     step = 1
     num_bins = get_num_bins(num_atoms, step)
 
-    print('Processing #atoms histogram')
+    print("Processing #atoms histogram")
     axs[0, 0].hist(num_atoms, num_bins)
-    axs[0, 0].set_title('Histogram for number of atoms')
-    axs[0, 0].set_ylabel('Count')
-    axs[0, 0].set_xlabel('number of atoms')
-    axs[0, 0].set_xscale('log')
+    axs[0, 0].set_title("Histogram for number of atoms")
+    axs[0, 0].set_ylabel("Count")
+    axs[0, 0].set_xlabel("number of atoms")
+    axs[0, 0].set_xscale("log")
 
     ax_iter = iter(fig.axes)
     next(ax_iter)
@@ -1145,98 +1350,82 @@ def plot_histogram_hamiltonian(hdf_file: str):  # pylint: disable=too-many-state
     # Whether do compression
     compress_file = False
     #'zst', '7z', 'zip'
-    compression_format = 'zip'
+    compression_format = "zip"
     # compressed file / raw file ratio
     compression_ratio = {
-        'hr_dat': {
-            'zip': 0.14,
-            '7z': 0.08,
-            'zst': 0.13
-        },
-        'wsvec_dat': {
-            'zip': 0.06,
-            '7z': 0.02,
-            'zst': 0.02
-        },
-        'centres_xyz': {
-            'zip': 0.58,
-            '7z': 0.52,
-            'zst': 0.41
-        },
-        'r_dat': {
-            'zip': 0.15,
-            '7z': 0.09,
-            'zst': 0.15
-        },
-        'tb_dat': {
-            'zip': 0.34,
-            '7z': 0.18,
-            'zst': 0.30
-        },
-        'xsf': {
-            'zip': 0.30,
-            '7z': 0.22,
-            'zst': 0.32
-        }
+        "hr_dat": {"zip": 0.14, "7z": 0.08, "zst": 0.13},
+        "wsvec_dat": {"zip": 0.06, "7z": 0.02, "zst": 0.02},
+        "centres_xyz": {"zip": 0.58, "7z": 0.52, "zst": 0.41},
+        "r_dat": {"zip": 0.15, "7z": 0.09, "zst": 0.15},
+        "tb_dat": {"zip": 0.34, "7z": 0.18, "zst": 0.30},
+        "xsf": {"zip": 0.30, "7z": 0.22, "zst": 0.32},
     }
     if compress_file:
         for key, val in compression_ratio.items():
             df[key] *= val[compression_format]
-        df['xsf_reduce'] *= compression_ratio['xsf'][compression_format]
-        df['xsf_supercell3'] *= compression_ratio['xsf'][compression_format]
-        df['xsf_reduce_supercell3'] *= compression_ratio['xsf'][compression_format]
+        df["xsf_reduce"] *= compression_ratio["xsf"][compression_format]
+        df["xsf_supercell3"] *= compression_ratio["xsf"][compression_format]
+        df["xsf_reduce_supercell3"] *= compression_ratio["xsf"][compression_format]
 
-    scheme_minimum = ['hr_dat', 'wsvec_dat', 'centres_xyz']
-    scheme_medium1 = ['hr_dat', 'wsvec_dat', 'r_dat']
-    scheme_medium2 = ['tb_dat', 'wsvec_dat']
-    scheme_medium3 = ['tb_dat', 'wsvec_dat', 'xsf_reduce']
-    scheme_maximum = ['tb_dat', 'wsvec_dat', 'xsf']
-    for scheme in [scheme_minimum, scheme_medium1, scheme_medium2, scheme_medium3, scheme_maximum]:
-        scheme_name = '+'.join(scheme)
-        print(f'Processing {scheme_name} histogram')
+    scheme_minimum = ["hr_dat", "wsvec_dat", "centres_xyz"]
+    scheme_medium1 = ["hr_dat", "wsvec_dat", "r_dat"]
+    scheme_medium2 = ["tb_dat", "wsvec_dat"]
+    scheme_medium3 = ["tb_dat", "wsvec_dat", "xsf_reduce"]
+    scheme_maximum = ["tb_dat", "wsvec_dat", "xsf"]
+    for scheme in [
+        scheme_minimum,
+        scheme_medium1,
+        scheme_medium2,
+        scheme_medium3,
+        scheme_maximum,
+    ]:
+        scheme_name = "+".join(scheme)
+        print(f"Processing {scheme_name} histogram")
         total_size = np.zeros_like(df[scheme[0]])
         for key in scheme:
             total_size += df[key]
         if add_kin_extpot:
             if kin_extpot_tbdat_format:
-                if 'hr_dat' in scheme:
-                    total_size -= df['hr_dat']
-                    total_size += df['tb_dat']
-                elif 'tb_dat' in scheme:
+                if "hr_dat" in scheme:
+                    total_size -= df["hr_dat"]
+                    total_size += df["tb_dat"]
+                elif "tb_dat" in scheme:
                     # tb_dat also contains r(R)_mn, a bit overestimate
-                    total_size += 2 / 3 * (df['tb_dat'] - df['r_dat'])
+                    total_size += 2 / 3 * (df["tb_dat"] - df["r_dat"])
                 else:
-                    raise ValueError('No Hamiltonian data, should not enter this branch')
+                    raise ValueError(
+                        "No Hamiltonian data, should not enter this branch"
+                    )
             else:
-                total_size += 2 * df['hr_dat']
+                total_size += 2 * df["hr_dat"]
         data_x, data_y = get_size_histogram(num_atoms, total_size, step)
 
         ax = next(ax_iter)
 
         # Convert into GiB
         data_y = np.cumsum(data_y / 1024**3)
-        ax.set_ylabel('File size / GiB')
+        ax.set_ylabel("File size / GiB")
         # For XSF, convert into TiB
-        if any('xsf' in _ for _ in scheme):
+        if any("xsf" in _ for _ in scheme):
             data_y /= 1024
-            ax.set_ylabel('File size / TiB')
+            ax.set_ylabel("File size / TiB")
 
         ax.bar(data_x, data_y, width=1.5)
-        title = f'Cumulative sum for {scheme_name}'
+        title = f"Cumulative sum for {scheme_name}"
         ax.set_title(title)
-        ax.set_xlabel('number of atoms')
-        ax.set_xscale('log')
+        ax.set_xlabel("number of atoms")
+        ax.set_xscale("log")
 
-        ax.annotate(f'tot={data_y[-1]:.2f}', xy=(0.05, 0.95), xycoords='axes fraction')
+        ax.annotate(f"tot={data_y[-1]:.2f}", xy=(0.05, 0.95), xycoords="axes fraction")
 
-    title = ''
+    title = ""
     if add_kin_extpot:
         if kin_extpot_tbdat_format:
-            title = 'with T,V_ext in tb.dat format'
+            title = "with T,V_ext in tb.dat format"
         else:
-            title = 'with T,V_ext in hr.dat format'
+            title = "with T,V_ext in hr.dat format"
     if compress_file:
-        title += '\n' + f'with {compression_format} compression'
+        title += "\n" + f"with {compression_format} compression"
     fig.suptitle(title)
 
     plt.show()
@@ -1255,27 +1444,41 @@ def test_estimators():
     assert estimate_eig(12, 64, WannierFileFormat.FORTRAN_FORMATTED) == 22272
     assert estimate_eig(12, 64, WannierFileFormat.FORTRAN_UNFORMATTED) == 18432
 
-    assert estimate_unk(18, 18, 18, 12, 64, False, WannierFileFormat.FORTRAN_FORMATTED) == 2869405 * 64
-    assert estimate_unk(18, 18, 18, 12, 64, False, WannierFileFormat.FORTRAN_UNFORMATTED) == 1119868 * 64
+    assert (
+        estimate_unk(18, 18, 18, 12, 64, False, WannierFileFormat.FORTRAN_FORMATTED)
+        == 2869405 * 64
+    )
+    assert (
+        estimate_unk(18, 18, 18, 12, 64, False, WannierFileFormat.FORTRAN_UNFORMATTED)
+        == 1119868 * 64
+    )
 
-    assert 0.95 < estimate_chk(
-        num_exclude_bands=0,
-        num_bands=12,
-        num_wann=7,
-        num_kpts=64,
-        nntot=8,
-        have_disentangled=True,
-        file_format=WannierFileFormat.FORTRAN_FORMATTED
-    ) / 1721453 < 1.05
-    assert estimate_chk(
-        num_exclude_bands=0,
-        num_bands=12,
-        num_wann=7,
-        num_kpts=64,
-        nntot=8,
-        have_disentangled=True,
-        file_format=WannierFileFormat.FORTRAN_UNFORMATTED
-    ) == 543097
+    assert (
+        0.95
+        < estimate_chk(
+            num_exclude_bands=0,
+            num_bands=12,
+            num_wann=7,
+            num_kpts=64,
+            nntot=8,
+            have_disentangled=True,
+            file_format=WannierFileFormat.FORTRAN_FORMATTED,
+        )
+        / 1721453
+        < 1.05
+    )
+    assert (
+        estimate_chk(
+            num_exclude_bands=0,
+            num_bands=12,
+            num_wann=7,
+            num_kpts=64,
+            nntot=8,
+            have_disentangled=True,
+            file_format=WannierFileFormat.FORTRAN_UNFORMATTED,
+        )
+        == 543097
+    )
 
     test_get_nrpts_ndegen()
 

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Tests for the `ProjwfcBaseWorkChain` class."""
 import pytest
 
@@ -20,36 +19,44 @@ def test_setup(generate_workchain_projwfc_base):
     assert isinstance(process.ctx.inputs, AttributeDict)
 
 
-@pytest.mark.parametrize('npool_value', (
-    4,
-    2,
-))
-@pytest.mark.parametrize('npool_key', (
-    '-nk',
-    '-npools',
-))
+@pytest.mark.parametrize(
+    "npool_value",
+    (
+        4,
+        2,
+    ),
+)
+@pytest.mark.parametrize(
+    "npool_key",
+    (
+        "-nk",
+        "-npools",
+    ),
+)
 def test_handle_output_stdout_incomplete(
-    generate_workchain_projwfc_base, generate_inputs_projwfc_base, npool_key, npool_value
+    generate_workchain_projwfc_base,
+    generate_inputs_projwfc_base,
+    npool_key,
+    npool_value,
 ):
     """Test `ProjwfcBaseWorkChain.handle_output_stdout_incomplete` for restarting from OOM."""
     from aiida import orm
 
-    inputs = {'projwfc': generate_inputs_projwfc_base()}
+    inputs = {"projwfc": generate_inputs_projwfc_base()}
     # E.g. when number of MPI procs = 4, the next trial is 2
-    inputs['projwfc']['metadata']['options'] = {
-        'resources': {
-            'num_machines': 1,
-            'num_mpiprocs_per_machine': npool_value
-        },
-        'max_wallclock_seconds': 3600,
-        'withmpi': True,
-        'scheduler_stderr': '_scheduler-stderr.txt'
+    inputs["projwfc"]["metadata"]["options"] = {
+        "resources": {"num_machines": 1, "num_mpiprocs_per_machine": npool_value},
+        "max_wallclock_seconds": 3600,
+        "withmpi": True,
+        "scheduler_stderr": "_scheduler-stderr.txt",
     }
-    inputs['projwfc']['settings'] = orm.Dict(dict={'cmdline': [npool_key, f'{npool_value}']})
+    inputs["projwfc"]["settings"] = orm.Dict(
+        dict={"cmdline": [npool_key, f"{npool_value}"]}
+    )
     process = generate_workchain_projwfc_base(
         exit_code=ProjwfcCalculation.exit_codes.ERROR_OUTPUT_STDOUT_INCOMPLETE,
         inputs=inputs,
-        test_name='out_of_memory'
+        test_name="out_of_memory",
     )
     process.setup()
 
@@ -60,8 +67,16 @@ def test_handle_output_stdout_incomplete(
     assert result.exit_code.status == 0
 
     new_npool_value = npool_value // 2
-    assert process.ctx.inputs['metadata']['options']['resources']['num_mpiprocs_per_machine'] == new_npool_value
-    assert process.ctx.inputs['settings']['cmdline'] == [npool_key, f'{new_npool_value}']
+    assert (
+        process.ctx.inputs["metadata"]["options"]["resources"][
+            "num_mpiprocs_per_machine"
+        ]
+        == new_npool_value
+    )
+    assert process.ctx.inputs["settings"]["cmdline"] == [
+        npool_key,
+        f"{new_npool_value}",
+    ]
 
     # The `inspect_process` will call again the `handle_output_stdout_incomplete` because the
     # `ERROR_OUTPUT_STDOUT_INCOMPLETE` exit code is still there.
@@ -72,5 +87,13 @@ def test_handle_output_stdout_incomplete(
         new_npool_value = 1
     else:
         assert result.status == 0
-    assert process.ctx.inputs['metadata']['options']['resources']['num_mpiprocs_per_machine'] == new_npool_value
-    assert process.ctx.inputs['settings']['cmdline'] == [npool_key, f'{new_npool_value}']
+    assert (
+        process.ctx.inputs["metadata"]["options"]["resources"][
+            "num_mpiprocs_per_machine"
+        ]
+        == new_npool_value
+    )
+    assert process.ctx.inputs["settings"]["cmdline"] == [
+        npool_key,
+        f"{new_npool_value}",
+    ]

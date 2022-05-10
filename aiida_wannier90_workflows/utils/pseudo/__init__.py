@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Utility functions for pseudo potential family."""
 import typing as ty
 
@@ -6,14 +5,15 @@ from aiida import orm
 from aiida.common import exceptions
 from aiida.plugins import DataFactory, GroupFactory
 
-PseudoPotentialData = DataFactory('pseudo')
-SsspFamily = GroupFactory('pseudo.family.sssp')
-PseudoDojoFamily = GroupFactory('pseudo.family.pseudo_dojo')
-CutoffsPseudoPotentialFamily = GroupFactory('pseudo.family.cutoffs')
+PseudoPotentialData = DataFactory("pseudo")
+SsspFamily = GroupFactory("pseudo.family.sssp")
+PseudoDojoFamily = GroupFactory("pseudo.family.pseudo_dojo")
+CutoffsPseudoPotentialFamily = GroupFactory("pseudo.family.cutoffs")
 
 
-def get_pseudo_and_cutoff(pseudo_family: str,
-                          structure: orm.StructureData) -> ty.Tuple[ty.Mapping[str, PseudoPotentialData], float, float]:
+def get_pseudo_and_cutoff(
+    pseudo_family: str, structure: orm.StructureData
+) -> ty.Tuple[ty.Mapping[str, PseudoPotentialData], float, float]:
     """Get pseudo potential and cutoffs of a given pseudo family and structure.
 
     :param pseudo_family: [description]
@@ -27,19 +27,25 @@ def get_pseudo_and_cutoff(pseudo_family: str,
     """
     try:
         pseudo_set = (PseudoDojoFamily, SsspFamily, CutoffsPseudoPotentialFamily)
-        pseudo_family = orm.QueryBuilder().append(pseudo_set, filters={'label': pseudo_family}).one()[0]
+        pseudo_family = (
+            orm.QueryBuilder()
+            .append(pseudo_set, filters={"label": pseudo_family})
+            .one()[0]
+        )
     except exceptions.NotExistent as exception:
         raise ValueError(
-            f'required pseudo family `{pseudo_family}` is not installed. Please use `aiida-pseudo install` to'
-            'install it.'
+            f"required pseudo family `{pseudo_family}` is not installed. Please use `aiida-pseudo install` to"
+            "install it."
         ) from exception
 
     try:
-        cutoff_wfc, cutoff_rho = pseudo_family.get_recommended_cutoffs(structure=structure, unit='Ry')
+        cutoff_wfc, cutoff_rho = pseudo_family.get_recommended_cutoffs(
+            structure=structure, unit="Ry"
+        )
         pseudos = pseudo_family.get_pseudos(structure=structure)
     except ValueError as exception:
         raise ValueError(
-            f'failed to obtain recommended cutoffs for pseudo family `{pseudo_family}`: {exception}'
+            f"failed to obtain recommended cutoffs for pseudo family `{pseudo_family}`: {exception}"
         ) from exception
 
     return pseudos, cutoff_wfc, cutoff_rho
@@ -55,19 +61,25 @@ def get_pseudo_orbitals(pseudos: ty.Mapping[str, PseudoPotentialData]) -> dict:
     from .data import load_pseudo_metadata
 
     pseudo_data = []
-    pseudo_data.append(load_pseudo_metadata('semicore/SSSP_1.1_PBEsol_efficiency.json'))
-    pseudo_data.append(load_pseudo_metadata('semicore/SSSP_1.1_PBE_efficiency.json'))
-    pseudo_data.append(load_pseudo_metadata('semicore/PseudoDojo_0.4_PBE_SR_standard_upf.json'))
-    pseudo_data.append(load_pseudo_metadata('semicore/PseudoDojo_0.4_LDA_SR_standard_upf.json'))
+    pseudo_data.append(load_pseudo_metadata("semicore/SSSP_1.1_PBEsol_efficiency.json"))
+    pseudo_data.append(load_pseudo_metadata("semicore/SSSP_1.1_PBE_efficiency.json"))
+    pseudo_data.append(
+        load_pseudo_metadata("semicore/PseudoDojo_0.4_PBE_SR_standard_upf.json")
+    )
+    pseudo_data.append(
+        load_pseudo_metadata("semicore/PseudoDojo_0.4_LDA_SR_standard_upf.json")
+    )
 
     pseudo_orbitals = {}
     for element in pseudos:
         for data in pseudo_data:
-            if data[element]['md5'] == pseudos[element].md5:
+            if data[element]["md5"] == pseudos[element].md5:
                 pseudo_orbitals[element] = data[element]
                 break
         else:
-            raise ValueError(f'Cannot find pseudopotential {element} with md5 {pseudos[element].md5}')
+            raise ValueError(
+                f"Cannot find pseudopotential {element} with md5 {pseudos[element].md5}"
+            )
 
     return pseudo_orbitals
 
@@ -97,31 +109,40 @@ def get_semicore_list(structure: orm.StructureData, pseudo_orbitals: dict) -> li
     #     "pswfcs": ["5S", "6S", "5P", "6P", "5D", "6D", "4F", "5F"],
     #     "semicores": ["5S", "5P"]
     # }
-    label2num = {'S': 1, 'P': 3, 'D': 5, 'F': 7}
+    label2num = {"S": 1, "P": 3, "D": 5, "F": 7}
 
     semicore_list = []  # index should start from 1
     num_pswfcs = 0
 
     for site in structure.sites:
         # Here I use deepcopy to make sure list.remove() does not interfere with the original list.
-        site_pswfcs = deepcopy(pseudo_orbitals[site.kind_name]['pswfcs'])
-        site_semicores = deepcopy(pseudo_orbitals[site.kind_name]['semicores'])
+        site_pswfcs = deepcopy(pseudo_orbitals[site.kind_name]["pswfcs"])
+        site_semicores = deepcopy(pseudo_orbitals[site.kind_name]["semicores"])
 
         for orb in site_pswfcs:
             num_orbs = label2num[orb[-1]]
             if orb in site_semicores:
                 site_semicores.remove(orb)
-                semicore_list.extend(list(range(num_pswfcs + 1, num_pswfcs + num_orbs + 1)))
+                semicore_list.extend(
+                    list(range(num_pswfcs + 1, num_pswfcs + num_orbs + 1))
+                )
             num_pswfcs += num_orbs
 
         if len(site_semicores) != 0:
-            return ValueError(f'Error when processing pseudo {site.kind_name} with orbitals {pseudo_orbitals}')
+            return ValueError(
+                f"Error when processing pseudo {site.kind_name} with orbitals {pseudo_orbitals}"
+            )
 
     return semicore_list
 
 
 def get_wannier_number_of_bands(
-    structure, pseudos, factor=1.2, only_valence=False, spin_polarized=False, spin_orbit_coupling: bool = False
+    structure,
+    pseudos,
+    factor=1.2,
+    only_valence=False,
+    spin_polarized=False,
+    spin_orbit_coupling: bool = False,
 ):
     """Estimate number of bands for a Wannier90 calculation.
 
@@ -146,7 +167,7 @@ def get_wannier_number_of_bands(
             upf = pseudos[kind]
             upf_content = get_upf_content(upf)
             if not is_soc_pseudo(upf_content):
-                raise ValueError('Should use SOC pseudo for SOC calculation')
+                raise ValueError("Should use SOC pseudo for SOC calculation")
 
     num_electrons = get_number_of_electrons(structure, pseudos)
     num_projections = get_number_of_projections(structure, pseudos, spin_orbit_coupling)
@@ -157,8 +178,10 @@ def get_wannier_number_of_bands(
     else:
         # nbands must > num_projections = num_wann
         num_bands = max(
-            int(0.5 * num_electrons * nspin * factor), int(0.5 * num_electrons * nspin + 4 * nspin),
-            int(num_projections * factor), int(num_projections + 4)
+            int(0.5 * num_electrons * nspin * factor),
+            int(0.5 * num_electrons * nspin + 4 * nspin),
+            int(num_projections * factor),
+            int(num_projections + 4),
         )
     return num_bands
 
@@ -166,7 +189,7 @@ def get_wannier_number_of_bands(
 def get_number_of_projections(
     structure: orm.StructureData,
     pseudos: ty.Mapping[str, orm.UpfData],
-    spin_orbit_coupling: ty.Optional[bool] = None
+    spin_orbit_coupling: ty.Optional[bool] = None,
 ) -> int:
     """Get number of projections for the structure with the given pseudopotential files.
 
@@ -181,17 +204,24 @@ def get_number_of_projections(
     :rtype: int
     """
     import aiida_pseudo.data.pseudo.upf
-    from .upf import is_soc_pseudo, get_upf_content, get_number_of_projections_from_upf
+
+    from .upf import get_number_of_projections_from_upf, get_upf_content, is_soc_pseudo
 
     if not isinstance(structure, orm.StructureData):
-        raise ValueError(f'The type of structure is {type(structure)}, only aiida.orm.StructureData is accepted')
+        raise ValueError(
+            f"The type of structure is {type(structure)}, only aiida.orm.StructureData is accepted"
+        )
     if not isinstance(pseudos, ty.Mapping):
-        raise ValueError(f'The type of pseudos is {type(pseudos)}, only dict is accepted')
+        raise ValueError(
+            f"The type of pseudos is {type(pseudos)}, only dict is accepted"
+        )
     for key, val in pseudos.items():
-        if not isinstance(key, str) or not isinstance(val, (orm.UpfData, aiida_pseudo.data.pseudo.upf.UpfData)):
+        if not isinstance(key, str) or not isinstance(
+            val, (orm.UpfData, aiida_pseudo.data.pseudo.upf.UpfData)
+        ):
             raise ValueError(
-                f'The type of <{key}, {val}> in pseudos is <{type(key)}, {type(val)}>, '
-                'only <str, aiida.orm.UpfData> type is accepted'
+                f"The type of <{key}, {val}> in pseudos is <{type(key)}, {type(val)}>, "
+                "only <str, aiida.orm.UpfData> type is accepted"
             )
 
     # e.g. composition = {'Ga': 1, 'As': 1}
@@ -220,7 +250,9 @@ def get_number_of_projections(
     return tot_nprojs
 
 
-def get_projections(structure: orm.StructureData, pseudos: ty.Mapping[str, orm.UpfData]):
+def get_projections(
+    structure: orm.StructureData, pseudos: ty.Mapping[str, orm.UpfData]
+):
     """Get wannier90 projection block for the structure with a given pseudopotential files.
 
     Usage:
@@ -234,17 +266,24 @@ def get_projections(structure: orm.StructureData, pseudos: ty.Mapping[str, orm.U
     :rtype: list
     """
     import aiida_pseudo.data.pseudo.upf
+
     from .upf import get_projections_from_upf
 
     if not isinstance(structure, orm.StructureData):
-        raise ValueError(f'The type of structure is {type(structure)}, only aiida.orm.StructureData is accepted')
+        raise ValueError(
+            f"The type of structure is {type(structure)}, only aiida.orm.StructureData is accepted"
+        )
     if not isinstance(pseudos, ty.Mapping):
-        raise ValueError(f'The type of pseudos is {type(pseudos)}, only dict is accepted')
+        raise ValueError(
+            f"The type of pseudos is {type(pseudos)}, only dict is accepted"
+        )
     for key, val in pseudos.items():
-        if not isinstance(key, str) or not isinstance(val, (orm.UpfData, aiida_pseudo.data.pseudo.upf.UpfData)):
+        if not isinstance(key, str) or not isinstance(
+            val, (orm.UpfData, aiida_pseudo.data.pseudo.upf.UpfData)
+        ):
             raise ValueError(
-                f'The type of <{key}, {val}> in pseudos is <{type(key)}, {type(val)}>, '
-                'only <str, aiida.orm.UpfData> type is accepted'
+                f"The type of <{key}, {val}> in pseudos is <{type(key)}, {type(val)}>, "
+                "only <str, aiida.orm.UpfData> type is accepted"
             )
 
     projections = []
@@ -257,7 +296,9 @@ def get_projections(structure: orm.StructureData, pseudos: ty.Mapping[str, orm.U
     return projections
 
 
-def get_number_of_electrons(structure: orm.StructureData, pseudos: ty.Mapping[str, orm.UpfData]) -> float:
+def get_number_of_electrons(
+    structure: orm.StructureData, pseudos: ty.Mapping[str, orm.UpfData]
+) -> float:
     """Get number of electrons for the structure based on pseudopotentials.
 
     Usage:
@@ -271,17 +312,24 @@ def get_number_of_electrons(structure: orm.StructureData, pseudos: ty.Mapping[st
     :rtype: float
     """
     import aiida_pseudo.data.pseudo.upf
+
     from .upf import get_number_of_electrons_from_upf
 
     if not isinstance(structure, orm.StructureData):
-        raise ValueError(f'The type of structure is {type(structure)}, only aiida.orm.StructureData is accepted')
+        raise ValueError(
+            f"The type of structure is {type(structure)}, only aiida.orm.StructureData is accepted"
+        )
     if not isinstance(pseudos, ty.Mapping):
-        raise ValueError(f'The type of pseudos is {type(pseudos)}, only dict is accepted')
+        raise ValueError(
+            f"The type of pseudos is {type(pseudos)}, only dict is accepted"
+        )
     for key, val in pseudos.items():
-        if not isinstance(key, str) or not isinstance(val, (orm.UpfData, aiida_pseudo.data.pseudo.upf.UpfData)):
+        if not isinstance(key, str) or not isinstance(
+            val, (orm.UpfData, aiida_pseudo.data.pseudo.upf.UpfData)
+        ):
             raise ValueError(
-                f'The type of <{key}, {val}> in pseudos is <{type(key)}, {type(val)}>, '
-                'only <str, aiida.orm.UpfData> type is accepted'
+                f"The type of <{key}, {val}> in pseudos is <{type(key)}, {type(val)}>, "
+                "only <str, aiida.orm.UpfData> type is accepted"
             )
 
     tot_nelecs = 0

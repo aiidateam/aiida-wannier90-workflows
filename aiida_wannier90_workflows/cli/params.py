@@ -1,17 +1,18 @@
-# -*- coding: utf-8 -*-
 """Module for the workflow parameter type."""
 import typing as ty
 
 import click
 
-from aiida.cmdline.utils.decorators import with_dbenv
-from aiida.plugins.entry_point import get_entry_point_from_string
 from aiida.cmdline.params import types
 from aiida.cmdline.params.options import DRY_RUN, OverridableOption
+from aiida.cmdline.utils.decorators import with_dbenv
+from aiida.plugins.entry_point import get_entry_point_from_string
 
-__all__ = ('RUN', 'DRY_RUN', 'FilteredWorkflowParamType')
+__all__ = ("RUN", "DRY_RUN", "FilteredWorkflowParamType")
 
-RUN = OverridableOption('-r', '--run', is_flag=True, help='Perform an actual submission.')
+RUN = OverridableOption(
+    "-r", "--run", is_flag=True, help="Perform an actual submission."
+)
 
 
 class FilteredWorkflowParamType(types.WorkflowParamType):
@@ -34,7 +35,9 @@ class FilteredWorkflowParamType(types.WorkflowParamType):
 
         if process_classes is not None:
             if not isinstance(process_classes, tuple):
-                raise TypeError('process_classes should be a tuple of entry point strings')
+                raise TypeError(
+                    "process_classes should be a tuple of entry point strings"
+                )
 
             for entry_point_string in process_classes:
 
@@ -42,7 +45,7 @@ class FilteredWorkflowParamType(types.WorkflowParamType):
                     entry_point = get_entry_point_from_string(entry_point_string)
                 except (ValueError, exceptions.EntryPointError) as exception:
                     raise ValueError(
-                        f'{entry_point_string} is not a valid entry point string: {exception}'
+                        f"{entry_point_string} is not a valid entry point string: {exception}"
                     ) from exception
                 else:
                     self._process_classes.append(entry_point)
@@ -61,14 +64,16 @@ class FilteredWorkflowParamType(types.WorkflowParamType):
                 try:
                     process_class = entry_point.load()
                 except ImportError as exception:
-                    raise RuntimeError(f'failed to load the entry point {entry_point}: {exception}') from exception
+                    raise RuntimeError(
+                        f"failed to load the entry point {entry_point}: {exception}"
+                    ) from exception
 
                 if issubclass(entity.process_class, process_class):
                     break
             else:
                 raise click.BadParameter(
-                    f'the process type {entity.process_type} of entity {entity} is not a sub class '
-                    f'of {[_.name for _ in self._process_classes]}'
+                    f"the process type {entity.process_type} of entity {entity} is not a sub class "
+                    f"of {[_.name for _ in self._process_classes]}"
                 )
 
         return entity

@@ -1,24 +1,25 @@
-# -*- coding: utf-8 -*-
 """WorkChain to automatically calculate QE projected band structure."""
-import typing as ty
 import pathlib
+import typing as ty
 
 from aiida import orm
-from aiida.engine import if_, ProcessBuilder, ToContext
 from aiida.common import AttributeDict
 from aiida.common.lang import type_check
+from aiida.engine import ProcessBuilder, ToContext, if_
 
 from aiida_quantumespresso.utils.mapping import prepare_process_inputs
 from aiida_quantumespresso.workflows.pw.bands import PwBandsWorkChain
 
 from .base.projwfc import ProjwfcBaseWorkChain
 
-__all__ = ['validate_inputs', 'ProjwfcBandsWorkChain']
+__all__ = ["validate_inputs", "ProjwfcBandsWorkChain"]
 
 
 def validate_inputs(inputs, ctx=None):  # pylint: disable=unused-argument
     """Validate the inputs of the entire input namespace of `ProjwfcBandsWorkChain`."""
-    from aiida_quantumespresso.workflows.pw.bands import validate_inputs as parent_validate_inputs
+    from aiida_quantumespresso.workflows.pw.bands import (
+        validate_inputs as parent_validate_inputs,
+    )
 
     # Call parent validator
     result = parent_validate_inputs(inputs)
@@ -36,9 +37,11 @@ class ProjwfcBandsWorkChain(PwBandsWorkChain):
 
         spec.expose_inputs(
             ProjwfcBaseWorkChain,
-            namespace='projwfc',
-            exclude=('clean_workdir', 'projwfc.parent_folder'),
-            namespace_options={'help': 'Inputs for the `ProjwfcBaseWorkChain` for the projwfc.x calculation.'}
+            namespace="projwfc",
+            exclude=("clean_workdir", "projwfc.parent_folder"),
+            namespace_options={
+                "help": "Inputs for the `ProjwfcBaseWorkChain` for the projwfc.x calculation."
+            },
         )
         spec.inputs.validator = validate_inputs
 
@@ -48,7 +51,9 @@ class ProjwfcBandsWorkChain(PwBandsWorkChain):
                 cls.run_relax,
                 cls.inspect_relax,
             ),
-            if_(cls.should_run_seekpath)(cls.run_seekpath,),
+            if_(cls.should_run_seekpath)(
+                cls.run_seekpath,
+            ),
             cls.run_scf,
             cls.inspect_scf,
             cls.run_bands,
@@ -58,16 +63,22 @@ class ProjwfcBandsWorkChain(PwBandsWorkChain):
             cls.results,
         )
 
-        spec.expose_outputs(ProjwfcBaseWorkChain, namespace='projwfc')
+        spec.expose_outputs(ProjwfcBaseWorkChain, namespace="projwfc")
 
-        spec.exit_code(404, 'ERROR_SUB_PROCESS_FAILED_PROJWFC', message='The ProjwfcBaseWorkChain sub process failed')
+        spec.exit_code(
+            404,
+            "ERROR_SUB_PROCESS_FAILED_PROJWFC",
+            message="The ProjwfcBaseWorkChain sub process failed",
+        )
 
     @classmethod
     def get_protocol_filepath(cls) -> pathlib.Path:
         """Return ``pathlib.Path`` to the ``.yaml`` file that defines the protocols."""
         from importlib_resources import files
+
         from . import protocols
-        return files(protocols) / 'projwfcbands.yaml'
+
+        return files(protocols) / "projwfcbands.yaml"
 
     @classmethod
     def get_builder_from_protocol(  # pylint: disable=arguments-differ
@@ -78,7 +89,7 @@ class ProjwfcBandsWorkChain(PwBandsWorkChain):
         *,
         protocol: str = None,
         overrides: dict = None,
-        **kwargs
+        **kwargs,
     ) -> ProcessBuilder:
         """Return a builder prepopulated with inputs selected according to the specified arguments.
 
@@ -91,7 +102,10 @@ class ProjwfcBandsWorkChain(PwBandsWorkChain):
         :return: a process builder instance with all inputs defined and ready for launch.
         :rtype: ProcessBuilder
         """
-        from aiida_wannier90_workflows.utils.workflows.builder import recursive_merge_builder, recursive_merge_container
+        from aiida_wannier90_workflows.utils.workflows.builder import (
+            recursive_merge_builder,
+            recursive_merge_container,
+        )
 
         type_check(pw_code, (str, int, orm.Code))
         type_check(projwfc_code, (str, int, orm.Code))
@@ -102,30 +116,40 @@ class ProjwfcBandsWorkChain(PwBandsWorkChain):
         # Prepare workchain builder
         builder = cls.get_builder()
 
-        protocol_inputs = cls.get_protocol_inputs(protocol=protocol, overrides=overrides)
+        protocol_inputs = cls.get_protocol_inputs(
+            protocol=protocol, overrides=overrides
+        )
 
         projwfc_overrides = None
         if overrides:
-            projwfc_overrides = overrides.pop('projwfc', None)
+            projwfc_overrides = overrides.pop("projwfc", None)
 
         pwbands_builder = PwBandsWorkChain.get_builder_from_protocol(
-            code=pw_code, structure=structure, protocol=protocol, overrides=overrides, **kwargs
+            code=pw_code,
+            structure=structure,
+            protocol=protocol,
+            overrides=overrides,
+            **kwargs,
         )
 
         # By default do not run relax
-        pwbands_builder.pop('relax', None)
+        pwbands_builder.pop("relax", None)
         inputs = pwbands_builder._inputs(prune=True)  # pylint: disable=protected-access
 
         projwfc_builder = ProjwfcBaseWorkChain.get_builder_from_protocol(
             projwfc_code, protocol=protocol, overrides=projwfc_overrides
         )
 
-        inputs['projwfc'] = projwfc_builder._inputs(prune=True)  # pylint: disable=protected-access
-        inputs['projwfc'].pop('clean_workdir', None)
+        inputs["projwfc"] = projwfc_builder._inputs(
+            prune=True
+        )  # pylint: disable=protected-access
+        inputs["projwfc"].pop("clean_workdir", None)
 
         # Need to convert `clean_workdir` to `orm.Bool`
-        if 'clean_workdir' in protocol_inputs:
-            protocol_inputs['clean_workdir'] = orm.Bool(protocol_inputs['clean_workdir'])
+        if "clean_workdir" in protocol_inputs:
+            protocol_inputs["clean_workdir"] = orm.Bool(
+                protocol_inputs["clean_workdir"]
+            )
 
         inputs = recursive_merge_container(inputs, protocol_inputs)
         builder = recursive_merge_builder(builder, inputs)
@@ -134,8 +158,10 @@ class ProjwfcBandsWorkChain(PwBandsWorkChain):
 
     def run_projwfc(self):
         """Run projwfc.x."""
-        inputs = AttributeDict(self.exposed_inputs(ProjwfcBaseWorkChain, namespace='projwfc'))
-        inputs.metadata.call_link_label = 'projwfc'
+        inputs = AttributeDict(
+            self.exposed_inputs(ProjwfcBaseWorkChain, namespace="projwfc")
+        )
+        inputs.metadata.call_link_label = "projwfc"
         inputs.clean_workdir = orm.Bool(False)
 
         inputs.projwfc.parent_folder = self.ctx.workchain_bands.outputs.remote_folder
@@ -143,7 +169,7 @@ class ProjwfcBandsWorkChain(PwBandsWorkChain):
         inputs = prepare_process_inputs(ProjwfcBaseWorkChain, inputs)
         running = self.submit(ProjwfcBaseWorkChain, **inputs)
 
-        self.report(f'launching {running.process_label}<{running.pk}>')
+        self.report(f"launching {running.process_label}<{running.pk}>")
 
         return ToContext(workchain_projwfc=running)
 
@@ -152,11 +178,17 @@ class ProjwfcBandsWorkChain(PwBandsWorkChain):
         workchain = self.ctx.workchain_projwfc
 
         if not workchain.is_finished_ok:
-            self.report(f'ProjwfcBaseWorkChain failed with exit status {workchain.exit_status}')
+            self.report(
+                f"ProjwfcBaseWorkChain failed with exit status {workchain.exit_status}"
+            )
             return self.exit_codes.ERROR_SUB_PROCESS_FAILED_PROJWFC
 
     def results(self):
         """Attach the relevant output nodes."""
         super().results()
 
-        self.out_many(self.exposed_outputs(self.ctx.workchain_projwfc, ProjwfcBaseWorkChain, namespace='projwfc'))
+        self.out_many(
+            self.exposed_outputs(
+                self.ctx.workchain_projwfc, ProjwfcBaseWorkChain, namespace="projwfc"
+            )
+        )
