@@ -12,11 +12,6 @@
 # serve to show the default.
 import time
 
-# If extensions (or modules to document with autodoc) are in another directory,
-# add these directories to sys.path here. If the directory is relative to the
-# documentation root, use os.path.abspath to make it absolute, like shown here.
-import aiida_wannier90_workflows
-
 # ensure plugins are loaded
 from reentry import manager
 manager.scan()
@@ -25,6 +20,11 @@ manager.scan()
 # default profile of the AiiDA installation does not use a Django backend.
 from aiida.manage.configuration import load_documentation_profile
 load_documentation_profile()
+
+# If extensions (or modules to document with autodoc) are in another directory,
+# add these directories to sys.path here. If the directory is relative to the
+# documentation root, use os.path.abspath to make it absolute, like shown here.
+import aiida_wannier90_workflows
 
 # -- Project information -----------------------------------------------------
 
@@ -56,6 +56,7 @@ extensions = [
 
 # Setting the intersphinx mapping to other readthedocs
 intersphinx_mapping = {
+    'python': ('https://docs.python.org/', None),
     'python': ('https://docs.python.org/', None),
     'aiida': ('https://aiida.readthedocs.io/projects/aiida-core/en/latest', None),
 }

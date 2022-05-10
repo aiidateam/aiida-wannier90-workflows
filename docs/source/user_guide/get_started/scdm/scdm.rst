@@ -9,7 +9,8 @@ a dedicated AiiDA workchain.
 The protocol for automating the construction of Wannier functions is discussed in the following article:
 
 * Valerio Vitale, Giovanni Pizzi, Antimo Marrazzo, Jonathan Yates, Nicola Marzari, Arash Mostofi,
-  *Automated high-throughput wannierisation*, accepted in npj Computational Materials (2020);
+  *Automated high-throughput wannierisation*, npj Computational Materials (2020);
+  https://www.nature.com/articles/s41524-020-0312-y
   https://arxiv.org/abs/1909.00433
 
 whose data is available on the `Materials Cloud Archive <http://archive.materialscloud.org>`_ as:
