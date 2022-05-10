@@ -1,8 +1,7 @@
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v2.5.0
+    rev: v4.2.0
     hooks:
-      - id: double-quote-string-fixer
       - id: end-of-file-fixer
         exclude: >-
           (?x)^(
@@ -13,6 +12,7 @@ repos:
               docs/.*.xsf
           )$
       - id: fix-encoding-pragma
+        args: ["--remove"]
       - id: mixed-line-ending
       - id: trailing-whitespace
         exclude: >-
@@ -23,15 +23,39 @@ repos:
               docs/.*.agr|
               docs/.*.xsf
           )$
+      - id: check-json
+      - id: check-yaml
+      - id: check-toml
+
+  # - repo: https://github.com/mgedmin/check-manifest
+  #   rev: "0.48"
+  #   hooks:
+  #     - id: check-manifest
+
+  - repo: https://github.com/asottile/pyupgrade
+    rev: v2.32.1
+    hooks:
+      - id: pyupgrade
+        args: ["--py37-plus"]
 
   - repo: https://github.com/ikamensh/flynt/
-    rev: "0.55"
+    rev: "0.76"
     hooks:
       - id: flynt
         args: ["--line-length=120", "--fail-on-change"]
 
+  - repo: https://github.com/PyCQA/isort
+    rev: 5.10.1
+    hooks:
+      - id: isort
+
+  - repo: https://github.com/psf/black
+    rev: 22.3.0
+    hooks:
+      - id: black
+
   - repo: https://github.com/PyCQA/pydocstyle
-    rev: 5.0.2
+    rev: 6.1.1
     hooks:
       - id: pydocstyle
         exclude: &exclude_files >
@@ -43,33 +67,8 @@ repos:
           )$
         args: ["--ignore=D104,D202,D203,D213"]
 
-  - repo: https://github.com/pre-commit/mirrors-yapf
-    rev: v0.30.0
-    hooks:
-      - id: yapf
-        name: yapf
-        types: [python]
-        args: ["-i"]
-        exclude: "docs/source/conf.py"
-
   - repo: https://github.com/PyCQA/pylint
-    rev: pylint-2.6.0
+    rev: v2.14.0-b1
     hooks:
       - id: pylint
-        language: system
         exclude: *exclude_files
-
-  - repo: local
-    hooks:
-      - id: version-number
-        name: Check consistency in version number
-        entry: python ./utils/validate_version_number.py
-        args: ["version"]
-        language: system
-        files: >-
-          (?x)^(
-              setup.json|
-              aiida_wannier90_workflows/__init__.py|
-              ./utils/validate_version_number.py|
-          )$
-        pass_filenames: false

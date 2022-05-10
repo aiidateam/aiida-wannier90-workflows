@@ -1,27 +1,115 @@
 [build-system]
-requires = ['setuptools>=40.8.0', 'wheel', 'reentry~=1.3', 'fastentrypoints~=0.12']
-build-backend = 'setuptools.build_meta:__legacy__'
+# build the package with [flit](https://flit.readthedocs.io)
+requires = ["flit_core >=3.4,<4"]
+build-backend = "flit_core.buildapi"
+
+[project]
+# See https://www.python.org/dev/peps/pep-0621/
+name = "aiida-wannier90-workflows"
+dynamic = ["version"] # read from aiida_wannier90_workflows/__init__.py
+description = "Advanced AiiDA workflows for Wannier90"
+authors = [
+    { "name" = "Junfeng Qiao" },
+    { "name" = "Antimo Marrazzo" },
+    { "name" = "Giovanni Pizzi" }
+]
+readme = "README.md"
+license = { file = "LICENSE" }
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "License :: OSI Approved :: MIT License",
+    "Natural Language :: English",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Physics",
+    "Framework :: AiiDA"
+]
+keywords = ["aiida", "plugin", "wannier90"]
+requires-python = ">=3.8"
+dependencies = [
+    "aiida-core>=1.6,<3",
+    "aiida-pseudo~=0.6",
+    "aiida-quantumespresso~=3.4",
+    "aiida-wannier90>=2.0.1",
+    # "aiida-quantumespresso @ git+https://git@github.com/qiaojunfeng/aiida-quantumespresso@lumi#egg=aiida-quantumespresso",
+    "click~=7.0",
+    "click-completion~=0.5",
+    "colorama"
+]
+
+[project.urls]
+Source = "https://github.com/aiidateam/aiida-wannier90-workflows"
+
+[project.optional-dependencies]
+testing = [
+    "pgtest~=1.3.1",
+    "coverage[toml]",
+    "pytest~=6.0",
+    "pytest-cov",
+    "pytest-regressions~=1.0"
+]
+pre-commit = ["pre-commit~=2.17", "pylint>=2.7.0,<2.9"]
+docs = [
+    "docutils",
+    "sphinx",
+    "sphinx-copybutton~=0.3.0",
+    "sphinx-book-theme~=0.1.0",
+    "sphinx-click~=2.7.1",
+    "sphinxcontrib-contentui",
+    "sphinxcontrib-details-directive",
+    "furo",
+    "markupsafe<2.1"
+]
+analysis = ["pandas", "tables", "scikit-learn"]
+
+[project.scripts]
+"aiida-wannier90-workflows" = "aiida_wannier90_workflows.cli:cmd_root"
+
+[project.entry-points."aiida.workflows"]
+"wannier90_workflows.base.wannier90" = "aiida_wannier90_workflows.workflows.base.wannier90:Wannier90BaseWorkChain"
+"wannier90_workflows.base.opengrid" = "aiida_wannier90_workflows.workflows.base.opengrid:OpengridBaseWorkChain"
+"wannier90_workflows.base.pw2wannier90" = "aiida_wannier90_workflows.workflows.base.pw2wannier90:Pw2wannier90BaseWorkChain"
+"wannier90_workflows.base.projwfc" = "aiida_wannier90_workflows.workflows.base.projwfc:ProjwfcBaseWorkChain"
+"wannier90_workflows.wannier90" = "aiida_wannier90_workflows.workflows.wannier90:Wannier90WorkChain"
+"wannier90_workflows.opengrid" = "aiida_wannier90_workflows.workflows.opengrid:Wannier90OpengridWorkChain"
+"wannier90_workflows.bands" = "aiida_wannier90_workflows.workflows.bands:Wannier90BandsWorkChain"
+"wannier90_workflows.optimize" = "aiida_wannier90_workflows.workflows.optimize:Wannier90OptimizeWorkChain"
+"wannier90_workflows.projwfcbands" = "aiida_wannier90_workflows.workflows.projwfcbands:ProjwfcBandsWorkChain"
+
+[tool.flit.module]
+name = "aiida_wannier90_workflows"
 
 [tool.pylint.format]
-max-line-length = 120
+max-line-length = 125
 
 [tool.pylint.tool-check]
-generated-members = 'self.exit_codes.*, Wannier90Calculation.exit_codes.*'
+generated-members = [
+    "self.exit",
+    "self.exit_codes.*",
+    "Wannier90Calculation.exit_codes.*",
+]
 
 [tool.pylint.messages_control]
 disable = [
-    'bad-continuation',
-    'duplicate-code',
-    'locally-disabled',
-    'logging-format-interpolation',
-    'inconsistent-return-statements',
-    'import-outside-toplevel',
-    'no-else-raise',
-    'too-many-arguments',
-    'too-many-ancestors',
-    'too-many-branches',
-    'too-many-locals',
-    'unspecified-encoding',
+    "too-many-ancestors",
+    "invalid-name",
+    "duplicate-code",
+    "import-outside-toplevel",
+    # black compatibility
+    "C0330",
+    "C0326",
+    # 'bad-continuation',
+    # 'locally-disabled',
+    # 'logging-format-interpolation',
+    # 'inconsistent-return-statements',
+    # 'no-else-raise',
+    # 'too-many-arguments',
+    # 'too-many-branches',
+    # 'too-many-locals',
+    # 'unspecified-encoding',
+
 ]
 
 [tool.pylint.basic]
@@ -57,44 +145,63 @@ good-names = [
 
 [tool.pytest.ini_options]
 minversion = '6.0'
-testpaths = [
-    'tests',
-]
+testpaths = ['tests']
+# python_files = "test_*.py example_*.py"
 filterwarnings = [
     'ignore::DeprecationWarning:frozendict:',
     'ignore::DeprecationWarning:pkg_resources:',
     'ignore::DeprecationWarning:reentry:',
     'ignore::DeprecationWarning:sqlalchemy_utils:',
+    "ignore::DeprecationWarning:aiida:",
+    "ignore::DeprecationWarning:plumpy:",
+    "ignore::DeprecationWarning:django:",
+    "ignore::DeprecationWarning:yaml:",
 ]
+
+[tool.coverage.run]
+# Configuration of [coverage.py](https://coverage.readthedocs.io)
+# reporting which lines of your plugin are covered by tests
+source = ["aiida_wannier90_workflows"]
+
+[tool.isort]
+# Configuration of [isort](https://isort.readthedocs.io)
+profile = "black"
+force_sort_within_sections = true
+sections = [
+    'FUTURE',
+    'STDLIB',
+    'THIRDPARTY',
+    'AIIDA',
+    'AIIDA_QUANTUMESPRESSO',
+    'AIIDA_WANNIER90',
+    'FIRSTPARTY',
+    'LOCALFOLDER'
+]
+known_aiida = ['aiida']
+known_aiida_quantumespresso = ['aiida_quantumespresso']
+known_aiida_wannier90 = ['aiida_wannier90']
 
 [tool.tox]
 legacy_tox_ini = """
 [tox]
-envlist = py37
+envlist = py38
 
 [testenv]
 usedevelop=True
 
-[testenv:py{36,37,38,39}]
-extras = tests
+[testenv:py{37,38,39,310}]
+description = Run the test suite against a python version
+extras = testing
 commands = pytest {posargs}
 
-[testenv:py38-pre-commit]
+[testenv:pre-commit]
 description = Run the pre-commit checks
-extras =
-    tests
-    pre-commit
+extras = pre-commit
 commands = pre-commit run {posargs}
 
-[testenv:py38-docs-{clean,update}]
-description =
-    clean: Build the documentation (remove any existing build)
-    update: Build the documentation (modify any existing build)
+[testenv:docs]
+description = Build the documentation
 extras = docs
-changedir = docs
-whitelist_externals = make
-commands =
-    clean: make clean
-    make
-
+commands = sphinx-build -nW --keep-going -b html {posargs} docs/source docs/build/html
+commands_post = echo "open file://{toxinidir}/docs/build/html/index.html"
 """
