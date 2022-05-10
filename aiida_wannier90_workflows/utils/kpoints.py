@@ -1,6 +1,6 @@
-# -*- coding: utf-8 -*-
 """Functions for processing kpoints."""
 import typing as ty
+
 import numpy as np
 
 from aiida import orm
@@ -18,7 +18,7 @@ def get_explicit_kpoints(kmesh: orm.KpointsData) -> orm.KpointsData:
     try:  # test if it is a mesh
         results = kmesh.get_kpoints_mesh()
     except AttributeError as exc:
-        raise ValueError('input does not contain a mesh!') from exc
+        raise ValueError("input does not contain a mesh!") from exc
     else:
         # currently offset is ignored
         mesh = results[0]
@@ -117,19 +117,25 @@ def get_mesh_from_kpoints(kpoints: orm.KpointsData) -> ty.List:
         kmax = [0, 0, 0]
         # 3 directions
         for i in range(3):
-            uniq_kpt = np.sort((np.unique(klist[:, i])))
+            uniq_kpt = np.sort(np.unique(klist[:, i]))
             kmin[i] = uniq_kpt[0]
             kmax[i] = uniq_kpt[-1]
             mesh[i] = len(uniq_kpt)
 
-        klist_recovered = cartesian_product(*[np.linspace(kmin[_], kmax[_], mesh[_]) for _ in range(3)])
+        klist_recovered = cartesian_product(
+            *[np.linspace(kmin[_], kmax[_], mesh[_]) for _ in range(3)]
+        )
         if not np.allclose(klist, klist_recovered):
-            raise ValueError(f'Cannot convert kpoints {kpoints} to a mesh')  # pylint: disable=raise-missing-from
+            raise ValueError(
+                f"Cannot convert kpoints {kpoints} to a mesh"
+            )  # pylint: disable=raise-missing-from
 
     return mesh
 
 
-def create_kpoints_from_mesh(structure: orm.StructureData, mesh: ty.List[int]) -> orm.KpointsData:
+def create_kpoints_from_mesh(
+    structure: orm.StructureData, mesh: ty.List[int]
+) -> orm.KpointsData:
     """Create KpointsData from a given distance.
 
     :param structure: [description]
@@ -178,7 +184,7 @@ def get_path_from_kpoints(kpoints: orm.KpointsData) -> orm.Dict:
     :return: the returned Dict object contains two keys: `path` and `point_coords`.
     :rtype: orm.Dict
     """
-    assert kpoints.labels is not None, '`kpoints` must have `labels`'
+    assert kpoints.labels is not None, "`kpoints` must have `labels`"
     assert len(kpoints.labels) >= 2
 
     # default in crystal coordinates
@@ -219,7 +225,7 @@ def get_path_from_kpoints(kpoints: orm.KpointsData) -> orm.Dict:
         prev_idx = idx
         prev_lab = lab
 
-    ret = {'path': path, 'point_coords': point_coords}
+    ret = {"path": path, "point_coords": point_coords}
     return orm.Dict(dict=ret)
 
 
@@ -233,22 +239,24 @@ def get_kpoints_from_bands(bands: orm.BandsData) -> orm.KpointsData:
     """
     kpoints = orm.KpointsData()
 
-    cell = bands.attributes['cell']
+    cell = bands.attributes["cell"]
     kpoints.set_cell(cell)
 
-    kpoints.set_attribute_many({
-        'pbc1': bands.attributes['pbc1'],
-        'pbc2': bands.attributes['pbc2'],
-        'pbc3': bands.attributes['pbc3'],
-    })
+    kpoints.set_attribute_many(
+        {
+            "pbc1": bands.attributes["pbc1"],
+            "pbc2": bands.attributes["pbc2"],
+            "pbc3": bands.attributes["pbc3"],
+        }
+    )
 
     # default in crystal coordinates
     explicit_kpoints = bands.get_kpoints()
 
     # e.g. ['GAMMA', 'X', 'U', 'K', 'GAMMA', 'L', 'W', 'X']
-    labels = bands.attributes['labels']
+    labels = bands.attributes["labels"]
     # e.g. [0, 100, 135, 136, 242, 329, 400, 450]
-    label_numbers = bands.attributes['label_numbers']
+    label_numbers = bands.attributes["label_numbers"]
 
     labels = list(zip(label_numbers, labels))
     kpoints.set_kpoints(kpoints=explicit_kpoints, labels=labels)

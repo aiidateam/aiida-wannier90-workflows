@@ -1,6 +1,6 @@
-# -*- coding: utf-8 -*-
 """Commands to manipulate groups of `Wannier90BandsWorkChain`."""
 import click
+
 from aiida import orm
 from aiida.cmdline.params import types
 from aiida.cmdline.utils import decorators, echo
@@ -9,14 +9,14 @@ from aiida.cmdline.utils.query.calculation import CalculationQueryBuilder
 from .root import cmd_root
 
 
-@cmd_root.group('group')
+@cmd_root.group("group")
 def cmd_group():
     """Manipulate groups of WorkChain."""
 
 
-@cmd_group.command('movefailed')
-@click.argument('src-group', type=types.GroupParamType(), nargs=1)
-@click.argument('dest-group', type=types.GroupParamType(), nargs=1)
+@cmd_group.command("movefailed")
+@click.argument("src-group", type=types.GroupParamType(), nargs=1)
+@click.argument("dest-group", type=types.GroupParamType(), nargs=1)
 @decorators.with_dbenv()
 @click.pass_context
 def cmd_movefailed(ctx, src_group, dest_group):
@@ -26,10 +26,12 @@ def cmd_movefailed(ctx, src_group, dest_group):
     dest-group: The destination group identified by its ID, UUID or label.
     """
     from plumpy import ProcessState
-    from .list import print_process_table
+
     from aiida.cmdline.commands.cmd_group import group_add_nodes, group_remove_nodes
 
-    echo.echo('Workchains failed:', bold=True)
+    from .list import print_process_table
+
+    echo.echo("Workchains failed:", bold=True)
     projected_failed, headers = print_process_table(  # pylint: disable=unused-variable
         process_label=None,
         all_entries=True,
@@ -42,11 +44,11 @@ def cmd_movefailed(ctx, src_group, dest_group):
         limit=None,
         project=CalculationQueryBuilder.default_projections,
         raw=False,
-        order_by='ctime',
-        order_dir='asc'
+        order_by="ctime",
+        order_dir="asc",
     )
 
-    echo.echo('\nWorkchains excepted or killed:', bold=True)
+    echo.echo("\nWorkchains excepted or killed:", bold=True)
     projected_excepted, headers = print_process_table(
         process_label=None,
         all_entries=False,
@@ -59,19 +61,21 @@ def cmd_movefailed(ctx, src_group, dest_group):
         limit=None,
         project=CalculationQueryBuilder.default_projections,
         raw=False,
-        order_by='ctime',
-        order_dir='asc'
+        order_by="ctime",
+        order_dir="asc",
     )
 
     # 0th is PK
     nodes = [orm.load_node(_[0]) for _ in projected_failed + projected_excepted]
 
-    echo.echo(f"\nWorkchains to be moved: {' '.join([str(_.pk) for _ in nodes])}", bold=True)
+    echo.echo(
+        f"\nWorkchains to be moved: {' '.join([str(_.pk) for _ in nodes])}", bold=True
+    )
 
     message = (
-        f'Are you sure you want to move {len(nodes)} nodes from '
-        f'{src_group.__class__.__name__}<{src_group.label}> to '
-        f'{dest_group.__class__.__name__}<{dest_group.label}>?'
+        f"Are you sure you want to move {len(nodes)} nodes from "
+        f"{src_group.__class__.__name__}<{src_group.label}> to "
+        f"{dest_group.__class__.__name__}<{dest_group.label}>?"
     )
     click.confirm(message, abort=True)
 

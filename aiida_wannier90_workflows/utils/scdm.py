@@ -1,10 +1,16 @@
-# -*- coding: utf-8 -*-
 """Functions for SCDM fitting."""
 import typing as ty
+
 import numpy as np
+
 from aiida import orm
 
-__all__ = ('erfc_scdm', 'fit_scdm_mu_sigma_raw', 'fit_scdm_mu_sigma', 'get_energy_of_projectability')
+__all__ = (
+    "erfc_scdm",
+    "fit_scdm_mu_sigma_raw",
+    "fit_scdm_mu_sigma",
+    "get_energy_of_projectability",
+)
 
 
 def erfc_scdm(x, mu, sigma):
@@ -25,7 +31,7 @@ def fit_scdm_mu_sigma_raw(
     bands: np.array,
     projections: np.array,
     sigma_factor: float = 3.0,
-    return_data: bool = False
+    return_data: bool = False,
 ) -> ty.Union[ty.Tuple[float, float], ty.Tuple[float, float, np.array]]:
     """Fit mu parameter for the SCDM-k method.
 
@@ -47,7 +53,9 @@ def fit_scdm_mu_sigma_raw(
     """
     sorted_bands, sorted_projwfc = sort_projectability_arrays(bands, projections)
 
-    popt, pcov = fit_erfc(erfc_scdm, sorted_bands, sorted_projwfc)  # pylint: disable=unbalanced-tuple-unpacking,unused-variable
+    popt, pcov = fit_erfc(
+        erfc_scdm, sorted_bands, sorted_projwfc
+    )  # pylint: disable=unbalanced-tuple-unpacking,unused-variable
     mu = popt[0]
     sigma = popt[1]
 
@@ -67,7 +75,7 @@ def fit_scdm_mu_sigma(
     bands: orm.BandsData,
     projections: orm.ProjectionData,
     sigma_factor: orm.Float,
-    return_data: bool = False
+    return_data: bool = False,
 ) -> ty.Union[ty.Tuple[float, float], ty.Tuple[float, float, np.array]]:
     """Fit scdm_mu & scdm_sigma based on projectability.
 
@@ -83,7 +91,9 @@ def fit_scdm_mu_sigma(
     :type sigma_factor: orm.Float
     """
     bands_array, projections_array = get_projectability_arrays(bands, projections)
-    return fit_scdm_mu_sigma_raw(bands_array, projections_array, sigma_factor.value, return_data)
+    return fit_scdm_mu_sigma_raw(
+        bands_array, projections_array, sigma_factor.value, return_data
+    )
 
 
 def get_projectability_arrays(bands: orm.BandsData, projections: orm.ProjectionData):
@@ -100,9 +110,10 @@ def get_projectability_arrays(bands: orm.BandsData, projections: orm.ProjectionD
     # List of specifications of atomic orbitals in dictionary form
     orbitals_list = [i.get_orbital_dict() for i in projections.get_orbitals()]
     # Sum of the projections on all atomic orbitals, shape num_kpoints * num_bands
-    projections_array = sum([
-        sum([x[1] for x in projections.get_projections(**orb_dict)]) for orb_dict in orbitals_list
-    ])
+    projections_array = sum(
+        sum(x[1] for x in projections.get_projections(**orb_dict))
+        for orb_dict in orbitals_list
+    )
     # shape num_kpoints * num_bands, TODO support spin
     bands_array = bands.get_bands()
     return bands_array, projections_array
@@ -121,7 +132,7 @@ def sort_projectability_arrays(bands: np.array, projections: np.array):
     bands_flat = bands.flatten()
 
     # sort by energy
-    #sorted_bands, sorted_projwfc = zip(*sorted(zip(bands_flat, projwfc_flat)))
+    # sorted_bands, sorted_projwfc = zip(*sorted(zip(bands_flat, projwfc_flat)))
     # use numpy, faster
     data = np.vstack((bands_flat, projwfc_flat))  # shape 2 * N
     ind = np.argsort(data, axis=1)[0, :]  # sort by energy
@@ -131,7 +142,9 @@ def sort_projectability_arrays(bands: np.array, projections: np.array):
     return sorted_bands, sorted_projwfc
 
 
-def get_energy_of_projectability(bands: orm.BandsData, projections: orm.ProjectionData, thresholds: float = 0.9):
+def get_energy_of_projectability(
+    bands: orm.BandsData, projections: orm.ProjectionData, thresholds: float = 0.9
+):
     """Return energy corresponds to projectability = thresholds.
 
     :param bands: [description]
@@ -142,6 +155,8 @@ def get_energy_of_projectability(bands: orm.BandsData, projections: orm.Projecti
     :type thresholds: float
     """
     bands_array, projections_array = get_projectability_arrays(bands, projections)
-    sorted_bands, sorted_projwfc = sort_projectability_arrays(bands_array, projections_array)
+    sorted_bands, sorted_projwfc = sort_projectability_arrays(
+        bands_array, projections_array
+    )
     max_ind = np.max(np.argwhere(sorted_projwfc >= thresholds).flatten())
     return sorted_bands[max_ind]

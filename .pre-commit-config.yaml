@@ -3,7 +3,7 @@ repos:
     rev: v4.2.0
     hooks:
       - id: end-of-file-fixer
-        exclude: >-
+        exclude: &exclude_txtfiles >-
           (?x)^(
               tests/.*.*out|
               tests/.*.in|
@@ -13,16 +13,11 @@ repos:
           )$
       - id: fix-encoding-pragma
         args: ["--remove"]
+        exclude: *exclude_txtfiles
       - id: mixed-line-ending
+        exclude: *exclude_txtfiles
       - id: trailing-whitespace
-        exclude: >-
-          (?x)^(
-              tests/.*.*out|
-              tests/.*.in|
-              examples/.*.xsf|
-              docs/.*.agr|
-              docs/.*.xsf
-          )$
+        exclude: *exclude_txtfiles
       - id: check-json
       - id: check-yaml
       - id: check-toml
@@ -58,7 +53,7 @@ repos:
     rev: 6.1.1
     hooks:
       - id: pydocstyle
-        exclude: &exclude_files >
+        exclude: &exclude_pyfiles >
           (?x)^(
               aiida_wannier90_workflows/utils/.*/predict_smooth_grid.py|
               aiida_wannier90_workflows/utils/.*/get_w90model_from_aiida.py|
@@ -71,4 +66,5 @@ repos:
     rev: v2.14.0-b1
     hooks:
       - id: pylint
-        exclude: *exclude_files
+        language: system
+        exclude: *exclude_pyfiles

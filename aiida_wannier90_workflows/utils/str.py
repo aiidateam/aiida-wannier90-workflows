@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Functions for str."""
 
 
@@ -12,7 +11,7 @@ def removesuffix(text: str, suffix: str) -> str:
     :return: _description_
     :rtype: str
     """
-    return text[:-len(suffix)] if text.endswith(suffix) and len(suffix) != 0 else text
+    return text[: -len(suffix)] if text.endswith(suffix) and len(suffix) != 0 else text
 
 
 def removeprefix(text: str, prefix: str) -> str:
@@ -25,4 +24,4 @@ def removeprefix(text: str, prefix: str) -> str:
     :return: _description_
     :rtype: str
     """
-    return text[len(prefix):] if text.startswith(prefix) and len(prefix) != 0 else text
+    return text[len(prefix) :] if text.startswith(prefix) and len(prefix) != 0 else text

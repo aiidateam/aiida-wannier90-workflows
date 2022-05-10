@@ -1,12 +1,13 @@
-# -*- coding: utf-8 -*-
 """Functions for structures."""
-import typing as ty
 import pathlib
+import typing as ty
 
 from aiida import orm
 
 
-def read_structure(filename: ty.Union[str, pathlib.Path], store: bool = False) -> orm.StructureData:
+def read_structure(
+    filename: ty.Union[str, pathlib.Path], store: bool = False
+) -> orm.StructureData:
     """Read a xsf/xyz/cif/.. file and return aiida ``StructureData``."""
     from ase.io import read as aseread
 
@@ -14,6 +15,6 @@ def read_structure(filename: ty.Union[str, pathlib.Path], store: bool = False) -
 
     if store:
         struct.store()
-        print(f'Read and stored structure {struct.get_formula()}<{struct.pk}>')
+        print(f"Read and stored structure {struct.get_formula()}<{struct.pk}>")
 
     return struct

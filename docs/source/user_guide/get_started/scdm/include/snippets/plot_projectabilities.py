@@ -1,18 +1,24 @@
 #!/usr/bin/env runaiida
-# -*- coding: utf-8 -*-
 import argparse
+
 from aiida import orm
 
 
 def parse_arguments():
     import argparse
-    parser = argparse.ArgumentParser(description='A script to plot the projectabilities distribution')
-    parser.add_argument('pk', metavar='WORKCHAIN_PK', type=int, help='PK of Wannier90BandsWorkChain')
+
+    parser = argparse.ArgumentParser(
+        description="A script to plot the projectabilities distribution"
+    )
+    parser.add_argument(
+        "pk", metavar="WORKCHAIN_PK", type=int, help="PK of Wannier90BandsWorkChain"
+    )
     return parser.parse_args()
 
 
 def erfc_scdm(x, mu, sigma):
     from scipy.special import erfc
+
     return 0.5 * erfc((x - mu) / sigma)
 
 
@@ -29,12 +35,16 @@ def get_mu_and_sigma_from_projections(bands, projections, thresholds):
 
     def fit_erfc(f, xdata, ydata):
         from scipy.optimize import curve_fit
+
         return curve_fit(f, xdata, ydata, bounds=([-50, 0], [50, 50]))
 
     # List of specifications of atomic orbitals in dictionary form
     dict_list = [i.get_orbital_dict() for i in projections.get_orbitals()]
     # Sum of the projections on all atomic orbitals (shape kpoints x nbands)
-    out_array = sum([sum([x[1] for x in projections.get_projections(**get_dict)]) for get_dict in dict_list])
+    out_array = sum(
+        sum(x[1] for x in projections.get_projections(**get_dict))
+        for get_dict in dict_list
+    )
     # Flattening (projection modulus squared according to QE, energies)
     projwfc_flat, bands_flat = out_array.flatten(), bands.get_bands().flatten()
     # Sorted by energy
@@ -58,38 +68,41 @@ def findNode(NodeType, NodeList):
     return nodes[-1]
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     args = parse_arguments()
     wannier90bandsworkchain = orm.load_node(args.pk)
     formula = wannier90bandsworkchain.inputs.structure.get_formula()
-    wannier90workchain = findNode('Wannier90WorkChain', wannier90bandsworkchain.called)
+    wannier90workchain = findNode("Wannier90WorkChain", wannier90bandsworkchain.called)
 
-    wannier90calculation = findNode('Wannier90Calculation', wannier90workchain.called)
-    fermi_energy = wannier90calculation.inputs.parameters['fermi_energy']
+    wannier90calculation = findNode("Wannier90Calculation", wannier90workchain.called)
+    fermi_energy = wannier90calculation.inputs.parameters["fermi_energy"]
 
-    pw2wannier90calculation = findNode('Pw2wannier90Calculation', wannier90workchain.called)
-    sigma = pw2wannier90calculation.inputs.parameters['inputpp']['scdm_sigma']
-    mu = pw2wannier90calculation.inputs.parameters['inputpp']['scdm_mu']
+    pw2wannier90calculation = findNode(
+        "Pw2wannier90Calculation", wannier90workchain.called
+    )
+    sigma = pw2wannier90calculation.inputs.parameters["inputpp"]["scdm_sigma"]
+    mu = pw2wannier90calculation.inputs.parameters["inputpp"]["scdm_mu"]
 
-    projwfccalculation = findNode('ProjwfcCalculation', wannier90workchain.called)
+    projwfccalculation = findNode("ProjwfcCalculation", wannier90workchain.called)
     projections = projwfccalculation.outputs.projections
 
-    print(f'{formula:6s}:')
-    print(f'        mu = {mu}, e_fermi = {fermi_energy}, sigma = {sigma}')
+    print(f"{formula:6s}:")
+    print(f"        mu = {mu}, e_fermi = {fermi_energy}, sigma = {sigma}")
 
     proj_bands = projwfccalculation.outputs.bands
     mu_fit, sigma_fit, sorted_bands, sorted_projwfc = get_mu_and_sigma_from_projections(
-        proj_bands, projections, {'sigma_factor_shift': 0.}
+        proj_bands, projections, {"sigma_factor_shift": 0.0}
     )
     import pylab as pl
+
     pl.figure()
-    pl.plot(sorted_bands, sorted_projwfc, 'o')
+    pl.plot(sorted_bands, sorted_projwfc, "o")
     pl.plot(sorted_bands, erfc_scdm(sorted_bands, mu_fit, sigma_fit))
-    pl.axvline([mu_fit], color='red', label=r'$\mu$')
-    pl.axvline([mu_fit - 3. * sigma_fit], color='orange', label=r'$\mu-3\sigma$')
-    pl.axvline([fermi_energy], color='green', label=r'$E_f$')
+    pl.axvline([mu_fit], color="red", label=r"$\mu$")
+    pl.axvline([mu_fit - 3.0 * sigma_fit], color="orange", label=r"$\mu-3\sigma$")
+    pl.axvline([fermi_energy], color="green", label=r"$E_f$")
     pl.title(formula)
-    pl.xlabel('Energy [eV]')
-    pl.ylabel('Projectability')
-    pl.legend(loc='best')
-    pl.savefig(f'{formula}_proj.png')
+    pl.xlabel("Energy [eV]")
+    pl.ylabel("Projectability")
+    pl.legend(loc="best")
+    pl.savefig(f"{formula}_proj.png")

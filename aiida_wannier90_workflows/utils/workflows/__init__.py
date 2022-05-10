@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Utility functions for manipulating nodes."""
 from aiida import orm
 

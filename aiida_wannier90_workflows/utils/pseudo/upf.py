@@ -1,50 +1,51 @@
-# -*- coding: utf-8 -*-
 """Utility functions for parsing pseudo potential file."""
 import xml.etree.ElementTree as ET
+
 from aiida import orm
 
-__all__ = (# for the content of UPF, i.e. these functions accept str as parameter
-           'parse_zvalence',
-           'parse_pswfc_nosoc', 'parse_pswfc_soc',
-           'parse_number_of_pswfc',
-           # for orm.UpfData, i.e. these functions accept orm.UpfData as parameter
-           'get_number_of_electrons_from_upf',
-           'get_projections_from_upf',
-           'get_number_of_projections_from_upf',
-           # for orm.StructreData, i.e. these functions accept orm.StructreData as parameter
-           # 'get_number_of_electrons',
-           # 'get_projections',
-           # 'get_number_of_projections',
-           # 'get_wannier_number_of_bands',
-           # helper functions
-           'is_soc_pseudo',
-           # 'load_pseudo_metadata'
-           )
+__all__ = (  # for the content of UPF, i.e. these functions accept str as parameter
+    "parse_zvalence",
+    "parse_pswfc_nosoc",
+    "parse_pswfc_soc",
+    "parse_number_of_pswfc",
+    # for orm.UpfData, i.e. these functions accept orm.UpfData as parameter
+    "get_number_of_electrons_from_upf",
+    "get_projections_from_upf",
+    "get_number_of_projections_from_upf",
+    # for orm.StructreData, i.e. these functions accept orm.StructreData as parameter
+    # 'get_number_of_electrons',
+    # 'get_projections',
+    # 'get_number_of_projections',
+    # 'get_wannier_number_of_bands',
+    # helper functions
+    "is_soc_pseudo",
+    # 'load_pseudo_metadata'
+)
 
 
 def get_ppheader(upf_content: str) -> str:
     """Get PP_HEADER."""
-    upf_content = upf_content.split('\n')
+    upf_content = upf_content.split("\n")
     # get PP_HEADER block
-    ppheader_block = ''
+    ppheader_block = ""
     found_begin = False
     found_end = False
     for line in upf_content:
-        if '<PP_HEADER' in line:
-            ppheader_block += line + '\n'
+        if "<PP_HEADER" in line:
+            ppheader_block += line + "\n"
             if not found_begin:
                 found_begin = True
-                if '/>' in line or '</PP_HEADER>' in line:
+                if "/>" in line or "</PP_HEADER>" in line:
                     # in the same line
                     break
                 continue
-        if found_begin and ('/>' in line or '</PP_HEADER>' in line):
-            ppheader_block += line + '\n'
+        if found_begin and ("/>" in line or "</PP_HEADER>" in line):
+            ppheader_block += line + "\n"
             if not found_end:
                 found_end = True
                 break
         if found_begin:
-            ppheader_block += line + '\n'
+            ppheader_block += line + "\n"
     # print(ppheader_block)
     return ppheader_block
 
@@ -65,7 +66,7 @@ def is_soc_pseudo(upf_content: str) -> bool:
         has_so = False
     else:
         # upf format 2.0.1
-        has_so = PP_HEADER.get('has_so')[0].lower() == 't'
+        has_so = PP_HEADER.get("has_so")[0].lower() == "t"
     return has_so
 
 
@@ -104,7 +105,7 @@ def parse_zvalence(upf_content: str) -> float:
         #                        2S  0  2.00
         #                        2P  1  0.00
         # </PP_HEADER>
-        lines = ppheader_block.split('\n')[6]
+        lines = ppheader_block.split("\n")[6]
         # some may have z_valence="1.300000000000000E+001", str -> float
         num_electrons = float(lines.strip().split()[0])
     else:
@@ -133,7 +134,7 @@ def parse_zvalence(upf_content: str) -> float:
         #    mesh_size="  1398"
         #    number_of_wfc="4"
         #    number_of_proj="6"/>
-        num_electrons = float(PP_HEADER.get('z_valence'))
+        num_electrons = float(PP_HEADER.get("z_valence"))
     return num_electrons
 
 
@@ -146,8 +147,11 @@ def get_upf_content(upf: orm.UpfData) -> str:
     :rtype: str
     """
     import aiida_pseudo.data.pseudo.upf
+
     if not isinstance(upf, (orm.UpfData, aiida_pseudo.data.pseudo.upf.UpfData)):
-        raise ValueError(f'The type of upf is {type(upf)}, only aiida.orm.UpfData is accepted')
+        raise ValueError(
+            f"The type of upf is {type(upf)}, only aiida.orm.UpfData is accepted"
+        )
     upf_name = upf.list_object_names()[0]
     upf_content = upf.get_object_content(upf_name)
     return upf_content
@@ -181,15 +185,15 @@ def parse_pswfc_soc(upf_content: str) -> list:
     :rtype: list
     """
     if not is_soc_pseudo(upf_content):
-        raise ValueError('Only accept SOC pseudo')
-    upf_content = upf_content.split('\n')
+        raise ValueError("Only accept SOC pseudo")
+    upf_content = upf_content.split("\n")
     # get PP_SPIN_ORB block
-    pswfc_block = ''
+    pswfc_block = ""
     found_begin = False
     found_end = False
     for line in upf_content:
-        if 'PP_SPIN_ORB' in line:
-            pswfc_block += line + '\n'
+        if "PP_SPIN_ORB" in line:
+            pswfc_block += line + "\n"
             if not found_begin:
                 found_begin = True
                 continue
@@ -197,7 +201,7 @@ def parse_pswfc_soc(upf_content: str) -> list:
                 found_end = True
                 break
         if found_begin:
-            pswfc_block += line + '\n'
+            pswfc_block += line + "\n"
 
     # contains element: {'n', 'l', 'j'} for 3 quantum numbers
     projections = []
@@ -209,13 +213,13 @@ def parse_pswfc_soc(upf_content: str) -> list:
     else:
         # upf format 2.0.1, see q-e/Modules/uspp.f90:n_atom_wfc
         for child in PP_PSWFC:
-            if not 'PP_RELWFC' in child.tag:
+            if not "PP_RELWFC" in child.tag:
                 continue
-            nn = int(child.get('nn'))  # pylint: disable=invalid-name
+            nn = int(child.get("nn"))  # pylint: disable=invalid-name
             # use int, otherwise the returned num_projections is float
-            lchi = int(child.get('lchi'))
-            jchi = float(child.get('jchi'))
-            oc = child.get('oc')  # pylint: disable=invalid-name
+            lchi = int(child.get("lchi"))
+            jchi = float(child.get("jchi"))
+            oc = child.get("oc")  # pylint: disable=invalid-name
             # pslibrary PP has 'oc' attribute, but pseudodojo does not have 'oc'
             # e.g. in pslibrary Ag.rel-pbe-n-kjpaw_psl.1.0.0.UPF
             # <PP_RELWFC.1 index="1" els="5S" nn="1" lchi="0" jchi="5.000000000000e-1" oc="1.500000000000e0"/>
@@ -225,7 +229,7 @@ def parse_pswfc_soc(upf_content: str) -> list:
                 oc = float(oc)  # pylint: disable=invalid-name
                 if oc < 0:
                     continue
-            projections.append({'n': nn, 'l': lchi, 'j': jchi})
+            projections.append({"n": nn, "l": lchi, "j": jchi})
     return projections
 
 
@@ -238,15 +242,15 @@ def parse_pswfc_nosoc(upf_content: str) -> list:
     :rtype: list
     """
     if is_soc_pseudo(upf_content):
-        raise ValueError('Only accept non-SOC pseudo')
-    upf_content = upf_content.split('\n')
+        raise ValueError("Only accept non-SOC pseudo")
+    upf_content = upf_content.split("\n")
     # get PP_PSWFC block
-    pswfc_block = ''
+    pswfc_block = ""
     found_begin = False
     found_end = False
     for line in upf_content:
-        if 'PP_PSWFC' in line:
-            pswfc_block += line + '\n'
+        if "PP_PSWFC" in line:
+            pswfc_block += line + "\n"
             if not found_begin:
                 found_begin = True
                 continue
@@ -254,7 +258,7 @@ def parse_pswfc_nosoc(upf_content: str) -> list:
                 found_end = True
                 break
         if found_begin:
-            pswfc_block += line + '\n'
+            pswfc_block += line + "\n"
 
     projections = []
     # parse XML
@@ -262,24 +266,25 @@ def parse_pswfc_nosoc(upf_content: str) -> list:
     if len(list(PP_PSWFC)) == 0:
         # old upf format
         import re
-        r = re.compile(r'[\d]([SPDF])')  # pylint: disable=invalid-name
+
+        r = re.compile(r"[\d]([SPDF])")  # pylint: disable=invalid-name
         spdf = r.findall(PP_PSWFC.text)
         for orbit in spdf:
             orbit = orbit.lower()
-            if orbit == 's':
+            if orbit == "s":
                 l = 0
-            elif orbit == 'p':
+            elif orbit == "p":
                 l = 1
-            elif orbit == 'd':
+            elif orbit == "d":
                 l = 2
-            elif orbit == 'f':
+            elif orbit == "f":
                 l = 3
-            projections.append({'l': l})
+            projections.append({"l": l})
     else:
         # upf format 2.0.1
         for child in PP_PSWFC:
-            l = int(child.get('l'))
-            projections.append({'l': l})
+            l = int(child.get("l"))
+            projections.append({"l": l})
     return projections
 
 
@@ -292,15 +297,15 @@ def parse_pswfc_energy_nosoc(upf_content: str) -> list:
     :rtype: list
     """
     if is_soc_pseudo(upf_content):
-        raise ValueError('Only accept non-SOC pseudo')
-    upf_content = upf_content.split('\n')
+        raise ValueError("Only accept non-SOC pseudo")
+    upf_content = upf_content.split("\n")
     # get PP_PSWFC block
-    pswfc_block = ''
+    pswfc_block = ""
     found_begin = False
     found_end = False
     for line in upf_content:
-        if 'PP_PSWFC' in line:
-            pswfc_block += line + '\n'
+        if "PP_PSWFC" in line:
+            pswfc_block += line + "\n"
             if not found_begin:
                 found_begin = True
                 continue
@@ -308,7 +313,7 @@ def parse_pswfc_energy_nosoc(upf_content: str) -> list:
                 found_end = True
                 break
         if found_begin:
-            pswfc_block += line + '\n'
+            pswfc_block += line + "\n"
 
     projections = []
     # parse XML
@@ -318,25 +323,26 @@ def parse_pswfc_energy_nosoc(upf_content: str) -> list:
         #  pylint: disable=unreachable
         # old upf format
         import re
-        r = re.compile(r'[\d]([SPDF])')  # pylint: disable=invalid-name
+
+        r = re.compile(r"[\d]([SPDF])")  # pylint: disable=invalid-name
         spdf = r.findall(PP_PSWFC.text)
         for orbit in spdf:
             orbit = orbit.lower()
-            if orbit == 's':
+            if orbit == "s":
                 l = 0
-            elif orbit == 'p':
+            elif orbit == "p":
                 l = 1
-            elif orbit == 'd':
+            elif orbit == "d":
                 l = 2
-            elif orbit == 'f':
+            elif orbit == "f":
                 l = 3
-            projections.append({'l': l})
+            projections.append({"l": l})
     else:
         # upf format 2.0.1
         for child in PP_PSWFC:
-            pseudo_energy = float(child.get('pseudo_energy'))
-            label = str(child.get('label'))
-            projections.append({'pseudo_energy': pseudo_energy, 'label': label})
+            pseudo_energy = float(child.get("pseudo_energy"))
+            label = str(child.get("label"))
+            projections.append({"pseudo_energy": pseudo_energy, "label": label})
     return projections
 
 
@@ -353,12 +359,14 @@ def get_projections_from_upf(upf: orm.UpfData):
         """A simple class to help sorting/removing the orbitals in a list."""
 
         def __init__(self, orbit_dict):
-            self.n = orbit_dict['n']
-            self.l = orbit_dict['l']
-            self.j = orbit_dict['j']
+            self.n = orbit_dict["n"]
+            self.l = orbit_dict["l"]
+            self.j = orbit_dict["j"]
 
         def __eq__(self, orbit):
-            return self.n == orbit.n and self.l == orbit.l and abs(self.j - orbit.j) < 1e-6
+            return (
+                self.n == orbit.n and self.l == orbit.l and abs(self.j - orbit.j) < 1e-6
+            )
 
         def __lt__(self, orbit):
             if self.n < orbit.n:
@@ -371,7 +379,7 @@ def get_projections_from_upf(upf: orm.UpfData):
                 return False
             return False
 
-    orbit_map = {0: 's', 1: 'p', 2: 'd', 3: 'f'}
+    orbit_map = {0: "s", 1: "p", 2: "d", 3: "f"}
     upf_content = get_upf_content(upf)
     wannier_projections = []
     has_so = is_soc_pseudo(upf_content)
@@ -399,16 +407,20 @@ def get_projections_from_upf(upf: orm.UpfData):
             if l == 0:
                 assert is_equal(j, 0.5)
             else:
-                pair_orbit = Orbit({'n': n, 'l': l, 'j': j + 1})
+                pair_orbit = Orbit({"n": n, "l": l, "j": j + 1})
                 assert i + 1 < len(sorted_pswfc)
                 assert sorted_pswfc[i + 1] == pair_orbit  # will use __eq__
-                pswfc.remove(pair_orbit)  # remove uses __eq__, and remove the 1st matched element
-                assert pair_orbit not in pswfc  # in uses __eq__, pswfc should contain one and only one pair_orbit
+                pswfc.remove(
+                    pair_orbit
+                )  # remove uses __eq__, and remove the 1st matched element
+                assert (
+                    pair_orbit not in pswfc
+                )  # in uses __eq__, pswfc should contain one and only one pair_orbit
                 i += 1  # skip next one
             i += 1
         # Now all the j = l + 1/2 orbitals have been removed
         for wfc in pswfc:
-            wannier_projections.append(f'{upf.element}: {orbit_map[wfc.l]}')
+            wannier_projections.append(f"{upf.element}: {orbit_map[wfc.l]}")
     return wannier_projections
 
 
@@ -430,7 +442,7 @@ def parse_number_of_pswfc(upf_content: str) -> int:
     if not has_so:
         pswfc = parse_pswfc_nosoc(upf_content)
         for wfc in pswfc:
-            l = wfc['l']
+            l = wfc["l"]
             num_projections += 2 * l + 1
     else:
         pswfc = parse_pswfc_soc(upf_content)
@@ -439,8 +451,8 @@ def parse_number_of_pswfc(upf_content: str) -> int:
         # 2. j = l + 1/2 then there are 2*j + 1 = 2l + 2 states so we have to add another 2
         # This follows the logic in q-e/Modules/uspp.f90:n_atom_wfc
         for wfc in pswfc:
-            l = wfc['l']
-            j = wfc['j']
+            l = wfc["l"]
+            j = wfc["j"]
             num_projections += 2 * l
             if abs(j - l - 0.5) < 1e-6:
                 num_projections += 2

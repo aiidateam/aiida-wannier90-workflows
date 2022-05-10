@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Fixtures for testing bands."""
 import pytest
 
@@ -12,20 +11,22 @@ def load_bands(filepath_fixtures):
     def _load_bands(structure: str, file_name: str):
         """Generate a `BandsData` node."""
         import json
+
         import numpy as np
+
         from aiida.plugins import DataFactory
 
-        BandsData = DataFactory('array.bands')  #pylint: disable=invalid-name
+        BandsData = DataFactory("array.bands")  # pylint: disable=invalid-name
         bands_data = BandsData()
 
-        fname = str(filepath_fixtures / 'utils' / 'bands' / structure / file_name)
+        fname = str(filepath_fixtures / "utils" / "bands" / structure / file_name)
         # aiida-core does not support importing BandsData
         # bands_data.importfile(fname)
 
         with open(fname) as handle:
             data = json.load(handle)
 
-        data = np.hstack([_['values'] for _ in data['paths']]).T
+        data = np.hstack([_["values"] for _ in data["paths"]]).T
 
         # Use fake kpoints
         bands_data.set_kpoints(np.zeros((data.shape[0], 3)))

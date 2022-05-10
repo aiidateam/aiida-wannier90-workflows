@@ -1,15 +1,19 @@
-# -*- coding: utf-8 -*-
 """Wrapper workchain for BaseRestartWorkChain to automatically handle several QE errors."""
 import re
+
 from aiida import orm
 from aiida.common import AttributeDict
-from aiida.engine import while_
-from aiida.engine import BaseRestartWorkChain
-from aiida.engine import process_handler, ProcessHandlerReport  # pylint: disable=unused-import
+from aiida.engine import (  # pylint: disable=unused-import
+    BaseRestartWorkChain,
+    ProcessHandlerReport,
+    process_handler,
+    while_,
+)
+
 from aiida_quantumespresso.calculations.namelists import NamelistsCalculation
 
 __all__ = [
-    'QeBaseRestartWorkChain',
+    "QeBaseRestartWorkChain",
 ]
 
 # def process_handler_stdout_incomplete(func, **handler_kwargs):
@@ -43,7 +47,7 @@ class QeBaseRestartWorkChain(BaseRestartWorkChain):
     # _process_class = Pw2wannier90Calculation
     # _inputs_namespace = 'pw2wannier90'
     _process_class = NamelistsCalculation
-    _inputs_namespace = 'base'
+    _inputs_namespace = "base"
 
     _mpi_proc_reduce_factor = 2
 
@@ -60,11 +64,11 @@ class QeBaseRestartWorkChain(BaseRestartWorkChain):
         # `Wannier90BandsWorkChain.get_builder_restart()` will complain that
         # "`metadata.options.resources` is required but is not specified"
         spec.input(
-            f'{cls._inputs_namespace}.metadata.options.resources',
+            f"{cls._inputs_namespace}.metadata.options.resources",
             valid_type=dict,
             default={
-                'num_machines': 1,
-                'num_mpiprocs_per_machine': 1,
+                "num_machines": 1,
+                "num_mpiprocs_per_machine": 1,
             },
             required=False,
         )
@@ -82,8 +86,8 @@ class QeBaseRestartWorkChain(BaseRestartWorkChain):
 
         spec.exit_code(
             311,
-            'ERROR_OUTPUT_STDOUT_INCOMPLETE',
-            message='The stdout output file was incomplete probably because the calculation got interrupted.'
+            "ERROR_OUTPUT_STDOUT_INCOMPLETE",
+            message="The stdout output file was incomplete probably because the calculation got interrupted.",
         )
 
     def setup(self):
@@ -93,7 +97,9 @@ class QeBaseRestartWorkChain(BaseRestartWorkChain):
         the calculations in the internal loop.
         """
         super().setup()
-        self.ctx.inputs = AttributeDict(self.exposed_inputs(self._process_class, self._inputs_namespace))
+        self.ctx.inputs = AttributeDict(
+            self.exposed_inputs(self._process_class, self._inputs_namespace)
+        )
 
     def report_error_handled(self, calculation, action):
         """Report an action taken for a calculation that has failed.
@@ -103,10 +109,12 @@ class QeBaseRestartWorkChain(BaseRestartWorkChain):
         :param calculation: the failed calculation node
         :param action: a string message with the action taken
         """
-        message = f'{calculation.process_label}<{calculation.pk}> failed'
-        message += f' with exit status {calculation.exit_status}: {calculation.exit_message}'
+        message = f"{calculation.process_label}<{calculation.pk}> failed"
+        message += (
+            f" with exit status {calculation.exit_status}: {calculation.exit_message}"
+        )
         self.report(message)
-        self.report(f'Action taken: {action}')
+        self.report(f"Action taken: {action}")
 
     # @process_handler_stdout_incomplete
     def handle_output_stdout_incomplete(self, calculation):
@@ -115,48 +123,60 @@ class QeBaseRestartWorkChain(BaseRestartWorkChain):
         Often the ERROR_OUTPUT_STDOUT_INCOMPLETE is due to out-of-memory.
         The handler will try to decrease `num_mpiprocs_per_machine` by `_mpi_proc_reduce_factor`.
         """
-        regex = re.compile(r'Detected \d+ oom-kill event\(s\) in step')
+        regex = re.compile(r"Detected \d+ oom-kill event\(s\) in step")
         scheduler_stderr = calculation.get_scheduler_stderr()
-        for line in scheduler_stderr.split('\n'):
-            if regex.search(line) or 'Out Of Memory' in line:
+        for line in scheduler_stderr.split("\n"):
+            if regex.search(line) or "Out Of Memory" in line:
                 break
         else:
-            action = 'Unrecoverable incomplete stdout error'
+            action = "Unrecoverable incomplete stdout error"
             self.report_error_handled(calculation, action)
-            return ProcessHandlerReport(True, self.exit_codes.ERROR_OUTPUT_STDOUT_INCOMPLETE)
+            return ProcessHandlerReport(
+                True, self.exit_codes.ERROR_OUTPUT_STDOUT_INCOMPLETE
+            )
 
-        metadata = self.ctx.inputs['metadata']
-        current_num_mpiprocs_per_machine = metadata['options']['resources'].get('num_mpiprocs_per_machine', 1)
+        metadata = self.ctx.inputs["metadata"]
+        current_num_mpiprocs_per_machine = metadata["options"]["resources"].get(
+            "num_mpiprocs_per_machine", 1
+        )
         # num_mpiprocs_per_machine = calculation.attributes['resources'].get('num_mpiprocs_per_machine', 1)
 
         if current_num_mpiprocs_per_machine == 1:
-            action = 'Unrecoverable out-of-memory error after setting num_mpiprocs_per_machine to 1'
+            action = "Unrecoverable out-of-memory error after setting num_mpiprocs_per_machine to 1"
             self.report_error_handled(calculation, action)
-            return ProcessHandlerReport(True, self.exit_codes.ERROR_OUTPUT_STDOUT_INCOMPLETE)
+            return ProcessHandlerReport(
+                True, self.exit_codes.ERROR_OUTPUT_STDOUT_INCOMPLETE
+            )
 
-        new_num_mpiprocs_per_machine = current_num_mpiprocs_per_machine // self._mpi_proc_reduce_factor
-        metadata['options']['resources']['num_mpiprocs_per_machine'] = new_num_mpiprocs_per_machine
-        action = f'Out-of-memory error, current num_mpiprocs_per_machine = {current_num_mpiprocs_per_machine}'
-        action += f', new num_mpiprocs_per_machine = {new_num_mpiprocs_per_machine}'
+        new_num_mpiprocs_per_machine = (
+            current_num_mpiprocs_per_machine // self._mpi_proc_reduce_factor
+        )
+        metadata["options"]["resources"][
+            "num_mpiprocs_per_machine"
+        ] = new_num_mpiprocs_per_machine
+        action = f"Out-of-memory error, current num_mpiprocs_per_machine = {current_num_mpiprocs_per_machine}"
+        action += f", new num_mpiprocs_per_machine = {new_num_mpiprocs_per_machine}"
         self.report_error_handled(calculation, action)
-        self.ctx.inputs['metadata'] = metadata
+        self.ctx.inputs["metadata"] = metadata
 
-        if 'settings' in self.ctx.inputs:
-            settings = self.ctx.inputs['settings'].get_dict()
+        if "settings" in self.ctx.inputs:
+            settings = self.ctx.inputs["settings"].get_dict()
             # {'cmdline': ['-nk', '16']}, I need to reduce it as well
-            cmdline = settings.get('cmdline', None)
+            cmdline = settings.get("cmdline", None)
             if cmdline:
-                for key in ('-nk', '-npools'):
+                for key in ("-nk", "-npools"):
                     if key in cmdline:
                         idx = cmdline.index(key)
                         if idx + 1 > len(cmdline) - 1:
                             # This should not happen, in this case the cmdline is wrong
                             continue
                         try:
-                            cmdline[idx + 1] = f'{int(cmdline[idx + 1]) // self._mpi_proc_reduce_factor}'
+                            cmdline[
+                                idx + 1
+                            ] = f"{int(cmdline[idx + 1]) // self._mpi_proc_reduce_factor}"
                         except ValueError:
                             continue
-                settings['cmdline'] = cmdline
-                self.ctx.inputs['settings'] = orm.Dict(dict=settings)
+                settings["cmdline"] = cmdline
+                self.ctx.inputs["settings"] = orm.Dict(dict=settings)
 
         return ProcessHandlerReport(True)

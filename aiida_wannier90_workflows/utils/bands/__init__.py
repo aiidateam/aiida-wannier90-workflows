@@ -1,6 +1,6 @@
-# -*- coding: utf-8 -*-
 """Utility functions for band structure."""
 import typing as ty
+
 import numpy as np
 
 
@@ -36,7 +36,9 @@ def remove_exclude_bands(bands: np.array, exclude_bands: list) -> np.array:
     num_kpoints, num_bands = bands.shape  # pylint: disable=unused-variable
 
     if not set(exclude_bands).issubset(set(range(num_bands))):
-        raise ValueError(f'exclude_bands {exclude_bands} not in the range of available bands {range(num_bands)}')
+        raise ValueError(
+            f"exclude_bands {exclude_bands} not in the range of available bands {range(num_bands)}"
+        )
 
     # Remove repetition and sort
     exclude_bands = sorted(set(exclude_bands))
