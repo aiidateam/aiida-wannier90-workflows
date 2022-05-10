@@ -85,11 +85,11 @@ def get_explicit_kpoints_from_distance(
     return kpoints
 
 
-def cartesian_product(*arrays: np.array) -> np.array:
+def cartesian_product(*arrays: np.ndarray) -> np.ndarray:
     """Cartesian product.
 
     :return: _description_
-    :rtype: np.array
+    :rtype: np.ndarray
     """
     la = len(arrays)  # pylint: disable=invalid-name
     dtype = np.result_type(*arrays)
