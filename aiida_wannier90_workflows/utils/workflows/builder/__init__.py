@@ -38,9 +38,7 @@ from aiida_wannier90_workflows.workflows.base.wannier90 import Wannier90BaseWork
 from aiida_wannier90_workflows.workflows.wannier90 import Wannier90WorkChain
 
 
-def serializer(
-    node: orm.Node, show_pk: bool = True
-) -> ty.Any:  # pylint: disable=too-many-statements
+def serializer(node: orm.Node, show_pk: bool = True) -> ty.Any:
     """Serialize arbitrary aiida object to ordinary python type, for pretty print.
 
     Usage:
@@ -51,6 +49,7 @@ def serializer(
     :param node: arbitrary aiida node
     :type node: orm.Node
     """
+    # pylint: disable=too-many-statements,too-many-branches
     from aiida_pseudo.data.pseudo import UpfData
 
     # print(type(node), node)
@@ -67,8 +66,8 @@ def serializer(
 
     elif isinstance(node, ProcessBuilderNamespace):
         res = serializer(
-            node._inputs(prune=True), show_pk
-        )  # pylint: disable=protected-access
+            node._inputs(prune=True), show_pk  # pylint: disable=protected-access
+        )
 
     elif isinstance(node, (orm.Float, orm.Bool, orm.Int, orm.Str, orm.BaseType)):
         res = node.value
@@ -223,7 +222,7 @@ def print_builder(builder: ty.Union[ProcessBuilderNamespace, dict]) -> None:
     pprint(serializer(pruned_builder))
 
 
-def submit_builder(
+def submit_builder(  # pylint: disable=inconsistent-return-statements
     builder: ProcessBuilder, group_label: ty.Optional[str] = None, dry_run: bool = True
 ) -> ty.Optional[orm.ProcessNode]:
     """Submit builder and add to group.
@@ -302,6 +301,7 @@ def guess_wannier_projection_types(
     frozen_type: WannierFrozenType = None,
 ) -> ty.Tuple[WannierProjectionType, WannierDisentanglementType, WannierFrozenType]:
     """Automatically guess Wannier projection, disentanglement, and frozen types."""
+    # pylint: disable=too-many-branches
 
     if electronic_type == ElectronicType.INSULATOR:
         if disentanglement_type is None:
@@ -398,6 +398,7 @@ def recursive_merge_container(
     :return: [description]
     :rtype: ty.Union[ty.Mapping, ty.Iterable]
     """
+    # pylint: disable=too-many-branches
     from collections import abc
     import copy
 
@@ -458,7 +459,7 @@ def recursive_merge_builder(
     return builder
 
 
-def set_parallelization(  # pylint: disable=too-many-locals,too-many-statements
+def set_parallelization(
     builder: ty.Union[ProcessBuilder, ProcessBuilderNamespace, AttributeDict],
     parallelization: dict = None,
     process_class: ty.Union[
@@ -476,6 +477,7 @@ def set_parallelization(  # pylint: disable=too-many-locals,too-many-statements
     :param builder: a builder or its subport, or a ``AttributeDict`` which is the inputs for the builder.
     :type builder: ProcessBuilderNamespace
     """
+    # pylint: disable=too-many-branches,too-many-statements,too-many-locals
     default_max_wallclock_seconds = 12 * 3600
     default_num_mpiprocs_per_machine = None
     default_npool = 1
@@ -751,7 +753,9 @@ def get_settings_for_kpool(npool: int):
     return settings
 
 
-def submit_and_add_group(builder: ProcessBuilder, group: orm.Group = None) -> None:
+def submit_and_add_group(
+    builder: ProcessBuilder, group: orm.Group = None
+) -> orm.ProcessNode:
     """Submit a builder and add to a group.
 
     :param builder: the builder to be submitted.
@@ -767,6 +771,8 @@ def submit_and_add_group(builder: ProcessBuilder, group: orm.Group = None) -> No
     if group:
         group.add_nodes([result])
         print(f"Added to group {group.label}<{group.pk}>")
+
+    return result
 
 
 def guess_process_class_from_builder(
