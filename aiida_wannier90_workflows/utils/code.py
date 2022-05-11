@@ -53,3 +53,18 @@ def identify_codes(
         results[name] = code
 
     return results
+
+
+def check_codes(codes: dict, required_codes: ty.List[str] = None) -> None:
+    """Check ``codes`` contains required keys.
+
+    :param codes: _description_
+    :type codes: dict
+    :raises ValueError: _description_
+    """
+    if required_codes is None:
+        # For SCDM Wannier90BandsWorkChain
+        required_codes = ["pw", "projwfc", "pw2wannier90", "wannier90"]
+
+    if required_codes not in codes.keys():
+        raise ValueError(f"One of the following codes is missing: {required_codes}")

@@ -60,3 +60,34 @@ def find_pwbands_for_structure(
     pw_workchains.sort(key=lambda i: i.pk)
 
     return pw_workchains
+
+
+def get_structure_and_bands_kpoints(
+    workchain: PwBandsWorkChain,
+) -> ty.Tuple[orm.StructureData, orm.KpointsData]:
+    """Return the primitive structure and the explicit kpoint path of a PwBandsWorkChain.
+
+    Assuming the PwBandsWorkChain runs a seekpath internally.
+
+    :param workchain: [description]
+    :type workchain: PwBandsWorkChain
+    :return: [description]
+    :rtype: ty.Tuple[orm.StructureData, orm.KpointsData]
+    """
+    from aiida.common.links import LinkType
+
+    # internal PwBaseWorkChain for pw.x bands calculation
+    bands_workchain = (
+        workchain.get_outgoing(
+            node_class=PwBaseWorkChain,
+            link_type=LinkType.CALL_WORK,
+            link_label_filter="bands",
+        )
+        .one()
+        .node
+    )
+
+    structure = bands_workchain.inputs.pw.structure
+    bands_kpoints = bands_workchain.inputs.kpoints
+
+    return structure, bands_kpoints

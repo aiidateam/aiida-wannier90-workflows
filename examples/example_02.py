@@ -8,7 +8,7 @@ import click
 from aiida import cmdline, orm
 
 from aiida_wannier90_workflows.cli.params import RUN
-from aiida_wannier90_workflows.utils.code import identify_codes
+from aiida_wannier90_workflows.utils.code import check_codes, identify_codes
 from aiida_wannier90_workflows.utils.structure import read_structure
 from aiida_wannier90_workflows.utils.workflows.builder import (
     print_builder,
@@ -16,11 +16,6 @@ from aiida_wannier90_workflows.utils.workflows.builder import (
     submit_and_add_group,
 )
 from aiida_wannier90_workflows.workflows import Wannier90BandsWorkChain
-
-# # Once the workflow has finished, launch a QE bands workflow for comparison
-# pw_builder = get_pwbands_builder(wc)
-# pw_wc = submit(pw_builder)
-# print(f"Submitted pw bands workflow<{pw_wc.pk}>")
 
 
 def submit(
@@ -30,9 +25,8 @@ def submit(
     run: bool = False,
 ):
     """Submit a ``Wannier90BandsWorkChain`` to calculate Wannier bands."""
-    required_codes = ["pw", "projwfc", "pw2wannier90", "wannier90"]
-    if required_codes not in codes.keys():
-        raise ValueError(f"One of the following codes is missing: {required_codes}")
+    codes = identify_codes(codes)
+    check_codes(codes)
 
     builder = Wannier90BandsWorkChain.get_builder_from_protocol(
         codes,
@@ -65,9 +59,6 @@ def cli(filename, codes, group, run):
     FILENAME: a crystal structure file, e.g., ``input_files/GaAs.xsf``.
     """
     struct = read_structure(filename, store=True)
-
-    codes = identify_codes(codes)
-
     submit(codes, struct, group, run)
 
 
