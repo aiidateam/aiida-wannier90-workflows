@@ -5,6 +5,7 @@ from aiida.engine import ProcessBuilder
 from aiida.plugins import WorkflowFactory
 
 from aiida_quantumespresso.common.types import SpinType
+from aiida_quantumespresso.workflows.pw.bands import PwBandsWorkChain
 
 Wannier90BandsWorkChain = WorkflowFactory("wannier90_workflows.bands")
 
@@ -108,7 +109,7 @@ def get_scf_builder(
     return builder
 
 
-def get_nscf_builder(
+def get_nscf_builder(  # pylint: disable=too-many-arguments
     code: orm.Code,
     kpoints_distance: float = None,
     kpoints: orm.KpointsData = None,
@@ -157,7 +158,9 @@ def get_nscf_builder(
     return builder
 
 
-def get_pwbands_builder(wannier_workchain: Wannier90BandsWorkChain) -> ProcessBuilder:
+def get_pwbands_builder_from_wannier(
+    wannier_workchain: Wannier90BandsWorkChain,
+) -> ProcessBuilder:
     """Get a `PwBaseWorkChain` builder for calculating bands strcutre from a finished `Wannier90BandsWorkChain`.
 
     Useful for comparing QE and Wannier90 interpolated bands structures.
@@ -168,12 +171,11 @@ def get_pwbands_builder(wannier_workchain: Wannier90BandsWorkChain) -> ProcessBu
     from aiida_quantumespresso.workflows.pw.base import PwBaseWorkChain
 
     if not wannier_workchain.is_finished_ok:
-        print(
+        raise ValueError(
             f"The {wannier_workchain.process_label}<{wannier_workchain.pk}> has not finished, "
             f"current status: {wannier_workchain.process_state}, "
             "please retry after workchain has successfully finished."
         )
-        return
 
     scf_inputs = wannier_workchain.inputs["scf"]
     scf_outputs = wannier_workchain.outputs["scf"]
@@ -231,5 +233,57 @@ def get_pwbands_builder(wannier_workchain: Wannier90BandsWorkChain) -> ProcessBu
         parameters["SYSTEM"]["nbnd"] = nbnd
 
     builder["pw"]["parameters"] = orm.Dict(dict=parameters)
+
+    return builder
+
+
+def get_wannier_builder_from_pwbands(
+    workchain: PwBandsWorkChain, codes: dict
+) -> ProcessBuilder:
+    """Get a ``Wannier90BandsWorkChain`` builder from a finished ``PwBandsWorkChain``.
+
+    Useful for comparing QE and Wannier90 interpolated bands structures.
+
+    :param workchain: _description_
+    :type workchain: PwBandsWorkChain
+    :return: _description_
+    :rtype: ProcessBuilder
+    """
+    from aiida.common import LinkType
+
+    from aiida_quantumespresso.workflows.pw.base import PwBaseWorkChain
+
+    from aiida_wannier90_workflows.utils.workflows.bands import (
+        get_structure_and_bands_kpoints,
+    )
+
+    if workchain.process_class != PwBandsWorkChain:
+        raise ValueError(f"Input workchain is not a `PwBandsWorkChain`: {workchain}")
+
+    scf_workchain = (
+        workchain.get_outgoing(
+            node_class=PwBaseWorkChain,
+            link_type=LinkType.CALL_WORK,
+            link_label_filter="scf",
+        )
+        .one()
+        .node
+    )
+
+    parent_folder = scf_workchain.outputs.remote_folder
+    structure, bands_kpoints = get_structure_and_bands_kpoints(workchain)
+
+    builder = Wannier90BandsWorkChain.get_builder_from_protocol(
+        codes,
+        structure,
+        # This use let wannier90 auto generate kpoints by `bands_num_points`
+        # kpoint_path=bands_kpoints,
+        # This use ask wannier90 to use kpoints in `explicit_kpath` and `explicit_kpath_labels`
+        bands_kpoints=bands_kpoints,
+        # pseudo_family=pseudo_family,
+    )
+
+    builder.pop("scf", None)
+    builder.nscf["pw"]["parent_folder"] = parent_folder
 
     return builder
