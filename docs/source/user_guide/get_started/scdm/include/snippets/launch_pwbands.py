@@ -1,22 +1,27 @@
 #!/usr/bin/env runaiida
+import os
+import sys
+
 from ase.io import read as aseread
 
 from aiida import orm
 from aiida.engine import submit
 
-from aiida_wannier90_workflows.workflows import Wannier90BandsWorkChain
+from aiida_quantumespresso.workflows.pw.bands import PwBandsWorkChain
 
-# Code labels for `pw.x`, `pw2wannier90.x`, `projwfc.x`, and `wannier90.x`.
+# Code labels for `pw.x`
 # Change these according to your aiida setup.
-codes = {
-    "pw": "qe-7.0-pw@localhost",
-    "projwfc": "qe-7.0-projwfc@localhost",
-    "pw2wannier90": "qe-7.0-pw2wannier90@localhost",
-    "wannier90": "wannier90-3.1-wannier90@localhost",
-}
+code = "qe-pw-6.8@localhost"
 
 # Filename of a structure.
-filename = "GaAs.xsf"
+# filename = "GaAs.xsf"
+if len(sys.argv) != 2:
+    print(f"Please pass a filename for a structure as the argument.")
+    sys.exit(1)
+filename = sys.argv[1]
+if not os.path.exists(filename):
+    print(f"{filename} not existed!")
+    sys.exit(1)
 
 # Read a structure file and store as an `orm.StructureData`.
 structure = orm.StructureData(ase=aseread(filename))
@@ -25,19 +30,20 @@ print(f"Read and stored structure {structure.get_formula()}<{structure.pk}>")
 
 # Prepare the builder to launch the workchain.
 # We use fast protocol to converge faster.
-builder = Wannier90BandsWorkChain.get_builder_from_protocol(
-    codes,
+builder = PwBandsWorkChain.get_builder_from_protocol(
+    code,
     structure,
     protocol="fast",
 )
+builder.pop("relax", None)
 
 # Submit the workchain.
 workchain = submit(builder)
 print(f"Submitted {workchain.process_label}<{workchain.pk}>")
 
 print(
-    "Run any of these commands to check the progress:"
-    "verdi process report {workchain.pk}"
-    "verdi process show {workchain.pk}"
-    "verdi process list"
+    "Run any of these commands to check the progress:\n"
+    f"verdi process report {workchain.pk}\n"
+    f"verdi process show {workchain.pk}\n"
+    "verdi process list\n"
 )

@@ -1,6 +1,6 @@
 .. _Oxford 2020 autowannier:
 
-Automated high-throughput wannierisation
+Automated high-throughput Wannierisation
 ========================================
 
 In the following tutorial you will learn how to perform automated high-throughput Wannierisation using
@@ -38,13 +38,14 @@ Quantum ESPRESSO was done by Valerio Vitale (Imperial College London and Univers
 Preparation
 -----------
 
-You can download the launch script for the workflow here: :download:`launch_auto-wannier_workflow.py <include/snippets/launch_auto-wannier_workflow.py>`.
+You can download the launch script for the workflow here: :download:`launch_wannier.py <include/snippets/launch_wannier.py>`.
 The script accepts one argument, which is the location of the crystal structure file (in XSF format) for which you want to run the Wannierisation.
 As an example, you can pick any one of the simple crystal structures from this list below:
 
+    * :download:`CsH.xsf <include/xsf/CsH.xsf>`
+    * :download:`GaAs.xsf <include/xsf/GaAs.xsf>`
     * :download:`Ar2.xsf <include/xsf/Ar2.xsf>`
     * :download:`BrNa.xsf <include/xsf/BrNa.xsf>`
-    * :download:`GaAs.xsf <include/xsf/GaAs.xsf>`
     * :download:`F4Ni2.xsf <include/xsf/F4Ni2.xsf>`
     * :download:`O2Rb2.xsf <include/xsf/O2Rb2.xsf>`
     * :download:`BaS.xsf <include/xsf/BaS.xsf>`
@@ -58,7 +59,6 @@ As an example, you can pick any one of the simple crystal structures from this l
     * :download:`PtS2.xsf <include/xsf/PtS2.xsf>`
     * :download:`Br2Ti.xsf <include/xsf/Br2Ti.xsf>`
     * :download:`Cl2O2Ti2.xsf <include/xsf/Cl2O2Ti2.xsf>`
-    * :download:`CsH.xsf <include/xsf/CsH.xsf>`
     * :download:`O2Pd2.xsf <include/xsf/O2Pd2.xsf>`
 
 Once you downloaded both the launcher script and one of the XSF files, first adapt the launcher script content, as usual, filling in the names of the codes that you want to use.
@@ -67,9 +67,9 @@ Then, launch the script with the following command:
 
 .. code:: bash
 
-    verdi run launch_auto-wannier_workflow.py CsH.xsf
+    runaiida launch_wannier.py CsH.xsf
 
-(in the following, we will use CsH as an example); you can replace ``CsH.xsf`` with any other structure of the list above, e.g. ``PtS2.xsf``, or ``Br2Ti.xsf``, ...
+(in the following, we will use CsH as an example); you can replace ``CsH.xsf`` with any other structure of the list above, e.g. ``PtS2.xsf``, or ``GaAs.xsf``, ...
 
 
 Introduction
@@ -143,7 +143,7 @@ where the :math:`\phi_{Ilm}(\mathbf{k})` are the pseudo-atomic orbitals (PAO) em
 the generation of the pseudopotentials, :math:`I` is an index running over the atoms in the cell
 and :math:`lm` define the usual angular momentum quantum numbers.
 
-The workflow is designed for the specific use case where we are interested in wannierising the occupied bands (plus, optionally, some unoccupied
+The workflow is designed for the specific use case where we are interested in Wannierising the occupied bands (plus, optionally, some unoccupied
 or partially occupied bands) in insulators and in metals.
 
 The **number of Wannier functions** is automatically set equal to the number of PAOs defined in the pseudopotentials (and the pseudopotentials are automatically taken from the `SSSP efficiency library <https://www.materialscloud.org/discover/sssp/table/efficiency>`_).
@@ -174,9 +174,9 @@ If you have not launch the script yet, please do it now!
 Here we focus on how to run the ``Wannier90BandsWorkChain``, the AiiDA workchain
 that implements the automation workflow to obtain MLWFs.
 
-**Important note**: For this tutorial, in order to keep the total simulation time down to ~5-10 minutes on a typical laptop, we run the workflow using the ``testing`` peotocol, *where all the wavefunction cutoffs are halved to
+**Important note**: For this tutorial, in order to keep the total simulation time down to ~5-10 minutes on a typical laptop, we run the workflow using the ``fast`` protocol, *where some of the parameters are reduced to
 speed up the calculations* (with respect to the converged
-and tested cutoffs suggested by the SSSP pseudopotential library). For production please use the ``theos-ht-1.0`` protocol (or any other protocol with converged cutoffs).
+and tested parameters). For production please use the ``moderate`` protocol or ``precise``.
 
 We remind you that, to get a list of all the AiiDA processes (including calculations and workchains) that are running and their status you can use:
 
@@ -188,7 +188,7 @@ or alternatively
 
 .. code:: bash
 
-    verdi process list -p1 -a
+    verdi process list -p 1 -a
 
 to see *all* workflows and calculations, even completed, that have been launched in the past 1 day.
 
@@ -196,20 +196,19 @@ Since you have already run the workflow by now, run the commands above to retrie
 
 Here is the script that you have run:
 
-.. literalinclude:: include/snippets/launch_auto-wannier_workflow.py
+.. literalinclude:: include/snippets/launch_wannier.py
 
 Inspect the script in detail now, and make sure that you understand all its parts.
 The comments should guide you through it.
 As you will notice, the amount of information to provide
-to the workflow is really minimal: just the codes to use, the crystal structure, and some flags to control the behavior (which protocol to use, if you want to compute
-only valence bands, and if you want to run the MLWF step).
+to the workflow is really minimal: just the codes to use, the crystal structure, and the protocol.
 
 Analyzing the outputs of the workflow
 -------------------------------------
 
 Now we analyse the reports and outputs of the workflow using the command line.
 
-Both while the ``Wannier90BandsWorkChain`` is running, and after its completion,
+When the ``Wannier90BandsWorkChain`` is running, or after its completion,
 you can monitor its progress by
 looking at its "report", using the command
 
@@ -222,7 +221,6 @@ including the PKs of all its sub-workchains and of the calculations launched by 
 The report will be similar to the following:
 
 .. literalinclude:: include/snippets/workchain_report.txt
-
 
 Once the workchain has finished to run, you can look at all its inputs and outputs with
 
@@ -253,13 +251,44 @@ You should obtain a PDF like the following:
    :width: 100%
 
 Now we compare the Wannier-interpolated bands with the full DFT bands calculation.
+You can download the launch script for the DFT bands here: :download:`launch_pwbands.py <include/snippets/launch_pwbands.py>`.
+
+Note we have a common interface for ``Wannier90BandsWorkChain`` and ``PwBandsWorkChain``: we only need very minimal changes to calculate Wannier or DFT band structures.
+
+.. literalinclude:: include/snippets/launch_pwbands.py
+
+For comparison, now we launch a DFT bands workchain
+
+.. code:: bash
+
+    runaiida launch_pwbands.py CsH.xsf
+
+To compare DFT and Wannier bands, run
+
+.. code:: bash
+
+    aiida-wannier90-workflows plot bands <PwBandsWorkChain_PK> <Wannier90BandsWorkChain_PK>
+
+This will show a figure like this
+
+.. figure:: include/images/CsH_diff_bands_fast.png
+   :width: 100%
+
+Note the semicore states are auto excluded by the workchain.
+The Wannier band is different from DFT since we used the ``fast`` protocol. When using the default ``moderate`` protocol (will use more converged input parameters, and take more time to finish), we will get a more accurate band interpolation,
+
+.. figure:: include/images/CsH_diff_bands_moderate.png
+   :width: 100%
+
+We can also compare bands using ``xmgrace``.
 For convenience, we have already computed for you all the full DFT band structures for all the
 compounds for which we provided the XSF above (even if you could easily recompute these band structures using
 the plugins and workflows included in the ``aiida-quantumespresso`` package). You can download the full DFT bands in xmgrace format (``.agr``) form this list:
 
+    * :download:`CsH_dft_bands.agr <include/dft_bands/CsH_dft_bands.agr>`
+    * :download:`AsGa_dft_bands.agr <include/dft_bands/AsGa_dft_bands.agr>`
     * :download:`Ar2_dft_bands.agr <include/dft_bands/Ar2_dft_bands.agr>`
     * :download:`BrNa_dft_bands.agr <include/dft_bands/BrNa_dft_bands.agr>`
-    * :download:`AsGa_dft_bands.agr <include/dft_bands/AsGa_dft_bands.agr>`
     * :download:`F4Ni2_dft_bands.agr <include/dft_bands/F4Ni2_dft_bands.agr>`
     * :download:`O2Rb2_dft_bands.agr <include/dft_bands/O2Rb2_dft_bands.agr>`
     * :download:`BaS_dft_bands.agr <include/dft_bands/BaS_dft_bands.agr>`
@@ -273,7 +302,6 @@ the plugins and workflows included in the ``aiida-quantumespresso`` package). Yo
     * :download:`PtS2_dft_bands.agr <include/dft_bands/PtS2_dft_bands.agr>`
     * :download:`Br2Ti_dft_bands.agr <include/dft_bands/Br2Ti_dft_bands.agr>`
     * :download:`Cl2O2Ti2_dft_bands.agr <include/dft_bands/Cl2O2Ti2_dft_bands.agr>`
-    * :download:`CsH_dft_bands.agr <include/dft_bands/CsH_dft_bands.agr>`
     * :download:`O2Pd2_dft_bands.agr <include/dft_bands/O2Pd2_dft_bands.agr>`
 
 In particular, taking CsH as an example, you can first export the Wannier-interpolated bands that you
@@ -308,13 +336,11 @@ Analyzing the projectabilities
 
 Now you will see how to look at the projectabilities that have been computed by the
 workchain and then used to obtain :math:`\mu` and :math:`\sigma`
-in the automation protocol.
-You can download the following script
-:download:`plot_projectabilities.py <include/snippets/plot_projectabilities.py>` and run it
+in the automation protocol. Run
 
 .. code:: bash
 
-    verdi run plot_projectabilities.py <PK>
+    aiida-wannier90-workflows plot scdm <PK>
 
 where PK stands for the ``Wannier90BandsWorkChain`` pk.
 
@@ -341,7 +367,7 @@ We begin by generating the provenance graph with
 where the PK corresponds to the workflow you have just run.
 You should obtain something like the following:
 
-.. figure:: include/images/CsH.dot.jpg
+.. figure:: include/images/CsH.dot.png
    :width: 100%
 
    Provenance graph for a single ``Wannier90BandsWorkChain`` run. (PDF version
@@ -352,14 +378,22 @@ As you can see, AiiDA has tracked all the inputs provided to all calculations (a
 (Optional) Maximal localisation and SCDM
 ----------------------------------------
 
-Try to modify the :download:`launch_auto-wannier_workflow.py <include/snippets/launch_auto-wannier_workflow.py>` script to disable the MLWF
+Try to modify the :download:`launch_wannier.py <include/snippets/launch_wannier.py>` script to disable the MLWF
 procedure in order to obtain Wannier functions with SCDM projections that are not maximally localised.
+
+Hints: change the input parameters of the builder
+
+.. code:: python
+
+    params = builder["wannier90"]["wannier90"]["parameters"].get_dict()
+    params['num_iter'] = 0
+    builder["wannier90"]["wannier90"]["parameters"] = orm.Dict(dict=params)
 
 **Exercise**:
 Run the workflow for 1 or 2 materials of the dataset.
 Do you notice any difference when using or not the MLWF procedure?
 Which one gives better results? Do your results agree with the findings of
-the `Automated high-throughput wannierisation  <https://arxiv.org/abs/1909.00433>`_ paper?
+the `Automated high-throughput Wannierisation  <https://arxiv.org/abs/1909.00433>`_ paper?
 
 (Optional) Browse your database with the REST API
 -------------------------------------------------
