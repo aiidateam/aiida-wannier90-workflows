@@ -83,7 +83,8 @@ def plot_scdm_fit(workchain: int, save: bool = False):
 
     formula = workchain.inputs.structure.get_formula()
 
-    w90calc = workchain.get_outgoing(link_label_filter="wannier90").one().node
+    # w90calc = workchain.get_outgoing(link_label_filter="wannier90").one().node
+    w90calc = workchain.outputs.wannier90.remote_folder.creator
     p2w_workchain = workchain.get_outgoing(link_label_filter="pw2wannier90").one().node
     p2wcalc = get_last_calcjob(p2w_workchain)
     projcalc = workchain.get_outgoing(link_label_filter="projwfc").one().node
@@ -104,7 +105,8 @@ def plot_scdm_fit(workchain: int, save: bool = False):
     # check the fitting are consistent
     eps = 1e-6
     assert abs(sigma - sigma_fit) < eps
-    sigma_factor = workchain.inputs.scdm_sigma_factor.value
+    # sigma_factor = workchain.inputs.scdm_sigma_factor.value
+    sigma_factor = 3
     assert abs(mu - (mu_fit - sigma_fit * sigma_factor)) < eps
     sorted_bands = data[0, :]
     sorted_projwfc = data[1, :]
