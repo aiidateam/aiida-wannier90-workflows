@@ -31,9 +31,10 @@ requires-python = ">=3.8"
 dependencies = [
     "aiida-core>=1.6,<3",
     "aiida-pseudo~=0.6",
-    "aiida-quantumespresso~=3.4",
-    "aiida-wannier90>=2.0.1",
-    # "aiida-quantumespresso @ git+https://git@github.com/qiaojunfeng/aiida-quantumespresso@lumi#egg=aiida-quantumespresso",
+    # "aiida-quantumespresso~=3.4",
+    # "aiida-wannier90>=2.0.1",
+    "aiida-quantumespresso @ git+https://git@github.com/qiaojunfeng/aiida-quantumespresso@lumi#egg=aiida-quantumespresso",
+    "aiida-wannier90 @ git+https://git@github.com/qiaojunfeng/aiida-wannier90@parser_restart#egg=aiida-wannier90",
     "click~=7.0",
     "click-completion~=0.5",
     "colorama"
