@@ -66,5 +66,6 @@ def check_codes(codes: dict, required_codes: ty.List[str] = None) -> None:
         # For SCDM Wannier90BandsWorkChain
         required_codes = ["pw", "projwfc", "pw2wannier90", "wannier90"]
 
-    if required_codes not in codes.keys():
-        raise ValueError(f"One of the following codes is missing: {required_codes}")
+    for code in required_codes:
+        if code not in codes:
+            raise ValueError(f"Code {code} is required")

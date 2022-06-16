@@ -27,11 +27,13 @@ from aiida_wannier90_workflows.common.types import (
 
 __all__ = ["validate_inputs_base", "validate_inputs", "Wannier90BaseWorkChain"]
 
+# pylint: disable=inconsistent-return-statements
 
-def validate_inputs_base(
-    inputs: AttributeDict, ctx=None
-) -> None:  # pylint: disable=unused-argument
+
+def validate_inputs_base(inputs: AttributeDict, ctx=None) -> None:
     """Validate the inputs of the entire input namespace."""
+    # pylint: disable=inconsistent-return-statements,unused-argument
+
     # Check `settings`
     if "settings" in inputs:
         settings = inputs["settings"].get_dict()
@@ -41,19 +43,16 @@ def validate_inputs_base(
                 return f"Invalid settings: `{key}`, valid keys are: {valid_keys}"
 
 
-def validate_inputs(
-    inputs: AttributeDict, ctx=None
-) -> None:  # pylint: disable=unused-argument
+def validate_inputs(inputs: AttributeDict, ctx=None) -> None:
     """Validate the inputs of the entire input namespace."""
-    # pylint: disable=too-many-return-statements
+    # pylint: disable=too-many-return-statements,unused-argument
 
     result = validate_inputs_base(inputs, ctx)
     if result:
         return result
 
-    calc_inputs = AttributeDict(
-        inputs[Wannier90BaseWorkChain._inputs_namespace]
-    )  # pylint: disable=protected-access
+    # pylint: disable=protected-access
+    calc_inputs = AttributeDict(inputs[Wannier90BaseWorkChain._inputs_namespace])
     calc_parameters = calc_inputs.parameters.get_dict()
 
     # Check existence of `fermi_energy`
@@ -218,7 +217,7 @@ class Wannier90BaseWorkChain(ProtocolMixin, BaseRestartWorkChain):
         return files(protocols) / "base" / "wannier90.yaml"
 
     @classmethod
-    def get_builder_from_protocol(  # pylint: disable=too-many-statements
+    def get_builder_from_protocol(
         cls,
         code: ty.Union[orm.Code, str, int],
         *,
@@ -245,6 +244,7 @@ class Wannier90BaseWorkChain(ProtocolMixin, BaseRestartWorkChain):
         :return: [description]
         :rtype: ProcessBuilder
         """
+        # pylint: disable=too-many-statements,too-many-locals,too-many-branches
         from aiida_quantumespresso.workflows.protocols.utils import recursive_merge
 
         from aiida_wannier90_workflows.utils.kpoints import (
@@ -359,7 +359,9 @@ class Wannier90BaseWorkChain(ProtocolMixin, BaseRestartWorkChain):
                     projections.append(f"{kind.name}:{orb[-1].lower()}")
             inputs[cls._inputs_namespace]["projections"] = orm.List(list=projections)
         elif projection_type == WannierProjectionType.RANDOM:
-            inputs["settings"].update({"random_projections": True})
+            settings = inputs[cls._inputs_namespace].get("settings", {})
+            settings.update({"random_projections": True})
+            inputs[cls._inputs_namespace]["settings"] = settings
         else:
             raise ValueError(f"Unrecognized projection type {projection_type}")
 
@@ -476,11 +478,14 @@ class Wannier90BaseWorkChain(ProtocolMixin, BaseRestartWorkChain):
         self.ctx.disprojmin_multipliers = [0.5, 0.25, 0.125, 0]
         self.ctx.wannier_plot_supercell_new = [4, 6, 8, 10]
 
-    def prepare_inputs(self) -> AttributeDict:
+    def prepare_inputs(
+        self,
+    ) -> AttributeDict:
         """Prepare `Wannier90Calculation` inputs according to workchain input sepc.
 
         Different from `get_builder_from_protocol', this function is executed at runtime.
         """
+        # pylint: disable=too-many-statements,too-many-locals,too-many-branches
         import numpy as np
 
         from aiida_wannier90_workflows.utils.bands import (
