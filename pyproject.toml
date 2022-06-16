@@ -33,8 +33,8 @@ dependencies = [
     "aiida-pseudo~=0.6",
     # "aiida-quantumespresso~=3.4",
     # "aiida-wannier90>=2.0.1",
-    "aiida-quantumespresso @ git+https://git@github.com/qiaojunfeng/aiida-quantumespresso@lumi#egg=aiida-quantumespresso",
-    "aiida-wannier90 @ git+https://git@github.com/qiaojunfeng/aiida-wannier90@parser_restart#egg=aiida-wannier90",
+    #"aiida-quantumespresso @ git+https://git@github.com/qiaojunfeng/aiida-quantumespresso@lumi#egg=aiida-quantumespresso",
+    #"aiida-wannier90 @ git+https://git@github.com/qiaojunfeng/aiida-wannier90@parser_restart#egg=aiida-wannier90",
     "click~=7.0",
     "click-completion~=0.5",
     "colorama"
@@ -69,6 +69,12 @@ analysis = ["pandas", "tables", "scikit-learn"]
 [project.scripts]
 "aiida-wannier90-workflows" = "aiida_wannier90_workflows.cli:cmd_root"
 
+[project.entry-points."aiida.calculations"]
+"wannier90_workflows.split" = "aiida_wannier90_workflows.calculations.split:Wannier90SplitCalculation"
+
+[project.entry-points."aiida.parsers"]
+"wannier90_workflows.split" = "aiida_wannier90_workflows.parsers.split:Wannier90SplitParser"
+
 [project.entry-points."aiida.workflows"]
 "wannier90_workflows.base.wannier90" = "aiida_wannier90_workflows.workflows.base.wannier90:Wannier90BaseWorkChain"
 "wannier90_workflows.base.opengrid" = "aiida_wannier90_workflows.workflows.base.opengrid:OpengridBaseWorkChain"
@@ -79,6 +85,7 @@ analysis = ["pandas", "tables", "scikit-learn"]
 "wannier90_workflows.bands" = "aiida_wannier90_workflows.workflows.bands:Wannier90BandsWorkChain"
 "wannier90_workflows.optimize" = "aiida_wannier90_workflows.workflows.optimize:Wannier90OptimizeWorkChain"
 "wannier90_workflows.projwfcbands" = "aiida_wannier90_workflows.workflows.projwfcbands:ProjwfcBandsWorkChain"
+"wannier90_workflows.split" = "aiida_wannier90_workflows.workflows.split:Wannier90SplitWorkChain"
 
 [tool.flit.module]
 name = "aiida_wannier90_workflows"

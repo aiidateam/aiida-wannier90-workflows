@@ -20,7 +20,7 @@ def compute_lower_cutoff(energy: np.array, lower_cutoff: float) -> np.array:
     return np.array(energy > lower_cutoff, dtype=int)
 
 
-def bands_distance_raw(
+def bands_distance_raw(  # pylint: disable=too-many-arguments,too-many-locals
     dft_bands: np.array,
     wannier_bands: np.array,
     mu: float,
@@ -36,7 +36,7 @@ def bands_distance_raw(
        number of Wannier functions.  In eV.
     :para mu, sigma: in eV.
     :param exclude_list_dft: if passed should be a list of the excluded bands,
-       zero-indexed (subtract 1 from the input of Wannier)
+       1-indexed
     """
     if exclude_list_dft is None:
         exclude_list_dft = []
@@ -134,7 +134,70 @@ def bands_distance(
     return dist
 
 
-def bands_distance_for_group(  # pylint: disable=too-many-statements
+def bands_distance_isolated(  # pylint: disable=too-many-locals
+    dft_bands: np.array,
+    wannier_bands: np.array,
+    exclude_list_dft: list = None,
+    lower_cutoff: float = None,
+) -> tuple:
+    """Calculate bands distance with specified group of bands.
+
+    :param dft_bands: a numpy array of size (num_k x num_dft) where num_dft is
+       number of bands computed by the DFT code. In eV.
+    :param wannier_bands: a numpy array of size (num_k x num_wan) where num_wan is
+       number of Wannier functions.  In eV.
+    :para mu, sigma: in eV.
+    :param exclude_list_dft: if passed should be a list of the excluded bands,
+       1-indexed
+    """
+    if exclude_list_dft is None:
+        exclude_list_dft = []
+        dft_bands_filtered = dft_bands
+    else:
+        # Code taken and *adapted* from the workflow (function get_exclude_bands)
+        xb_startzero_set = {idx - 1 for idx in exclude_list_dft}
+        # in Fortran/W90: 1-based; in py: 0-based
+        keep_bands = np.array(
+            [idx for idx in range(dft_bands.shape[1]) if idx not in xb_startzero_set]
+        )
+
+        dft_bands_filtered = dft_bands[:, keep_bands]
+
+    # Check that the number of kpoints is the same
+    assert (
+        dft_bands_filtered.shape[0] == wannier_bands.shape[0]
+    ), f"Different number of kpoints {dft_bands_filtered.shape[0]} {wannier_bands.shape[0]}"
+    # assert dft_bands_filtered.shape[1] >= wannier_bands.shape[
+    #     1], f'Too few DFT bands w.r.t. Wannier {dft_bands_filtered.shape[1]} {wannier_bands.shape[1]}'
+    if dft_bands_filtered.shape[1] <= wannier_bands.shape[1]:
+        wannier_bands_filtered = wannier_bands[:, : dft_bands_filtered.shape[1]]
+    else:
+        wannier_bands_filtered = wannier_bands
+
+    dft_bands_to_compare = dft_bands_filtered[:, : wannier_bands_filtered.shape[1]]
+
+    bands_energy_difference = dft_bands_to_compare - wannier_bands_filtered
+    bands_weight_dft = compute_lower_cutoff(dft_bands_to_compare, lower_cutoff)
+    bands_weight_wannier = compute_lower_cutoff(dft_bands_to_compare, lower_cutoff)
+    bands_weight = np.sqrt(bands_weight_dft * bands_weight_wannier)
+
+    arr = bands_energy_difference**2 * bands_weight
+    bands_dist = np.sqrt(np.sum(arr) / np.sum(bands_weight))
+
+    # max distance
+    max_dist = np.sqrt(np.max(arr))
+    max_dist_loc = np.unravel_index(np.argmax(arr, axis=None), arr.shape)
+    # print(np.shape(arr), max_distance_loc)
+
+    arr_2 = np.abs(bands_energy_difference) * bands_weight
+    # max abs difference
+    max_dist_2 = np.max(arr_2)
+    max_dist_2_loc = np.unravel_index(np.argmax(arr_2, axis=None), arr_2.shape)
+
+    return (bands_dist, max_dist, max_dist_2, max_dist_loc, max_dist_2_loc)
+
+
+def bands_distance_for_group(  # pylint: disable=too-many-statements,too-many-locals,too-many-branches
     wan_group: ty.Union[orm.Group, str],
     dft_group: ty.Union[orm.Group, str],
     match_by_formula: bool = False,
@@ -326,7 +389,9 @@ def read_distance(hdf_file: str) -> pd.DataFrame:
     return df
 
 
-def plot_distance(df: pd.DataFrame, max_dist: bool = False, show: bool = True) -> None:
+def plot_distance(  # pylint: disable=too-many-locals
+    df: pd.DataFrame, max_dist: bool = False, show: bool = True
+) -> None:  # pylint: disable=too-many-locals
     """Plot a histogram of bands distance."""
     import matplotlib.pyplot as plt
 
