@@ -16,7 +16,7 @@
   ], 
   "url": "https://github.com/aiidateam/aiida-wannier90-workflows",
   "python_requires": ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*",
-  "version": "1.0.1", 
+  "version": "1.0.2",
   "keywords": "wannier90 aiida workflows", 
   "classifiers": [
     "Environment :: Plugins", 
