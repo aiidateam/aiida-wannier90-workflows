@@ -1,0 +1,6 @@
+include .pre-commit-config.yaml
+include .style.yapf
+include setup.json
+include aiida_wannier90_workflows/tools/get_w90model_from_aiida.py
+recursive-include examples *.py
+recursive-include examples *.xsf
