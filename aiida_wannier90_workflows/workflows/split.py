@@ -695,7 +695,7 @@ class Wannier90SplitWorkChain(WorkChain):  # pylint: disable=too-many-public-met
         exclude_list_dft = wan_valcond_params.get("exclude_bands", [])
         num_semicore = len(exclude_list_dft)
 
-        num_val = self.inputs["split"]["num_val"].value
+        num_val = self.ctx.workchain_split.inputs["num_val"].value
 
         return num_semicore, num_val, fermi_energy
 

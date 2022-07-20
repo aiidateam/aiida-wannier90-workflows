@@ -106,14 +106,20 @@ class Wannier90SplitCalculation(CalcJob):
         calcinfo.codes_info = []
 
         cmdline_params = [
+            "--nval",
             f"{self.inputs['num_val'].value}",  # num_val
-            f"{int(self.inputs['rotate_unk'])}",  # rotate_unk
-            # "--valence_dir",
-            # f"{self._DEFAULT_OUTPUT_FOLDER_VAL}",
-            # "--conduction_dir",
-            # f"{self._DEFAULT_OUTPUT_FOLDER_COND}",
-            # f"{self._DEFAULT_INPUT_FOLDER}/{w90_default_seedname}",
         ]
+        if self.inputs["rotate_unk"]:
+            cmdline_params.append("--rotate-unk")
+        cmdline_params.extend(
+            [
+                # "--valence_dir",
+                # f"{self._DEFAULT_OUTPUT_FOLDER_VAL}",
+                # "--conduction_dir",
+                # f"{self._DEFAULT_OUTPUT_FOLDER_COND}",
+                f"{self._DEFAULT_INPUT_FOLDER}/{w90_default_seedname}",
+            ]
+        )
         codeinfo = datastructures.CodeInfo()
         codeinfo.cmdline_params = cmdline_params
         codeinfo.code_uuid = self.inputs.code.uuid
