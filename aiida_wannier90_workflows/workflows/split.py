@@ -3,6 +3,8 @@ import copy
 import pathlib
 import typing as ty
 
+import numpy as np
+
 from aiida import orm
 from aiida.common import AttributeDict
 from aiida.engine import ProcessBuilder, ToContext, WorkChain, if_
@@ -17,9 +19,10 @@ from aiida_wannier90_workflows.common.types import (
     WannierFrozenType,
     WannierProjectionType,
 )
-
-from .base.wannier90 import Wannier90BaseWorkChain
-from .optimize import Wannier90OptimizeWorkChain
+from aiida_wannier90_workflows.utils.bands import get_homo_lumo
+from aiida_wannier90_workflows.utils.workflows.plot import get_workchain_fermi_energy
+from aiida_wannier90_workflows.workflows.base.wannier90 import Wannier90BaseWorkChain
+from aiida_wannier90_workflows.workflows.optimize import Wannier90OptimizeWorkChain
 
 __all__ = ["validate_inputs", "Wannier90SplitWorkChain"]
 
@@ -32,7 +35,7 @@ def validate_inputs(  # pylint: disable=unused-argument,inconsistent-return-stat
     parameters = inputs["valcond"]["wannier90"]["wannier90"]["parameters"].get_dict()
     num_wann = parameters["num_wann"]
 
-    num_val = inputs["split"]["num_val"]
+    num_val = inputs["split"].get("num_val", None)
 
     if num_val is not None:
         if num_val <= 0 or num_val >= num_wann:
@@ -76,6 +79,14 @@ class Wannier90SplitWorkChain(WorkChain):  # pylint: disable=too-many-public-met
                 "populate_defaults": False,
                 "help": "Inputs for the `Wannier90SplitCalculation`.",
             },
+        )
+        # Make it optional, can be calculated on the fly.
+        spec.input(
+            "split.num_val",
+            valid_type=orm.Int,
+            required=False,
+            serializer=orm.to_aiida_type,
+            help="Number of valence WFs.",
         )
         spec.expose_inputs(
             Wannier90BaseWorkChain,
@@ -198,7 +209,7 @@ class Wannier90SplitWorkChain(WorkChain):  # pylint: disable=too-many-public-met
         return files(protocols) / "split.yaml"
 
     @classmethod
-    def get_builder_from_protocol(  # pylint: disable=too-many-locals
+    def get_builder_from_protocol(  # pylint: disable=too-many-locals,too-many-statements
         cls,
         codes: ty.Mapping[str, ty.Union[str, int, orm.Code]],
         structure: orm.StructureData,
@@ -254,8 +265,6 @@ class Wannier90SplitWorkChain(WorkChain):  # pylint: disable=too-many-public-met
         )
 
         num_wann = parameters["num_wann"]
-        if num_val is None:
-            num_val = num_wann // 2
 
         val_builder = Wannier90BaseWorkChain.get_builder_from_protocol(  # pylint: disable=too-many-function-args
             codes["wannier90"],
@@ -269,7 +278,10 @@ class Wannier90SplitWorkChain(WorkChain):  # pylint: disable=too-many-public-met
         )
         val_inputs = val_builder._inputs(prune=True)  # pylint: disable=protected-access
         parameters = val_inputs["wannier90"]["parameters"].get_dict()
-        parameters["num_wann"] = num_val
+        if num_val is None:
+            parameters.pop("num_wann", None)
+        else:
+            parameters["num_wann"] = num_val
         parameters.pop("num_bands", None)
         parameters.pop("guiding_centres", None)
 
@@ -295,13 +307,17 @@ class Wannier90SplitWorkChain(WorkChain):  # pylint: disable=too-many-public-met
         # aiida engine will store them as new code!
         cond_inputs = copy.copy(val_inputs)
         parameters = cond_inputs["wannier90"]["parameters"].get_dict()
-        parameters["num_wann"] = num_wann - num_val
+        if num_val is None:
+            parameters.pop("num_wann", None)
+        else:
+            parameters["num_wann"] = num_wann - num_val
         cond_inputs["wannier90"]["parameters"] = orm.Dict(dict=parameters)
 
         split_inputs = {
             "code": codes["split"],
-            "num_val": num_val,
         }
+        if num_val is not None:
+            split_inputs["num_val"] = num_val
         if plot_wannier_functions:
             split_inputs["rotate_unk"] = True
 
@@ -359,7 +375,23 @@ class Wannier90SplitWorkChain(WorkChain):  # pylint: disable=too-many-public-met
             return self.exit_codes.ERROR_SUB_PROCESS_FAILED_VALCOND
 
         if "primitive_structure" in workchain.outputs:
-            self.ctx["current_structure"] = workchain.outputs.primitive_structure
+            self.ctx.current_structure = workchain.outputs.primitive_structure
+
+        fermi_energy = get_workchain_fermi_energy(workchain)
+        self.ctx.fermi_energy = fermi_energy
+
+        bands: orm.BandsData = workchain.outputs.band_structure
+        bands_arr = bands.get_bands()
+        homo, lumo = get_homo_lumo(bands_arr, fermi_energy)
+        band_gap = lumo - homo
+        gap_threshold = 1e-2
+        if band_gap < gap_threshold:
+            self.report(f"{homo=}, {lumo=}, {band_gap=}, seems metal?")
+
+        num_wann = bands.creator.inputs.parameters.get_dict()["num_wann"]
+        num_val = np.count_nonzero(np.all(bands_arr <= fermi_energy, axis=0))
+        self.ctx.num_val = num_val
+        self.ctx.num_cond = num_wann - num_val
 
     def should_run_split(self):
         """Whether to run split val cond."""
@@ -376,6 +408,15 @@ class Wannier90SplitWorkChain(WorkChain):  # pylint: disable=too-many-public-met
             inputs["parent_folder"] = self.ctx.workchain_valcond.outputs["wannier90"][
                 "remote_folder"
             ]
+            if "num_val" in inputs:
+                input_num_val = inputs["num_val"].value
+                if input_num_val != self.ctx.num_val:
+                    self.report(
+                        f"input num_val={input_num_val} != num_val={self.ctx.num_val}"
+                        "from val+cond band structure"
+                    )
+            else:
+                inputs["num_val"] = orm.Int(self.ctx.num_val)
 
         return inputs
 
@@ -423,10 +464,20 @@ class Wannier90SplitWorkChain(WorkChain):  # pylint: disable=too-many-public-met
 
         if self.should_run_valcond():
             parameters = inputs["parameters"].get_dict()
-            valcond_wkchain = self.ctx.workchain_valcond
-            w90_calc = valcond_wkchain.outputs.wannier90.remote_folder.creator
-            fermi_energy = w90_calc.inputs.parameters.get_dict()["fermi_energy"]
-            parameters["fermi_energy"] = fermi_energy
+            parameters["fermi_energy"] = self.ctx.fermi_energy
+
+            if "num_wann" in parameters:
+                input_num_wann = parameters["num_wann"]
+                if input_num_wann != self.ctx.num_val:
+                    self.report(
+                        f"input num_wann={input_num_wann} "
+                        f"!= num_val={self.ctx.num_val} "
+                        "from val+cond band structure?"
+                    )
+            else:
+                parameters["num_wann"] = self.ctx.num_val
+
+            inputs["parameters"] = orm.Dict(dict=parameters)
 
         base_inputs["wannier90"] = inputs
         base_inputs["clean_workdir"] = orm.Bool(False)
@@ -458,7 +509,7 @@ class Wannier90SplitWorkChain(WorkChain):  # pylint: disable=too-many-public-met
             self.ctx.bandsdist_val_to_ref = bandsdist
         if self.should_run_valcond():
             bandsdist = self._get_bands_distance(
-                self.ctx.workchain_valcond.outputs["wannier90"]["interpolated_bands"],
+                self.ctx.workchain_valcond.outputs.band_structure,
                 workchain.outputs["interpolated_bands"],
                 is_val=True,
                 isolated=True,
@@ -493,10 +544,20 @@ class Wannier90SplitWorkChain(WorkChain):  # pylint: disable=too-many-public-met
 
         if self.should_run_valcond():
             parameters = inputs["parameters"].get_dict()
-            valcond_wkchain = self.ctx.workchain_valcond
-            w90_calc = valcond_wkchain.outputs.wannier90.remote_folder.creator
-            fermi_energy = w90_calc.inputs.parameters.get_dict()["fermi_energy"]
-            parameters["fermi_energy"] = fermi_energy
+            parameters["fermi_energy"] = self.ctx.fermi_energy
+
+            if "num_wann" in parameters:
+                input_num_wann = parameters["num_wann"]
+                if input_num_wann != self.ctx.num_cond:
+                    self.report(
+                        f"input num_wann={input_num_wann} "
+                        f"!= num_cond={self.ctx.num_cond} "
+                        "from val+cond band structure?"
+                    )
+            else:
+                parameters["num_wann"] = self.ctx.num_cond
+
+            inputs["parameters"] = orm.Dict(dict=parameters)
 
         base_inputs["wannier90"] = inputs
         base_inputs["clean_workdir"] = orm.Bool(False)
@@ -528,7 +589,7 @@ class Wannier90SplitWorkChain(WorkChain):  # pylint: disable=too-many-public-met
             self.ctx.bandsdist_cond_to_ref = bandsdist
         if self.should_run_valcond():
             bandsdist = self._get_bands_distance(
-                self.ctx.workchain_valcond.outputs["wannier90"]["interpolated_bands"],
+                self.ctx.workchain_valcond.outputs.band_structure,
                 workchain.outputs["interpolated_bands"],
                 is_val=False,
                 isolated=True,
@@ -631,7 +692,7 @@ class Wannier90SplitWorkChain(WorkChain):  # pylint: disable=too-many-public-met
 
         fermi_energy = wan_valcond_params.get("fermi_energy")
 
-        exclude_list_dft = wan_valcond_params.get("exclude_bands", None)
+        exclude_list_dft = wan_valcond_params.get("exclude_bands", [])
         num_semicore = len(exclude_list_dft)
 
         num_val = self.inputs["split"]["num_val"].value
@@ -702,6 +763,9 @@ def get_bands_distance(
         exclude_list_dft.extend(
             list(range(num_semicore + num_val + num_bands_wan, num_bands_dft))
         )
+    # switch to 1 indexed
+    if len(exclude_list_dft) > 0:
+        exclude_list_dft = [_ + 1 for _ in exclude_list_dft]
 
     if isolated:
         bandsdist = bands_distance_isolated(
