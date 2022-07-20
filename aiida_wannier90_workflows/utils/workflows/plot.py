@@ -19,7 +19,7 @@ from aiida_wannier90_workflows.workflows.projwfcbands import ProjwfcBandsWorkCha
 from aiida_wannier90_workflows.workflows.wannier90 import Wannier90WorkChain
 
 
-def plot_scdm_fit_raw(
+def plot_scdm_fit_raw(  # pylint: disable=too-many-arguments
     sorted_bands: ty.Sequence,
     sorted_projwfc: ty.Sequence,
     mu_fit: float,
@@ -72,7 +72,9 @@ def plot_scdm_fit_raw(
     return ax
 
 
-def plot_scdm_fit(workchain: int, save: bool = False):
+def plot_scdm_fit(  # pylint: disable=too-many-locals
+    workchain: int, save: bool = False
+):
     """Plot the projectabilities distribution of SCDM fitting."""
     from aiida_wannier90_workflows.utils.scdm import fit_scdm_mu_sigma
     from aiida_wannier90_workflows.utils.workflows import get_last_calcjob
@@ -148,7 +150,7 @@ def get_mpl_code_for_bands(
 
     # dft_bands.show_mpl()
     legend = f"{dft_bands.pk}" if dft_bands.pk else "DFT"
-    dft_mpl_code = dft_bands._exportcontent(
+    dft_mpl_code = dft_bands._exportcontent(  # pylint: disable=protected-access
         fileformat="mpl_singlefile", legend=legend, main_file_name=""
     )[
         0
@@ -211,25 +213,28 @@ def get_mpl_code_for_bands(
     return mpl_code
 
 
+def get_output_bands(workchain):
+    """Return band structure from workchain."""
+    if isinstance(workchain, orm.BandsData):
+        return workchain
+    if workchain.process_class == PwBaseWorkChain:
+        return workchain.outputs.output_band
+    if workchain.process_class in (
+        PwBandsWorkChain,
+        ProjwfcBandsWorkChain,
+        Wannier90BandsWorkChain,
+        Wannier90OptimizeWorkChain,
+    ):
+        return workchain.outputs.band_structure
+    if workchain.process_class in (Wannier90Calculation, Wannier90BaseWorkChain):
+        return workchain.outputs.interpolated_bands
+    raise ValueError(f"Unrecognized workchain type: {workchain}")
+
+
 def get_mpl_code_for_workchains(
     workchain0, workchain1, title=None, save=False, filename=None
 ):
     """Return matplotlib code for comparing band structures of two workchains."""
-
-    def get_output_bands(workchain):
-        if workchain.process_class == PwBaseWorkChain:
-            return workchain.outputs.output_band
-        if workchain.process_class in (
-            PwBandsWorkChain,
-            ProjwfcBandsWorkChain,
-            Wannier90BandsWorkChain,
-            Wannier90OptimizeWorkChain,
-        ):
-            return workchain.outputs.band_structure
-        if workchain.process_class in (Wannier90Calculation, Wannier90BaseWorkChain):
-            return workchain.outputs.interpolated_bands
-        raise ValueError(f"Unrecognized workchain type: {workchain}")
-
     # assume workchain0 is pw, workchain1 is wannier
     dft_bands = get_output_bands(workchain0)
     wan_bands = get_output_bands(workchain1)
@@ -255,7 +260,7 @@ def get_mpl_code_for_workchains(
         if workchain0.process_class == PwBandsWorkChain:
             fermi_energy = workchain0.outputs["scf_parameters"]["fermi_energy"]
         else:
-            raise ValueError("Cannot find fermi energy")
+            raise ValueError(f"Cannot find fermi energy from {workchain0}")
 
     mpl_code = get_mpl_code_for_bands(
         dft_bands,
@@ -288,6 +293,8 @@ def get_workchain_fermi_energy(
 
     if "scf" in workchain.outputs:
         fermi_energy = get_fermi_energy(workchain.outputs["scf"]["output_parameters"])
+    elif "scf_parameters" in workchain.outputs:
+        fermi_energy = get_fermi_energy(workchain.outputs["scf_parameters"])
     else:
         if workchain.process_class in (PwBaseWorkChain, PwCalculation):
             pw_calc = get_last_calcjob(workchain)
@@ -305,7 +312,7 @@ def get_workchain_fermi_energy(
                     workchain.get_outgoing(link_label_filter="wannier90").one().node
                 )
             else:
-                raise ValueError("Cannot find fermi energy")
+                raise ValueError(f"Cannot find fermi energy from {workchain}")
 
             if "fermi_energy" in w90calc.inputs.parameters.get_dict():
                 fermi_energy = w90calc.inputs.parameters.get_dict()["fermi_energy"]
@@ -492,7 +499,7 @@ def get_band_dict(band: ty.Union[dict, orm.BandsData], /) -> dict:
     raise ValueError(f"Unsupported type {band}")
 
 
-def plot_band(  # pylint: disable=too-many-statements
+def plot_band(  # pylint: disable=too-many-statements,too-many-locals,too-many-branches
     band: ty.Union[dict, orm.BandsData],
     ref_zero: float = 0,
     ax=None,
@@ -653,7 +660,7 @@ def plot_band(  # pylint: disable=too-many-statements
         plt.show()
 
 
-def plot_bands_diff(
+def plot_bands_diff(  # pylint: disable=too-many-arguments
     qe: ty.Union[dict, orm.BandsData],
     w90: ty.Union[dict, orm.BandsData],
     fermi_energy: float = None,
