@@ -8,6 +8,8 @@ from aiida.cmdline.utils.query.calculation import CalculationQueryBuilder
 
 from .root import cmd_root
 
+# pylint: disable=too-many-arguments,too-many-locals,too-many-branches,too-many-statements
+
 
 def print_process_table(
     process_label,
@@ -58,7 +60,13 @@ def print_process_table(
         # I assume 0th column is PK
         pk = entry[0]
         node = orm.load_node(pk)
-        formula = node.inputs.structure.get_formula()
+        if "structure" in node.inputs:
+            formula = node.inputs.structure.get_formula()
+        elif "valcond" in node.inputs:
+            # Wannier90SplitWorkChain
+            formula = node.inputs["valcond"].structure.get_formula()
+        else:
+            formula = "?"
         entry_with_structure = [pk, formula, *entry[1:]]
         projected_with_structure.append(entry_with_structure)
     projected = projected_with_structure
