@@ -35,6 +35,77 @@ def cmd_plot_scdm(workchain, save):
     plot_scdm_fit(workchain, save)
 
 
+@cmd_plot.command("band")
+@click.argument("node", type=NodeParamType(), nargs=1)
+@click.option(
+    "-s",
+    "--save",
+    is_flag=True,
+    default=False,
+    help="save as a python plotting script instead of showing matplotlib window",
+)
+@click.option(
+    "-f",
+    "--save_format",
+    type=str,
+    default=None,
+    help="Save as a python plotting script (default) or png/pdf",
+)
+@decorators.with_dbenv()
+@click.pass_context  # pylint: disable=invalid-name
+def cmd_plot_band(ctx, node, save, save_format):  # pylint: disable=unused-argument
+    """Plot band structures for BandsData or WorkChain.
+
+    node is the PK of a BandsData, or a PwBaseWorkChain,
+    or Wannier90BandsWorkChain.
+    """
+    from aiida_wannier90_workflows.utils.workflows.plot import (
+        get_output_bands,
+        get_workchain_fermi_energy,
+    )
+
+    bands = get_output_bands(node)
+
+    # pylint: disable=protected-access
+    mpl_code = bands._exportcontent(fileformat="mpl_singlefile", main_file_name="")[0]
+
+    if isinstance(node, orm.WorkChainNode):
+        title = f"{node.process_label}<{node.pk}>"
+    else:
+        title = f"{node.__class__.__name__}<{node.pk}>"
+    replacement = f'p.set_title("{title}")\npl.show()'
+    mpl_code = mpl_code.replace(b"pl.show()", replacement.encode())
+
+    # fermi energy
+    if isinstance(node, orm.WorkChainNode):
+        fermi_energy = get_workchain_fermi_energy(node)
+        replacement = f"fermi_energy = {fermi_energy}\n\n"
+        replacement += "p.axhline(y=fermi_energy, color='blue', linestyle='--', label='Fermi', zorder=-1)\n"
+        replacement += "pl.legend()\n\n"
+        replacement += "for path in paths:"
+        mpl_code = mpl_code.replace(b"for path in paths:", replacement.encode())
+
+    mpl_code = mpl_code.replace(
+        b"plt.rcParams.update({'text.latex.preview': True})", b""
+    )
+
+    if save:
+        if save_format:
+            filename = f"band_{node.pk}.{save_format}"
+            replacement = f'pl.savefig("{filename}")'
+            mpl_code = mpl_code.replace(b"pl.show()", replacement.encode())
+            # print(mpl_code.decode())
+            exec(mpl_code, {})  # pylint: disable=exec-used
+            return
+
+        filename = f"band_{node.pk}.py"
+        with open(filename, "w") as handle:
+            handle.write(mpl_code.decode())
+
+    # print(mpl_code.decode())
+    exec(mpl_code, {})  # pylint: disable=exec-used
+
+
 @cmd_plot.command("bands")
 @click.argument("pw", type=NodeParamType(), nargs=-1)
 @click.argument("wannier", type=NodeParamType(), nargs=1)
@@ -52,8 +123,8 @@ def cmd_plot_scdm(workchain, save):
     default=None,
     help="Save as a python plotting script (default) or png/pdf",
 )
-@decorators.with_dbenv()
-@click.pass_context  # pylint: disable=invalid-name
+@decorators.with_dbenv()  # pylint: disable=invalid-name,too-many-locals,too-many-branches,inconsistent-return-statements
+@click.pass_context
 def cmd_plot_bands(ctx, pw, wannier, save, save_format):
     """Compare DFT and Wannier band structures.
 
@@ -121,6 +192,10 @@ def cmd_plot_bands(ctx, pw, wannier, save, save_format):
         print(f"  PW     : {type(pw)}")
         print(f"  WANNIER: {type(wannier)}")
         sys.exit()
+
+    mpl_code = mpl_code.replace(
+        b"plt.rcParams.update({'text.latex.preview': True})", b""
+    )
 
     if save_format:
         formula = wannier.inputs.structure.get_formula()
