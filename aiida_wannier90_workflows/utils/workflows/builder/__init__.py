@@ -35,6 +35,7 @@ from aiida_wannier90_workflows.workflows.base.pw2wannier90 import (
     Pw2wannier90BaseWorkChain,
 )
 from aiida_wannier90_workflows.workflows.base.wannier90 import Wannier90BaseWorkChain
+from aiida_wannier90_workflows.workflows.projwfcbands import ProjwfcBandsWorkChain
 from aiida_wannier90_workflows.workflows.wannier90 import Wannier90WorkChain
 
 
@@ -622,6 +623,36 @@ def set_parallelization(
                 builder["bands"],
                 parallelization=parallelization,
                 process_class=PwBaseWorkChain,
+            )
+
+    elif process_class == ProjwfcBandsWorkChain:
+
+        if "relax" in pruned_builder:
+            set_parallelization(
+                builder["relax"],
+                parallelization=parallelization,
+                process_class=PwRelaxWorkChain,
+            )
+
+        if "scf" in pruned_builder:
+            set_parallelization(
+                builder["scf"],
+                parallelization=parallelization,
+                process_class=PwBaseWorkChain,
+            )
+
+        if "bands" in pruned_builder:
+            set_parallelization(
+                builder["bands"],
+                parallelization=parallelization,
+                process_class=PwBaseWorkChain,
+            )
+
+        if "projwfc" in pruned_builder:
+            set_parallelization(
+                builder["projwfc"],
+                parallelization=parallelization,
+                process_class=ProjwfcBaseWorkChain,
             )
 
     elif process_class == Wannier90BandsWorkChain:

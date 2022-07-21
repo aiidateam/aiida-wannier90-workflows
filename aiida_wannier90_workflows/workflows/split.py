@@ -356,7 +356,9 @@ class Wannier90SplitWorkChain(WorkChain):  # pylint: disable=too-many-public-met
         """Run val+cond Wannier90."""
         inputs = AttributeDict(self.inputs["valcond"])
 
-        inputs["metadata"] = {"call_link_label": "valcond"}
+        metadata = inputs.get("metadata", {})
+        metadata["call_link_label"] = "valcond"
+        inputs["metadata"] = metadata
         inputs = prepare_process_inputs(Wannier90OptimizeWorkChain, inputs)
         running = self.submit(Wannier90OptimizeWorkChain, **inputs)
         self.report(f"launching {running.process_label}<{running.pk}>")
@@ -424,7 +426,9 @@ class Wannier90SplitWorkChain(WorkChain):  # pylint: disable=too-many-public-met
         """Run split."""
         inputs = self.prepare_split_inputs()
 
-        inputs["metadata"] = {"call_link_label": "split"}
+        metadata = inputs.get("metadata", {})
+        metadata["call_link_label"] = "split"
+        inputs["metadata"] = metadata
         inputs = prepare_process_inputs(Wannier90SplitCalculation, inputs)
         running = self.submit(Wannier90SplitCalculation, **inputs)
         self.report(f"launching {running.process_label}<{running.pk}>")
@@ -488,7 +492,9 @@ class Wannier90SplitWorkChain(WorkChain):  # pylint: disable=too-many-public-met
         """Overide parent."""
         inputs = self.prepare_val_inputs()
 
-        inputs["metadata"] = {"call_link_label": "val"}
+        metadata = inputs.get("metadata", {})
+        metadata["call_link_label"] = "val"
+        inputs["metadata"] = metadata
         inputs = prepare_process_inputs(Wannier90BaseWorkChain, inputs)
         running = self.submit(Wannier90BaseWorkChain, **inputs)
         self.report(f"launching {running.process_label}<{running.pk}>")
@@ -568,7 +574,9 @@ class Wannier90SplitWorkChain(WorkChain):  # pylint: disable=too-many-public-met
         """Run cond."""
         inputs = self.prepare_cond_inputs()
 
-        inputs["metadata"] = {"call_link_label": "cond"}
+        metadata = inputs.get("metadata", {})
+        metadata["call_link_label"] = "cond"
+        inputs["metadata"] = metadata
         inputs = prepare_process_inputs(Wannier90BaseWorkChain, inputs)
         running = self.submit(Wannier90BaseWorkChain, **inputs)
         self.report(f"launching {running.process_label}<{running.pk}>")
