@@ -198,6 +198,11 @@ class Wannier90SplitWorkChain(WorkChain):  # pylint: disable=too-many-public-met
             "ERROR_SUB_PROCESS_FAILED_COND",
             message="the conduction Wannier90Calculation has failed",
         )
+        spec.exit_code(
+            520,
+            "ERROR_SUB_PROCESS_FAILED_ALL_OCCUPIED",
+            message="All the orbitals are occupied, cannot split into valence and conduction",
+        )
 
     @classmethod
     def get_protocol_filepath(cls) -> pathlib.Path:
@@ -232,6 +237,7 @@ class Wannier90SplitWorkChain(WorkChain):  # pylint: disable=too-many-public-met
         bands_kpoints = kwargs.pop("bands_kpoints", None)
         plot_wannier_functions = kwargs.pop("plot_wannier_functions", False)
         reference_bands = kwargs.pop("reference_bands", None)
+        exclude_semicore = kwargs.pop("exclude_semicore", True)
 
         # Prepare workchain builder
         valcond_builder = Wannier90OptimizeWorkChain.get_builder_from_protocol(
@@ -242,6 +248,7 @@ class Wannier90SplitWorkChain(WorkChain):  # pylint: disable=too-many-public-met
             projection_type=projection_type,
             bands_kpoints=bands_kpoints,
             plot_wannier_functions=plot_wannier_functions,
+            exclude_semicore=exclude_semicore,
             **kwargs,
         )
         valcond_inputs = valcond_builder._inputs(  # pylint: disable=protected-access
@@ -284,12 +291,11 @@ class Wannier90SplitWorkChain(WorkChain):  # pylint: disable=too-many-public-met
             parameters["num_wann"] = num_val
         parameters.pop("num_bands", None)
         parameters.pop("guiding_centres", None)
+        parameters.pop("exclude_bands", None)
 
         # stricter convergence
         parameters["conv_tol"] = 1e-9
         parameters["num_iter"] = 5000
-
-        # exclude_bands = parameters.pop('exclude_bands', [])
 
         parameters["bands_plot"] = True
         val_inputs["wannier90"]["bands_kpoints"] = bands_kpoints
@@ -384,7 +390,11 @@ class Wannier90SplitWorkChain(WorkChain):  # pylint: disable=too-many-public-met
 
         bands: orm.BandsData = workchain.outputs.band_structure
         bands_arr = bands.get_bands()
-        homo, lumo = get_homo_lumo(bands_arr, fermi_energy)
+        try:
+            homo, lumo = get_homo_lumo(bands_arr, fermi_energy)
+        except ValueError as exc:
+            self.report(f"{exc}")
+            return self.exit_codes.ERROR_SUB_PROCESS_FAILED_ALL_OCCUPIED
         band_gap = lumo - homo
         gap_threshold = 1e-2
         if band_gap < gap_threshold:
@@ -407,9 +417,15 @@ class Wannier90SplitWorkChain(WorkChain):  # pylint: disable=too-many-public-met
         inputs = AttributeDict(self.inputs["split"])
 
         if self.should_run_valcond():
-            inputs["parent_folder"] = self.ctx.workchain_valcond.outputs["wannier90"][
-                "remote_folder"
-            ]
+            workchain_valcond = self.ctx.workchain_valcond
+            if workchain_valcond.inputs["separate_plotting"]:
+                parent_folder = workchain_valcond.outputs["wannier90_plot"][
+                    "remote_folder"
+                ]
+            else:
+                parent_folder = workchain_valcond.outputs["wannier90"]["remote_folder"]
+            inputs["parent_folder"] = parent_folder
+
             if "num_val" in inputs:
                 input_num_val = inputs["num_val"].value
                 if input_num_val != self.ctx.num_val:
@@ -489,7 +505,7 @@ class Wannier90SplitWorkChain(WorkChain):  # pylint: disable=too-many-public-met
         return base_inputs
 
     def run_val(self):
-        """Overide parent."""
+        """Run valence."""
         inputs = self.prepare_val_inputs()
 
         metadata = inputs.get("metadata", {})
@@ -502,8 +518,7 @@ class Wannier90SplitWorkChain(WorkChain):  # pylint: disable=too-many-public-met
         return ToContext(workchain_val=running)
 
     def inspect_val(self):  # pylint: disable=inconsistent-return-statements
-        """Overide parent."""
-
+        """Inspect valence."""
         workchain = self.ctx.workchain_val
         if self.ctx.ref_bands is not None:
             bandsdist = self._get_bands_distance(

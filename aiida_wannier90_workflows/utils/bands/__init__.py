@@ -17,8 +17,15 @@ def get_homo_lumo(bands: np.array, fermi_energy: float) -> ty.Tuple[float, float
     occupied = bands <= fermi_energy
     unoccupied = bands > fermi_energy
 
-    homo = np.max(bands[occupied])
-    lumo = np.min(bands[unoccupied])
+    bands_occ = bands[occupied]
+    if len(bands_occ) == 0:
+        raise ValueError("No HOMO found, all bands are unoccupied?")
+    homo = np.max(bands_occ)
+
+    bands_unocc = bands[unoccupied]
+    if len(bands_unocc) == 0:
+        raise ValueError("No LUMO found, all bands are occupied?")
+    lumo = np.min(bands_unocc)
 
     return homo, lumo
 
