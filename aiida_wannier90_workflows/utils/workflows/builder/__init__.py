@@ -7,7 +7,7 @@ import numpy as np
 from aiida import orm
 from aiida.common import AttributeDict
 from aiida.common.lang import type_check
-from aiida.engine import ProcessBuilder, ProcessBuilderNamespace
+from aiida.engine import CalcJob, ProcessBuilder, ProcessBuilderNamespace
 
 from aiida_quantumespresso.calculations import BasePwCpInputGenerator
 from aiida_quantumespresso.calculations.namelists import NamelistsCalculation
@@ -471,6 +471,7 @@ def set_parallelization(
         Wannier90Calculation,
         Wannier90BaseWorkChain,
         Wannier90BandsWorkChain,
+        CalcJob,
     ] = Wannier90BandsWorkChain,
 ) -> None:
     """Set parallelization for Wannier90BandsWorkChain.
@@ -552,6 +553,9 @@ def set_parallelization(
     elif issubclass(process_class, NamelistsCalculation):
         builder["metadata"] = metadata
         builder["settings"] = settings
+
+    elif issubclass(process_class, CalcJob):
+        builder["metadata"] = metadata
 
     elif process_class == OpengridBaseWorkChain:
         set_parallelization(
