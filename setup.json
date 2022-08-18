@@ -10,7 +10,7 @@
   "author": "Antimo Marrazzo, Giovanni Pizzi, Junfeng Qiao", 
   "author_email": "developers@aiida.net", 
   "install_requires": [
-    "aiida-core>=1.1.1,<2",
+    "aiida-core>=1.1.1",
     "aiida-quantumespresso>=3.0.0a6",
     "aiida-wannier90>=2.0.0"
   ], 

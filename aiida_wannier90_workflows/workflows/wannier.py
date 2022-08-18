@@ -851,7 +851,8 @@ def update_nscf_num_bands(
             # parse XML
             import xml.etree.ElementTree as ET
             PP_PSWFC = ET.XML(pswfc_block)
-            if len(PP_PSWFC.getchildren()) == 0:
+            # if len(PP_PSWFC.getchildren()) == 0:
+            if len(list(PP_PSWFC)) == 0:
                 # old upf format
                 import re
                 r = re.compile(r'[\d]([SPDF])')

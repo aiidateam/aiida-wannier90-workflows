@@ -98,6 +98,34 @@ class Wannier90BandsWorkChain(WorkChain):
         )
         # spec.input('controls.nbands_factor', valid_type=orm.Float, default=orm.Float(1.5),
         # help='The number of bands for the NSCF calculation is that used for the SCF multiplied by this factor.')
+        spec.input(
+            'parameters',
+            valid_type=orm.Dict,
+            required=False,
+            default=lambda: orm.Dict(dict={}),
+            help='Parameters for [scf, nscf, pw2wannier, wannier90, projwfc].'
+        )
+        spec.input(
+            'pseudos',
+            required=False,
+            help='Pseudopotentials for pw.x calculations'
+        )
+        spec.input(
+            'options',
+            valid_type=orm.Dict,
+            required=False,
+            default=lambda: orm.Dict(dict={}),
+            help='metadata.options for [scf, nscf, pw2wannier, wannier90, projwfc].'
+        )
+        # spec.expose_inputs(
+        #     Wannier90WorkChain,
+        #     exclude=(
+        #         "wannier90.wannier90.kpoint_path",
+        #         "wannier90.wannier90.bands_kpoints",
+        #     ),
+        #     namespace_options={"required": False},
+        # )
+
 
         spec.output(
             'primitive_structure',
@@ -302,7 +330,9 @@ class Wannier90BandsWorkChain(WorkChain):
                 number_of_atoms,
             }
         }
-
+        overwrite = self.inputs.parameters.get_dict()
+        if 'scf' in overwrite.keys():
+            pw_parameters.update(overwrite['scf'])
         self.ctx.scf_parameters = orm.Dict(dict=pw_parameters)
 
     # we do not need this anymore, since now Wannier90WorkChain accepts input only_valence,
@@ -378,14 +408,21 @@ class Wannier90BandsWorkChain(WorkChain):
     #     self.ctx.nscf_parameters = nscf_parameters
 
     def setup_projwfc_parameters(self):
-
-        projwfc_parameters = orm.Dict(dict={'PROJWFC': {'DeltaE': 0.2}})
+        parameters={'PROJWFC': {'DeltaE': 0.2}}
+        overwrite = self.inputs.parameters.get_dict()
+        if 'projwfc' in overwrite.keys():
+            parameters.update(overwrite['projwfc'])
+        projwfc_parameters = orm.Dict(dict=parameters)
         self.ctx.projwfc_parameters = projwfc_parameters
 
     def setup_pw2wannier90_parameters(self):
 
         parameters = {}
         #Write UNK files (to plot WFs)
+        overwrite = self.inputs.parameters.get_dict()
+        if 'pw2wannier90' in overwrite.keys():
+            parameters.update(overwrite['pw2wannier90'])
+
         if self.inputs.controls.plot_wannier_functions:
             parameters['write_unk'] = True
             self.report("UNK files will be written.")
@@ -399,6 +436,10 @@ class Wannier90BandsWorkChain(WorkChain):
             # no need anymore since kmesh_tol is handled by Wannier90BaseWorkChain
             # 'kmesh_tol': 1e-8
         }
+        
+        overwrite = self.inputs.parameters.get_dict()
+        if 'wannier90' in overwrite.keys():
+            parameters.update(overwrite['wannier90'])
 
         if self.inputs.controls.auto_projections:
             parameters['auto_projections'] = True
@@ -491,12 +532,12 @@ class Wannier90BandsWorkChain(WorkChain):
             }
         })
 
-        if 'options' in self.inputs:
-            inputs.pw.metadata.options = self.inputs.options.get_dict()
-        else:
-            inputs.pw.metadata.options = self.get_default_options(
-                with_mpi=True
-            )
+        # if 'options' in self.inputs:
+        #     inputs.pw.metadata.options = self.inputs.options.get_dict()
+        # else:
+        #     inputs.pw.metadata.options = self.get_default_options(
+        #         with_mpi=True
+        #     )
 
         return inputs
 
@@ -506,7 +547,15 @@ class Wannier90BandsWorkChain(WorkChain):
         of QE is a bit higher than num_electrons/2, so we can get Fermi energy 
         from scf calculation.
         """
-        return self.get_pw_common_inputs()
+        scf_inputs = self.get_pw_common_inputs()
+
+        opt = self.get_default_options(with_mpi=True)
+        overwrite = self.inputs.options.get_dict()
+        if 'scf' in overwrite.keys():
+            opt.update(overwrite['scf'])
+        scf_inputs.pw.metadata.options = opt
+
+        return scf_inputs
 
     def get_nscf_inputs(self):
         """
@@ -516,9 +565,18 @@ class Wannier90BandsWorkChain(WorkChain):
         Here the num_electrons is obtained from scf output_parameters, 
         so we do not need to calculate num_electrons from pseudos.
         """
-        inputs = self.get_pw_common_inputs()
-        # inputs['pw']['parameters'] = self.ctx.nscf_parameters
-        return inputs
+        # inputs = self.get_pw_common_inputs()
+        # # inputs['pw']['parameters'] = self.ctx.nscf_parameters
+        # return inputs
+        nscf_inputs = self.get_pw_common_inputs()
+
+        opt = self.get_default_options(with_mpi=True)
+        overwrite = self.inputs.options.get_dict()
+        if 'nscf' in overwrite.keys():
+            opt.update(overwrite['nscf'])
+        nscf_inputs.pw.metadata.options = opt
+
+        return nscf_inputs
 
     def get_projwfc_inputs(self):
         inputs = AttributeDict({
@@ -527,13 +585,20 @@ class Wannier90BandsWorkChain(WorkChain):
             'metadata': {},
         })
 
-        if 'options' in self.inputs:
-            inputs.metadata.options = self.inputs.options.get_dict()
-        else:
-            inputs.metadata.options = self.get_default_options(with_mpi=True)
-            # inputs.metadata.options = get_manual_options()
+        # if 'options' in self.inputs:
+        #     inputs.metadata.options = self.inputs.options.get_dict()
+        # else:
+        #     inputs.metadata.options = self.get_default_options(with_mpi=True)
+        #     # inputs.metadata.options = get_manual_options()
+
+        opt = self.get_default_options(with_mpi=True)
+        overwrite = self.inputs.options.get_dict()
+        if 'projwfc' in overwrite.keys():
+            opt.update(overwrite['prejwfc'])
+        inputs.metadata.options = opt
 
         return inputs
+        # return inputs
 
     def get_pw2wannier90_inputs(self):
         inputs = AttributeDict({
@@ -566,10 +631,15 @@ class Wannier90BandsWorkChain(WorkChain):
         #     'sigma_factor_shift': self.ctx.sigma_factor_shift,
         # }
 
-        if 'options' in self.inputs:
-            inputs.metadata.options = self.inputs.options.get_dict()
-        else:
-            inputs.metadata.options = self.get_default_options(with_mpi=True)
+        # if 'options' in self.inputs:
+        #     inputs.metadata.options = self.inputs.options.get_dict()
+        # else:
+        #     inputs.metadata.options = self.get_default_options(with_mpi=True)
+        opt = self.get_default_options(with_mpi=True)
+        overwrite = self.inputs.options.get_dict()
+        if 'pw2wannier90' in overwrite.keys():
+            opt.update(overwrite['pw2wannier90'])
+        inputs.metadata.options = opt
 
         return inputs
 
@@ -613,10 +683,15 @@ class Wannier90BandsWorkChain(WorkChain):
         # except KeyError:
         #     self.report("W90 windows defined with the Fermi level as zero.")
 
-        if 'options' in self.inputs:
-            inputs.metadata.options = self.inputs.options.get_dict()
-        else:
-            inputs.metadata.options = self.get_default_options(with_mpi=True)
+        # if 'options' in self.inputs:
+        #     inputs.metadata.options = self.inputs.options.get_dict()
+        # else:
+        #     inputs.metadata.options = self.get_default_options(with_mpi=True)
+        opt = self.get_default_options(with_mpi=True)
+        overwrite = self.inputs.options.get_dict()
+        if 'wannier90' in overwrite.keys():
+            opt.update(overwrite['wannier90'])
+        inputs.metadata.options = opt
 
         return inputs
 
@@ -639,6 +714,7 @@ class Wannier90BandsWorkChain(WorkChain):
             'pw2wannier90': self.get_pw2wannier90_inputs(),
             'wannier90': self.get_wannier90_inputs(),
         })
+        # inputs.update(self.exposed_inputs(Wannier90WorkChain))
 
         # inputs.relax.base.kpoints_distance = orm.Float(self.ctx.protocol['kpoints_mesh_density'])
         inputs.scf.kpoints_distance = orm.Float(
