@@ -294,8 +294,8 @@ class Wannier90SplitWorkChain(WorkChain):  # pylint: disable=too-many-public-met
         parameters.pop("exclude_bands", None)
 
         # stricter convergence
-        parameters["conv_tol"] = 1e-9
-        parameters["num_iter"] = 5000
+        # parameters["conv_tol"] = 1e-9
+        # parameters["num_iter"] = 5000
 
         parameters["bands_plot"] = True
         val_inputs["wannier90"]["bands_kpoints"] = bands_kpoints
