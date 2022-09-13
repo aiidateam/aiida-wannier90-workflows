@@ -724,10 +724,17 @@ class Wannier90BaseWorkChain(ProtocolMixin, BaseRestartWorkChain):
         """
         import re
 
-        regex = re.compile(r"Detected \d+ oom-kill event\(s\) in step")
+        regex_oom = re.compile(r"Detected \d+ oom-kill event\(s\) in step")
+        regex_bus = re.compile(
+            r"Program received signal SIGBUS: Access to an undefined portion of a memory object"
+        )
         scheduler_stderr = calculation.get_scheduler_stderr()
         for line in scheduler_stderr.split("\n"):
-            if regex.search(line) or "Out Of Memory" in line:
+            if (
+                regex_oom.search(line)
+                or regex_bus.search(line)
+                or "Out Of Memory" in line
+            ):
                 break
         else:
             action = "Unrecoverable incomplete stdout error"
