@@ -57,9 +57,11 @@ class Wannier90SplitParser(Parser):
         remote_folder = self.node.outputs["remote_folder"]
         remote_path = remote_folder.get_remote_path()
         # pylint: disable=protected-access
-        seedname = Wannier90Calculation._DEFAULT_INPUT_FILE.removesuffix(
-            Wannier90Calculation._REQUIRED_INPUT_SUFFIX
-        )  # = aiida
+        # For py <= 3.8, no removesuffix
+        # seedname = Wannier90Calculation._DEFAULT_INPUT_FILE.removesuffix(
+        #     Wannier90Calculation._REQUIRED_INPUT_SUFFIX
+        # )  # = aiida
+        seedname = "aiida"
         required_files = [f"{seedname}.amn", f"{seedname}.mmn", f"{seedname}.eig"]
         for k in ["val", "cond"]:
             remote_folder_k = orm.RemoteData(
