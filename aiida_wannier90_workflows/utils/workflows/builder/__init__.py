@@ -518,7 +518,10 @@ def set_parallelization(
     # I need to prune the builder, otherwise e.g. initially builder.relax is
     # an empty dict but the following code will change it to non-empty,
     # leading to invalid process spec such as code not found for PwRelaxWorkChain.
-    pruned_builder = builder._inputs(prune=True)  # pylint: disable=protected-access
+    if isinstance(builder, dict):
+        pruned_builder = builder
+    else:
+        pruned_builder = builder._inputs(prune=True)  # pylint: disable=protected-access
 
     metadata = get_metadata(
         num_mpiprocs_per_machine=num_mpiprocs_per_machine,
