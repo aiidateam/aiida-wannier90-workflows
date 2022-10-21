@@ -728,11 +728,14 @@ class Wannier90BaseWorkChain(ProtocolMixin, BaseRestartWorkChain):
         regex_bus = re.compile(
             r"Program received signal SIGBUS: Access to an undefined portion of a memory object"
         )
+        # srun: error: nid002144: tasks 0-63: Killed
+        regex_killed = re.compile(r"srun: error: \w+: tasks [\w-]+: Killed")
         scheduler_stderr = calculation.get_scheduler_stderr()
         for line in scheduler_stderr.split("\n"):
             if (
                 regex_oom.search(line)
                 or regex_bus.search(line)
+                or regex_killed.search(line)
                 or "Out Of Memory" in line
             ):
                 break
