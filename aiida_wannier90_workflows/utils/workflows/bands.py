@@ -91,3 +91,71 @@ def get_structure_and_bands_kpoints(
     bands_kpoints = bands_workchain.inputs.kpoints
 
     return structure, bands_kpoints
+
+
+def has_overlapping_semicore(pw_bands: orm.BandsData, exclude_bands: ty.List) -> bool:
+    """Check if the bands of the pw_bands has overlapping semicore states.
+
+    :param pw_bands: a PW band structure
+    :type pw_bands: orm.BandsData
+    :param exclude_bands: the Wannier90 `exclude_bands` input keyword, index starts from 1
+    :type exclude_bands: list
+    :return: whether the ``exclude_bands`` overlaps with neighboring bands
+    :rtype: bool
+    """
+    import numpy as np
+
+    # return array n_kpts x n_bands
+    bands = pw_bands.get_bands()
+
+    if exclude_bands is None:
+        return False
+
+    # exclude_bands index start from 1
+    idx_ex = [i - 1 for i in exclude_bands]
+    idx_notex = [i for i in range(bands.shape[1]) if i not in idx_ex]
+
+    emax = np.max(bands[:, idx_ex])
+    emin = np.min(bands[:, idx_notex])
+
+    # If the gap between the two band manifolds is smaller than 0.01 eV, then
+    # I assume they are hybridized together, thus cannot safely exclude the semicore states.
+    gap_threshold = 1e-2
+    if emin - emax >= gap_threshold:
+        return False
+
+    return True
+
+
+def get_bandgap(wkchain: PwBandsWorkChain) -> float:
+    """Compute band gap for a ``PwBandsWorkChain``.
+
+    :param wkchain: a successfully finished ``PwBandsWorkChain``.
+    :type wkchain: PwBandsWorkChain
+    :return: band gap
+    :rtype: float
+    """
+    from aiida_wannier90_workflows.utils.bands import get_homo_lumo
+
+    bands = wkchain.outputs.band_structure.get_bands()
+    fermi = wkchain.outputs.scf_parameters.get_dict()["fermi_energy"]
+
+    homo, lumo = get_homo_lumo(bands, fermi)
+    bandgap = lumo - homo
+
+    # from numpy to float
+    bandgap = bandgap.item()
+
+    return bandgap
+
+
+def is_insulator(wkchain: PwBandsWorkChain) -> bool:
+    """Check if the band structure is an insulator.
+
+    :param wkchain: a successfully finished ``PwBandsWorkChain``.
+    :type wkchain: PwBandsWorkChain
+    :return: true if band gap > 0.01eV
+    :rtype: bool
+    """
+    bandgap = get_bandgap(wkchain)
+    return bandgap > 1e-2
