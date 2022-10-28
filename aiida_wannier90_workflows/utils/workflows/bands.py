@@ -108,7 +108,7 @@ def has_overlapping_semicore(pw_bands: orm.BandsData, exclude_bands: ty.List) ->
     # return array n_kpts x n_bands
     bands = pw_bands.get_bands()
 
-    if exclude_bands is None:
+    if exclude_bands is None or len(exclude_bands) == 0:
         return False
 
     # exclude_bands index start from 1
