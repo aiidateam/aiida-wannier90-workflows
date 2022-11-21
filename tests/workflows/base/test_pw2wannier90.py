@@ -36,7 +36,7 @@ def test_prepare_inputs(
     # Test SCDM fitting is working
     parameters["scdm_proj"] = True
     parameters["scdm_entanglement"] = "erfc"
-    inputs["parameters"] = Dict(dict={"inputpp": parameters})
+    inputs["parameters"] = Dict({"inputpp": parameters})
 
     inputs = {"pw2wannier90": inputs}
     inputs["bands"] = generate_bands_data()

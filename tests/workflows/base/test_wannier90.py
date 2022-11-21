@@ -76,7 +76,7 @@ def test_prepare_inputs_shift_energy_windows(
     parameters["fermi_energy"] = 1.2
     parameters["dis_froz_max"] = dis_froz_max[0]
     parameters["num_wann"] = 4
-    inputs["parameters"] = Dict(dict=parameters)
+    inputs["parameters"] = Dict(parameters)
 
     inputs = {"wannier90": inputs}
     inputs["bands"] = generate_bands_data()
@@ -107,7 +107,7 @@ def test_prepare_inputs_auto_energy_windows(
     # Test SCDM fitting is working
     parameters["fermi_energy"] = 1.2
     parameters["num_wann"] = 4
-    inputs["parameters"] = Dict(dict=parameters)
+    inputs["parameters"] = Dict(parameters)
 
     inputs = {"wannier90": inputs}
     inputs["bands"] = generate_bands_data()
