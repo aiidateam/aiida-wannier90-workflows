@@ -271,11 +271,11 @@ def cmd_node_gotocomputer(ctx, node, link_label):
     from aiida.common.exceptions import NotExistent
     from aiida.plugins import DataFactory
 
-    RemoteData = DataFactory("remote")  # pylint: disable=invalid-name
+    RemoteData = DataFactory("core.remote")  # pylint: disable=invalid-name
     RemoteStashFolderData = DataFactory(
-        "remote.stash.folder"
+        "core.remote.stash.folder"
     )  # pylint: disable=invalid-name
-    FolderData = DataFactory("folder")  # pylint: disable=invalid-name
+    FolderData = DataFactory("core.folder")  # pylint: disable=invalid-name
 
     echo.echo(f"Node<{node.pk}> type {type(node)}")
 

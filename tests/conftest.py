@@ -514,7 +514,7 @@ def generate_bands_data():
 
         from aiida.plugins import DataFactory
 
-        BandsData = DataFactory("array.bands")  # pylint: disable=invalid-name
+        BandsData = DataFactory("core.array.bands")  # pylint: disable=invalid-name
         bands_data = BandsData()
 
         bands_data.set_kpoints(np.array([[0.0, 0.0, 0.0], [0.625, 0.25, 0.625]]))
@@ -612,7 +612,7 @@ def generate_inputs_pw(
         from aiida_quantumespresso.utils.resources import get_default_options
 
         parameters = Dict(
-            dict={
+            {
                 "CONTROL": {"calculation": "scf"},
                 "SYSTEM": {"ecutrho": 240.0, "ecutwfc": 30.0},
                 "ELECTRONS": {

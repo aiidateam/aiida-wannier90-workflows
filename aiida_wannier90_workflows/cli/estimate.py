@@ -64,7 +64,7 @@ def cmd_estimate_group(group, formatted, hdf_file):
 
 @cmd_estimate.command("structure")
 @arguments_core.DATA(
-    type=types.DataParamType(sub_classes=("aiida.data:structure",)), nargs=1
+    type=types.DataParamType(sub_classes=("aiida.data:core.structure",)), nargs=1
 )
 @format_option
 @decorators.with_dbenv()

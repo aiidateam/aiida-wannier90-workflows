@@ -294,13 +294,13 @@ def generate_inputs_wannier90(generate_inputs_pw, fixture_code):
         params = nscf_pw_inputs["parameters"].get_dict()
         params["CONTROL"]["calculation"] = "nscf"
         params["SYSTEM"]["nosym"] = True
-        nscf_pw_inputs["parameters"] = Dict(dict=params)
+        nscf_pw_inputs["parameters"] = Dict(params)
         nscf = {"pw": nscf_pw_inputs, "kpoints": kpoints}
 
         projwfc_params = {"projwfc": {"deltae": 0.01}}
         projwfc = {
             "code": fixture_code("quantumespresso.projwfc"),
-            "parameters": Dict(dict=projwfc_params),
+            "parameters": Dict(projwfc_params),
             "metadata": {"options": get_default_options()},
         }
         pw2wan_params = {
@@ -311,13 +311,13 @@ def generate_inputs_wannier90(generate_inputs_pw, fixture_code):
         }
         pw2wan = {
             "code": fixture_code("quantumespresso.pw2wannier90"),
-            "parameters": Dict(dict=pw2wan_params),
+            "parameters": Dict(pw2wan_params),
             "metadata": {"options": get_default_options()},
         }
         w90_params = {}
         w90 = {
             "code": fixture_code("wannier90.wannier90"),
-            "parameters": Dict(dict=w90_params),
+            "parameters": Dict(w90_params),
             "kpoints": kpoints,
             "metadata": {"options": get_default_options()},
         }
