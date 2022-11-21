@@ -1,6 +1,7 @@
 """Workchain to automatically optimize dis_proj_min/max for projectability disentanglement."""
 import pathlib
 import typing as ty
+import warnings
 
 import numpy as np
 
@@ -11,6 +12,7 @@ from aiida.orm.nodes.data.base import to_aiida_type
 from aiida_quantumespresso.utils.mapping import prepare_process_inputs
 
 from aiida_wannier90_workflows.utils.workflows import get_last_calcjob
+from aiida_wannier90_workflows.utils.workflows.bands import has_overlapping_semicore
 
 from .bands import Wannier90BandsWorkChain
 from .base.wannier90 import Wannier90BaseWorkChain
@@ -20,8 +22,6 @@ __all__ = ["validate_inputs", "Wannier90OptimizeWorkChain"]
 
 def validate_inputs(inputs, ctx=None):  # pylint: disable=unused-argument
     """Validate the inputs of the entire input namespace of `Wannier90OptimizeWorkChain`."""
-    import warnings
-
     from .bands import validate_inputs as parent_validate_inputs
 
     # Call parent validator
@@ -49,8 +49,8 @@ def validate_inputs(inputs, ctx=None):  # pylint: disable=unused-argument
     if inputs["separate_plotting"]:
         plot_inputs = [
             parameters.get(_, False)
-            for _ in Wannier90OptimizeWorkChain._WANNIER90_PLOT_INPUTS
-        ]  # pylint: disable=protected-access
+            for _ in Wannier90OptimizeWorkChain._WANNIER90_PLOT_INPUTS  # pylint: disable=protected-access
+        ]
         if not any(plot_inputs):
             return (
                 "Trying to separate plotting routines but no "
@@ -62,6 +62,8 @@ def validate_inputs(inputs, ctx=None):  # pylint: disable=unused-argument
             "`optimize_disproj = True` but `separate_plotting = False`. For optimizing projectability "
             "disentanglement, it is highly recommended to run the plotting mode in a separate step."
         )
+
+    return None
 
 
 class Wannier90OptimizeWorkChain(Wannier90BandsWorkChain):
@@ -257,6 +259,24 @@ class Wannier90OptimizeWorkChain(Wannier90BandsWorkChain):
         )
 
         parent_builder = super().get_builder_from_protocol(codes, structure, **kwargs)
+
+        if reference_bands is not None:
+            exclude_semicore = kwargs.get("exclude_semicore", True)
+            if exclude_semicore:
+                params = parent_builder.wannier90.wannier90.parameters.get_dict()
+                exclude_bands = params.get("exclude_bands", None)
+                overlapping_semicore = has_overlapping_semicore(
+                    reference_bands, exclude_bands
+                )
+                if overlapping_semicore:
+                    warnings.warn(
+                        "The reference bands has overlapping semicore bands, "
+                        "the exclude_semicore option is set to False."
+                    )
+                    kwargs["exclude_semicore"] = False
+                    parent_builder = super().get_builder_from_protocol(
+                        codes, structure, **kwargs
+                    )
 
         # Prepare workchain builder
         builder = Wannier90OptimizeWorkChain.get_builder()
@@ -655,6 +675,7 @@ class Wannier90OptimizeWorkChain(Wannier90BandsWorkChain):
             return self.exit_codes.ERROR_SUB_PROCESS_FAILED_WANNIER90_PLOT
 
         self.ctx.current_folder = workchain.outputs.remote_folder
+        return None
 
     def results(self):
         """Attach the relevant output nodes from the band calculation to the workchain outputs for convenience."""
