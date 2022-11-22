@@ -7,7 +7,7 @@ from aiida import orm
 
 def test_recursive_merge_container():
     """Test the function `recursive_merge_container`."""
-    from aiida_wannier90_workflows.utils.workflows.builder import (
+    from aiida_wannier90_workflows.utils.workflows.builder.submit import (
         recursive_merge_container,
     )
 
@@ -65,7 +65,7 @@ def test_recursive_merge_builder(
     """Test the function `recursive_merge_container`."""
     from aiida_quantumespresso.calculations.pw import PwCalculation
 
-    from aiida_wannier90_workflows.utils.workflows.builder import (
+    from aiida_wannier90_workflows.utils.workflows.builder.submit import (
         recursive_merge_builder,
     )
 
@@ -97,6 +97,6 @@ def test_recursive_merge_builder(
 )
 def test_serializer(inout):
     """Test the function ``serializer``."""
-    from aiida_wannier90_workflows.utils.workflows.builder import serializer
+    from aiida_wannier90_workflows.utils.workflows.builder.serializer import serialize
 
-    assert serializer(inout[0]) == inout[1], inout
+    assert serialize(inout[0]) == inout[1], inout

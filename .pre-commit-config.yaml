@@ -56,8 +56,7 @@ repos:
       - id: pydocstyle
         exclude: &exclude_pyfiles >
           (?x)^(
-              aiida_wannier90_workflows/utils/.*/predict_smooth_grid.py|
-              aiida_wannier90_workflows/utils/.*/get_w90model_from_aiida.py|
+              src/aiida_wannier90_workflows/utils/.*/get_w90model_from_aiida.py|
               docs/.*|
               tests/.*(?<!\.py)$
           )$
