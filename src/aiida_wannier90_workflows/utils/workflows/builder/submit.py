@@ -122,7 +122,7 @@ def recursive_merge_container(
                 merged[key] = recursive_merge_container(merged[key], right_dict[key])
             else:
                 merged[key] = right_dict[key]
-        merged = orm.Dict(dict=merged)
+        merged = orm.Dict(merged)
     elif isinstance(left, orm.Dict) and isinstance(right, abc.Mapping):
         merged = copy.copy(left.get_dict())
         for key in right:
@@ -130,7 +130,7 @@ def recursive_merge_container(
                 merged[key] = recursive_merge_container(merged[key], right[key])
             else:
                 merged[key] = right[key]
-        merged = orm.Dict(dict=merged)
+        merged = orm.Dict(merged)
     else:
         merged = right
 

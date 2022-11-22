@@ -78,7 +78,7 @@ class OpengridBaseWorkChain(ProtocolMixin, QeBaseRestartWorkChain):
                 dict=inputs[cls._inputs_namespace]["settings"]
             )
         if "settings" in inputs:
-            builder["settings"] = orm.Dict(dict=inputs["settings"])
+            builder["settings"] = orm.Dict(inputs["settings"])
         builder["clean_workdir"] = orm.Bool(inputs["clean_workdir"])
         # pylint: enable=no-member
 

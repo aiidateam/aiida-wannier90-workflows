@@ -77,14 +77,14 @@ class ProjwfcBaseWorkChain(ProtocolMixin, QeBaseRestartWorkChain):
         # pylint: disable=no-member
         builder = cls.get_builder()
         builder[cls._inputs_namespace]["code"] = code
-        builder[cls._inputs_namespace]["parameters"] = orm.Dict(dict=parameters)
+        builder[cls._inputs_namespace]["parameters"] = orm.Dict(parameters)
         builder[cls._inputs_namespace]["metadata"] = metadata
         if "settings" in inputs[cls._inputs_namespace]:
             builder[cls._inputs_namespace]["settings"] = orm.Dict(
                 dict=inputs[cls._inputs_namespace]["settings"]
             )
         if "settings" in inputs:
-            builder["settings"] = orm.Dict(dict=inputs["settings"])
+            builder["settings"] = orm.Dict(inputs["settings"])
         builder.clean_workdir = orm.Bool(inputs["clean_workdir"])
         # pylint: enable=no-member
 

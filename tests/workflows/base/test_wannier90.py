@@ -29,7 +29,7 @@ def test_prepare_inputs_additional_remote_symlink_list(
 
     inputs = {"wannier90": generate_inputs_wannier90_base()}
     remote_symlink_files = ["aiida.hkmn", "aiida.hvmn"]
-    inputs["settings"] = orm.Dict(dict={"remote_symlink_files": remote_symlink_files})
+    inputs["settings"] = orm.Dict({"remote_symlink_files": remote_symlink_files})
 
     process = generate_workchain_wannier90_base(inputs=inputs)
     process.setup()

@@ -442,7 +442,7 @@ class Wannier90BaseWorkChain(ProtocolMixin, BaseRestartWorkChain):
         builder[cls._inputs_namespace]["code"] = code
         builder[cls._inputs_namespace]["structure"] = structure
         builder[cls._inputs_namespace]["kpoints"] = inputs["kpoints"]
-        builder[cls._inputs_namespace]["parameters"] = orm.Dict(dict=parameters)
+        builder[cls._inputs_namespace]["parameters"] = orm.Dict(parameters)
         builder[cls._inputs_namespace]["metadata"] = metadata
         if "projections" in inputs[cls._inputs_namespace]:
             builder[cls._inputs_namespace]["projections"] = inputs[
@@ -453,7 +453,7 @@ class Wannier90BaseWorkChain(ProtocolMixin, BaseRestartWorkChain):
                 dict=inputs[cls._inputs_namespace]["settings"]
             )
         if "settings" in inputs:
-            builder["settings"] = orm.Dict(dict=inputs["settings"])
+            builder["settings"] = orm.Dict(inputs["settings"])
         builder["clean_workdir"] = orm.Bool(inputs["clean_workdir"])
         builder["shift_energy_windows"] = orm.Bool(inputs["shift_energy_windows"])
         builder["auto_energy_windows"] = orm.Bool(inputs["auto_energy_windows"])
@@ -550,7 +550,7 @@ class Wannier90BaseWorkChain(ProtocolMixin, BaseRestartWorkChain):
             dis_froz_max = min(max_froz_energy, parameters["dis_froz_max"])
             parameters["dis_froz_max"] = dis_froz_max
 
-        inputs.parameters = orm.Dict(dict=parameters)
+        inputs.parameters = orm.Dict(parameters)
 
         if "remote_input_folder" in inputs and "settings" in self.inputs:
             # Note there is an `additional_remote_symlink_list` in Wannier90Calculation.inputs.settings,
@@ -585,7 +585,7 @@ class Wannier90BaseWorkChain(ProtocolMixin, BaseRestartWorkChain):
                     )
                 )
             calc_settings["additional_remote_symlink_list"] = remote_symlink_list
-            inputs.settings = orm.Dict(dict=calc_settings)
+            inputs.settings = orm.Dict(calc_settings)
 
         return inputs
 
@@ -629,7 +629,7 @@ class Wannier90BaseWorkChain(ProtocolMixin, BaseRestartWorkChain):
         parameters["kmesh_tol"] = new_kmeshtol
         action = f"Bvectors error, current kmesh_tol = {current_kmeshtol}, new kmesh_tol = {new_kmeshtol}"
         self.report_error_handled(calculation, action)
-        self.ctx.inputs.parameters = orm.Dict(dict=parameters)
+        self.ctx.inputs.parameters = orm.Dict(parameters)
 
         return ProcessHandlerReport(True)
 
@@ -674,7 +674,7 @@ class Wannier90BaseWorkChain(ProtocolMixin, BaseRestartWorkChain):
         action = "Not enough states for disentanglement, "
         action += f"current dis_proj_min = {current_disprojmin}, new dis_proj_min = {new_disprojmin}"
         self.report_error_handled(calculation, action)
-        self.ctx.inputs.parameters = orm.Dict(dict=parameters)
+        self.ctx.inputs.parameters = orm.Dict(parameters)
 
         return ProcessHandlerReport(True)
 
@@ -709,7 +709,7 @@ class Wannier90BaseWorkChain(ProtocolMixin, BaseRestartWorkChain):
         action = "Error plotting WFs in cube format, "
         action += f"current wannier_plot_supercell = {current_supercell}, new wannier_plot_supercell = {new_supercell}"
         self.report_error_handled(calculation, action)
-        self.ctx.inputs.parameters = orm.Dict(dict=parameters)
+        self.ctx.inputs.parameters = orm.Dict(parameters)
 
         return ProcessHandlerReport(True)
 

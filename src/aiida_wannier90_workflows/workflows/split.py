@@ -309,7 +309,7 @@ class Wannier90SplitWorkChain(WorkChain):  # pylint: disable=too-many-public-met
         parameters["wvfn_formatted"] = True
         parameters["spn_formatted"] = True
 
-        val_inputs["wannier90"]["parameters"] = orm.Dict(dict=parameters)
+        val_inputs["wannier90"]["parameters"] = orm.Dict(parameters)
 
         # explicit shallow copy, deepcopy will duplicate orm.Code and
         # aiida engine will store them as new code!
@@ -319,7 +319,7 @@ class Wannier90SplitWorkChain(WorkChain):  # pylint: disable=too-many-public-met
             parameters.pop("num_wann", None)
         else:
             parameters["num_wann"] = num_wann - num_val
-        cond_inputs["wannier90"]["parameters"] = orm.Dict(dict=parameters)
+        cond_inputs["wannier90"]["parameters"] = orm.Dict(parameters)
 
         split_inputs = {
             "code": codes["split"],
@@ -499,7 +499,7 @@ class Wannier90SplitWorkChain(WorkChain):  # pylint: disable=too-many-public-met
             else:
                 parameters["num_wann"] = self.ctx.num_val
 
-            inputs["parameters"] = orm.Dict(dict=parameters)
+            inputs["parameters"] = orm.Dict(parameters)
 
         base_inputs["wannier90"] = inputs
         base_inputs["clean_workdir"] = orm.Bool(False)
@@ -580,7 +580,7 @@ class Wannier90SplitWorkChain(WorkChain):  # pylint: disable=too-many-public-met
             else:
                 parameters["num_wann"] = self.ctx.num_cond
 
-            inputs["parameters"] = orm.Dict(dict=parameters)
+            inputs["parameters"] = orm.Dict(parameters)
 
         base_inputs["wannier90"] = inputs
         base_inputs["clean_workdir"] = orm.Bool(False)

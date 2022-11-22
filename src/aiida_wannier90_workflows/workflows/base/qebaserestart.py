@@ -177,6 +177,6 @@ class QeBaseRestartWorkChain(BaseRestartWorkChain):
                         except ValueError:
                             continue
                 settings["cmdline"] = cmdline
-                self.ctx.inputs["settings"] = orm.Dict(dict=settings)
+                self.ctx.inputs["settings"] = orm.Dict(settings)
 
         return ProcessHandlerReport(True)

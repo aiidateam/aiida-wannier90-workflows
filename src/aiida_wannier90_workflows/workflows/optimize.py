@@ -386,7 +386,7 @@ class Wannier90OptimizeWorkChain(Wannier90BandsWorkChain):
         if self.should_run_wannier90_plot():
             for key in self.ctx.saved_parameters:
                 parameters.pop(key, None)
-            inputs.parameters = orm.Dict(dict=parameters)
+            inputs.parameters = orm.Dict(parameters)
 
             if "optimize_reference_bands" not in self.inputs:
                 inputs.pop("kpoint_path", None)
@@ -474,7 +474,7 @@ class Wannier90OptimizeWorkChain(Wannier90BandsWorkChain):
             if self.ctx.current_bands_kpoints:
                 inputs.bands_kpoints = self.ctx.current_bands_kpoints
 
-        inputs.parameters = orm.Dict(dict=parameters)
+        inputs.parameters = orm.Dict(parameters)
 
         # I should not stash files if there is an additional plotting step,
         # otherwise there is a RemoteStashFolderData in outputs
@@ -497,7 +497,7 @@ class Wannier90OptimizeWorkChain(Wannier90BandsWorkChain):
 
         # Disable the error handler which might modify dis_proj_min
         handler_overrides = {"handle_disentanglement_not_enough_states": False}
-        inputs["handler_overrides"] = orm.Dict(dict=handler_overrides)
+        inputs["handler_overrides"] = orm.Dict(handler_overrides)
 
         inputs = prepare_process_inputs(Wannier90BaseWorkChain, inputs)
         running = self.submit(Wannier90BaseWorkChain, **inputs)
@@ -632,7 +632,7 @@ class Wannier90OptimizeWorkChain(Wannier90BandsWorkChain):
             (remote_input_folder_uuid, str(remote_input_folder_path / "UNK*"), ".")
         ]
         settings["additional_remote_symlink_list"] = additional_remote_symlink_list
-        inputs.settings = orm.Dict(dict=settings)
+        inputs.settings = orm.Dict(settings)
 
         # Restore plotting related tags
         parameters = inputs.parameters.get_dict()
@@ -640,7 +640,7 @@ class Wannier90OptimizeWorkChain(Wannier90BandsWorkChain):
             parameters[key] = True
 
         parameters["restart"] = "plot"
-        inputs.parameters = orm.Dict(dict=parameters)
+        inputs.parameters = orm.Dict(parameters)
 
         if parameters.get("bands_plot", False):
             if self.ctx.current_kpoint_path:
