@@ -389,7 +389,7 @@ class Wannier90BandsWorkChain(Wannier90OpengridWorkChain):
 
         parameters = inputs.parameters.get_dict()
         parameters["bands_plot"] = True
-        inputs.parameters = orm.Dict(dict=parameters)
+        inputs.parameters = orm.Dict(parameters)
 
         if self.ctx.current_kpoint_path:
             inputs.kpoint_path = self.ctx.current_kpoint_path

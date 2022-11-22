@@ -95,4 +95,4 @@ def parse_out(filecontent: ty.List[str]) -> orm.Dict:  # pylint: disable=unused-
 
     # parameters["num_kpoints"] = int(parameters["num_kpoints"])
 
-    return orm.Dict(dict=parameters)
+    return orm.Dict(parameters)

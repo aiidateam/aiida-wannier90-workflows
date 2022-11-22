@@ -141,7 +141,7 @@ def generate_inputs_pw2wannier90_base(
 
         inputs = {
             "code": fixture_code("quantumespresso.pw2wannier90"),
-            "parameters": orm.Dict(dict={"inputpp": {}}),
+            "parameters": orm.Dict({"inputpp": {}}),
             "nnkp_file": orm.SinglefileData(file=nnkp_filepath).store(),
             "parent_folder": generate_remote_data(
                 fixture_localhost,

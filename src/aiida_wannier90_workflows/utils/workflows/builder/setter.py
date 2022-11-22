@@ -111,7 +111,7 @@ def set_parallelization(
 
         base_parallelization["npool"] = npool
 
-        builder["parallelization"] = orm.Dict(dict=base_parallelization)
+        builder["parallelization"] = orm.Dict(base_parallelization)
         builder["metadata"] = metadata
 
     elif process_class == PwBaseWorkChain:
@@ -355,7 +355,7 @@ def get_settings_for_kpool(npool: int):
     :return: [description]
     :rtype: [type]
     """
-    settings = orm.Dict(dict={"cmdline": ["-nk", f"{npool}"]})
+    settings = orm.Dict({"cmdline": ["-nk", f"{npool}"]})
 
     return settings
 
@@ -447,7 +447,7 @@ def set_kpoints(
         builder["kpoints"] = kpoints_explicit
         params = builder["parameters"].get_dict()
         params["mp_grid"] = mp_grid
-        builder["parameters"] = orm.Dict(dict=params)
+        builder["parameters"] = orm.Dict(params)
 
     elif process_class == Wannier90BaseWorkChain:
         set_kpoints(builder["wannier90"], kpoints, process_class=Wannier90Calculation)
@@ -515,7 +515,7 @@ def set_num_bands(
             num_bands -= len(exclude_bands)
             params["exclude_bands"] = exclude_bands
         params["num_bands"] = num_bands
-        builder["parameters"] = orm.Dict(dict=params)
+        builder["parameters"] = orm.Dict(params)
 
     elif process_class == Wannier90BaseWorkChain:
         set_num_bands(
@@ -537,7 +537,7 @@ def set_num_bands(
     elif process_class == PwCalculation:
         params = builder["parameters"].get_dict()
         params["SYSTEM"]["nbnd"] = num_bands
-        builder["parameters"] = orm.Dict(dict=params)
+        builder["parameters"] = orm.Dict(params)
 
     elif process_class == PwBaseWorkChain:
         set_num_bands(builder["pw"], num_bands, process_class=PwCalculation)

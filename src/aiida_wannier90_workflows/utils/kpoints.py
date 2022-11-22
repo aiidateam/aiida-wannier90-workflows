@@ -224,7 +224,7 @@ def get_path_from_kpoints(kpoints: orm.KpointsData) -> orm.Dict:
         prev_lab = lab
 
     ret = {"path": path, "point_coords": point_coords}
-    return orm.Dict(dict=ret)
+    return orm.Dict(ret)
 
 
 def get_kpoints_from_bands(bands: orm.BandsData) -> orm.KpointsData:

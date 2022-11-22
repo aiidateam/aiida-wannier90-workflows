@@ -685,7 +685,7 @@ class Wannier90WorkChain(
             raise ValueError("Cannot retrieve Fermi energy from scf or nscf output")
         parameters["fermi_energy"] = fermi_energy
 
-        inputs.parameters = orm.Dict(dict=parameters)
+        inputs.parameters = orm.Dict(parameters)
 
         # Add `postproc_setup`
         if "settings" in inputs:

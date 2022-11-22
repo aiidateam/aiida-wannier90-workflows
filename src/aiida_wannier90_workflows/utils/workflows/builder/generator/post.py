@@ -85,7 +85,7 @@ def get_pwbands_builder_from_wannier(
         nbnd = nscf_inputs["pw"]["parameters"]["SYSTEM"]["nbnd"]
         parameters["SYSTEM"]["nbnd"] = nbnd
 
-    builder["pw"]["parameters"] = orm.Dict(dict=parameters)
+    builder["pw"]["parameters"] = orm.Dict(parameters)
 
     return builder
 

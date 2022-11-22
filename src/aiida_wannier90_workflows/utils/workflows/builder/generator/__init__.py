@@ -44,7 +44,7 @@ def get_relax_builder(
     if spin_type == SpinType.SPIN_ORBIT:
         parameters["SYSTEM"]["noncolin"] = True
         parameters["SYSTEM"]["lspinorb"] = True
-    builder.base["pw"]["parameters"] = orm.Dict(dict=parameters)
+    builder.base["pw"]["parameters"] = orm.Dict(parameters)
 
     return builder
 
@@ -85,7 +85,7 @@ def get_scf_builder(
     if spin_type == SpinType.SPIN_ORBIT:
         parameters["SYSTEM"]["noncolin"] = True
         parameters["SYSTEM"]["lspinorb"] = True
-    builder["pw"]["parameters"] = orm.Dict(dict=parameters)
+    builder["pw"]["parameters"] = orm.Dict(parameters)
 
     # Currently only support magnetic with SOC
     # for magnetic w/o SOC, needs 2 separate wannier90 calculations for spin up and down.
@@ -145,7 +145,7 @@ def get_nscf_builder(  # pylint: disable=too-many-arguments
     # parameters['ELECTRONS']['diagonalization'] = 'david'
     parameters["ELECTRONS"]["diago_full_acc"] = True
 
-    builder["pw"]["parameters"] = orm.Dict(dict=parameters)
+    builder["pw"]["parameters"] = orm.Dict(parameters)
 
     if kpoints:
         builder.pop("kpoints_distance", None)

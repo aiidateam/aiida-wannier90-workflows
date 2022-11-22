@@ -34,18 +34,18 @@ def test_recursive_merge_container():
     assert isinstance(merged, orm.List)
     assert merged.get_list() == [1, 2]
 
-    left, right = orm.Dict(dict={"a": 1}), orm.Dict(dict={"a": 2})
+    left, right = orm.Dict({"a": 1}), orm.Dict({"a": 2})
     merged = recursive_merge_container(left, right)
     assert isinstance(merged, orm.Dict)
     assert merged.get_dict() == {"a": 2}
 
-    left, right = orm.Dict(dict={"a": [1]}), orm.Dict(dict={"a": [2]})
+    left, right = orm.Dict({"a": [1]}), orm.Dict({"a": [2]})
     merged = recursive_merge_container(left, right)
     assert isinstance(merged, orm.Dict)
     assert merged.get_dict() == {"a": [1, 2]}
 
-    left = orm.Dict(dict={"a": orm.List(list=[1])})
-    right = orm.Dict(dict={"a": orm.List(list=[2])})
+    left = orm.Dict({"a": orm.List(list=[1])})
+    right = orm.Dict({"a": orm.List(list=[2])})
     merged = recursive_merge_container(left, right)
     assert isinstance(merged, orm.Dict)
     assert isinstance(merged["a"], orm.List)
@@ -77,9 +77,9 @@ def test_recursive_merge_builder(
     # I add one fake input parameter to test merge of list
     parameters_dict = builder["parameters"].get_dict()
     parameters_dict["ELECTRONS"]["fake_tag"] = [1, 2]
-    builder["parameters"] = orm.Dict(dict=parameters_dict)
+    builder["parameters"] = orm.Dict(parameters_dict)
 
-    right = {"parameters": orm.Dict(dict=parameters)}
+    right = {"parameters": orm.Dict(parameters)}
 
     builder = recursive_merge_builder(builder, right)
 

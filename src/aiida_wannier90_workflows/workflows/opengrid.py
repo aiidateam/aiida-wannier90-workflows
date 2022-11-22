@@ -158,13 +158,13 @@ class Wannier90OpengridWorkChain(Wannier90WorkChain):
             params["SYSTEM"].pop("nosym", None)
             params["SYSTEM"].pop("noinv", None)
             params["ELECTRONS"]["diago_full_acc"] = True
-            builder.scf["pw"]["parameters"] = orm.Dict(dict=params)
+            builder.scf["pw"]["parameters"] = orm.Dict(params)
             builder.nscf.clear()
         else:
             params = builder.nscf["pw"]["parameters"].get_dict()
             params["SYSTEM"].pop("nosym", None)
             params["SYSTEM"].pop("noinv", None)
-            builder.nscf["pw"]["parameters"] = orm.Dict(dict=params)
+            builder.nscf["pw"]["parameters"] = orm.Dict(params)
             builder.nscf.pop("kpoints", None)
             builder.nscf["kpoints_distance"] = builder.scf["kpoints_distance"]
             builder.nscf["kpoints_force_parity"] = builder.scf["kpoints_force_parity"]
@@ -230,7 +230,7 @@ class Wannier90OpengridWorkChain(Wannier90WorkChain):
             inputs.kpoints = opengrid_outputs.kpoints
             parameters = inputs.parameters.get_dict()
             parameters["mp_grid"] = opengrid_outputs.kpoints_mesh.get_kpoints_mesh()[0]
-            inputs.parameters = orm.Dict(dict=parameters)
+            inputs.parameters = orm.Dict(parameters)
 
         base_inputs["wannier90"] = inputs
 
