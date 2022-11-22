@@ -1,13 +1,52 @@
 clean_workdir: false
-opengrid:
-  opengrid:
-    code: test.quantumespresso.opengrid@localhost-test
+nscf:
+  kpoints: 1728 kpts
+  kpoints_force_parity: false
+  pw:
+    code: test.quantumespresso.pw@localhost-test
     metadata:
       options:
         max_wallclock_seconds: 43200
         resources:
           num_machines: 1
         withmpi: true
+    parameters:
+      CONTROL:
+        calculation: nscf
+        etot_conv_thr: 2.0e-05
+        forc_conv_thr: 0.0001
+        restart_mode: from_scratch
+        tprnfor: true
+        tstress: true
+      ELECTRONS:
+        conv_thr: 4.0e-10
+        diago_full_acc: true
+        electron_maxstep: 80
+        mixing_beta: 0.4
+        startingpot: file
+      SYSTEM:
+        degauss: 0.01
+        ecutrho: 240.0
+        ecutwfc: 30.0
+        nbnd: 16
+        noinv: true
+        nosym: true
+        occupations: smearing
+        smearing: cold
+    pseudos:
+      Si: Si.pbe-n-rrkjus_psl.1.0.0.UPF
+projwfc:
+  projwfc:
+    code: test.quantumespresso.projwfc@localhost-test
+    metadata:
+      options:
+        max_wallclock_seconds: 43200
+        resources:
+          num_machines: 1
+        withmpi: true
+    parameters:
+      PROJWFC:
+        DeltaE: 0.2
 pw2wannier90:
   pw2wannier90:
     code: test.quantumespresso.pw2wannier90@localhost-test
@@ -19,13 +58,8 @@ pw2wannier90:
         withmpi: true
     parameters:
       inputpp:
-        atom_proj: true
-        atom_proj_exclude:
-        - 5
-        - 6
-        - 7
-        - 8
-        - 9
+        scdm_entanglement: erfc
+        scdm_proj: true
 scf:
   kpoints_distance: 0.2
   kpoints_force_parity: false
@@ -46,27 +80,25 @@ scf:
         tstress: true
       ELECTRONS:
         conv_thr: 4.0e-10
-        diago_full_acc: true
         electron_maxstep: 80
         mixing_beta: 0.4
       SYSTEM:
         degauss: 0.01
         ecutrho: 240.0
         ecutwfc: 30.0
-        nbnd: 26
+        nosym: false
         occupations: smearing
         smearing: cold
     pseudos:
-      As: As.pbe-n-rrkjus_psl.0.2.UPF
-      Ga: Ga.pbe-dn-kjpaw_psl.1.0.0.UPF
-structure: AsGa
+      Si: Si.pbe-n-rrkjus_psl.1.0.0.UPF
+structure: Si2
 wannier90:
   auto_energy_windows: false
   auto_energy_windows_threshold: 0.9
-  shift_energy_windows: true
+  shift_energy_windows: false
   wannier90:
     code: test.wannier90.wannier90@localhost-test
-    kpoints: 1000 kpts
+    kpoints: 1728 kpts
     metadata:
       options:
         max_wallclock_seconds: 43200
@@ -78,21 +110,12 @@ wannier90:
       conv_tol: 2.0e-07
       conv_window: 3
       dis_conv_tol: 2.0e-07
-      dis_froz_max: 2.0
-      dis_num_iter: 4000
-      dis_proj_max: 0.95
-      dis_proj_min: 0.01
-      exclude_bands:
-      - 1
-      - 2
-      - 3
-      - 4
-      - 5
+      dis_num_iter: 0
       mp_grid:
-      - 10
-      - 10
-      - 10
-      num_bands: 21
+      - 12
+      - 12
+      - 12
+      num_bands: 16
       num_cg_steps: 200
       num_iter: 4000
       num_wann: 8

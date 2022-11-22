@@ -7,7 +7,6 @@ opengrid:
         max_wallclock_seconds: 43200
         resources:
           num_machines: 1
-          num_mpiprocs_per_machine: 1
         withmpi: true
 projwfc:
   projwfc:
@@ -17,7 +16,6 @@ projwfc:
         max_wallclock_seconds: 43200
         resources:
           num_machines: 1
-          num_mpiprocs_per_machine: 1
         withmpi: true
     parameters:
       PROJWFC:
@@ -30,7 +28,6 @@ pw2wannier90:
         max_wallclock_seconds: 43200
         resources:
           num_machines: 1
-          num_mpiprocs_per_machine: 1
         withmpi: true
     parameters:
       inputpp:

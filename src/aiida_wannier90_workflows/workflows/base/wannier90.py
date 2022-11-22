@@ -501,7 +501,7 @@ class Wannier90BaseWorkChain(ProtocolMixin, BaseRestartWorkChain):
 
         if self.inputs.shift_energy_windows:
             fermi_energy = parameters["fermi_energy"]
-            # For metal, we shift the four paramters by Fermi energy.
+            # For metal, we shift the four parameters by Fermi energy.
             shift_energy = fermi_energy
             if "bands" in self.inputs:
                 # Check the system is metal or insulator.
