@@ -45,7 +45,7 @@ def write_yaml(group_label: str, filename: str) -> None:
 
         results[upf_data.element] = upf_dict
 
-    with open(filename, "w") as file:
+    with open(filename, "w", encoding="utf-8") as file:
         yaml.dump(results, file)
 
     print(f'Written to file "{filename}"')
@@ -91,7 +91,7 @@ def write_json(group_label: str, filename: str) -> None:
 
         results[upf_data.element] = upf_dict
 
-    with open(filename, "w") as file:
+    with open(filename, "w", encoding="utf-8") as file:
         json.dump(results, file, indent=4, sort_keys=True)
 
     print(f'Written to file "{filename}"')
@@ -104,7 +104,7 @@ if __name__ == "__main__":
 
     # write_yaml(pseudo_group_label, out_file)
 
-    # from aiida_wannier90_workflows.utils.bands.distance import standardize_groupname
+    # from aiida_wannier90_workflows.utils.workflows.group import standardize_groupname
     # pseudo_group_label = 'PseudoDojo/0.4/PBE/SR/standard/upf'
     pseudo_group_label = "PseudoDojo/0.4/LDA/SR/standard/upf"
     # out_file = standardize_groupname(group_label) + '.json'

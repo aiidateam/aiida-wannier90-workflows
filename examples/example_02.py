@@ -10,9 +10,9 @@ from aiida import cmdline, orm
 from aiida_wannier90_workflows.cli.params import RUN
 from aiida_wannier90_workflows.utils.code import check_codes, identify_codes
 from aiida_wannier90_workflows.utils.structure import read_structure
-from aiida_wannier90_workflows.utils.workflows.builder import (
-    print_builder,
-    set_parallelization,
+from aiida_wannier90_workflows.utils.workflows.builder.serializer import print_builder
+from aiida_wannier90_workflows.utils.workflows.builder.setter import set_parallelization
+from aiida_wannier90_workflows.utils.workflows.builder.submit import (
     submit_and_add_group,
 )
 from aiida_wannier90_workflows.workflows import Wannier90BandsWorkChain

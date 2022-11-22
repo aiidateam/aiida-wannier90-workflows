@@ -114,9 +114,12 @@ disable = [
     # 'logging-format-interpolation',
     # 'inconsistent-return-statements',
     # 'no-else-raise',
-    # 'too-many-arguments',
-    # 'too-many-branches',
-    # 'too-many-locals',
+    'too-many-arguments',
+    'too-many-branches',
+    'too-many-locals',
+    'too-many-statements',
+    'protected-access',
+    'no-member',
     # 'unspecified-encoding',
 
 ]

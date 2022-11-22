@@ -19,9 +19,9 @@ from aiida_wannier90_workflows.utils.structure import read_structure
 from aiida_wannier90_workflows.utils.workflows.bands import (
     get_structure_and_bands_kpoints,
 )
-from aiida_wannier90_workflows.utils.workflows.builder import (
-    print_builder,
-    set_parallelization,
+from aiida_wannier90_workflows.utils.workflows.builder.serializer import print_builder
+from aiida_wannier90_workflows.utils.workflows.builder.setter import set_parallelization
+from aiida_wannier90_workflows.utils.workflows.builder.submit import (
     submit_and_add_group,
 )
 from aiida_wannier90_workflows.workflows import (
