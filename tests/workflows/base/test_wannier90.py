@@ -57,7 +57,7 @@ def test_prepare_inputs_additional_remote_symlink_list(
     "dis_froz_max",
     (
         (1, 2.82242466),  # LUMO + 1
-        (8, 3.98687455),  # min((num_wann-1)-th bands) - 1e-4
+        (8, 6.66929678),  # max((num_wann-1)-th bands), 0-indexed
     ),
 )
 def test_prepare_inputs_shift_energy_windows(
@@ -121,7 +121,7 @@ def test_prepare_inputs_auto_energy_windows(
 
     parameters = inputs["parameters"].get_dict()
     assert "dis_froz_max" in parameters, parameters
-    assert abs(parameters["dis_froz_max"] - 3.98687455) < 1e-8, parameters
+    assert abs(parameters["dis_froz_max"] - 3.98697455) < 1e-8, parameters
 
 
 @pytest.mark.parametrize(

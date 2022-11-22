@@ -210,16 +210,12 @@ class Wannier90BandsWorkChain(Wannier90OpengridWorkChain):
             recursive_merge_container,
         )
 
-        if (
-            sum(
-                _ is not None
-                for _ in (kpoint_path, bands_kpoints, bands_kpoints_distance)
-            )
-            > 1
-        ):
+        kpt_inputs = (kpoint_path, bands_kpoints, bands_kpoints_distance)
+        if sum(_ is not None for _ in kpt_inputs) > 1:
             raise ValueError(
                 "Can only specify one of the `kpoint_path`, `bands_kpoints` and `bands_kpoints_distance`"
             )
+        del kpt_inputs
 
         if run_opengrid and kwargs.get("electronic_type", None) == SpinType.SPIN_ORBIT:
             raise ValueError("open_grid.x does not support spin orbit coupling")
