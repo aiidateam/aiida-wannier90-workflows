@@ -302,19 +302,20 @@ def cmd_node_gotocomputer(ctx, node, link_label):
         os.system(command)
         return
     elif isinstance(node, FolderData):
-        # Seems FolderData.computer is None
-        # I assume the repository is on localhost
-        workdir = node._repository._get_base_folder().abspath
-        command = f"cd {workdir}; bash -i"
-        echo.echo_info("going to the work directory...")
-        os.system(command)
+        # Since AiiDA 2.0, the files in the repository are not stored as raw data,
+        # so I only list the filenames in the FolderData
+        echo.echo_info("listing files in the repository folder...")
+        echo.echo("")
+        for filename in node.base.repository.list_object_names():
+            echo.echo(filename)
         return
     else:
         echo.echo_critical(f"Unsupported type of node: {type(node)} {node}")
 
 
 @cmd_node.command("cleanworkdir")
-@arguments.WORKFLOWS("workflows")
+# @arguments.WORKFLOWS("workflows")
+@arguments.PROCESSES("workflows")  # support both Calculation and Workflow
 @click.option(
     "-r",
     "--raw",
@@ -463,7 +464,7 @@ def cmd_node_clean(workflows, only_unk, fast, raw):
 )
 @click.pass_context
 def cmd_node_saveinput(ctx, workflow, path):
-    """Download scf/nscf/opengrid/pw2wan/wannier90 input files."""
+    """Download scf/nscf/open_grid/pw2wan/wannier90 input files."""
     from contextlib import redirect_stdout
     from pathlib import Path
 
@@ -471,12 +472,12 @@ def cmd_node_saveinput(ctx, workflow, path):
 
     from aiida_wannier90_workflows.utils.workflows import get_last_calcjob
     from aiida_wannier90_workflows.workflows.bands import Wannier90BandsWorkChain
-    from aiida_wannier90_workflows.workflows.opengrid import Wannier90OpengridWorkChain
+    from aiida_wannier90_workflows.workflows.open_grid import Wannier90OpenGridWorkChain
     from aiida_wannier90_workflows.workflows.wannier90 import Wannier90WorkChain
 
     supported_class = (
         Wannier90WorkChain,
-        Wannier90OpengridWorkChain,
+        Wannier90OpenGridWorkChain,
         Wannier90BandsWorkChain,
     )
     if workflow.process_class not in supported_class:
@@ -492,7 +493,7 @@ def cmd_node_saveinput(ctx, workflow, path):
     for link in links:
         link_label = link.link_label
 
-        if link_label in ("scf", "nscf", "opengrid", "pw2wannier90"):
+        if link_label in ("scf", "nscf", "open_grid", "pw2wannier90"):
             calcjob = link.node
             if isinstance(calcjob, orm.WorkChainNode):
                 calcjob = get_last_calcjob(calcjob)

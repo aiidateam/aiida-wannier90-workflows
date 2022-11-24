@@ -1,6 +1,6 @@
 default_inputs:
     clean_workdir: False
-    opengrid:
+    open_grid:
         metadata:
             options:
                 resources:

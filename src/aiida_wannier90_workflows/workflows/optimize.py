@@ -170,9 +170,9 @@ class Wannier90OptimizeWorkChain(Wannier90BandsWorkChain):
                 cls.run_nscf,
                 cls.inspect_nscf,
             ),
-            if_(cls.should_run_opengrid)(
-                cls.run_opengrid,
-                cls.inspect_opengrid,
+            if_(cls.should_run_open_grid)(
+                cls.run_open_grid,
+                cls.inspect_open_grid,
             ),
             if_(cls.should_run_projwfc)(
                 cls.run_projwfc,

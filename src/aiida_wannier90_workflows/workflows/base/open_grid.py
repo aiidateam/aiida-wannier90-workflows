@@ -1,4 +1,4 @@
-"""Wrapper workchain for OpengridCalculation to automatically handle several errors."""
+"""Wrapper workchain for OpenGridCalculation to automatically handle several errors."""
 import pathlib
 import typing as ty
 
@@ -7,21 +7,21 @@ from aiida.common.lang import type_check
 from aiida.engine import process_handler
 from aiida.engine.processes.builder import ProcessBuilder
 
-from aiida_quantumespresso.calculations.opengrid import OpengridCalculation
+from aiida_quantumespresso.calculations.open_grid import OpenGridCalculation
 from aiida_quantumespresso.workflows.protocols.utils import ProtocolMixin
 
 from .qebaserestart import QeBaseRestartWorkChain
 
 __all__ = [
-    "OpengridBaseWorkChain",
+    "OpenGridBaseWorkChain",
 ]
 
 
-class OpengridBaseWorkChain(ProtocolMixin, QeBaseRestartWorkChain):
-    """Workchain to run a opengrid calculation with automated error handling and restarts."""
+class OpenGridBaseWorkChain(ProtocolMixin, QeBaseRestartWorkChain):
+    """Workchain to run a open_grid calculation with automated error handling and restarts."""
 
-    _process_class = OpengridCalculation
-    _inputs_namespace = "opengrid"
+    _process_class = OpenGridCalculation
+    _inputs_namespace = "open_grid"
 
     @classmethod
     def get_protocol_filepath(cls) -> pathlib.Path:
@@ -30,7 +30,7 @@ class OpengridBaseWorkChain(ProtocolMixin, QeBaseRestartWorkChain):
 
         from .. import protocols
 
-        return files(protocols) / "base" / "opengrid.yaml"
+        return files(protocols) / "base" / "open_grid.yaml"
 
     @classmethod
     def get_builder_from_protocol(

@@ -62,7 +62,7 @@ def check_codes(
     :raises ValueError: [description]
     """
     required_codes = ("pw", "pw2wannier90", "wannier90")
-    optional_codes = ("projwfc", "opengrid")
+    optional_codes = ("projwfc", "open_grid")
 
     if not isinstance(codes, ty.Mapping):
         raise ValueError(

@@ -346,13 +346,13 @@ def get_last_wan_calc(
     from aiida_wannier90_workflows.workflows.base.wannier90 import (
         Wannier90BaseWorkChain,
     )
-    from aiida_wannier90_workflows.workflows.opengrid import Wannier90OpengridWorkChain
+    from aiida_wannier90_workflows.workflows.open_grid import Wannier90OpenGridWorkChain
     from aiida_wannier90_workflows.workflows.optimize import Wannier90OptimizeWorkChain
     from aiida_wannier90_workflows.workflows.wannier90 import Wannier90WorkChain
 
     supported_workchains = (
         Wannier90BandsWorkChain,
-        Wannier90OpengridWorkChain,
+        Wannier90OpenGridWorkChain,
         Wannier90WorkChain,
     )
 

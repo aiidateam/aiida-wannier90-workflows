@@ -6,7 +6,7 @@ from aiida import orm
 from aiida.engine import ProcessBuilder, if_
 from aiida.orm.nodes.data.base import to_aiida_type
 
-from .opengrid import Wannier90OpengridWorkChain
+from .open_grid import Wannier90OpenGridWorkChain
 
 __all__ = ["validate_inputs", "Wannier90BandsWorkChain"]
 
@@ -15,7 +15,7 @@ def validate_inputs(  # pylint: disable=unused-argument,inconsistent-return-stat
     inputs, ctx=None
 ):
     """Validate the inputs of the entire input namespace of `Wannier90BandsWorkChain`."""
-    from .opengrid import validate_inputs as parent_validate_inputs
+    from .open_grid import validate_inputs as parent_validate_inputs
 
     # Call parent validator
     result = parent_validate_inputs(inputs)
@@ -41,7 +41,7 @@ def validate_inputs(  # pylint: disable=unused-argument,inconsistent-return-stat
             return "`bands_kpoints` must contain `labels`"
 
 
-class Wannier90BandsWorkChain(Wannier90OpengridWorkChain):
+class Wannier90BandsWorkChain(Wannier90OpenGridWorkChain):
     """WorkChain to automatically compute a Wannier band structure for a given structure."""
 
     @classmethod
@@ -86,11 +86,11 @@ class Wannier90BandsWorkChain(Wannier90OpengridWorkChain):
             "Specify either this or `bands_kpoints` or `kpoint_path`.",
         )
 
-        # We expose the in/output of `Wannier90OpengridWorkChain` since `Wannier90WorkChain` in/output
-        # is a subset of `Wannier90OpengridWorkChain`, this allow us to launch either `Wannier90WorkChain`
-        # or `Wannier90OpengridWorkChain`.
+        # We expose the in/output of `Wannier90OpenGridWorkChain` since `Wannier90WorkChain` in/output
+        # is a subset of `Wannier90OpenGridWorkChain`, this allow us to launch either `Wannier90WorkChain`
+        # or `Wannier90OpenGridWorkChain`.
         spec.expose_inputs(
-            Wannier90OpengridWorkChain,
+            Wannier90OpenGridWorkChain,
             exclude=(
                 "wannier90.wannier90.kpoint_path",
                 "wannier90.wannier90.bands_kpoints",
@@ -112,9 +112,9 @@ class Wannier90BandsWorkChain(Wannier90OpengridWorkChain):
                 cls.run_nscf,
                 cls.inspect_nscf,
             ),
-            if_(cls.should_run_opengrid)(
-                cls.run_opengrid,
-                cls.inspect_opengrid,
+            if_(cls.should_run_open_grid)(
+                cls.run_open_grid,
+                cls.inspect_open_grid,
             ),
             if_(cls.should_run_projwfc)(
                 cls.run_projwfc,
@@ -142,7 +142,7 @@ class Wannier90BandsWorkChain(Wannier90OpengridWorkChain):
             help="The parameters used in the SeeKpath call to normalize the input or relaxed structure.",
         )
         spec.expose_outputs(
-            Wannier90OpengridWorkChain, namespace_options={"required": True}
+            Wannier90OpenGridWorkChain, namespace_options={"required": True}
         )
         spec.output(
             "band_structure",
@@ -168,8 +168,8 @@ class Wannier90BandsWorkChain(Wannier90OpengridWorkChain):
         kpoint_path: orm.Dict = None,
         bands_kpoints: orm.KpointsData = None,
         bands_kpoints_distance: float = None,
-        run_opengrid: bool = False,
-        opengrid_only_scf: bool = True,
+        run_open_grid: bool = False,
+        open_grid_only_scf: bool = True,
         **kwargs,
     ) -> ProcessBuilder:
         """Return a builder prepopulated with inputs selected according to the specified arguments.
@@ -194,10 +194,10 @@ class Wannier90BandsWorkChain(Wannier90OpengridWorkChain):
         Specify either this or `kpoint_path`. If not provided, will use the default of seekpath.
         Defaults to None
         :type bands_kpoints_distance: float, optional
-        :param run_opengrid: if True use open_grid.x to accelerate calculations.
-        :type run_opengrid: bool, defaults to False
-        :param opengrid_only_scf: if True only one scf calculation will be performed in the OpengridWorkChain.
-        :type opengrid_only_scf: bool, defaults to True
+        :param run_open_grid: if True use open_grid.x to accelerate calculations.
+        :type run_open_grid: bool, defaults to False
+        :param open_grid_only_scf: if True only one scf calculation will be performed in the OpenGridWorkChain.
+        :type open_grid_only_scf: bool, defaults to True
         :return: a process builder instance with all inputs defined and ready for launch.
         :rtype: ProcessBuilder
         """
@@ -217,17 +217,17 @@ class Wannier90BandsWorkChain(Wannier90OpengridWorkChain):
             )
         del kpt_inputs
 
-        if run_opengrid and kwargs.get("electronic_type", None) == SpinType.SPIN_ORBIT:
+        if run_open_grid and kwargs.get("electronic_type", None) == SpinType.SPIN_ORBIT:
             raise ValueError("open_grid.x does not support spin orbit coupling")
 
         # I will call different parent_class.get_builder_from_protocl()
-        if run_opengrid:
-            # i.e. Wannier90OpengridWorkChain
+        if run_open_grid:
+            # i.e. Wannier90OpenGridWorkChain
             parent_class = super()
-            kwargs["opengrid_only_scf"] = opengrid_only_scf
+            kwargs["open_grid_only_scf"] = open_grid_only_scf
         else:
             # i.e. Wannier90WorkChain
-            parent_class = super(Wannier90OpengridWorkChain, cls)
+            parent_class = super(Wannier90OpenGridWorkChain, cls)
 
         summary = kwargs.pop("summary", {})
         print_summary = kwargs.pop("print_summary", True)
