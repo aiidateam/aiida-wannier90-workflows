@@ -10,7 +10,7 @@ from aiida_quantumespresso.calculations.namelists import NamelistsCalculation
 from aiida_quantumespresso.calculations.pw import PwCalculation
 from aiida_quantumespresso.workflows.pw.bands import PwBandsWorkChain
 
-# from aiida_quantumespresso.calculations.opengrid import OpengridCalculation
+# from aiida_quantumespresso.calculations.open_grid import OpenGridCalculation
 # from aiida_quantumespresso.calculations.projwfc import ProjwfcCalculation
 # from aiida_quantumespresso.calculations.pw2wannier90 import Pw2wannier90Calculation
 from aiida_quantumespresso.workflows.pw.base import PwBaseWorkChain
@@ -19,7 +19,7 @@ from aiida_quantumespresso.workflows.pw.relax import PwRelaxWorkChain
 from aiida_wannier90.calculations import Wannier90Calculation
 
 from aiida_wannier90_workflows.workflows.bands import Wannier90BandsWorkChain
-from aiida_wannier90_workflows.workflows.base.opengrid import OpengridBaseWorkChain
+from aiida_wannier90_workflows.workflows.base.open_grid import OpenGridBaseWorkChain
 from aiida_wannier90_workflows.workflows.base.projwfc import ProjwfcBaseWorkChain
 from aiida_wannier90_workflows.workflows.base.pw2wannier90 import (
     Pw2wannier90BaseWorkChain,
@@ -121,7 +121,7 @@ def set_parallelization(
             process_class=BasePwCpInputGenerator,
         )
 
-    # Includes PwCalculation, OpengridCalculation, ProjwfcCalculation
+    # Includes PwCalculation, OpenGridCalculation, ProjwfcCalculation
     elif issubclass(process_class, NamelistsCalculation):
         builder["metadata"] = metadata
         builder["settings"] = settings
@@ -129,16 +129,16 @@ def set_parallelization(
     elif issubclass(process_class, CalcJob):
         builder["metadata"] = metadata
 
-    elif process_class == OpengridBaseWorkChain:
+    elif process_class == OpenGridBaseWorkChain:
         set_parallelization(
-            builder["opengrid"],
+            builder["open_grid"],
             parallelization=parallelization,
             process_class=NamelistsCalculation,
         )
-        # For now opengrid has memory issue, I run it with less cores
-        # opengrid_metadata = copy.deepcopy(metadata)
-        # opengrid_metadata['options']['resources']['num_mpiprocs_per_machine'] = (num_mpiprocs_per_machine // npool)
-        # builder.opengrid['opengrid']['metadata'] = opengrid_metadata
+        # For now open_grid.x has memory issue, I run it with less cores
+        # open_grid_metadata = copy.deepcopy(metadata)
+        # open_grid_metadata['options']['resources']['num_mpiprocs_per_machine'] = (num_mpiprocs_per_machine // npool)
+        # builder.open_grid['open_grid']['metadata'] = open_grid_metadata
 
     elif process_class == ProjwfcBaseWorkChain:
         set_parallelization(
@@ -247,11 +247,11 @@ def set_parallelization(
                 process_class=PwBaseWorkChain,
             )
 
-        if "opengrid" in pruned_builder:
+        if "open_grid" in pruned_builder:
             set_parallelization(
-                builder["opengrid"],
+                builder["open_grid"],
                 parallelization=parallelization,
-                process_class=OpengridBaseWorkChain,
+                process_class=OpenGridBaseWorkChain,
             )
 
         if "projwfc" in pruned_builder:

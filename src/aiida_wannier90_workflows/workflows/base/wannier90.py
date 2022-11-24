@@ -416,8 +416,8 @@ class Wannier90BaseWorkChain(ProtocolMixin, BaseRestartWorkChain):
 
         # Set kpoints
         # If inputs.kpoints is a kmesh, mp_grid will be auto-set by `Wannier90Calculation`,
-        # otherwise we need to set it manually. If use opengrid, kpoints will be set dynamically
-        # after opengrid calculation.
+        # otherwise we need to set it manually. If use open_grid, kpoints will be set dynamically
+        # after open_grid calculation.
         kpoints = create_kpoints_from_distance(
             structure,
             distance=meta_parameters["kpoints_distance"],

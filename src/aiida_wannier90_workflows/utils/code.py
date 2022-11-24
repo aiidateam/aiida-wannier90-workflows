@@ -16,7 +16,7 @@ def identify_codes(
         "qe-git-projwfc@localhost",
         "qe-git-pw2wannier90@localhost",
         "wannier90-git-wannier90@localhost",
-        "qe-git-opengrid@localhost",
+        "qe-git-open_grid@localhost",
     ])
     ```
     returns
@@ -26,7 +26,7 @@ def identify_codes(
         "projwfc": "qe-git-projwfc@localhost",
         "pw2wannier90": "qe-git-pw2wannier90@localhost",
         "wannier90": "wannier90-git-wannier90@localhost",
-        "opengrid": "qe-git-opengrid@localhost",
+        "open_grid": "qe-git-open_grid@localhost",
     }
     ```
 

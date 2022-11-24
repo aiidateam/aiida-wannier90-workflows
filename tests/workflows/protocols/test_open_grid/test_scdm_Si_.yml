@@ -1,13 +1,25 @@
 clean_workdir: false
-opengrid:
-  opengrid:
-    code: test.quantumespresso.opengrid@localhost-test
+open_grid:
+  open_grid:
+    code: test.quantumespresso.open_grid@localhost-test
     metadata:
       options:
         max_wallclock_seconds: 43200
         resources:
           num_machines: 1
         withmpi: true
+projwfc:
+  projwfc:
+    code: test.quantumespresso.projwfc@localhost-test
+    metadata:
+      options:
+        max_wallclock_seconds: 43200
+        resources:
+          num_machines: 1
+        withmpi: true
+    parameters:
+      PROJWFC:
+        DeltaE: 0.2
 pw2wannier90:
   pw2wannier90:
     code: test.quantumespresso.pw2wannier90@localhost-test
@@ -19,7 +31,8 @@ pw2wannier90:
         withmpi: true
     parameters:
       inputpp:
-        atom_proj: true
+        scdm_entanglement: erfc
+        scdm_proj: true
 scf:
   kpoints_distance: 0.2
   kpoints_force_parity: false
@@ -34,12 +47,12 @@ scf:
     parameters:
       CONTROL:
         calculation: scf
-        etot_conv_thr: 3.0000000000000004e-05
+        etot_conv_thr: 2.0e-05
         forc_conv_thr: 0.0001
         tprnfor: true
         tstress: true
       ELECTRONS:
-        conv_thr: 6.0e-10
+        conv_thr: 4.0e-10
         diago_full_acc: true
         electron_maxstep: 80
         mixing_beta: 0.4
@@ -47,20 +60,19 @@ scf:
         degauss: 0.01
         ecutrho: 240.0
         ecutwfc: 30.0
-        nbnd: 12
+        nbnd: 16
         occupations: smearing
         smearing: cold
     pseudos:
-      H: H.pbe-rrkjus_psl.1.0.0.UPF
-      O: O.pbe-n-kjpaw_psl.0.1.UPF
-structure: H2O
+      Si: Si.pbe-n-rrkjus_psl.1.0.0.UPF
+structure: Si2
 wannier90:
   auto_energy_windows: false
   auto_energy_windows_threshold: 0.9
-  shift_energy_windows: true
+  shift_energy_windows: false
   wannier90:
     code: test.wannier90.wannier90@localhost-test
-    kpoints: 216 kpts
+    kpoints: 1331 kpts
     metadata:
       options:
         max_wallclock_seconds: 43200
@@ -69,19 +81,16 @@ wannier90:
         withmpi: true
     parameters:
       auto_projections: true
-      conv_tol: 3.0e-07
+      conv_tol: 2.0e-07
       conv_window: 3
-      dis_conv_tol: 3.0e-07
-      dis_froz_max: 2.0
-      dis_num_iter: 4000
-      dis_proj_max: 0.95
-      dis_proj_min: 0.01
+      dis_conv_tol: 2.0e-07
+      dis_num_iter: 0
       mp_grid:
-      - 6
-      - 6
-      - 6
-      num_bands: 12
+      - 11
+      - 11
+      - 11
+      num_bands: 16
       num_cg_steps: 200
       num_iter: 4000
-      num_wann: 6
+      num_wann: 8
     settings: {}

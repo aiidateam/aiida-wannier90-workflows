@@ -62,47 +62,47 @@ def generate_workchain_projwfc_base(
 
 
 @pytest.fixture
-def generate_inputs_opengrid_base(
+def generate_inputs_open_grid_base(
     fixture_sandbox, fixture_localhost, fixture_code, generate_remote_data
 ):
-    """Generate default inputs for a `OpengridCalculation."""
+    """Generate default inputs for a `OpenGridCalculation."""
 
-    def _generate_inputs_opengrid_base():
-        """Generate default inputs for a `OpengridCalculation."""
+    def _generate_inputs_open_grid_base():
+        """Generate default inputs for a `OpenGridCalculation."""
         from aiida_quantumespresso.utils.resources import get_default_options
 
         inputs = {
-            "code": fixture_code("quantumespresso.opengrid"),
+            "code": fixture_code("quantumespresso.open_grid"),
             "parent_folder": generate_remote_data(
-                fixture_localhost, fixture_sandbox.abspath, "quantumespresso.opengrid"
+                fixture_localhost, fixture_sandbox.abspath, "quantumespresso.open_grid"
             ),
             "metadata": {"options": get_default_options()},
         }
 
         return inputs
 
-    return _generate_inputs_opengrid_base
+    return _generate_inputs_open_grid_base
 
 
 @pytest.fixture
-def generate_workchain_opengrid_base(
+def generate_workchain_open_grid_base(
     generate_workchain,
-    generate_inputs_opengrid_base,
+    generate_inputs_open_grid_base,
     fixture_localhost,
     generate_calc_job_node,
 ):
-    """Generate an instance of a `OpengridBaseWorkChain`."""
+    """Generate an instance of a `OpenGridBaseWorkChain`."""
 
-    def _generate_workchain_opengrid_base(exit_code=None, inputs=None, test_name=None):
-        entry_point = "wannier90_workflows.base.opengrid"
+    def _generate_workchain_open_grid_base(exit_code=None, inputs=None, test_name=None):
+        entry_point = "wannier90_workflows.base.open_grid"
         if not inputs:
-            inputs = {"opengrid": generate_inputs_opengrid_base()}
+            inputs = {"open_grid": generate_inputs_open_grid_base()}
         process = generate_workchain(entry_point, inputs)
 
         if exit_code is not None:
-            entry_point_calc_job = "quantumespresso.opengrid"
+            entry_point_calc_job = "quantumespresso.open_grid"
             node = generate_calc_job_node(
-                entry_point_calc_job, fixture_localhost, test_name, inputs["opengrid"]
+                entry_point_calc_job, fixture_localhost, test_name, inputs["open_grid"]
             )
             node.set_process_state(ProcessState.FINISHED)
             node.set_exit_status(exit_code.status)
@@ -112,7 +112,7 @@ def generate_workchain_opengrid_base(
 
         return process
 
-    return _generate_workchain_opengrid_base
+    return _generate_workchain_open_grid_base
 
 
 @pytest.fixture
@@ -266,7 +266,7 @@ def generate_builder_inputs(fixture_code, generate_structure):
                 "pw2wannier90": fixture_code("quantumespresso.pw2wannier90"),
                 "wannier90": fixture_code("wannier90.wannier90"),
                 "projwfc": fixture_code("quantumespresso.projwfc"),
-                "opengrid": fixture_code("quantumespresso.opengrid"),
+                "open_grid": fixture_code("quantumespresso.open_grid"),
             },
             "structure": generate_structure(structure_id=structure_id),
         }
