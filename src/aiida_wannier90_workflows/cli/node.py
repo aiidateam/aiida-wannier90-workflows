@@ -31,7 +31,7 @@ def cmd_node_show(ctx, nodes):  # pylint: disable=unused-argument
         ctx.invoke(node_show, nodes=nodes, print_groups=False)
 
         if isinstance(node, orm.RemoteData):
-            path = f"{node.get_computer_name()}:{node.get_remote_path()}"
+            path = f"{node.computer.label}:{node.get_remote_path()}"
             echo.echo(header.format("path"))
             echo.echo(f"{path}")
         elif isinstance(node, orm.FolderData):
