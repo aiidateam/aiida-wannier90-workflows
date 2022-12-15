@@ -65,6 +65,8 @@ def print_process_table(
         elif "valcond" in node.inputs:
             # Wannier90SplitWorkChain
             formula = node.inputs["valcond"].structure.get_formula()
+        elif "formula_hill" in node.extras:
+            formula = node.extras["formula_hill"]
         else:
             formula = "?"
         entry_with_structure = [pk, formula, *entry[1:]]
