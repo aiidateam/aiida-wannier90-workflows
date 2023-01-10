@@ -110,7 +110,7 @@ class Wannier90BaseWorkChain(ProtocolMixin, BaseRestartWorkChain):
     @classmethod
     def define(cls, spec) -> None:
         """Define the process spec."""
-        from aiida_wannier90.calculations import (
+        from aiida_wannier90.calculations.wannier90 import (
             validate_inputs_base as validate_inputs_base_wannier90,
         )
 
