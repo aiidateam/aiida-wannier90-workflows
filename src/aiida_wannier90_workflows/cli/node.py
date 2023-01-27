@@ -35,8 +35,8 @@ def cmd_node_show(ctx, nodes):  # pylint: disable=unused-argument
             echo.echo(header.format("path"))
             echo.echo(f"{path}")
         elif isinstance(node, orm.FolderData):
-            path = f"{node._repository._get_base_folder().abspath}"  # pylint: disable=protected-access
-            echo.echo(header.format("path"))
+            path = f"{node.base.repository.list_object_names()}"
+            echo.echo(header.format("objects in repository"))
             echo.echo(f"{path}")
         elif isinstance(node, orm.RemoteStashFolderData):
             path = f'{node.attributes["target_basepath"]}'
