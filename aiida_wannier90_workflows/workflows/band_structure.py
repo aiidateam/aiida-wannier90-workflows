@@ -7,8 +7,8 @@ from aiida.engine import WorkChain, ToContext
 from aiida.plugins import WorkflowFactory
 
 from aiida_quantumespresso.utils.protocols.pw import ProtocolManager
-from aiida_quantumespresso.utils.pseudopotential import get_pseudos_from_dict
 from aiida_quantumespresso.utils.resources import get_default_options
+from ..tools.pseudopotential import get_pseudos_from_dict
 
 PwBandsWorkChain = WorkflowFactory('quantumespresso.pw.bands')
 

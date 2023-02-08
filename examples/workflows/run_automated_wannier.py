@@ -12,7 +12,7 @@ str_pw2wan = 'qe-6.5-pw2wannier90@localhost'
 str_projwfc = 'qe-6.5-projwfc@localhost'
 str_wan = 'wannier90-3.1.0-wannier@localhost'
 
-group_name = 'scdm_workflow'
+group_name = 'wtb_guess_workflow'
 
 
 def check_codes():

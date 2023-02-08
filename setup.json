@@ -2,6 +2,7 @@
   "entry_points": {
     "aiida.workflows": [
       "wannier90_workflows.bands = aiida_wannier90_workflows.workflows.bands:Wannier90BandsWorkChain",
+      "wannier90_workflows.hamiltonian = aiida_wannier90_workflows.workflows.hamiltonian:Wannier90HamiltonianWorkChain",
       "wannier90_workflows.wannier90 = aiida_wannier90_workflows.workflows.wannier:Wannier90WorkChain"
     ]
   }, 
@@ -10,8 +11,8 @@
   "author": "Antimo Marrazzo, Giovanni Pizzi, Junfeng Qiao", 
   "author_email": "developers@aiida.net", 
   "install_requires": [
-    "aiida-core>=1.1.1",
-    "aiida-quantumespresso>=3.0.0a6",
+    "aiida-core>=2.0.0",
+    "aiida-quantumespresso>=4.0.0",
     "aiida-wannier90>=2.0.0"
   ], 
   "url": "https://github.com/aiidateam/aiida-wannier90-workflows",
