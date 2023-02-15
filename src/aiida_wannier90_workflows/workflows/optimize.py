@@ -12,7 +12,6 @@ from aiida.orm.nodes.data.base import to_aiida_type
 from aiida_quantumespresso.utils.mapping import prepare_process_inputs
 
 from aiida_wannier90_workflows.utils.workflows import get_last_calcjob
-from aiida_wannier90_workflows.utils.workflows.bands import has_overlapping_semicore
 
 from .bands import Wannier90BandsWorkChain
 from .base.wannier90 import Wannier90BaseWorkChain
@@ -254,6 +253,9 @@ class Wannier90OptimizeWorkChain(Wannier90BandsWorkChain):
         :return: [description]
         :rtype: ProcessBuilder
         """
+        from aiida_wannier90_workflows.utils.workflows.bands import (
+            has_overlapping_semicore,
+        )
         from aiida_wannier90_workflows.utils.workflows.builder.submit import (
             recursive_merge_builder,
         )
