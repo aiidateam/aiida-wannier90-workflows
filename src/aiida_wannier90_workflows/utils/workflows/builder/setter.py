@@ -456,7 +456,8 @@ def set_kpoints(
         set_kpoints(builder["wannier90"], kpoints, process_class=Wannier90BaseWorkChain)
 
         kpoints_explicit = builder["wannier90"]["wannier90"]["kpoints"]
-        set_kpoints(builder["scf"], kpoints, process_class=PwBaseWorkChain)
+        if "scf" in builder:
+            set_kpoints(builder["scf"], kpoints, process_class=PwBaseWorkChain)
         set_kpoints(builder["nscf"], kpoints_explicit, process_class=PwBaseWorkChain)
 
     elif process_class == PwCalculation:
