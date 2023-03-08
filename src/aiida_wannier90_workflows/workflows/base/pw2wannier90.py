@@ -42,14 +42,19 @@ def validate_inputs(  # pylint: disable=unused-argument,inconsistent-return-stat
     scdm_proj = calc_parameters.get("scdm_proj", False)
     scdm_entanglement = calc_parameters.get("scdm_entanglement", "isolated")
 
-    # Check `bands`
-    if any(_ in inputs for _ in ("bands", "bands_projections")) and not scdm_proj:
-        return (
-            "`bands` and/or `bands_projections` are provided but `scdm_proj` is False?"
-        )
-
-    # Check scdm_proj
+    fit_scdm = False
     if scdm_proj and scdm_entanglement != "isolated":
+        scdm_mu = calc_parameters.get("scdm_mu", None)
+        scdm_sigma = calc_parameters.get("scdm_sigma", None)
+        if scdm_mu is None or scdm_sigma is None:
+            fit_scdm = True
+
+    if fit_scdm:
+        # Check `bands`
+        if any(_ in inputs for _ in ("bands", "bands_projections")):
+            return "`bands` and/or `bands_projections` are provided but `scdm_proj` is False?"
+
+        # Check bands and bands_projections are provided
         if any(_ not in inputs for _ in ("bands_projections", "bands")):
             return "`scdm_proj` is True but `bands_projections` or `bands` is empty"
 
