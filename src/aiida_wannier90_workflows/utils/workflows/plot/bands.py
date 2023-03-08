@@ -257,7 +257,7 @@ def get_mpl_code_for_workchains(
     ):
         fermi_energy = get_workchain_fermi_energy(workchain1)
     else:
-        if workchain0.process_class == PwBandsWorkChain:
+        if workchain0.process_class in [PwBandsWorkChain, ProjwfcBandsWorkChain]:
             fermi_energy = workchain0.outputs["scf_parameters"]["fermi_energy"]
         else:
             raise ValueError(f"Cannot find fermi energy from {workchain0}")
@@ -555,7 +555,6 @@ def plot_band(  # pylint: disable=too-many-statements,too-many-locals,too-many-b
         # for band in bands:
         # pylint: disable=redefined-argument-from-local
         for band, band_type in zip(path["values"], all_data["band_type_idx"]):
-
             # For now we support only two colors
             if band_type % 2 == 0:
                 further_plot_options = further_plot_options1

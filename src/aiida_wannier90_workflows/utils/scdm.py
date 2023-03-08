@@ -109,6 +109,11 @@ def get_projectability_arrays(bands: orm.BandsData, projections: orm.ProjectionD
     """
     # List of specifications of atomic orbitals in dictionary form
     orbitals_list = [i.get_orbital_dict() for i in projections.get_orbitals()]
+    # Remove the '_orbital_type' key from the dictionaries, otherwise the get_projections fail
+    remove_key = "_orbital_type"
+    for o in orbitals_list:
+        if remove_key in o:
+            o.pop(remove_key)
     # Sum of the projections on all atomic orbitals, shape num_kpoints * num_bands
     projections_array = sum(
         sum(x[1] for x in projections.get_projections(**orb_dict))
