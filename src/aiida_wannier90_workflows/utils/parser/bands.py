@@ -20,7 +20,7 @@ def parse_w90_bands(band_dat, band_kpt, band_labelinfo, win):
     import ase
     import w90utils  # pylint: disable=import-error
 
-    from aiida_wannier90.parsers import band_parser
+    from aiida_wannier90.parsers.wannier90 import band_parser
 
     lat = w90utils.io.win.read_dlv(win, units="angstrom")
     atoms = w90utils.io.win.read_atoms(win, units="crystal")
