@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Functions to calculate bands distance."""
+import typing as ty
 
 import numpy as np
 
@@ -88,8 +89,8 @@ def bands_distance_raw(  # pylint: disable=too-many-arguments,too-many-locals
 
 
 def bands_distance(
-    bands_dft: orm.BandsData,
-    bands_wannier: orm.BandsData,
+    bands_dft: ty.Union[orm.BandsData, np.array],
+    bands_wannier: ty.Union[orm.BandsData, np.array],
     fermi_energy: float,
     exclude_list_dft: list = None,
 ) -> np.array:
@@ -106,8 +107,14 @@ def bands_distance(
     :return: [description], unit is eV.
     :rtype: np.array
     """
-    dft_bands = bands_dft.get_bands()
-    wannier_bands = bands_wannier.get_bands()
+    if isinstance(bands_dft, orm.BandsData):
+        dft_bands = bands_dft.get_bands()
+    else:
+        dft_bands = bands_dft
+    if isinstance(bands_wannier, orm.BandsData):
+        wannier_bands = bands_wannier.get_bands()
+    else:
+        wannier_bands = bands_wannier
 
     # mu_range = np.arange(-60, 40, 0.5)
     start = fermi_energy
@@ -133,8 +140,8 @@ def bands_distance(
 
 
 def bands_distance_isolated(  # pylint: disable=too-many-locals
-    dft_bands: np.array,
-    wannier_bands: np.array,
+    dft_bands: ty.Union[orm.BandsData, np.array],
+    wannier_bands: ty.Union[orm.BandsData, np.array],
     exclude_list_dft: list = None,
     lower_cutoff: float = None,
 ) -> tuple:
@@ -148,6 +155,11 @@ def bands_distance_isolated(  # pylint: disable=too-many-locals
     :param exclude_list_dft: if passed should be a list of the excluded bands,
        1-indexed
     """
+    if isinstance(dft_bands, orm.BandsData):
+        dft_bands = dft_bands.get_bands()
+    if isinstance(wannier_bands, orm.BandsData):
+        wannier_bands = wannier_bands.get_bands()
+
     if exclude_list_dft is None:
         exclude_list_dft = []
         dft_bands_filtered = dft_bands
