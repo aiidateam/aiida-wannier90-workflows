@@ -943,4 +943,23 @@ def compute_band_distance(wkc: Wannier90SplitWorkChain) -> dict:
     results["bands_max_distance.cond_to_ref"] = max_dist_2
     results["bands_distance.cond_to_ref"] = bands_dist
 
+    exclude_list_dft = deepcopy(semicore_list)  # exclude semicore
+    # valence of valcond
+    val_valcond = valcond.get_bands()[:, :num_val]
+    dist = bands_distance_isolated(ref, val_valcond, exclude_list_dft=exclude_list_dft)
+    bands_dist, max_dist, max_dist_2, max_dist_loc, max_dist_2_loc = dist
+    results["bands_max_distance.val_valcond_to_ref"] = max_dist_2
+    results["bands_distance.val_valcond_to_ref"] = bands_dist
+
+    cond_valcond = valcond.get_bands()[:, num_val:]
+    exclude_list_dft = deepcopy(semicore_list)  # exclude semicore
+    exclude_list_dft.extend(
+        range(len(semicore_list) + 1, len(semicore_list) + num_val + 1)
+    )
+    dist = bands_distance(ref, cond_valcond, fermi, exclude_list_dft=exclude_list_dft)
+    mu, bands_dist, max_dist, max_dist_2 = dist[2, :]
+    assert abs(mu - fermi - 2) < 1e-6
+    results["bands_max_distance.cond_valcond_to_ref"] = max_dist_2
+    results["bands_distance.cond_valcond_to_ref"] = bands_dist
+
     return results
