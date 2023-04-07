@@ -53,7 +53,7 @@ class Wannier90HamiltonianWorkChain(WorkChain):
         )
         spec.input(
             'moments',
-            valid_type=orm.List,
+            valid_type=orm.Float,
             required=False,
             help='The input magnetic moment.'
         )
@@ -156,6 +156,18 @@ class Wannier90HamiltonianWorkChain(WorkChain):
             default=lambda: orm.Dict(dict={}),
             help='metadata.options for [scf, nscf, pw2wannier, wannier90, projwfc].'
         )
+        spec.input(
+            "controls.clean_workdir",
+            valid_type=orm.Bool,
+            default=lambda: orm.Bool(False),
+            help="If `True`, work directories of all called calculation will be cleaned at the end of execution.",
+        )
+        spec.input(
+            'resume_node',
+            valid_type=(orm.CalculationNode, orm.WorkflowNode),
+            required=False,
+            help='A `PwCalculation` or `Wannier90WorkChain` node to restart from.'
+        )
         # spec.expose_inputs(
         #     Wannier90WorkChain,
         #     exclude=(
@@ -172,20 +184,20 @@ class Wannier90HamiltonianWorkChain(WorkChain):
             help=
             'The structure for which the calculations are computed.'
         )
-        spec.output(
-            'computed_moments',
-            valid_type=orm.List,
-            required=False,
-            help=
-            'The magnetic moments for which the calculations are computed.'
-        )
-        spec.output(
-            'quantization_axis',
-            valid_type=orm.List,
-            required=False,
-            help=
-            'The quantization axis for which the calculations are computed.'
-        )
+        # spec.output(
+        #     'computed_moments',
+        #     valid_type=orm.List,
+        #     required=False,
+        #     help=
+        #     'The magnetic moments for which the calculations are computed.'
+        # )
+        # spec.output(
+        #     'quantization_axis',
+        #     valid_type=orm.List,
+        #     required=False,
+        #     help=
+        #     'The quantization axis for which the calculations are computed.'
+        # )
         spec.output(
             'scf_parameters',
             valid_type=orm.Dict,
@@ -214,12 +226,47 @@ class Wannier90HamiltonianWorkChain(WorkChain):
             required=False
         )
         spec.output('wannier90_parameters', valid_type=orm.Dict)
-        spec.output('wannier90_retrieved', valid_type=orm.FolderData)
+        spec.output(
+            'wannier90_retrieved', 
+            valid_type=orm.FolderData,
+            required=False
+        )
         spec.output(
             'wannier90_remote_folder',
             valid_type=orm.RemoteData,
             required=False
         )
+        spec.output(
+            'pw2wannier90_remote_folder_up',
+            valid_type=orm.RemoteData,
+            required=False
+        )
+        spec.output(
+            'pw2wannier90_remote_folder_down',
+            valid_type=orm.RemoteData,
+            required=False
+        )
+        spec.output(
+            'wannier90_retrieved_up', 
+            valid_type=orm.FolderData,
+            required=False
+        )
+        spec.output(
+            'wannier90_retrieved_down', 
+            valid_type=orm.FolderData,
+            required=False
+        )
+        spec.output(
+            'wannier90_remote_folder_up',
+            valid_type=orm.RemoteData,
+            required=False
+        )
+        spec.output(
+            'wannier90_remote_folder_down',
+            valid_type=orm.RemoteData,
+            required=False
+        )
+
 
         spec.outline(
             cls.setup, 
@@ -290,6 +337,11 @@ class Wannier90HamiltonianWorkChain(WorkChain):
         else:
             self.ctx.magnetism = False
 
+        try:
+            self.ctx.clean_workdir = self.inputs.controls.clean_workdir
+        except:
+            self.ctx.clean_workdir = False
+
         # try:
         #     controls.group_name
         # except AttributeError:
@@ -309,14 +361,21 @@ class Wannier90HamiltonianWorkChain(WorkChain):
         """
         self.report("Magnetism is considered. Checking the moments...")
 
-        if len(self.ctx.current_moments) != len(self.inputs.structure.sites):
-            raise ValueError("The number of moments is not equal to the number of atom sites.")
+        if not isinstance(self.ctx.current_moments, orm.Float):
+            raise ValueError("The initial moments are implemented ONLY on Float.")
+        
+        # if isinstance(self.ctx.current_moments, orm.Float):
+        #     self.report(f"Uniform initial moments [0,0,{self.ctx.current_moments.value}] are set.")
+        #     self.ctx.current_moments = orm.List(list=[[0.0, 0.0, self.ctx.current_moments]]*len(self.inputs.structure.sites))
 
-        # Whether the all moments are 3D vectors
-        momlen=map(len,self.ctx.current_moments.get_list())
-        for i, l in enumerate(momlen):
-            if l != 3:
-                raise ValueError(f"The {i}'s moment is not a 3D vector.")
+        # if len(self.ctx.current_moments) != len(self.inputs.structure.sites):
+        #     raise ValueError("The number of moments is not equal to the number of atom sites.")
+
+        # # Whether the all moments are 3D vectors
+        # momlen=map(len,self.ctx.current_moments.get_list())
+        # for i, l in enumerate(momlen):
+        #     if l != 3:
+        #         raise ValueError(f"The {i}'s moment is not a 3D vector.")
         self.report("The moments are OK.")
 
 
@@ -714,29 +773,88 @@ class Wannier90HamiltonianWorkChain(WorkChain):
             self.out(
                 'projwfc_projections', workchain.outputs.projwfc__projections
             )
-        self.out(
-            'pw2wannier90_remote_folder',
-            workchain.outputs.pw2wannier90__remote_folder
-        )
+        
+        # Spin calculation
+        # up spin has '_up', down spin has no suffix
+        if 'pw2wannier90_up' in workchain.outputs:
+            self.out(
+                'pw2wannier90_remote_folder_up',
+                workchain.outputs.pw2wannier90_up__remote_folder
+            )
+            self.out(
+                'pw2wannier90_remote_folder_down',
+                workchain.outputs.pw2wannier90__remote_folder
+            )
+        else:
+            self.out(
+                'pw2wannier90_remote_folder',
+                workchain.outputs.pw2wannier90__remote_folder
+            )
+
         self.out(
             'wannier90_parameters',
             workchain.outputs.wannier90__output_parameters
         )
-        self.out('wannier90_retrieved', workchain.outputs.wannier90__retrieved)
-        self.out(
-            'wannier90_remote_folder',
-            workchain.outputs.wannier90__remote_folder
-        )
-        if 'wannier90__interpolated_bands' in workchain.outputs:
+
+        if 'wannier90_up' in workchain.outputs:
+            self.out('wannier90_retrieved_up', workchain.outputs.wannier90_up__retrieved)
+            self.out('wannier90_retrieved_down', workchain.outputs.wannier90__retrieved)
             self.out(
-                'wannier90_interpolated_bands',
-                workchain.outputs.wannier90__interpolated_bands
+                'wannier90_remote_folder_up',
+                workchain.outputs.wannier90_up__remote_folder
             )
-            self.report(
-                'wannier90 interpolated bands pk: {}'.format(
-                    workchain.outputs.wannier90__interpolated_bands.pk
-                )
+            self.out(
+                'wannier90_remote_folder_down',
+                workchain.outputs.wannier90__remote_folder
             )
+            # if 'wannier90__interpolated_bands' in workchain.outputs:
+            #     self.out(
+            #         'wannier90_interpolated_bands_up',
+            #         workchain.outputs.wannier90_up__interpolated_bands
+            #     )
+            #     self.out(
+            #         'wannier90_interpolated_bands_down',
+            #         workchain.outputs.wannier90__interpolated_bands
+            #     )
+            #     self.report(
+            #         'wannier90 interpolated bands (spin=up) pk: {}'.format(
+            #             workchain.outputs.wannier90_up__interpolated_bands.pk
+            #         )
+            #     )
+            #     self.report(
+            #         'wannier90 interpolated bands (spin=down) pk: {}'.format(
+            #             workchain.outputs.wannier90__interpolated_bands.pk
+            #         )
+            #     )
+        else:
+            self.out('wannier90_retrieved', workchain.outputs.wannier90__retrieved)
+            self.out(
+                'wannier90_remote_folder',
+                workchain.outputs.wannier90__remote_folder
+            )
+            # if 'wannier90__interpolated_bands' in workchain.outputs:
+            #     self.out(
+            #         'wannier90_interpolated_bands',
+            #         workchain.outputs.wannier90__interpolated_bands
+            #     )
+            #     self.report(
+            #         'wannier90 interpolated bands pk: {}'.format(
+            #             workchain.outputs.wannier90__interpolated_bands.pk
+            #         )
+            #     )
+
+        if self.ctx.clean_workdir:
+            self.report('cleaning up workdir')
+            remotes=[]
+            for node in workchain.called_descendants:
+                for link in node.base.links.get_outgoing().all():
+                    if isinstance(link.node, orm.RemoteData):
+                        remotes.append(link.node)
+            for remote in remotes:
+                try:
+                    remote._clean()
+                except:
+                    pass
 
         self.report('Wannier90BandsWorkChain successfully completed')
 

@@ -75,7 +75,7 @@ class Wannier90WorkChain(WorkChain):
         )
         spec.input(
             'moments',
-            valid_type=orm.List,
+            valid_type=orm.Float,
             required=False,
             help='The inputs magnetic moments (optional).'
         )
@@ -178,6 +178,7 @@ class Wannier90WorkChain(WorkChain):
                 cls.inspect_pw2wannier90,
                 cls.run_wannier90,
                 cls.inspect_wannier90,
+                cls.spin_up_results,
                 cls.set_suffix_down,
             ),
             cls.run_wannier90_pp,
@@ -204,6 +205,21 @@ class Wannier90WorkChain(WorkChain):
         spec.expose_outputs(Pw2wannier90Calculation, namespace='pw2wannier90')
         spec.expose_outputs(Wannier90Calculation, namespace='wannier90_pp')
         spec.expose_outputs(Wannier90Calculation, namespace='wannier90')
+        spec.expose_outputs(
+            Pw2wannier90Calculation,
+            namespace='pw2wannier90_up',
+            namespace_options={'required': False}
+        )
+        spec.expose_outputs(
+            Wannier90Calculation, 
+            namespace='wannier90_pp_up',
+            namespace_options={'required': False}
+        )
+        spec.expose_outputs(
+            Wannier90Calculation, 
+            namespace='wannier90_up',
+            namespace_options={'required': False}
+        )
 
         spec.exit_code(
             401,
@@ -261,6 +277,7 @@ class Wannier90WorkChain(WorkChain):
         # self.ctx.auto_projections = parameters.get('auto_projections', False)
         self.ctx.projection_policy = self.inputs.projection_policy
         if self.ctx.projection_policy.value.lower() == 'scdm':
+            self.report('Apply auto-projections using SCDM method.')
             self.ctx.auto_projections = True
         else:
             self.ctx.auto_projections = False
@@ -359,15 +376,20 @@ class Wannier90WorkChain(WorkChain):
         inputs.pw.parameters['CONTROL']['calculation'] = 'scf'
 
         # Set spin calculation
-        from ..tools.magnetic_moments import get_moments_m_theta_phi
+        # TODO: Species-wise moments setting given as List or Dict
+
         if self.ctx.current_moments is not None:
-            moms,thetas,phis=get_moments_m_theta_phi(self.ctx.current_moments)
-            for i,m in enumerate(moms):
-                num=str(i+1)
-                inputs.pw.parameters['SYSTEM']['starting_magnetization('+num+')'] = m
-                if self.ctx.noncol:
-                    inputs.pw.parameters['SYSTEM']['angle1('+num+')'] = float(thetas[i])
-                    inputs.pw.parameters['SYSTEM']['angle2('+num+')'] = float(phis[i])
+            inputs.pw.parameters['SYSTEM']['starting_magnetization'] = self.ctx.current_moments.value
+
+        # from ..tools.magnetic_moments import get_moments_m_theta_phi
+        # if self.ctx.current_moments is not None:
+        #     moms,thetas,phis=get_moments_m_theta_phi(self.ctx.current_moments)
+        #     for i,m in enumerate(moms):
+        #         num=str(i+1)
+        #         inputs.pw.parameters['SYSTEM']['starting_magnetization('+num+')'] = m
+        #         if self.ctx.noncol:
+        #             inputs.pw.parameters['SYSTEM']['angle1('+num+')'] = float(thetas[i])
+        #             inputs.pw.parameters['SYSTEM']['angle2('+num+')'] = float(phis[i])
 
         if self.ctx.with_soi == True:
             inputs.pw.parameters['SYSTEM']['noncolin'] = True
@@ -620,11 +642,7 @@ class Wannier90WorkChain(WorkChain):
             parameters['spinors'] = True
 
         # set projections and num_wann
-        try:
-            self.report('self.inputs is '+self.inputs)
-            policy = self.ctx.projection_policy.value.lower()
-        except:
-            policy = 'light'
+        policy = self.ctx.projection_policy.value.lower()
         if policy == 'scdm':
             parameters['auto_projection'] = True
             if self.inputs.only_valence:
@@ -663,7 +681,7 @@ class Wannier90WorkChain(WorkChain):
                 inputs.parameters = guess_w90_params(
                     inputs.parameters,
                     self.ctx.current_structure,
-                    self.ctx.projection_policy
+                    orm.Str(policy)
                 )
                 self.report(
                     'projections have been specified with the policy ('
@@ -698,7 +716,9 @@ class Wannier90WorkChain(WorkChain):
         inputs['settings'] = settings
 
         # Because pw2wannier90Calculation only accepts the default seedname 'aiida',
-        # we only rename the output files of final wannier90Calculation.
+        # we only rename the output files of final wannier90Calculation. (YY - Feb. 7)
+        # It is easier to handle seedname in pw2wannier90Calculation. (YY - Feb. 9)
+        # Don't rename output files, we should ONLY rename the output port of this workflow. (YY - Feb. 9)
         # inputs['metadata']['options']['input_filename']='aiida'+spin_sfx+'.win'
         # inputs['metadata']['options']['output_filename']='aiida'+spin_sfx+'.wout'
 
@@ -749,12 +769,15 @@ class Wannier90WorkChain(WorkChain):
             'write_mmn': True,
             'write_amn': True,
         })
+        # inputs.parameters['inputpp']['seedname'] = 'aiida'
 
         spin_sfx=self.ctx.spin_suffix
         if spin_sfx == '_up':
             inputs.parameters['inputpp']['spin_component'] = 'up'
+            # inputs.parameters['inputpp']['seedname'] = 'aiida_up'
         elif spin_sfx == '_down':
             inputs.parameters['inputpp']['spin_component'] = 'down'
+            # inputs.parameters['inputpp']['seedname'] = 'aiida_down'
 
         if self.ctx.auto_projections:
             inputs.parameters['inputpp']['scdm_proj'] = True
@@ -837,8 +860,9 @@ class Wannier90WorkChain(WorkChain):
         settings['postproc_setup'] = False
         inputs.settings = settings
 
-        spin_sfx=self.ctx.spin_suffix
-        inputs['metadata']['options']['output_filename']='aiida'+spin_sfx+'.wout'
+        # spin_sfx=self.ctx.spin_suffix
+        # inputs['metadata']['options']['input_filename']='aiida'+spin_sfx+'.win'
+        # inputs['metadata']['options']['output_filename']='aiida'+spin_sfx+'.wout'
 
         inputs = prepare_process_inputs(Wannier90Calculation, inputs)
         running = self.submit(Wannier90Calculation, **inputs)
@@ -863,7 +887,16 @@ class Wannier90WorkChain(WorkChain):
             )
             return self.exit_codes.ERROR_SUB_PROCESS_FAILED_WANNIER90
 
-        self.report("Wannier90Calculation successfully finished")
+        # spin_sfx=self.ctx.spin_suffix
+        # Rename the output files
+        # for filename in workchain.outputs.remote_folder.list_object_names():
+        #     if filename.startswith('aiida'):
+        #         new_filename = filename.replace('aiida', 'aiida'+spin_sfx)
+        #         workchain.outputs.remote_folder.rename_object(
+        #             filename, new_filename
+        #         )
+
+        self.report(f"Wannier90Calculation{self.ctx.spin_suffix} successfully finished")
         self.ctx.current_folder = workchain.outputs.remote_folder
 
     # def run_bands(self):  # pylint: disable=inconsistent-return-statements
@@ -944,6 +977,7 @@ class Wannier90WorkChain(WorkChain):
                     namespace='projwfc'
                 )
             )
+        spin_sfx=self.ctx.spin_suffix
         self.out_many(
             self.exposed_outputs(
                 self.ctx.calc_pw2wannier90,
@@ -966,6 +1000,34 @@ class Wannier90WorkChain(WorkChain):
             )
         )
         self.report('Wannier90WorkChain successfully completed')
+
+    def spin_up_results(self):
+        """
+        Attach the desired output nodes directly as outputs of the workchain
+        """
+        self.out_many(
+            self.exposed_outputs(
+                self.ctx.calc_pw2wannier90,
+                Pw2wannier90Calculation,
+                namespace='pw2wannier90_up'
+            )
+        )
+        self.out_many(
+            self.exposed_outputs(
+                self.ctx.calc_wannier90_pp,
+                Wannier90Calculation,
+                namespace='wannier90_pp_up'
+            )
+        )
+        self.out_many(
+            self.exposed_outputs(
+                self.ctx.calc_wannier90,
+                Wannier90Calculation,
+                namespace='wannier90_up'
+            )
+        )
+        self.report('Wannier90WorkChain for up-spin successfully completed')
+
 
 
 @calcfunction
@@ -1315,12 +1377,11 @@ def update_pw2wan_params_mu_sigma(
 def guess_w90_params(parameters,structure,projection_policy):
     from ..tools.wannier_guess import guess_projection,guess_num_wann
 
-    pmg_str=structure.get_pymatgen_structure()
     pjpolicy=projection_policy.value
 
     parameters_dict = parameters.get_dict()
-    parameters_dict['num_wann'] = guess_num_wann(pmg_str,policy=pjpolicy)
-    parameters_dict['projections'] = guess_projection(pmg_str,policy=pjpolicy)
+    parameters_dict['num_wann'] = guess_num_wann(structure,policy=pjpolicy)
+    parameters_dict['projections'] = guess_projection(structure,policy=pjpolicy)
 
     if parameters_dict.get('spinors'):
         parameters_dict['num_wann'] *= 2

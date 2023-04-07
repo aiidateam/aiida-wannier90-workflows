@@ -1,21 +1,40 @@
+from aiida.orm import StructureData
+# def guess_projection(pmg_structure, policy='light'):
+#     if policy.lower() == 'light':
+#         wtb_proj=javis_projection()
+#     else:
+#         raise ValueError(f'Projection policy {policy} is undefined.')
 
-def guess_projection(pmg_structure, policy='light'):
+#     projections=[str(elem)+': '+wtb_proj[str(elem)] for elem in pmg_structure.species]
+#     print('Guess projection:',projections)
+#     return projections
+
+# def guess_num_wann(pmg_structure, policy='light'):
+#     if policy.lower() == 'light':
+#         wtb_numwan=javis_num_wann()
+#     else:
+#         raise ValueError(f'Projection policy {policy} is undefined.')
+
+#     ntot=sum([wtb_numwan[str(elem)] for elem in pmg_structure.species])
+#     return ntot
+
+def guess_projection(structure:StructureData, policy='light'):
     if policy.lower() == 'light':
         wtb_proj=javis_projection()
     else:
         raise ValueError(f'Projection policy {policy} is undefined.')
-
-    projections=[str(elem)+': '+wtb_proj[str(elem)] for elem in pmg_structure.species]
+    projections=[str(kind.name)+': '+wtb_proj[str(kind.symbol)] for kind in structure.kinds]
     print('Guess projection:',projections)
     return projections
 
-def guess_num_wann(pmg_structure, policy='light'):
+def guess_num_wann(structure:StructureData, policy='light'):
     if policy.lower() == 'light':
         wtb_numwan=javis_num_wann()
     else:
         raise ValueError(f'Projection policy {policy} is undefined.')
 
-    ntot=sum([wtb_numwan[str(elem)] for elem in pmg_structure.species])
+    symbols=[structure.get_kind(s.kind_name).get_symbols_string() for s in structure.sites]
+    ntot=sum([wtb_numwan[str(elem)] for elem in symbols])
     return ntot
 
 def javis_projection():

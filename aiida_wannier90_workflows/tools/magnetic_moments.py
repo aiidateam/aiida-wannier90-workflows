@@ -1,6 +1,9 @@
 import numpy as np
-from aiida.orm import StructureData
+from aiida.orm import StructureData,Float
 def validate_moments(structure, magmoms):
+    if isinstance(magmoms, Float):
+        return
+
     if isinstance(structure,StructureData):
         natom=len(structure.sites)
     else:
@@ -14,6 +17,8 @@ def validate_moments(structure, magmoms):
     return 
 
 def is_collinear(magmoms, mom_prec_muB=1e-4,angle_prec_degree=1):
+    if isinstance(magmoms, Float):
+        return True
     quant_axis = None
     if len(magmoms) > 0:
         #get the q-axis
