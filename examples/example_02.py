@@ -32,7 +32,7 @@ def submit(
         codes,
         structure,
         protocol="fast",
-        run_open_grid=True,
+        run_open_grid=False,
     )
 
     # You can change parallelization here
