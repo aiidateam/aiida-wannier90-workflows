@@ -16,7 +16,7 @@ def load_bands(filepath_fixtures):
 
         from aiida.plugins import DataFactory
 
-        BandsData = DataFactory("array.bands")  # pylint: disable=invalid-name
+        BandsData = DataFactory("core.array.bands")  # pylint: disable=invalid-name
         bands_data = BandsData()
 
         fname = str(filepath_fixtures / "utils" / "bands" / structure / file_name)

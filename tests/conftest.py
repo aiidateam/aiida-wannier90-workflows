@@ -73,10 +73,10 @@ def serialize_builder():
     :param builder: the process builder to serialize
     :return: dictionary
     """
-    from aiida_wannier90_workflows.utils.workflows.builder import serializer
+    from aiida_wannier90_workflows.utils.workflows.builder.serializer import serialize
 
     def _serializer(node):
-        return serializer(node, show_pk=False)
+        return serialize(node, show_pk=False)
 
     return _serializer
 
@@ -131,7 +131,7 @@ def generate_upf_data(filepath_fixtures):
         import yaml
 
         yaml_file = filepath_fixtures / "pseudos" / "SSSP_1.1_PBE_efficiency.yaml"
-        with open(yaml_file) as file:
+        with open(yaml_file, encoding="utf-8") as file:
             upf_metadata = yaml.load(file, Loader=yaml.FullLoader)
 
         if element not in upf_metadata:
@@ -293,13 +293,13 @@ def generate_calc_job_node(fixture_localhost, filepath_fixtures):
             from aiida_quantumespresso.tools.pwinputparser import PwInputFile
 
             try:
-                with open(filepath_input) as input_file:
+                with open(filepath_input, encoding="utf-8") as input_file:
                     parsed_input = PwInputFile(input_file.read())
             except (ParsingError, FileNotFoundError):
                 pass
             else:
                 inputs["structure"] = parsed_input.get_structuredata()
-                inputs["parameters"] = orm.Dict(dict=parsed_input.namelists)
+                inputs["parameters"] = orm.Dict(parsed_input.namelists)
 
         if inputs:
             metadata = inputs.pop("metadata", {})
@@ -514,7 +514,7 @@ def generate_bands_data():
 
         from aiida.plugins import DataFactory
 
-        BandsData = DataFactory("array.bands")  # pylint: disable=invalid-name
+        BandsData = DataFactory("core.array.bands")  # pylint: disable=invalid-name
         bands_data = BandsData()
 
         bands_data.set_kpoints(np.array([[0.0, 0.0, 0.0], [0.625, 0.25, 0.625]]))
@@ -612,7 +612,7 @@ def generate_inputs_pw(
         from aiida_quantumespresso.utils.resources import get_default_options
 
         parameters = Dict(
-            dict={
+            {
                 "CONTROL": {"calculation": "scf"},
                 "SYSTEM": {"ecutrho": 240.0, "ecutwfc": 30.0},
                 "ELECTRONS": {

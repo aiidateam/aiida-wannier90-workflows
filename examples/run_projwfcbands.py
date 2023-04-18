@@ -3,7 +3,7 @@
 from aiida import orm
 from aiida.engine import submit
 
-from aiida_wannier90_workflows.utils.workflows.builder import print_builder
+from aiida_wannier90_workflows.utils.workflows.builder.serializer import print_builder
 from aiida_wannier90_workflows.workflows import ProjwfcBandsWorkChain
 
 # pylint: disable=invalid-name,undefined-variable
