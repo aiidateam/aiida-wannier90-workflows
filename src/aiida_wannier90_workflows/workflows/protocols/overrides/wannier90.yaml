@@ -1,0 +1,32 @@
+plot_wannier_functions:
+    pw2wannier90:
+        pw2wannier90:
+            parameters:
+                inputpp:
+                    write_unk: True
+    wannier90:
+        wannier90:
+            parameters:
+                wannier_plot: True
+retrieve_hamiltonian:
+    wannier90:
+        wannier90:
+            parameters:
+                write_tb: True
+                write_hr: True
+                write_xyz: True
+            settings:
+                additional_retrieve_list:
+                    # Tbmodels needs aiida.win file
+                    - '*.win'
+retrieve_matrices:
+    wannier90:
+        wannier90:
+            settings:
+                additional_retrieve_list:
+                    # Tbmodels needs aiida.win file
+                    - '*.chk'
+                    - '*.eig'
+                    - '*.amn'
+                    - '*.mmn'
+                    - '*.spn'

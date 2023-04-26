@@ -1,0 +1,29 @@
+auto_energy_windows: false
+auto_energy_windows_threshold: 0.9
+clean_workdir: false
+shift_energy_windows: false
+wannier90:
+  code: test.wannier90.wannier90@localhost-test
+  kpoints: 1331 kpts
+  metadata:
+    options:
+      max_wallclock_seconds: 43200
+      resources:
+        num_machines: 1
+      withmpi: true
+  parameters:
+    auto_projections: true
+    conv_tol: 2.0e-07
+    conv_window: 3
+    dis_conv_tol: 2.0e-07
+    dis_num_iter: 0
+    mp_grid:
+    - 11
+    - 11
+    - 11
+    num_bands: 16
+    num_cg_steps: 200
+    num_iter: 4000
+    num_wann: 8
+  settings: {}
+  structure: Si2
