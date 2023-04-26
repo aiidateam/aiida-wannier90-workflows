@@ -65,3 +65,5 @@ def cli(filename, codes, group, run):
 
 if __name__ == "__main__":
     cli()  # pylint: disable=no-value-for-parameter
+    # Run like this:
+    # ./example_02.py input_files/GaAs.xsf -X qe-pw@localhost qe-pw2wannier90@localhost wannier90@localhost qe-projwfc@localhost -r
