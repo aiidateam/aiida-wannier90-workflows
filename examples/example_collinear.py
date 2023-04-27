@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env runaiida
 """Run a ``Wannier90BandsWorkChain`` for Wannier90 band structure.
 
 Usage: ./example_02.py
@@ -16,6 +16,7 @@ from aiida_wannier90_workflows.utils.workflows.builder.submit import (
     submit_and_add_group,
 )
 from aiida_wannier90_workflows.workflows import Wannier90BandsWorkChain
+from aiida_quantumespresso.common.types import SpinType
 
 
 def submit(
@@ -32,6 +33,8 @@ def submit(
         codes,
         structure,
         protocol="fast",
+        initial_magnetic_moments={"Fe":[0,0,3]},
+        spin_type=SpinType.COLLINEAR,
     )
 
     # You can change parallelization here
@@ -63,6 +66,11 @@ def cli(filename, codes, group, run):
 
 
 if __name__ == "__main__":
-    cli()  # pylint: disable=no-value-for-parameter
+    # cli()  # pylint: disable=no-value-for-parameter
+
+    from aiida.orm import load_code
+    structure=read_structure("./input_files/bcc_Fe.cif")
+    codes=["qe-pw","qe-pw2wannier90","wannier90","qe-projwfc"]
+    submit(codes, structure,run=False)
     # Run like this:
     # ./example_02.py input_files/GaAs.xsf -X qe-pw@localhost qe-pw2wannier90@localhost wannier90@localhost qe-projwfc@localhost -r
