@@ -59,6 +59,7 @@ def get_scf_builder(
 ) -> ProcessBuilder:
     """Generate a `PwBaseWorkChain` builder for scf, with or without SOC."""
     from aiida_quantumespresso.workflows.pw.base import PwBaseWorkChain
+    from aiida_wannier90_workflows.utils.magnetism import get_moments
 
     overrides = kwargs.pop("overrides", {})
     if clean_workdir:
@@ -75,6 +76,15 @@ def get_scf_builder(
         if pseudo_family is None:
             raise ValueError("`pseudo_family` must be explicitly set for SOC")
 
+    # PwBaseWorkChain.get_builder_from_protocol() poorly support magnetization,
+    # It also be better to add magnetization parameters later.
+    initial_magnetic_moments=None
+    if "initial_magnetic_moments" in kwargs:
+        initial_magnetic_moments = kwargs.pop("initial_magnetic_moments")
+        if spin_type == SpinType.NONE:
+            raise ValueError(f'`initial_magnetic_moments` is specified but spin type `{spin_type}` is incompatible.')
+        kwargs["spin_type"] = SpinType.NONE
+
     builder = PwBaseWorkChain.get_builder_from_protocol(
         code=code, overrides=overrides, **kwargs
     )
@@ -85,6 +95,19 @@ def get_scf_builder(
     if spin_type == SpinType.SPIN_ORBIT:
         parameters["SYSTEM"]["noncolin"] = True
         parameters["SYSTEM"]["lspinorb"] = True
+    
+    # Set magnetization parameters
+    if initial_magnetic_moments is not None:
+        if spin_type == SpinType.COLLINEAR:
+            start_mag = get_moments(initial_magnetic_moments, is_collinear=True)
+            parameters["SYSTEM"]["starting_magnetization"] = start_mag
+        elif spin_type in [SpinType.NON_COLLINEAR,SpinType.SPIN_ORBIT]:
+            start_mag, angle1, angle2 = get_moments(initial_magnetic_moments, is_collinear=False)
+            parameters["SYSTEM"]["starting_magnetization"] = start_mag
+            parameters["SYSTEM"]["angle1"] = angle1
+            parameters["SYSTEM"]["angle2"] = angle2
+        else:
+            raise ValueError(f'`initial_magnetic_moments` is specified but spin type `{spin_type}` is incompatible.')
     builder["pw"]["parameters"] = orm.Dict(parameters)
 
     # Currently only support magnetic with SOC

@@ -71,6 +71,6 @@ if __name__ == "__main__":
     from aiida.orm import load_code
     structure=read_structure("./input_files/bcc_Fe.cif")
     codes=["qe-pw","qe-pw2wannier90","wannier90","qe-projwfc"]
-    submit(codes, structure,run=False)
+    submit(codes, structure,run=True)
     # Run like this:
     # ./example_02.py input_files/GaAs.xsf -X qe-pw@localhost qe-pw2wannier90@localhost wannier90@localhost qe-projwfc@localhost -r
