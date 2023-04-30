@@ -152,8 +152,8 @@ class Wannier90WorkChain(
                 cls.run_projwfc,
                 cls.inspect_projwfc,
             ),
-            if_(cls.should_consider_spin)(
-                cls.set_suffix_up,    
+            if_(cls.should_run_spin)(
+                cls.set_spin_up,    
                 cls.run_wannier90_pp,
                 cls.inspect_wannier90_pp,
                 cls.run_pw2wannier90,
@@ -161,7 +161,7 @@ class Wannier90WorkChain(
                 cls.run_wannier90,
                 cls.inspect_wannier90,
                 cls.results,
-                cls.set_suffix_down,
+                cls.set_spin_down,
             ),
             cls.run_wannier90_pp,
             cls.inspect_wannier90_pp,
@@ -183,9 +183,14 @@ class Wannier90WorkChain(
             namespace="projwfc",
             namespace_options={"required": False},
         )
-        spec.expose_outputs(Pw2wannier90BaseWorkChain, namespace="pw2wannier90")
-        spec.expose_outputs(Wannier90BaseWorkChain, namespace="wannier90_pp")
-        spec.expose_outputs(Wannier90BaseWorkChain, namespace="wannier90")
+        # if non-spin or non-collinear spin
+        spec.expose_outputs(Pw2wannier90BaseWorkChain, namespace="pw2wannier90",namespace_options={"required": False})
+        spec.expose_outputs(Wannier90BaseWorkChain, namespace="wannier90_pp",namespace_options={"required": False})
+        spec.expose_outputs(Wannier90BaseWorkChain, namespace="wannier90",namespace_options={"required": False})
+        # if collinear spin
+        spec.expose_outputs(Pw2wannier90BaseWorkChain, namespace="pw2wannier90_up",namespace_options={"required": False})
+        spec.expose_outputs(Wannier90BaseWorkChain, namespace="wannier90_pp_up", namespace_options={"required": False})
+        spec.expose_outputs(Wannier90BaseWorkChain, namespace="wannier90_up",namespace_options={"required": False})
         spec.expose_outputs(Pw2wannier90BaseWorkChain, namespace="pw2wannier90_down",namespace_options={"required": False})
         spec.expose_outputs(Wannier90BaseWorkChain, namespace="wannier90_pp_down", namespace_options={"required": False})
         spec.expose_outputs(Wannier90BaseWorkChain, namespace="wannier90_down",namespace_options={"required": False})
@@ -587,6 +592,10 @@ class Wannier90WorkChain(
         if not self.should_run_scf():
             self.ctx.current_folder = self.inputs["nscf"]["pw"]["parent_folder"]
 
+        self.ctx.run_spin = False
+        if self.inputs["scf"]["pw"]["parameters"]["SYSTEM"].get("nspin",-1) == 2:
+            self.ctx.run_spin = True
+
     def should_run_scf(self) -> bool:
         """If the 'scf' input namespace was specified, run the scf workchain."""
         return "scf" in self.inputs
@@ -672,19 +681,33 @@ class Wannier90WorkChain(
             )
             return self.exit_codes.ERROR_SUB_PROCESS_FAILED_PROJWFC
         
-    def should_consider_spin(self) -> bool:
+    def should_run_spin(self) -> bool:
         """If the spin_type==SpinType.COLLINEAR,, run Wannier90 twice with spin up and down."""
-        return self.inputs.spin_type == SpinType.COLLINEAR
+        return self.ctx.run_spin
     
-    def set_suffix_up(self):
-        """Set suffix for spin up"""
+    def set_spin_up(self):
+        """Set suffix and parent folder for spin up calculation"""
         self.ctx.spin_suffix = '_up'
-        self.report("Set suffix for spin up")
+        # In this part, we set a branch point to start both spin calculations from the same nscf folder.
+        if getattr(self.ctx, "branch_spin", None) is None:
+            # if this is the first spin calculation, the parent folder is the nscf folder. We want to store it.
+            self.ctx.branch_spin = self.ctx.current_folder
+        else:
+            # We have to replace the current folder from a previous-spin's Wannier90Calculation to the nscf folder
+            self.ctx.current_folder = self.ctx.branch_spin
+        self.report("Set spin-up")
 
-    def set_suffix_down(self):
-        """Set suffix for spin down"""
+    def set_spin_down(self):
+        """Set suffix and parent folder for spin down calculation"""
         self.ctx.spin_suffix = '_down'
-        self.report("Set suffix for spin down")
+        # In this part, we set a branch point to start both spin calculations from the same nscf folder.
+        if getattr(self.ctx, "branch_spin", None) is None:
+            # if this is the first spin calculation, the parent folder is the nscf folder. We want to store it.
+            self.ctx.branch_spin = self.ctx.current_folder
+        else:
+            # We have to replace the current folder from a previous-spin's Wannier90Calculation to the nscf folder
+            self.ctx.current_folder = self.ctx.branch_spin
+        self.report("Set spin-down")
 
     def prepare_wannier90_pp_inputs(self):  # pylint: disable=too-many-statements
         """Prepare the inputs of wannier90 calculation before submission.
@@ -789,12 +812,13 @@ class Wannier90WorkChain(
             self.exposed_inputs(Pw2wannier90BaseWorkChain, namespace="pw2wannier90")
         )
         inputs = base_inputs["pw2wannier90"]
-        parameters = inputs.parameters.get_dict().get("inputpp", {})
+        parameters = inputs.parameters.get_dict()
+        inputpp = parameters.get("inputpp", {})
 
-        scdm_proj = parameters.get("scdm_proj", False)
-        scdm_entanglement = parameters.get("scdm_entanglement", None)
-        scdm_mu = parameters.get("scdm_mu", None)
-        scdm_sigma = parameters.get("scdm_sigma", None)
+        scdm_proj = inputpp.get("scdm_proj", False)
+        scdm_entanglement = inputpp.get("scdm_entanglement", None)
+        scdm_mu = inputpp.get("scdm_mu", None)
+        scdm_sigma = inputpp.get("scdm_sigma", None)
 
         fit_scdm = (
             scdm_proj
@@ -804,6 +828,12 @@ class Wannier90WorkChain(
 
         # With COLLINEAR calculation, we need to specify "_up" or "_down"
         spin_suffix=getattr(self.ctx,"spin_suffix", "")
+        
+        if spin_suffix=="_up":
+            inputpp["spin_component"] = "up"
+        elif spin_suffix=="_down":
+            inputpp["spin_component"] = "down"
+
         if fit_scdm:
             if "workchain_projwfc" not in self.ctx:
                 raise ValueError("Needs to run projwfc for SCDM projection")
@@ -814,10 +844,8 @@ class Wannier90WorkChain(
             ] = getattr(self.ctx.workchain_projwfc.outputs,'projections'+spin_suffix)
             # self.ctx.workchain_projwfc.outputs.projections
 
-        if spin_suffix=="_up":
-            inputs.parameters['inputpp']["spin_component"] = "up"
-        elif spin_suffix=="_down":
-            inputs.parameters['inputpp']["spin_component"] = "down"
+        parameters["inputpp"] = inputpp
+        inputs["parameters"] = orm.Dict(dict=parameters)
         inputs["parent_folder"] = self.ctx.current_folder
         inputs["nnkp_file"] = self.ctx.workchain_wannier90_pp.outputs.nnkp_file
 
@@ -955,9 +983,8 @@ class Wannier90WorkChain(
     def results(self):  # pylint: disable=inconsistent-return-statements
         """Attach the desired output nodes directly as outputs of the workchain."""
 
-        spin_suffix=getattr(self.ctx,"spin_suffix", "")
-        if spin_suffix != "_down":
-            # If spin down, we already attached the output nodes
+        if getattr(self.ctx, "should_attach_pw", True):
+            # We want to attach the outputs only once while this function can be called twice in collinear mode
             if "workchain_scf" in self.ctx:
                 self.out_many(
                     self.exposed_outputs(
@@ -980,33 +1007,28 @@ class Wannier90WorkChain(
                         namespace="projwfc",
                     )
                 )
+            self.ctx.should_attach_pw = False
 
-        # If spin down, we set the namespace to <calculation name>_down
-        # Otherwise, we do not set the namespace.
-        # Note that spin up calculation is set to <calculation name> without suffix
-        name=""
-        if spin_suffix=="_down":
-            name="_down"
-
+        spin_suffix=getattr(self.ctx,"spin_suffix", "")
         self.out_many(
             self.exposed_outputs(
                 self.ctx.workchain_pw2wannier90,
                 Pw2wannier90BaseWorkChain,
-                namespace="pw2wannier90"+name,
+                namespace="pw2wannier90"+spin_suffix,
             )
         )
         self.out_many(
             self.exposed_outputs(
                 self.ctx.workchain_wannier90_pp,
                 Wannier90BaseWorkChain,
-                namespace="wannier90_pp"+name,
+                namespace="wannier90_pp"+spin_suffix,
             )
         )
         self.out_many(
             self.exposed_outputs(
                 self.ctx.workchain_wannier90,
                 Wannier90BaseWorkChain,
-                namespace="wannier90"+name,
+                namespace="wannier90"+spin_suffix,
             )
         )
 
@@ -1047,8 +1069,9 @@ class Wannier90WorkChain(
             "pseudos": dict(pseudos),
         }
         if "workchain_projwfc" in self.ctx:
+            spin_suffix=getattr(self.ctx,"spin_suffix", "")
             num_proj = len(
-                self.ctx.workchain_projwfc.outputs["projections"].get_orbitals()
+                self.ctx.workchain_projwfc.outputs["projections"+spin_suffix].get_orbitals()
             )
             params = self.ctx.workchain_wannier90.inputs["wannier90"][
                 "parameters"

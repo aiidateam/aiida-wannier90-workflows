@@ -90,6 +90,8 @@ def get_scf_builder(
     )
 
     parameters = builder["pw"]["parameters"].get_dict()
+    if spin_type == SpinType.COLLINEAR:
+        parameters["SYSTEM"]["nspin"] = 2
     if spin_type == SpinType.NON_COLLINEAR:
         parameters["SYSTEM"]["noncolin"] = True
     if spin_type == SpinType.SPIN_ORBIT:
