@@ -78,8 +78,7 @@ def get_pseudo_orbitals(pseudos: ty.Mapping[str, PseudoPotentialData]) -> dict:
                 break
         else:
             raise ValueError(
-                f"Cannot find pseudopotential {element} with md5 {pseudos[element].md5}"
-            )
+                f"Cannot find pseudopotential {element} with md5 {pseudos[element].md5} (Currently only support SSSP/1.1/PBE(_sol)/efficiency. Turn off exclude_semicore)")
 
     return pseudo_orbitals
 
@@ -161,13 +160,15 @@ def get_wannier_number_of_bands(
     """
     from .upf import get_upf_content, is_soc_pseudo
 
-    if spin_orbit_coupling:
-        composition = structure.get_composition()
-        for kind in composition:
-            upf = pseudos[kind]
-            upf_content = get_upf_content(upf)
-            if not is_soc_pseudo(upf_content):
-                raise ValueError("Should use SOC pseudo for SOC calculation")
+    # Because we do not want to stop in the NON-COLLINEAR case,
+    # we will skip the validation, otherwise we need additional key for noncolin
+    # if spin_orbit_coupling:
+    #     composition = structure.get_composition()
+    #     for kind in composition:
+    #         upf = pseudos[kind]
+    #         upf_content = get_upf_content(upf)
+    #         if not is_soc_pseudo(upf_content):
+    #             raise ValueError("Should use SOC pseudo for SOC calculation")
 
     num_electrons = get_number_of_electrons(structure, pseudos)
     num_projections = get_number_of_projections(structure, pseudos, spin_orbit_coupling)

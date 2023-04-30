@@ -3,7 +3,7 @@
 
 Usage: ./example_02.py
 """
-# Reference: load_node(2149)
+# reference: load_node(2530)
 import click
 
 from aiida import cmdline, orm
@@ -37,8 +37,10 @@ def submit(
         codes,
         structure,
         protocol="fast",
-        initial_magnetic_moments={"Fe":[0,0,3]},
-        spin_type=SpinType.NON_COLLINEAR,
+        initial_magnetic_moments={"Fe":[1.5,0,1.5]},
+        pseudo_family="pslibrary/1.0.0/rel-pbe/rrkjus",
+        spin_type=SpinType.SPIN_ORBIT,
+        exclude_semicore=False,
     )
 
     # You can change parallelization here

@@ -417,6 +417,7 @@ class Wannier90WorkChain(
             projection_type=projection_type,
             disentanglement_type=disentanglement_type,
             frozen_type=frozen_type,
+            pseudo_family=pseudo_family,
         )
         # Remove workchain excluded inputs
         wannier_builder["wannier90"].pop("structure", None)

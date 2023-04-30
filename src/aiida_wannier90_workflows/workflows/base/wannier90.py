@@ -296,7 +296,8 @@ class Wannier90BaseWorkChain(ProtocolMixin, BaseRestartWorkChain):
         # Set `num_bands`, `num_wann`, also take care of semicore states
         only_valence = electronic_type == ElectronicType.INSULATOR
         spin_polarized = spin_type == SpinType.COLLINEAR
-        spin_orbit_coupling = spin_type == SpinType.SPIN_ORBIT
+        # With the number of bands/projections, NON-COLLINEAR takes the same value as the SPIN_ORBIT
+        spin_orbit_coupling = spin_type in [SpinType.SPIN_ORBIT, SpinType.NON_COLLINEAR]
 
         if pseudo_family is None:
             pseudo_family = meta_parameters["pseudo_family"]
@@ -308,7 +309,7 @@ class Wannier90BaseWorkChain(ProtocolMixin, BaseRestartWorkChain):
             factor=meta_parameters["num_bands_factor"],
             only_valence=only_valence,
             spin_polarized=spin_polarized,
-            spin_orbit_coupling=spin_orbit_coupling,
+            spin_orbit_coupling=spin_orbit_coupling, # Should be renamed to, e.g., "spinor"
         )
         num_projs = get_number_of_projections(
             structure=structure,
