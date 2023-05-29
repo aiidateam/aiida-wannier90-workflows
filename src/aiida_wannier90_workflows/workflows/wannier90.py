@@ -8,7 +8,6 @@ from aiida.common.lang import type_check
 from aiida.engine.processes import ProcessBuilder, ToContext, WorkChain, if_
 from aiida.orm.nodes.data.base import to_aiida_type
 
-from aiida_quantumespresso.calculations.pw import PwCalculation
 from aiida_quantumespresso.common.types import ElectronicType, SpinType
 from aiida_quantumespresso.utils.mapping import prepare_process_inputs
 from aiida_quantumespresso.workflows.protocols.utils import ProtocolMixin
@@ -99,14 +98,13 @@ class Wannier90WorkChain(
         spec.expose_inputs(
             PwBaseWorkChain,
             namespace="nscf",
-            exclude=("clean_workdir", "pw.structure"),
+            exclude=("clean_workdir", "pw.structure", "pw.parent_folder"),
             namespace_options={
                 "required": False,
                 "populate_defaults": False,
                 "help": "Inputs for the `PwBaseWorkChain` for the NSCF calculation.",
             },
         )
-        spec.inputs["nscf"]["pw"].validator = PwCalculation.validate_inputs_base
         spec.expose_inputs(
             ProjwfcBaseWorkChain,
             namespace="projwfc",
