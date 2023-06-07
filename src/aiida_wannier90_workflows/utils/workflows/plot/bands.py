@@ -217,7 +217,7 @@ def get_output_bands(workchain):
     """Return band structure from workchain."""
     if isinstance(workchain, orm.BandsData):
         return workchain
-    if workchain.process_class == PwBaseWorkChain:
+    if workchain.process_class in [PwCalculation, PwBaseWorkChain]:
         return workchain.outputs.output_band
     if workchain.process_class in (
         PwBandsWorkChain,
