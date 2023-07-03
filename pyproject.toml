@@ -26,6 +26,7 @@ classifiers = [
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
     "Natural Language :: English",
     "Topic :: Scientific/Engineering :: Physics",
     "Intended Audience :: Science/Research"
@@ -35,10 +36,8 @@ requires-python = ">=3.8"
 dependencies = [
     "aiida-core>=2.0,<3",
     "aiida-pseudo>=0.6",
-    "aiida-quantumespresso>=4.0",
-    "aiida-wannier90>=3.0",
-    #"aiida-quantumespresso @ git+https://git@github.com/qiaojunfeng/aiida-quantumespresso@fix/compatibility-aiida-2.0#egg=aiida-quantumespresso",
-    #"aiida-wannier90 @ git+https://git@github.com/qiaojunfeng/aiida-wannier90@fix/compatibility-aiida-2.0#egg=aiida-wannier90",
+    "aiida-quantumespresso>=4.3",
+    "aiida-wannier90>=2.1",
     "click>=8.0",
     "colorama"
 ]

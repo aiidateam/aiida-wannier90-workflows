@@ -87,7 +87,7 @@ def sssp(aiida_profile, generate_upf_data):
     from aiida.common.constants import elements
     from aiida.plugins import GroupFactory
 
-    aiida_profile.reset_db()
+    aiida_profile.clear_profile()
 
     SsspFamily = GroupFactory("pseudo.family.sssp")
 
