@@ -10,5 +10,4 @@ CLI reference
     list <list>
     plot <plot>
     group <group>
-    estimate <estimate>
     statistics <statistics>
