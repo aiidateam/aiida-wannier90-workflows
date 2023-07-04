@@ -51,8 +51,7 @@ tests = [
     "pytest",
     "pytest-cov",
     "pytest-regressions",
-    "pgtest",
-    "coverage[toml]"
+    "pgtest"
 ]
 pre-commit = ["pre-commit", "pylint"]
 docs = [
