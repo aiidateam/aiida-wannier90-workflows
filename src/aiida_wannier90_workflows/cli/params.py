@@ -46,8 +46,7 @@ class FilteredWorkflowParamType(types.WorkflowParamType):
                     raise ValueError(
                         f"{entry_point_string} is not a valid entry point string: {exception}"
                     ) from exception
-                else:
-                    self._process_classes.append(entry_point)
+                self._process_classes.append(entry_point)
 
     @with_dbenv()
     def convert(self, value, param, ctx):

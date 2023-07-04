@@ -250,7 +250,7 @@ def cmd_list(
                 num_success += 1
                 continue
             if exit_status is None:
-                raise Exception(
+                raise click.ClickException(
                     f"{process_label}<{pk}> process_state = Finished but exit_status is None?"
                 )
 
@@ -259,7 +259,9 @@ def cmd_list(
             excepted_workflows[exit_status].append(pk)
         else:
             if process_state is None:
-                raise Exception(f"{process_label}<{pk}> process_state is None?")
+                raise click.ClickException(
+                    f"{process_label}<{pk}> process_state is None?"
+                )
 
             if process_state not in excepted_workflows:
                 excepted_workflows[process_state] = []

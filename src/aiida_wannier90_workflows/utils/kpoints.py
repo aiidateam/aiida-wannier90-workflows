@@ -7,7 +7,7 @@ from aiida import orm
 
 
 def get_explicit_kpoints(kmesh: orm.KpointsData) -> orm.KpointsData:
-    """Work just like `kmesh.pl` of Wannier90.
+    """Work just like ``kmesh.pl`` of Wannier90.
 
     :param kmesh: contains a N1 * N2 * N3 mesh
     :type kmesh: aiida.orm.KpointsData
@@ -19,24 +19,24 @@ def get_explicit_kpoints(kmesh: orm.KpointsData) -> orm.KpointsData:
         results = kmesh.get_kpoints_mesh()
     except AttributeError as exc:
         raise ValueError("input does not contain a mesh!") from exc
-    else:
-        # currently offset is ignored
-        mesh = results[0]
 
-        # following is similar to wannier90/kmesh.pl
-        totpts = np.prod(mesh)
-        weights = np.ones([totpts]) / totpts
+    # currently offset is ignored
+    mesh = results[0]
 
-        kpoints = np.zeros([totpts, 3])
-        ind = 0
-        for x in range(mesh[0]):
-            for y in range(mesh[1]):
-                for z in range(mesh[2]):
-                    kpoints[ind, :] = [x / mesh[0], y / mesh[1], z / mesh[2]]
-                    ind += 1
-        klist = orm.KpointsData()
-        klist.set_kpoints(kpoints=kpoints, cartesian=False, weights=weights)
-        return klist
+    # following is similar to wannier90/kmesh.pl
+    totpts = np.prod(mesh)
+    weights = np.ones([totpts]) / totpts
+
+    kpoints = np.zeros([totpts, 3])
+    ind = 0
+    for x in range(mesh[0]):
+        for y in range(mesh[1]):
+            for z in range(mesh[2]):
+                kpoints[ind, :] = [x / mesh[0], y / mesh[1], z / mesh[2]]
+                ind += 1
+    klist = orm.KpointsData()
+    klist.set_kpoints(kpoints=kpoints, cartesian=False, weights=weights)
+    return klist
 
 
 def create_kpoints_from_distance(
