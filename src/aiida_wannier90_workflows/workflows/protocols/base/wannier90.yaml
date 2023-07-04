@@ -1,0 +1,54 @@
+default_inputs:
+    clean_workdir: False
+    shift_energy_windows: False
+    auto_energy_windows: False
+    auto_energy_windows_threshold: 0.9
+    meta_parameters:
+        conv_tol_per_atom: 1.e-7
+        dis_conv_tol_per_atom: 1.e-7
+        num_bands_factor: 2.0
+        kpoints_distance: 0.2
+        kpoints_force_parity: False
+        pseudo_family: 'SSSP/1.1/PBE/efficiency'
+        exclude_semicore: True
+    wannier90:
+        metadata:
+            options:
+                resources:
+                    num_machines: 1
+                max_wallclock_seconds: 43200  # Twelve hours
+                withmpi: True
+        parameters:
+            conv_window: 3
+            dis_num_iter: 4000
+            num_cg_steps: 200
+            num_iter: 4000
+        settings: {}
+default_protocol: moderate
+protocols:
+    moderate:
+        description: 'Protocol to perform the computation at normal precision at moderate computational cost.'
+    precise:
+        description: 'Protocol to perform the computation at high precision at higher computational cost.'
+        meta_parameters:
+            conv_tol_per_atom: 1.e-9
+            dis_conv_tol_per_atom: 1.e-9
+            num_bands_factor: 3.0
+            kpoints_distance: 0.1
+        wannier90:
+            parameters:
+                conv_window: 6
+                dis_num_iter: 40000
+                num_iter: 40000
+    fast:
+        description: 'Protocol to perform the computation at low precision at minimal computational cost for testing purposes.'
+        meta_parameters:
+            conv_tol_per_atom: 1.e-5
+            dis_conv_tol_per_atom: 1.e-5
+            num_bands_factor: 1.2
+            kpoints_distance: 0.5
+        wannier90:
+            parameters:
+                conv_window: 1
+                dis_num_iter: 400
+                num_iter: 400
