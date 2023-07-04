@@ -3,7 +3,7 @@ nscf:
   kpoints: 1728 kpts
   kpoints_force_parity: false
   pw:
-    code: test.quantumespresso.pw@localhost-test
+    code: test.quantumespresso.pw@localhost
     metadata:
       options:
         max_wallclock_seconds: 43200
@@ -37,7 +37,7 @@ nscf:
       Si: Si.pbe-n-rrkjus_psl.1.0.0.UPF
 projwfc:
   projwfc:
-    code: test.quantumespresso.projwfc@localhost-test
+    code: test.quantumespresso.projwfc@localhost
     metadata:
       options:
         max_wallclock_seconds: 43200
@@ -49,7 +49,7 @@ projwfc:
         DeltaE: 0.2
 pw2wannier90:
   pw2wannier90:
-    code: test.quantumespresso.pw2wannier90@localhost-test
+    code: test.quantumespresso.pw2wannier90@localhost
     metadata:
       options:
         max_wallclock_seconds: 43200
@@ -64,7 +64,7 @@ scf:
   kpoints_distance: 0.2
   kpoints_force_parity: false
   pw:
-    code: test.quantumespresso.pw@localhost-test
+    code: test.quantumespresso.pw@localhost
     metadata:
       options:
         max_wallclock_seconds: 43200
@@ -97,7 +97,7 @@ wannier90:
   auto_energy_windows_threshold: 0.9
   shift_energy_windows: false
   wannier90:
-    code: test.wannier90.wannier90@localhost-test
+    code: test.wannier90.wannier90@localhost
     kpoints: 1728 kpts
     metadata:
       options:
