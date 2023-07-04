@@ -1,0 +1,660 @@
+{
+  "H": {
+    "filename": "H.rel-pbe-kjpaw_psl.1.0.0.UPF",
+    "md5": "037bf403638bd299dbaaf1173eb7767f",
+    "pseudopotential": "100PAW",
+    "cutoff": 46.0,
+    "dual": 4.804347826086956
+  },
+  "He": {
+    "filename": "He.rel-pbe-kjpaw_psl.1.0.0.UPF",
+    "md5": "afe997fbd81e4d085705fc8d3505622d",
+    "pseudopotential": "100PAW",
+    "cutoff": 46.0,
+    "dual": 4.413043478260869
+  },
+  "Li": {
+    "filename": "Li.rel-pbe-sl-kjpaw_psl.1.0.0.UPF",
+    "md5": "9a8f4f81f428697f6e12a9a20a0b1c43",
+    "pseudopotential": "100PAW",
+    "cutoff": 50.0,
+    "dual": 6.5
+  },
+  "Be": {
+    "filename": "Be.rel-pbe-sl-kjpaw_psl.1.0.0.UPF",
+    "md5": "1e68d8743e8e6ffa5a3b0a77cc54e2fd",
+    "pseudopotential": "100PAW",
+    "cutoff": 70.0,
+    "dual": 10.142857142857142
+  },
+  "B": {
+    "filename": "B.rel-pbe-n-kjpaw_psl.1.0.0.UPF",
+    "md5": "a48664298749fd77b6d4a2ac3e2adea4",
+    "pseudopotential": "100PAW",
+    "cutoff": 43.0,
+    "dual": 7.558139534883721
+  },
+  "C": {
+    "filename": "C.rel-pbe-n-kjpaw_psl.1.0.0.UPF",
+    "md5": "dd2b8f743de1f3a10095e4114fb28074",
+    "pseudopotential": "100PAW",
+    "cutoff": 40.0,
+    "dual": 8.15
+  },
+  "N": {
+    "filename": "N.rel-pbe-n-kjpaw_psl.1.0.0.UPF",
+    "md5": "ce13193a5f6649a469ffa31f3b7b4cff",
+    "pseudopotential": "100PAW",
+    "cutoff": 44.0,
+    "dual": 7.2727272727272725
+  },
+  "O": {
+    "filename": "O.rel-pbe-n-kjpaw_psl.1.0.0.UPF",
+    "md5": "8d6a81564d6b023d29e58f26e74c0d2c",
+    "pseudopotential": "100PAW",
+    "cutoff": 47.0,
+    "dual": 6.872340425531915
+  },
+  "F": {
+    "filename": "F.rel-pbe-n-kjpaw_psl.1.0.0.UPF",
+    "md5": "aadd520ad1d9d363ccca3cf2760e2cc2",
+    "pseudopotential": "100PAW",
+    "cutoff": 49.0,
+    "dual": 6.448979591836735
+  },
+  "Ne": {
+    "filename": "Ne.rel-pbe-n-kjpaw_psl.1.0.0.UPF",
+    "md5": "f2a593411650ce398e62eb9459a52a1e",
+    "pseudopotential": "100PAW",
+    "cutoff": 54.0,
+    "dual": 4.888888888888889
+  },
+  "Na": {
+    "filename": "Na.rel-pbe-spnl-kjpaw_psl.1.0.0.UPF",
+    "md5": "ab3da668fb837a757098f90f200778bd",
+    "pseudopotential": "100PAW",
+    "cutoff": 66.0,
+    "dual": 4.893939393939394
+  },
+  "Mg": {
+    "filename": "Mg.rel-pbe-spnl-kjpaw_psl.1.0.0.UPF",
+    "md5": "8f8702462a0e2779f1456d461402b56f",
+    "pseudopotential": "100PAW",
+    "cutoff": 58.0,
+    "dual": 6.637931034482759
+  },
+  "Al": {
+    "filename": "Al.rel-pbe-nl-kjpaw_psl.1.0.0.UPF",
+    "md5": "8603568e0b092ac6002233ea90ded6aa",
+    "pseudopotential": "100PAW",
+    "cutoff": 29.0,
+    "dual": 4.172413793103448
+  },
+  "Si": {
+    "filename": "Si.rel-pbe-nl-kjpaw_psl.1.0.0.UPF",
+    "md5": "2f2fadda267dbd22f844df6c3323d5c7",
+    "pseudopotential": "100PAW",
+    "cutoff": 44.0,
+    "dual": 3.977272727272727
+  },
+  "P": {
+    "filename": "P.rel-pbe-nl-kjpaw_psl.1.0.0.UPF",
+    "md5": "7fa0983dd65a922f5b56b305378c65b7",
+    "pseudopotential": "100PAW",
+    "cutoff": 34.0,
+    "dual": 4.0588235294117645
+  },
+  "S": {
+    "filename": "S.rel-pbe-nl-kjpaw_psl.1.0.0.UPF",
+    "md5": "1888ec88091fbc32d6e8c9017227a460",
+    "pseudopotential": "100PAW",
+    "cutoff": 39.0,
+    "dual": 4.0256410256410255
+  },
+  "Cl": {
+    "filename": "Cl.rel-pbe-nl-kjpaw_psl.1.0.0.UPF",
+    "md5": "1aaa40c4a7006a23baa36134b47c89fd",
+    "pseudopotential": "100PAW",
+    "cutoff": 46.0,
+    "dual": 3.9565217391304346
+  },
+  "Ar": {
+    "filename": "Ar.rel-pbe-nl-kjpaw_psl.1.0.0.UPF",
+    "md5": "17cd68c374e6f7ee4e575e3f3459cd78",
+    "pseudopotential": "100PAW",
+    "cutoff": 46.0,
+    "dual": 4.108695652173913
+  },
+  "K": {
+    "filename": "K.rel-pbe-spn-kjpaw_psl.1.0.0.UPF",
+    "md5": "9d8319e24d37a63b3f5001d557e1418a",
+    "pseudopotential": "100PAW",
+    "cutoff": 41.0,
+    "dual": 6.7560975609756095
+  },
+  "Ca": {
+    "filename": "Ca.rel-pbe-spn-kjpaw_psl.1.0.0.UPF",
+    "md5": "07b905d9b275ff261551774cdee6276d",
+    "pseudopotential": "100PAW",
+    "cutoff": 45.0,
+    "dual": 6.088888888888889
+  },
+  "Sc": {
+    "filename": "Sc.rel-pbe-spn-kjpaw_psl.1.0.0.UPF",
+    "md5": "552fa75300d239cdb4413d1eac98d48c",
+    "pseudopotential": "100PAW",
+    "cutoff": 50.0,
+    "dual": 8.04
+  },
+  "Ti": {
+    "filename": "Ti.rel-pbe-spn-kjpaw_psl.1.0.0.UPF",
+    "md5": "cc20945288f03d965ca1bdfdb5c7af61",
+    "pseudopotential": "100PAW",
+    "cutoff": 52.0,
+    "dual": 11.057692307692308
+  },
+  "V": {
+    "filename": "V.rel-pbe-spnl-kjpaw_psl.1.0.0.UPF",
+    "md5": "e977907b3d84fd67c1b4d432f1cac99b",
+    "pseudopotential": "100PAW",
+    "cutoff": 48.0,
+    "dual": 13.4375
+  },
+  "Cr": {
+    "filename": "Cr.rel-pbe-spn-kjpaw_psl.1.0.0.UPF",
+    "md5": "1e24e2b5251376a8b945118fca0c7981",
+    "pseudopotential": "100PAW",
+    "cutoff": 48.0,
+    "dual": 9.520833333333334
+  },
+  "Mn": {
+    "filename": "Mn.rel-pbe-spn-kjpaw_psl.0.3.1.UPF",
+    "md5": "dfba1c7561257014502ac20495784078",
+    "pseudopotential": "100PAW",
+    "cutoff": 46.0,
+    "dual": 5.304347826086956
+  },
+  "Fe": {
+    "filename": "Fe.rel-pbe-n-kjpaw_psl.1.0.0.UPF",
+    "md5": "520a48274b8ea13f3f4b275cf571e414",
+    "pseudopotential": "100PAW",
+    "cutoff": 46.0,
+    "dual": 5.1521739130434785
+  },
+  "Co": {
+    "filename": "Co.rel-pbe-spn-kjpaw_psl.0.3.1.UPF",
+    "md5": "c7d2b4999b9b1346d82f91e66db16ece",
+    "pseudopotential": "100PAW",
+    "cutoff": 60.0,
+    "dual": 7.5
+  },
+  "Ni": {
+    "filename": "Ni.rel-pbe-n-kjpaw_psl.1.0.0.UPF",
+    "md5": "fa22a8d2124a983928a0029b1b4c465b",
+    "pseudopotential": "100PAW",
+    "cutoff": 41.0,
+    "dual": 5.7560975609756095
+  },
+  "Cu": {
+    "filename": "Cu.rel-pbe-dn-kjpaw_psl.1.0.0.UPF",
+    "md5": "685c458065e0290f618c4a0502362fc1",
+    "pseudopotential": "100PAW",
+    "cutoff": 45.0,
+    "dual": 5.2444444444444445
+  },
+  "Zn": {
+    "filename": "Zn.rel-pbe-dn-kjpaw_psl.1.0.0.UPF",
+    "md5": "5accff5148f11972997dfde0e1b48f08",
+    "pseudopotential": "100PAW",
+    "cutoff": 44.0,
+    "dual": 6.2727272727272725
+  },
+  "Ga": {
+    "filename": "Ga.rel-pbe-dnl-kjpaw_psl.1.0.0.UPF",
+    "md5": "b08e22b1d37c8cde44286e4f80e41096",
+    "pseudopotential": "100PAW",
+    "cutoff": 44.0,
+    "dual": 5.454545454545454
+  },
+  "Ge": {
+    "filename": "Ge.rel-pbe-n-kjpaw_psl.1.0.0.UPF",
+    "md5": "b5873b046eebfd6239f19c32a73b61dd",
+    "pseudopotential": "100PAW",
+    "cutoff": 20.0,
+    "dual": 5.8
+  },
+  "As": {
+    "filename": "As.rel-pbe-n-kjpaw_psl.1.0.0.UPF",
+    "md5": "64fce746f52c6128fdf7901f08bfcabb",
+    "pseudopotential": "100PAW",
+    "cutoff": 20.0,
+    "dual": 5.15
+  },
+  "Se": {
+    "filename": "Se.rel-pbe-n-kjpaw_psl.1.0.0.UPF",
+    "md5": "c57aeb42e1736c5d96bbb16beed8c03e",
+    "pseudopotential": "100PAW",
+    "cutoff": 22.0,
+    "dual": 5.318181818181818
+  },
+  "Br": {
+    "filename": "Br.rel-pbe-n-kjpaw_psl.1.0.0.UPF",
+    "md5": "607cf9a8bc29ab81ba9cc3e40c68b5e9",
+    "pseudopotential": "100PAW",
+    "cutoff": 49.0,
+    "dual": 4.959183673469388
+  },
+  "Kr": {
+    "filename": "Kr.rel-pbe-dn-kjpaw_psl.1.0.0.UPF",
+    "md5": "2b9a82e44cb7692ad01e4a272cc510b7",
+    "pseudopotential": "100PAW",
+    "cutoff": 63.0,
+    "dual": 4.841269841269841
+  },
+  "Rb": {
+    "filename": "Rb.rel-pbe-spn-kjpaw_psl.1.0.0.UPF",
+    "md5": "f262b9acce4965c94454ac3028ead90f",
+    "pseudopotential": "100PAW",
+    "cutoff": 35.0,
+    "dual": 7.4
+  },
+  "Sr": {
+    "filename": "Sr.rel-pbe-spn-kjpaw_psl.1.0.0.UPF",
+    "md5": "29a0b1eb8c76fb9ad17737588e801ee1",
+    "pseudopotential": "100PAW",
+    "cutoff": 39.0,
+    "dual": 6.743589743589744
+  },
+  "Y": {
+    "filename": "Y.rel-pbe-spn-kjpaw_psl.1.0.0.UPF",
+    "md5": "fd680bd0e1485fe407cd35146ec60b30",
+    "pseudopotential": "100PAW",
+    "cutoff": 39.0,
+    "dual": 6.589743589743589
+  },
+  "Zr": {
+    "filename": "Zr.rel-pbe-spn-kjpaw_psl.1.0.0.UPF",
+    "md5": "1e2ec7b1d5fa9b223e51cddc9b0ada63",
+    "pseudopotential": "100PAW",
+    "cutoff": 46.0,
+    "dual": 5.826086956521739
+  },
+  "Nb": {
+    "filename": "Nb.rel-pbe-spn-kjpaw_psl.1.0.0.UPF",
+    "md5": "2306cb666db741a7975d44936f4113f9",
+    "pseudopotential": "100PAW",
+    "cutoff": 48.0,
+    "dual": 5.541666666666667
+  },
+  "Mo": {
+    "filename": "Mo.rel-pbe-spn-kjpaw_psl.1.0.0.UPF",
+    "md5": "6cda9dff73cdab358834687290e4775f",
+    "pseudopotential": "100PAW",
+    "cutoff": 49.0,
+    "dual": 6.26530612244898
+  },
+  "Tc": {
+    "filename": "Tc.rel-pbe-spn-kjpaw_psl.0.3.0.UPF",
+    "md5": "5f2582970073318d70d8745f885458ea",
+    "pseudopotential": "100PAW",
+    "cutoff": 63.0,
+    "dual": 13.53968253968254
+  },
+  "Ru": {
+    "filename": "Ru.rel-pbe-spn-kjpaw_psl.1.0.0.UPF",
+    "md5": "bef6ff591f01cbcb98cd5c3cd9671440",
+    "pseudopotential": "100PAW",
+    "cutoff": 52.0,
+    "dual": 7.076923076923077
+  },
+  "Rh": {
+    "filename": "Rh.rel-pbe-spn-kjpaw_psl.1.0.0.UPF",
+    "md5": "be0a2eb4ef258aa3684c35caeb929b78",
+    "pseudopotential": "100PAW",
+    "cutoff": 54.0,
+    "dual": 8.38888888888889
+  },
+  "Pd": {
+    "filename": "Pd.rel-pbe-n-kjpaw_psl.1.0.0.UPF",
+    "md5": "a714dc8e170841c784d7b7259c5b8e99",
+    "pseudopotential": "100PAW",
+    "cutoff": 37.0,
+    "dual": 12.108108108108109
+  },
+  "Ag": {
+    "filename": "Ag.rel-pbe-n-kjpaw_psl.1.0.0.UPF",
+    "md5": "3d80c1377587b16f7a0a130fe984ec3c",
+    "pseudopotential": "100PAW",
+    "cutoff": 45.0,
+    "dual": 4.044444444444444
+  },
+  "Cd": {
+    "filename": "Cd.rel-pbe-n-kjpaw_psl.1.0.0.UPF",
+    "md5": "a93254e88be9606c5d1c3af865ba934e",
+    "pseudopotential": "100PAW",
+    "cutoff": 37.0,
+    "dual": 17.243243243243242
+  },
+  "In": {
+    "filename": "In.rel-pbe-dn-kjpaw_psl.1.0.0.UPF",
+    "md5": "ec524eff3d3f5f608c97c0d1a988d36f",
+    "pseudopotential": "100PAW",
+    "cutoff": 41.0,
+    "dual": 5.2926829268292686
+  },
+  "Sn": {
+    "filename": "Sn.rel-pbe-dn-kjpaw_psl.1.0.0.UPF",
+    "md5": "6bcaba2b82cf8d008985ef5bb9854e68",
+    "pseudopotential": "100PAW",
+    "cutoff": 47.0,
+    "dual": 5.319148936170213
+  },
+  "Sb": {
+    "filename": "Sb.rel-pbe-n-kjpaw_psl.1.0.0.UPF",
+    "md5": "fdb47162c1d03e2226be93e80d85f130",
+    "pseudopotential": "100PAW",
+    "cutoff": 27.0,
+    "dual": 8.962962962962964
+  },
+  "Te": {
+    "filename": "Te.rel-pbe-n-kjpaw_psl.1.0.0.UPF",
+    "md5": "6ffde90f16471d786941b44326de665d",
+    "pseudopotential": "100PAW",
+    "cutoff": 32.0,
+    "dual": 4.90625
+  },
+  "I": {
+    "filename": "I.rel-pbe-n-kjpaw_psl.1.0.0.UPF",
+    "md5": "1650324410fde579213a6e5684c4bdbf",
+    "pseudopotential": "100PAW",
+    "cutoff": 37.0,
+    "dual": 4.162162162162162
+  },
+  "Xe": {
+    "filename": "Xe.rel-pbe-dn-kjpaw_psl.1.0.0.UPF",
+    "md5": "10097592cf2890105a7512c6ff9f6bd2",
+    "pseudopotential": "100PAW",
+    "cutoff": 45.0,
+    "dual": 4.711111111111111
+  },
+  "Cs": {
+    "filename": "Cs.rel-pbe-spnl-kjpaw_psl.1.0.0.UPF",
+    "md5": "43c7e50e7537efc959a96d614f9319b0",
+    "pseudopotential": "100PAW",
+    "cutoff": 35.0,
+    "dual": 4.942857142857143
+  },
+  "Ba": {
+    "filename": "Ba.rel-pbe-spn-kjpaw_psl.1.0.0.UPF",
+    "md5": "e0a6704b63fd109dcd1beae34e497b38",
+    "pseudopotential": "100PAW",
+    "cutoff": 38.0,
+    "dual": 5.052631578947368
+  },
+  "La": {
+    "filename": "La.rel-pbe-spfn-kjpaw_psl.1.0.0.UPF",
+    "md5": "b0542c53e79b904402c04089a938eaf7",
+    "pseudopotential": "100PAW",
+    "cutoff": 75.0,
+    "dual": 7.16
+  },
+  "Ce": {
+    "filename": "Ce.rel-pbe-spdn-kjpaw_psl.1.0.0.UPF",
+    "md5": "ac0589d7a8aa323f6f089402d08f5237",
+    "pseudopotential": "100PAW",
+    "cutoff": 37.0,
+    "dual": 4.837837837837838
+  },
+  "Pr": {
+    "filename": "Pr.rel-pbe-spdn-kjpaw_psl.1.0.0.UPF",
+    "md5": "bb1b2b058161422b68becb8df0d1f262",
+    "pseudopotential": "100PAW",
+    "cutoff": 41.0,
+    "dual": 7.560975609756097
+  },
+  "Nd": {
+    "filename": "Nd.rel-pbe-spdn-kjpaw_psl.1.0.0.UPF",
+    "md5": "6ff95a8fee99aa3d44d5d8ac73bb2e80",
+    "pseudopotential": "100PAW",
+    "cutoff": 38.0,
+    "dual": 5.315789473684211
+  },
+  "Pm": {
+    "filename": "Pm.rel-pbe-spdn-kjpaw_psl.1.0.0.UPF",
+    "md5": "a2e5bc1f9393ebaa72fc7e86f1554155",
+    "pseudopotential": "100PAW",
+    "cutoff": 34.0,
+    "dual": 5.823529411764706
+  },
+  "Sm": {
+    "filename": "Sm.rel-pbe-spdn-kjpaw_psl.1.0.0.UPF",
+    "md5": "b6519f5cc08770db5cfae66c810ff3b8",
+    "pseudopotential": "100PAW",
+    "cutoff": 34.0,
+    "dual": 5.735294117647059
+  },
+  "Eu": {
+    "filename": "Eu.rel-pbe-spn-kjpaw_psl.1.0.0.UPF",
+    "md5": "0f4890f90715dec083c371bcc9b256a7",
+    "pseudopotential": "100PAW",
+    "cutoff": 34.0,
+    "dual": 7.588235294117647
+  },
+  "Gd": {
+    "filename": "Gd.rel-pbe-spdn-kjpaw_psl.1.0.0.UPF",
+    "md5": "cf50ec46d1536b4a0251694df1946a53",
+    "pseudopotential": "100PAW",
+    "cutoff": 35.0,
+    "dual": 6.485714285714286
+  },
+  "Tb": {
+    "filename": "Tb.rel-pbe-spdn-kjpaw_psl.1.0.0.UPF",
+    "md5": "700eebc4f50079decd557a28dc109dda",
+    "pseudopotential": "100PAW",
+    "cutoff": 37.0,
+    "dual": 6.1891891891891895
+  },
+  "Dy": {
+    "filename": "Dy.rel-pbe-spdn-kjpaw_psl.1.0.0.UPF",
+    "md5": "42720cd9d253473921ac26539f12d6ce",
+    "pseudopotential": "100PAW",
+    "cutoff": 38.0,
+    "dual": 7.0
+  },
+  "Ho": {
+    "filename": "Ho.rel-pbe-spdn-kjpaw_psl.1.0.0.UPF",
+    "md5": "4e7d248ab65f475caafadc0ff536b909",
+    "pseudopotential": "100PAW",
+    "cutoff": 39.0,
+    "dual": 6.897435897435898
+  },
+  "Er": {
+    "filename": "Er.rel-pbe-spdn-kjpaw_psl.1.0.0.UPF",
+    "md5": "8c298ca11345cf5d9b596ed50b214319",
+    "pseudopotential": "100PAW",
+    "cutoff": 41.0,
+    "dual": 6.512195121951219
+  },
+  "Tm": {
+    "filename": "Tm.rel-pbe-spdn-kjpaw_psl.1.0.0.UPF",
+    "md5": "5d7679c4767fe0044790657f41612833",
+    "pseudopotential": "100PAW",
+    "cutoff": 42.0,
+    "dual": 7.595238095238095
+  },
+  "Yb": {
+    "filename": "Yb.rel-pbe-spn-kjpaw_psl.1.0.0.UPF",
+    "md5": "0fbbf752bbc253549dc5dfd7522b5c46",
+    "pseudopotential": "100PAW",
+    "cutoff": 41.0,
+    "dual": 6.902439024390244
+  },
+  "Lu": {
+    "filename": "Lu.rel-pbe-spdn-kjpaw_psl.1.0.0.UPF",
+    "md5": "fad49a86ec33ae00582513928e6a0c76",
+    "pseudopotential": "100PAW",
+    "cutoff": 46.0,
+    "dual": 7.521739130434782
+  },
+  "Hf": {
+    "filename": "Hf.rel-pbe-spn-kjpaw_psl.1.0.0.UPF",
+    "md5": "8ce506c0f46fc2cc302dfd56fbe7bf7a",
+    "pseudopotential": "100PAW",
+    "cutoff": 47.0,
+    "dual": 5.638297872340425
+  },
+  "Ta": {
+    "filename": "Ta.rel-pbe-spn-kjpaw_psl.1.0.0.UPF",
+    "md5": "6e1ba5769453fa802ec161040803b94f",
+    "pseudopotential": "100PAW",
+    "cutoff": 44.0,
+    "dual": 6.0227272727272725
+  },
+  "W": {
+    "filename": "W.rel-pbe-spn-kjpaw_psl.1.0.0.UPF",
+    "md5": "51235a9978e123729cef7a6d558439d4",
+    "pseudopotential": "100PAW",
+    "cutoff": 55.0,
+    "dual": 6.781818181818182
+  },
+  "Re": {
+    "filename": "Re.rel-pbe-spn-kjpaw_psl.1.0.0.UPF",
+    "md5": "bab10902f3fc225f315186e6d4fb561d",
+    "pseudopotential": "100PAW",
+    "cutoff": 54.0,
+    "dual": 5.37037037037037
+  },
+  "Os": {
+    "filename": "Os.rel-pbe-spn-kjpaw_psl.1.0.0.UPF",
+    "md5": "51c2f091ef93c19d3c8bc1be2c896382",
+    "pseudopotential": "100PAW",
+    "cutoff": 54.0,
+    "dual": 5.0
+  },
+  "Ir": {
+    "filename": "Ir.rel-pbe-n-kjpaw_psl.0.2.3.UPF",
+    "md5": "7464b96378ac869c952ab691ff2c142a",
+    "pseudopotential": "100PAW",
+    "cutoff": 40.0,
+    "dual": 13.15
+  },
+  "Pt": {
+    "filename": "Pt.rel-pbe-n-kjpaw_psl.1.0.0.UPF",
+    "md5": "0dcc0e6bd842dd014541fe5e1bebba10",
+    "pseudopotential": "100PAW",
+    "cutoff": 40.0,
+    "dual": 10.825
+  },
+  "Au": {
+    "filename": "Au.rel-pbe-n-kjpaw_psl.1.0.0.UPF",
+    "md5": "b87bb77ae6867f007b35a4e582de23d4",
+    "pseudopotential": "100PAW",
+    "cutoff": 42.0,
+    "dual": 10.071428571428571
+  },
+  "Hg": {
+    "filename": "Hg.rel-pbe-n-kjpaw_psl.1.0.0.UPF",
+    "md5": "6e7b0decf2762d189d0a600be1e5846d",
+    "pseudopotential": "100PAW",
+    "cutoff": 43.0,
+    "dual": 9.651162790697674
+  },
+  "Tl": {
+    "filename": "Tl.rel-pbe-dn-kjpaw_psl.1.0.0.UPF",
+    "md5": "add605f074e4fa0ec7ec06e2454b19f5",
+    "pseudopotential": "100PAW",
+    "cutoff": 45.0,
+    "dual": 4.666666666666667
+  },
+  "Pb": {
+    "filename": "Pb.rel-pbe-dn-kjpaw_psl.1.0.0.UPF",
+    "md5": "54e0f0e621ff9d6c5bf4ce01d002391d",
+    "pseudopotential": "100PAW",
+    "cutoff": 46.0,
+    "dual": 4.586956521739131
+  },
+  "Bi": {
+    "filename": "Bi.rel-pbe-dn-kjpaw_psl.1.0.0.UPF",
+    "md5": "a2fd874d7f712db44af558c1e47d3b28",
+    "pseudopotential": "100PAW",
+    "cutoff": 45.0,
+    "dual": 10.133333333333333
+  },
+  "Po": {
+    "filename": "Po.rel-pbe-dn-kjpaw_psl.1.0.0.UPF",
+    "md5": "c1d82601782829f2bd78463fb241e97a",
+    "pseudopotential": "100PAW",
+    "cutoff": 85.0,
+    "dual": 5.376470588235295
+  },
+  "At": {
+    "filename": "At.rel-pbe-dn-kjpaw_psl.1.0.0.UPF",
+    "md5": "c0dd30d4e93ba7514619d0c6dc065c5a",
+    "pseudopotential": "100PAW",
+    "cutoff": 50.0,
+    "dual": 9.46
+  },
+  "Rn": {
+    "filename": "Rn.rel-pbe-dn-kjpaw_psl.1.0.0.UPF",
+    "md5": "1156f8d53df07c76c6e1eccde6d42143",
+    "pseudopotential": "100PAW",
+    "cutoff": 50.0,
+    "dual": 4.4
+  },
+  "Fr": {
+    "filename": "Fr.rel-pbe-spdn-kjpaw_psl.1.0.0.UPF",
+    "md5": "0e717d8e6ffb84a12ff4b3ea0f1965c0",
+    "pseudopotential": "100PAW",
+    "cutoff": 67.0,
+    "dual": 7.582089552238806
+  },
+  "Ra": {
+    "filename": "Ra.rel-pbe-spdn-kjpaw_psl.1.0.0.UPF",
+    "md5": "a50650454229b68ce33d2bac4ee18716",
+    "pseudopotential": "100PAW",
+    "cutoff": 82.0,
+    "dual": 6.512195121951219
+  },
+  "Ac": {
+    "filename": "Ac.rel-pbe-spfn-kjpaw_psl.1.0.0.UPF",
+    "md5": "e8e3517250e7f5db38a4f823e9d8df7b",
+    "pseudopotential": "100PAW",
+    "cutoff": 48.0,
+    "dual": 6.854166666666667
+  },
+  "Th": {
+    "filename": "Th.rel-pbe-spfn-kjpaw_psl.1.0.0.UPF",
+    "md5": "41f00f31c519dd19b3c396b9be9857e8",
+    "pseudopotential": "100PAW",
+    "cutoff": 103.0,
+    "dual": 4.019417475728155
+  },
+  "Pa": {
+    "filename": "Pa.rel-pbe-spfn-kjpaw_psl.1.0.0.UPF",
+    "md5": "5ae4273d92b79b6f3060f74e478631c9",
+    "pseudopotential": "100PAW",
+    "cutoff": 91.0,
+    "dual": 4.912087912087912
+  },
+  "U": {
+    "filename": "U.rel-pbe-spfn-kjpaw_psl.1.0.0.UPF",
+    "md5": "cdc9612a36cd57600ea475b5246d9738",
+    "pseudopotential": "100PAW",
+    "cutoff": 93.0,
+    "dual": 7.537634408602151
+  },
+  "Np": {
+    "filename": "Np.rel-pbe-spfn-kjpaw_psl.1.0.0.UPF",
+    "md5": "35915e68fa6a4b3a8cbe18e970f64960",
+    "pseudopotential": "100PAW",
+    "cutoff": 111.0,
+    "dual": 5.054054054054054
+  },
+  "Pu": {
+    "filename": "Pu.rel-pbe-spfn-kjpaw_psl.1.0.0.UPF",
+    "md5": "e010d28413c0ccffc9c18da7c0afce86",
+    "pseudopotential": "100PAW",
+    "cutoff": 45.0,
+    "dual": 7.844444444444444
+  }
+}

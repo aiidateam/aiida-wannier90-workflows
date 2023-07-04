@@ -1,0 +1,27 @@
+2022-05-12 22:07:11 [179 | REPORT]: [446|Wannier90BandsWorkChain|run_seekpath]: launching seekpath: CsH -> CsH
+2022-05-12 22:07:11 [180 | REPORT]: [446|Wannier90BandsWorkChain|run_scf]: launching PwBaseWorkChain<454> in scf mode
+2022-05-12 22:07:12 [181 | REPORT]:   [454|PwBaseWorkChain|run_process]: launching PwCalculation<459> iteration #1
+2022-05-12 22:07:55 [182 | REPORT]:   [454|PwBaseWorkChain|results]: work chain completed after 1 iterations
+2022-05-12 22:07:55 [183 | REPORT]:   [454|PwBaseWorkChain|on_terminated]: remote folders will not be cleaned
+2022-05-12 22:07:55 [184 | REPORT]: [446|Wannier90BandsWorkChain|run_nscf]: launching PwBaseWorkChain<466> in nscf mode
+2022-05-12 22:07:56 [185 | REPORT]:   [466|PwBaseWorkChain|run_process]: launching PwCalculation<469> iteration #1
+2022-05-12 22:19:39 [187 | REPORT]:   [466|PwBaseWorkChain|results]: work chain completed after 1 iterations
+2022-05-12 22:19:40 [188 | REPORT]:   [466|PwBaseWorkChain|on_terminated]: remote folders will not be cleaned
+2022-05-12 22:19:40 [189 | REPORT]: [446|Wannier90BandsWorkChain|run_projwfc]: launching ProjwfcBaseWorkChain<476>
+2022-05-12 22:19:40 [190 | REPORT]:   [476|ProjwfcBaseWorkChain|run_process]: launching ProjwfcCalculation<477> iteration #1
+2022-05-12 22:19:50 [191 | REPORT]:   [476|ProjwfcBaseWorkChain|results]: work chain completed after 1 iterations
+2022-05-12 22:19:50 [192 | REPORT]:   [476|ProjwfcBaseWorkChain|on_terminated]: remote folders will not be cleaned
+2022-05-12 22:19:50 [193 | REPORT]: [446|Wannier90BandsWorkChain|run_wannier90_pp]: launching Wannier90BaseWorkChain<487> in postproc mode
+2022-05-12 22:19:51 [194 | REPORT]:   [487|Wannier90BaseWorkChain|run_process]: launching Wannier90Calculation<489> iteration #1
+2022-05-12 22:19:59 [195 | REPORT]:   [487|Wannier90BaseWorkChain|results]: work chain completed after 1 iterations
+2022-05-12 22:19:59 [196 | REPORT]:   [487|Wannier90BaseWorkChain|on_terminated]: remote folders will not be cleaned
+2022-05-12 22:20:00 [197 | REPORT]: [446|Wannier90BandsWorkChain|run_pw2wannier90]: launching Pw2wannier90BaseWorkChain<495>
+2022-05-12 22:20:02 [198 | REPORT]:   [495|Pw2wannier90BaseWorkChain|run_process]: launching Pw2wannier90Calculation<497> iteration #1
+2022-05-12 22:20:39 [199 | REPORT]:   [495|Pw2wannier90BaseWorkChain|results]: work chain completed after 1 iterations
+2022-05-12 22:20:39 [200 | REPORT]:   [495|Pw2wannier90BaseWorkChain|on_terminated]: remote folders will not be cleaned
+2022-05-12 22:20:40 [201 | REPORT]: [446|Wannier90BandsWorkChain|run_wannier90]: launching Wannier90BaseWorkChain<506>
+2022-05-12 22:20:41 [202 | REPORT]:   [506|Wannier90BaseWorkChain|run_process]: launching Wannier90Calculation<508> iteration #1
+2022-05-12 22:21:00 [203 | REPORT]:   [506|Wannier90BaseWorkChain|results]: work chain completed after 1 iterations
+2022-05-12 22:21:00 [204 | REPORT]:   [506|Wannier90BaseWorkChain|on_terminated]: remote folders will not be cleaned
+2022-05-12 22:21:00 [205 | REPORT]: [446|Wannier90BandsWorkChain|results]: Wannier90BandsWorkChain successfully completed
+2022-05-12 22:21:01 [206 | REPORT]: [446|Wannier90BandsWorkChain|on_terminated]: remote folders will not be cleaned
