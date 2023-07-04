@@ -316,7 +316,6 @@ def cmd_plot_exportbands(pw, wannier, savedir):
         os.mkdir(savedir)
 
     for wan_wc in wan_group.nodes:
-
         formula = wan_wc.inputs.structure.get_formula()
 
         if not wan_wc.is_finished_ok:

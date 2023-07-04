@@ -47,7 +47,7 @@ def test_atomic_projectors_qe(
     builder = Wannier90OpenGridWorkChain.get_builder_from_protocol(
         **inputs,
         projection_type=WannierProjectionType.ATOMIC_PROJECTORS_QE,
-        print_summary=False
+        print_summary=False,
     )
 
     assert isinstance(builder, ProcessBuilder)
@@ -60,14 +60,14 @@ def test_electronic_type(generate_builder_inputs):
         builder = Wannier90OpenGridWorkChain.get_builder_from_protocol(
             **generate_builder_inputs(),
             electronic_type=ElectronicType.AUTOMATIC,
-            print_summary=False
+            print_summary=False,
         )
 
     builder = Wannier90OpenGridWorkChain.get_builder_from_protocol(
         **generate_builder_inputs(),
         electronic_type=ElectronicType.INSULATOR,
         open_grid_only_scf=False,
-        print_summary=False
+        print_summary=False,
     )
     for namespace, occupations in zip((builder.scf, builder.nscf), ("fixed", "fixed")):
         parameters = namespace["pw"]["parameters"].get_dict()
@@ -79,7 +79,7 @@ def test_electronic_type(generate_builder_inputs):
         **generate_builder_inputs(),
         electronic_type=ElectronicType.METAL,
         open_grid_only_scf=False,
-        print_summary=False
+        print_summary=False,
     )
     for namespace, occupations in zip(
         (builder.scf, builder.nscf), ("smearing", "smearing")
@@ -102,7 +102,7 @@ def test_spin_type(generate_builder_inputs):
         **generate_builder_inputs(),
         spin_type=SpinType.NONE,
         open_grid_only_scf=False,
-        print_summary=False
+        print_summary=False,
     )
     for namespace in [builder.scf, builder.nscf]:
         parameters = namespace["pw"]["parameters"].get_dict()
@@ -124,7 +124,7 @@ def test_projection_type(generate_builder_inputs):
     builder = Wannier90OpenGridWorkChain.get_builder_from_protocol(
         **generate_builder_inputs(),
         projection_type=WannierProjectionType.ATOMIC_PROJECTORS_QE,
-        print_summary=False
+        print_summary=False,
     )
     for namespace in [
         builder.wannier90,

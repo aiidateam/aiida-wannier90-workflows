@@ -40,7 +40,6 @@ class FilteredWorkflowParamType(types.WorkflowParamType):
                 )
 
             for entry_point_string in process_classes:
-
                 try:
                     entry_point = get_entry_point_from_string(entry_point_string)
                 except (ValueError, exceptions.EntryPointError) as exception:
@@ -59,7 +58,6 @@ class FilteredWorkflowParamType(types.WorkflowParamType):
         entity = super().convert(value, param, ctx)
 
         if self._process_classes:
-
             for entry_point in self._process_classes:
                 try:
                     process_class = entry_point.load()
