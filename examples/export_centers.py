@@ -7,7 +7,6 @@ from aiida_wannier90_workflows.utils.parser.center import export_wf_centers_to_x
 # pylint: disable=invalid-name
 
 if __name__ == "__main__":
-
     # The PK of a `Wannier90Calculation`
     calculation_pk = 123
     # The name of the XSF file to be saved

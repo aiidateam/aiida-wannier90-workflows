@@ -179,7 +179,6 @@ def set_parallelization(
             )
 
     elif process_class == PwBandsWorkChain:
-
         if "relax" in pruned_builder:
             set_parallelization(
                 builder["relax"],
@@ -202,7 +201,6 @@ def set_parallelization(
             )
 
     elif process_class == ProjwfcBandsWorkChain:
-
         if "relax" in pruned_builder:
             set_parallelization(
                 builder["relax"],
@@ -232,7 +230,6 @@ def set_parallelization(
             )
 
     elif process_class == Wannier90BandsWorkChain:
-
         if "scf" in pruned_builder:
             set_parallelization(
                 builder["scf"],

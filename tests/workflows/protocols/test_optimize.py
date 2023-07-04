@@ -47,7 +47,7 @@ def test_atomic_projectors_qe(
     builder = Wannier90OptimizeWorkChain.get_builder_from_protocol(
         **inputs,
         projection_type=WannierProjectionType.ATOMIC_PROJECTORS_QE,
-        print_summary=False
+        print_summary=False,
     )
 
     assert isinstance(builder, ProcessBuilder)
@@ -60,13 +60,13 @@ def test_electronic_type(generate_builder_inputs):
         builder = Wannier90OptimizeWorkChain.get_builder_from_protocol(
             **generate_builder_inputs(),
             electronic_type=ElectronicType.AUTOMATIC,
-            print_summary=False
+            print_summary=False,
         )
 
     builder = Wannier90OptimizeWorkChain.get_builder_from_protocol(
         **generate_builder_inputs(),
         electronic_type=ElectronicType.INSULATOR,
-        print_summary=False
+        print_summary=False,
     )
     for namespace, occupations in zip((builder.scf, builder.nscf), ("fixed", "fixed")):
         parameters = namespace["pw"]["parameters"].get_dict()
@@ -77,7 +77,7 @@ def test_electronic_type(generate_builder_inputs):
     builder = Wannier90OptimizeWorkChain.get_builder_from_protocol(
         **generate_builder_inputs(),
         electronic_type=ElectronicType.METAL,
-        print_summary=False
+        print_summary=False,
     )
     for namespace, occupations in zip(
         (builder.scf, builder.nscf), ("smearing", "smearing")
@@ -119,7 +119,7 @@ def test_projection_type(generate_builder_inputs):
     builder = Wannier90OptimizeWorkChain.get_builder_from_protocol(
         **generate_builder_inputs(),
         projection_type=WannierProjectionType.ATOMIC_PROJECTORS_QE,
-        print_summary=False
+        print_summary=False,
     )
     for namespace in [
         builder.wannier90,
