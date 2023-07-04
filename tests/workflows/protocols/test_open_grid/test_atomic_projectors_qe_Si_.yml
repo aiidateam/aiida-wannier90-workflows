@@ -1,7 +1,7 @@
 clean_workdir: false
 open_grid:
   open_grid:
-    code: test.quantumespresso.open_grid@localhost-test
+    code: test.quantumespresso.open_grid@localhost
     metadata:
       options:
         max_wallclock_seconds: 43200
@@ -10,7 +10,7 @@ open_grid:
         withmpi: true
 pw2wannier90:
   pw2wannier90:
-    code: test.quantumespresso.pw2wannier90@localhost-test
+    code: test.quantumespresso.pw2wannier90@localhost
     metadata:
       options:
         max_wallclock_seconds: 43200
@@ -24,7 +24,7 @@ scf:
   kpoints_distance: 0.2
   kpoints_force_parity: false
   pw:
-    code: test.quantumespresso.pw@localhost-test
+    code: test.quantumespresso.pw@localhost
     metadata:
       options:
         max_wallclock_seconds: 43200
@@ -58,7 +58,7 @@ wannier90:
   auto_energy_windows_threshold: 0.9
   shift_energy_windows: true
   wannier90:
-    code: test.wannier90.wannier90@localhost-test
+    code: test.wannier90.wannier90@localhost
     kpoints: 1331 kpts
     metadata:
       options:

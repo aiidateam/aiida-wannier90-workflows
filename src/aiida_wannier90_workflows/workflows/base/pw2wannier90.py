@@ -50,10 +50,6 @@ def validate_inputs(  # pylint: disable=unused-argument,inconsistent-return-stat
             fit_scdm = True
 
     if fit_scdm:
-        # Check `bands`
-        if any(_ in inputs for _ in ("bands", "bands_projections")):
-            return "`bands` and/or `bands_projections` are provided but `scdm_proj` is False?"
-
         # Check bands and bands_projections are provided
         if any(_ not in inputs for _ in ("bands_projections", "bands")):
             return "`scdm_proj` is True but `bands_projections` or `bands` is empty"
