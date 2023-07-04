@@ -1,0 +1,23 @@
+code: test.quantumespresso.pw@localhost
+kpoints: '[2, 2, 2] mesh + [0.0, 0.0, 0.0] offset'
+metadata:
+  options:
+    max_wallclock_seconds: 1800
+    resources:
+      num_machines: 1
+    withmpi: false
+parameters:
+  CONTROL:
+    calculation: scf
+  ELECTRONS:
+    electron_maxstep: 60
+    fake_tag:
+    - 1
+    - 2
+  SYSTEM:
+    ecutrho: 240.0
+    ecutwfc: 30.0
+    nbnd: 20
+pseudos:
+  Si: Si.pbe-n-rrkjus_psl.1.0.0.UPF
+structure: Si2

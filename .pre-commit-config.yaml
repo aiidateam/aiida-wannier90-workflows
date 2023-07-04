@@ -1,22 +1,70 @@
-# Install pre-commit hooks via
-# pre-commit install
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.4.0
+    hooks:
+      - id: end-of-file-fixer
+        exclude: &exclude_txtfiles >-
+          (?x)^(
+              tests/.*.*out|
+              tests/.*.in|
+              examples/.*.xsf|
+              docs/.*.agr|
+              docs/.*.xsf
+          )$
+      - id: fix-encoding-pragma
+        args: ["--remove"]
+        exclude: *exclude_txtfiles
+      - id: mixed-line-ending
+        exclude: *exclude_txtfiles
+      - id: trailing-whitespace
+        exclude: *exclude_txtfiles
+      - id: check-json
+      - id: check-yaml
+      - id: check-toml
 
-- repo: local
-  hooks:
-  - id: yapf
-    name: yapf
-    entry: yapf
-    language: system
-    types: [python]
-    args: ["-i"]
-  - id: prospector
-    language: system
-    types: [file, python]
-    name: prospector
-    description: "This hook runs Prospector: https://github.com/landscapeio/prospector"
-    entry: prospector
-  - id: version-number
-    name: Check version numbers
-    entry: python ./.travis-data/check_version.py
-    language: system
-    files: '^(setup.json)|(aiida_wannier90/__init__.py)'
+  # - repo: https://github.com/mgedmin/check-manifest
+  #   rev: "0.48"
+  #   hooks:
+  #     - id: check-manifest
+
+  - repo: https://github.com/asottile/pyupgrade
+    rev: v3.8.0
+    hooks:
+      - id: pyupgrade
+        args: ["--py37-plus"]
+
+  - repo: https://github.com/ikamensh/flynt/
+    rev: "0.78"
+    hooks:
+      - id: flynt
+        args: ["--line-length=120", "--fail-on-change"]
+
+  - repo: https://github.com/PyCQA/isort
+    rev: 5.12.0
+    hooks:
+      - id: isort
+        additional_dependencies: ["toml"]
+
+  - repo: https://github.com/psf/black
+    rev: 23.3.0
+    hooks:
+      - id: black
+
+  - repo: https://github.com/PyCQA/pydocstyle
+    rev: 6.3.0
+    hooks:
+      - id: pydocstyle
+        exclude: &exclude_pyfiles >
+          (?x)^(
+              src/aiida_wannier90_workflows/utils/.*/get_w90model_from_aiida.py|
+              docs/.*|
+              tests/.*(?<!\.py)$
+          )$
+        args: ["--ignore=D104,D202,D203,D213"]
+
+  - repo: https://github.com/PyCQA/pylint
+    rev: v3.0.0a6
+    hooks:
+      - id: pylint
+        language: system
+        exclude: *exclude_pyfiles
