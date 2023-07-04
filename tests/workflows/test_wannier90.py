@@ -34,7 +34,7 @@ def test_scdm(
         scf_workchain, link_type=LinkType.RETURN, link_label="remote_folder"
     )
 
-    params = orm.Dict(dict={"fermi_energy": 6.0, "number_of_electrons": 8})
+    params = orm.Dict({"fermi_energy": 6.0, "number_of_electrons": 8})
     params.store()
     params.add_incoming(
         scf_workchain, link_type=LinkType.RETURN, link_label="output_parameters"

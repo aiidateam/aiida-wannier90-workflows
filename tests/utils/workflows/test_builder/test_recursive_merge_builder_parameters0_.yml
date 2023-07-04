@@ -1,4 +1,4 @@
-code: test.quantumespresso.pw@localhost-test
+code: test.quantumespresso.pw@localhost
 kpoints: '[2, 2, 2] mesh + [0.0, 0.0, 0.0] offset'
 metadata:
   options:

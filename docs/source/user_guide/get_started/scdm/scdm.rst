@@ -387,7 +387,7 @@ Hints: change the input parameters of the builder
 
     params = builder["wannier90"]["wannier90"]["parameters"].get_dict()
     params['num_iter'] = 0
-    builder["wannier90"]["wannier90"]["parameters"] = orm.Dict(dict=params)
+    builder["wannier90"]["wannier90"]["parameters"] = orm.Dict(params)
 
 **Exercise**:
 Run the workflow for 1 or 2 materials of the dataset.

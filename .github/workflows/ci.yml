@@ -5,72 +5,109 @@ on: [push, pull_request]
 jobs:
   pre-commit:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
+
       - name: Cache python dependencies
         id: cache-pip
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ~/.cache/pip
-          key: pip-pre-commit-${{ hashFiles('**/setup.json') }}
+          key: pip-pre-commit-${{ hashFiles('**/pyproject.toml') }}
           restore-keys: pip-pre-commit-
+
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
-          python-version: "3.10"
+          python-version: "3.11"
+
       - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -e .[pre-commit,tests,analysis]
+        run: pip install -e .[pre-commit,tests,analysis]
+
       - name: Run pre-commit
-        run: pre-commit run --all-files || ( git status --short ; git diff ; exit 1 )
+        run: pre-commit run --all-files || ( git status --short; git diff; exit 1 )
+
   tests:
     runs-on: ubuntu-latest
+
     strategy:
       matrix:
-        python-version: ['3.8', '3.9', '3.10']
+        python-version: ["3.8", "3.9", "3.10", "3.11"]
+
     services:
       postgres:
-        image: postgres:10
-        env:
-          POSTGRES_DB: test_${{ matrix.backend }}
-          POSTGRES_PASSWORD: ""
-          POSTGRES_HOST_AUTH_METHOD: trust
+        image: postgres:12
         ports:
           - 5432:5432
+
       rabbitmq:
         image: rabbitmq:latest
         ports:
           - 5672:5672
+
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
+
       - name: Cache python dependencies
         id: cache-pip
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ~/.cache/pip
-          key: pip-${{ matrix.python-version }}-tests-${{ hashFiles('**/setup.json') }}
-          restore-keys: pip-${{ matrix.python-version }}-tests
+          key: pip-tests-${{ matrix.python-version }}-${{ hashFiles('**/pyproject.toml') }}
+          restore-keys: pip-tests-${{ matrix.python-version }}
+
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Install system dependencies
-        run: |
-          sudo apt update
-          sudo apt install postgresql-12
+
       - name: Install python dependencies
-        run: |
-          pip install --upgrade setuptools
-          pip install wheel
-          pip install -e .[tests]
-          reentry scan
+        run: pip install -e .[tests]
+
       - name: Run pytest
         run: pytest --cov=aiida_wannier90_workflows --cov-report=xml -sv
         working-directory: tests
+
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v2
         with:
           fail_ci_if_error: true
           verbose: true
           working-directory: tests
+
+  docs:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python-version: ["3.8"]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Cache Python dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: pip-docs-${{ matrix.python-version }}-${{ hashFiles('**/pyproject.toml') }}
+          restore-keys: pip-docs-${{ matrix.python-version }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install the python project
+        run: pip install -e .[docs]
+
+      - name: Build documentation
+        env:
+          READTHEDOCS: "True"
+        run: SPHINXOPTS='-nW' make -C docs html
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: doc-build
+          path: docs/build/html
