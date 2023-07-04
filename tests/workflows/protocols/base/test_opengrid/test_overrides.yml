@@ -1,9 +1,0 @@
-clean_workdir: false
-opengrid:
-  code: test.quantumespresso.opengrid@localhost-test
-  metadata:
-    options:
-      max_wallclock_seconds: 43200
-      resources:
-        num_machines: 1
-      withmpi: false

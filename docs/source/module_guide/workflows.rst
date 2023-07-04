@@ -7,7 +7,7 @@ Workflows
 This section describes the different workchains for development.
 
 .. currentmodule: aiida_wannier90_workflows.workflows
-.. autoclass:: aiida_wannier90_workflows.workflows.base.opengrid.OpengridBaseWorkChain
+.. autoclass:: aiida_wannier90_workflows.workflows.base.open_grid.OpenGridBaseWorkChain
 
 .. autoclass:: aiida_wannier90_workflows.workflows.base.projwfc.ProjwfcBaseWorkChain
 
@@ -17,7 +17,7 @@ This section describes the different workchains for development.
 
 .. autoclass:: aiida_wannier90_workflows.workflows.wannier90.Wannier90WorkChain
 
-.. autoclass:: aiida_wannier90_workflows.workflows.opengrid.Wannier90OpengridWorkChain
+.. autoclass:: aiida_wannier90_workflows.workflows.open_grid.Wannier90OpenGridWorkChain
 
 .. autoclass:: aiida_wannier90_workflows.workflows.bands.Wannier90BandsWorkChain
 

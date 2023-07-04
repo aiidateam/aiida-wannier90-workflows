@@ -29,7 +29,7 @@ def test_prepare_inputs_additional_remote_symlink_list(
 
     inputs = {"wannier90": generate_inputs_wannier90_base()}
     remote_symlink_files = ["aiida.hkmn", "aiida.hvmn"]
-    inputs["settings"] = orm.Dict(dict={"remote_symlink_files": remote_symlink_files})
+    inputs["settings"] = orm.Dict({"remote_symlink_files": remote_symlink_files})
 
     process = generate_workchain_wannier90_base(inputs=inputs)
     process.setup()
@@ -57,7 +57,7 @@ def test_prepare_inputs_additional_remote_symlink_list(
     "dis_froz_max",
     (
         (1, 2.82242466),  # LUMO + 1
-        (8, 3.98687455),  # min((num_wann-1)-th bands) - 1e-4
+        (8, 6.66929678),  # max((num_wann-1)-th bands), 0-indexed
     ),
 )
 def test_prepare_inputs_shift_energy_windows(
@@ -76,7 +76,7 @@ def test_prepare_inputs_shift_energy_windows(
     parameters["fermi_energy"] = 1.2
     parameters["dis_froz_max"] = dis_froz_max[0]
     parameters["num_wann"] = 4
-    inputs["parameters"] = Dict(dict=parameters)
+    inputs["parameters"] = Dict(parameters)
 
     inputs = {"wannier90": inputs}
     inputs["bands"] = generate_bands_data()
@@ -107,7 +107,7 @@ def test_prepare_inputs_auto_energy_windows(
     # Test SCDM fitting is working
     parameters["fermi_energy"] = 1.2
     parameters["num_wann"] = 4
-    inputs["parameters"] = Dict(dict=parameters)
+    inputs["parameters"] = Dict(parameters)
 
     inputs = {"wannier90": inputs}
     inputs["bands"] = generate_bands_data()
@@ -121,7 +121,7 @@ def test_prepare_inputs_auto_energy_windows(
 
     parameters = inputs["parameters"].get_dict()
     assert "dis_froz_max" in parameters, parameters
-    assert abs(parameters["dis_froz_max"] - 3.98687455) < 1e-8, parameters
+    assert abs(parameters["dis_froz_max"] - 3.98697455) < 1e-8, parameters
 
 
 @pytest.mark.parametrize(
