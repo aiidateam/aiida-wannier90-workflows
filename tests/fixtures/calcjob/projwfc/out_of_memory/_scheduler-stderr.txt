@@ -1,0 +1,4 @@
+slurmstepd: error: Detected 1 oom-kill event(s) in step 252838.0 cgroup. Some of your processes may have been killed by the cgroup out-of-memory handler.
+srun: error: nid002456: tasks 0-127: Out Of Memory
+srun: Terminating job step 252838.0
+slurmstepd: error: Detected 1 oom-kill event(s) in step 252838.batch cgroup. Some of your processes may have been killed by the cgroup out-of-memory handler.

@@ -1,0 +1,5 @@
+include LICENSE
+recursive-include aiida_wannier90_workflows/utils/pseudo/data *.json
+recursive-include aiida_wannier90_workflows/workflows/protocols *.yaml
+recursive-include examples *.py
+recursive-include examples *.xsf
