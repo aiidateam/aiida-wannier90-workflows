@@ -96,7 +96,6 @@ html_theme_options = {
     "use_fullscreen_button": False,
     "path_to_docs": "docs",
     "use_edit_page_button": True,
-    "extra_navbar": '<p>Made possible by the support of <a href="http://nccr-marvel.ch/" target="_blank"> NCCR MARVEL</a>, <a href="http://www.max-centre.eu/" target="_blank"> MaX CoE</a> and the <a href="https://www.materialscloud.org/swissuniversities" target="_blank"> swissuniversities P-5 project</a>.</p>',
 }
 html_domain_indices = True
 html_logo = "_static/logo.png"
