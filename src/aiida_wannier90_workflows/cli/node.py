@@ -473,12 +473,14 @@ def cmd_node_saveinput(ctx, workflow, path):
     from aiida_wannier90_workflows.utils.workflows import get_last_calcjob
     from aiida_wannier90_workflows.workflows.bands import Wannier90BandsWorkChain
     from aiida_wannier90_workflows.workflows.open_grid import Wannier90OpenGridWorkChain
+    from aiida_wannier90_workflows.workflows.projwfcbands import ProjwfcBandsWorkChain
     from aiida_wannier90_workflows.workflows.wannier90 import Wannier90WorkChain
 
     supported_class = (
         Wannier90WorkChain,
         Wannier90OpenGridWorkChain,
         Wannier90BandsWorkChain,
+        ProjwfcBandsWorkChain,
     )
     if workflow.process_class not in supported_class:
         echo.echo_error(f"Only support {supported_class}, input is {workflow}")
@@ -493,7 +495,14 @@ def cmd_node_saveinput(ctx, workflow, path):
     for link in links:
         link_label = link.link_label
 
-        if link_label in ("scf", "nscf", "open_grid", "pw2wannier90"):
+        if link_label in (
+            "scf",
+            "nscf",
+            "open_grid",
+            "pw2wannier90",
+            "projwfc",
+            "bands",
+        ):
             calcjob = link.node
             if isinstance(calcjob, orm.WorkChainNode):
                 calcjob = get_last_calcjob(calcjob)
