@@ -470,17 +470,22 @@ def cmd_node_saveinput(ctx, workflow, path):
 
     from aiida.cmdline.commands.cmd_calcjob import calcjob_inputcat
 
+    from aiida_quantumespresso.workflows.pw.bands import PwBandsWorkChain
+
     from aiida_wannier90_workflows.utils.workflows import get_last_calcjob
     from aiida_wannier90_workflows.workflows.bands import Wannier90BandsWorkChain
     from aiida_wannier90_workflows.workflows.open_grid import Wannier90OpenGridWorkChain
+    from aiida_wannier90_workflows.workflows.optimize import Wannier90OptimizeWorkChain
     from aiida_wannier90_workflows.workflows.projwfcbands import ProjwfcBandsWorkChain
     from aiida_wannier90_workflows.workflows.wannier90 import Wannier90WorkChain
 
     supported_class = (
+        PwBandsWorkChain,
+        ProjwfcBandsWorkChain,
         Wannier90WorkChain,
         Wannier90OpenGridWorkChain,
         Wannier90BandsWorkChain,
-        ProjwfcBandsWorkChain,
+        Wannier90OptimizeWorkChain,
     )
     if workflow.process_class not in supported_class:
         echo.echo_error(f"Only support {supported_class}, input is {workflow}")
@@ -507,9 +512,9 @@ def cmd_node_saveinput(ctx, workflow, path):
             if isinstance(calcjob, orm.WorkChainNode):
                 calcjob = get_last_calcjob(calcjob)
             save_path = dir_path / f"{link_label}.in"
-        elif link_label == "wannier90":
+        elif link_label in ["wannier90", "wannier90_plot"]:
             calcjob = get_last_calcjob(link.node)
-            save_path = dir_path / "aiida.win"
+            save_path = dir_path / f"{link_label}.win"
         else:
             continue
 
