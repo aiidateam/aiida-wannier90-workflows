@@ -1,0 +1,52 @@
+{
+    "Bi": {
+        "filename": "Bi.upf",
+        "md5": "5808bfbc943b7d9d4a2af85e8fbc469b",
+        "pswfcs": [
+            "5S",
+            "5P",
+            "5D",
+            "6S",
+            "6P"
+        ],
+        "semicores": [
+            "5S",
+            "5P",
+            "5D"
+        ]
+    },
+    "O": {
+        "filename": "O.upf",
+        "md5": "9db02a5ece9d56b81b65a73f8163743d",
+        "pswfcs": [
+            "2S",
+            "2P"
+        ],
+        "semicores": []
+    },
+    "Pb": {
+        "filename": "Pb.upf",
+        "md5": "ef32195dce39f3be2bd8d55c45026041",
+        "pswfcs": [
+            "5S",
+            "5P",
+            "5D",
+            "6S",
+            "6P"
+        ],
+        "semicores": [
+            "5S",
+            "5P",
+            "5D"
+        ]
+    },
+    "Si": {
+        "filename": "Si.upf",
+        "md5": "3f156eda2279325da2083dedf8f436a5",
+        "pswfcs": [
+            "3S",
+            "3P"
+        ],
+        "semicores": []
+    }
+}
