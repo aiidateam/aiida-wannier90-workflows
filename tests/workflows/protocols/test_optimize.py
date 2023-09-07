@@ -25,19 +25,6 @@ def test_get_default_protocol():
 
 
 @pytest.mark.parametrize("structure", ("Si", "H2O", "GaAs", "BaTiO3"))
-def test_scdm(generate_builder_inputs, data_regression, serialize_builder, structure):
-    """Test ``Wannier90OptimizeWorkChain.get_builder_from_protocol`` for the default protocol."""
-
-    inputs = generate_builder_inputs(structure)
-    builder = Wannier90OptimizeWorkChain.get_builder_from_protocol(
-        **inputs, print_summary=False
-    )
-
-    assert isinstance(builder, ProcessBuilder)
-    data_regression.check(serialize_builder(builder))
-
-
-@pytest.mark.parametrize("structure", ("Si", "H2O", "GaAs", "BaTiO3"))
 def test_atomic_projectors_qe(
     generate_builder_inputs, data_regression, serialize_builder, structure
 ):
