@@ -26,11 +26,12 @@ def submit(
 ):
     """Submit a ``PwBandsWorkChain`` to calculate PW bands."""
     builder = PwBandsWorkChain.get_builder_from_protocol(code, structure=structure)
+    builder.pop("relax")
 
     # You can change parallelization here
     parallelization = {
-        "num_mpiprocs_per_machine": 1,
-        "npool": 1,
+        "num_mpiprocs_per_machine": 8,
+        "npool": 4,
     }
     set_parallelization(builder, parallelization, process_class=PwBandsWorkChain)
 
@@ -52,6 +53,7 @@ def cli(filename, code, group, run):
     FILENAME: a crystal structure file, e.g., ``input_files/GaAs.xsf``.
     """
     struct = read_structure(filename, store=True)
+    # struct = orm.load_node(126831)
     submit(code, struct, group, run)
 
 

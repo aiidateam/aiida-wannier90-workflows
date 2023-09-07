@@ -173,6 +173,12 @@ class Wannier90BaseWorkChain(ProtocolMixin, BaseRestartWorkChain):
             help="Projectability of bands to auto set `dis_froz_max`.",
         )
         spec.input(
+            "guiding_centres_projections",
+            valid_type=(orm.OrbitalData, orm.Dict, orm.List),
+            required=False,
+            help="Projections block for `guiding_centres = True`.",
+        )
+        spec.input(
             "settings",
             valid_type=orm.Dict,
             required=False,
@@ -549,6 +555,22 @@ class Wannier90BaseWorkChain(ProtocolMixin, BaseRestartWorkChain):
             # to allow doing disentanglement
             dis_froz_max = min(max_froz_energy, parameters["dis_froz_max"])
             parameters["dis_froz_max"] = dis_froz_max
+
+        # quick and hacky way to enable guiding_centres while still using
+        # auto_projections = True in the nnkp step
+        # - in nnkp generation step, we ignore guiding_centres totally, and
+        #   use whatever user provided in inputs, can be analytic projections or
+        #   auto_projections
+        # - in Wannierization step, we check if guiding_centres_projections is
+        #   provided or not: if yes, pop auto_projections from parameters and
+        #   set guiding_centres = True, and set projections from guiding_centres_projections;
+        #   if not, we change nothing.
+        w90_settings = self.inputs.wannier90.get("settings", orm.Dict()).get_dict()
+        postproc_setup = w90_settings.get("postproc_setup", False)
+        if not postproc_setup and "guiding_centres_projections" in self.inputs:
+            parameters.pop("auto_projections", None)
+            parameters["guiding_centres"] = True
+            inputs.projections = self.inputs.guiding_centres_projections
 
         inputs.parameters = orm.Dict(parameters)
 
