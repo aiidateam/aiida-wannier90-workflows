@@ -11,6 +11,7 @@ from aiida.orm.nodes.data.base import to_aiida_type
 
 from aiida_quantumespresso.utils.mapping import prepare_process_inputs
 
+from aiida_wannier90_workflows.common.types import WannierProjectionType
 from aiida_wannier90_workflows.utils.workflows import get_last_calcjob
 
 from .bands import Wannier90BandsWorkChain
@@ -260,6 +261,7 @@ class Wannier90OptimizeWorkChain(Wannier90BandsWorkChain):
             recursive_merge_builder,
         )
 
+        kwargs.setdefault("projection_type", WannierProjectionType.ATOMIC_PROJECTORS_QE)
         parent_builder = super().get_builder_from_protocol(codes, structure, **kwargs)
 
         if reference_bands is not None:
