@@ -36,7 +36,7 @@ requires-python = ">=3.8"
 dependencies = [
     "aiida-core>=2.0,<3",
     "aiida-pseudo>=0.6",
-    "aiida-quantumespresso>=4.3",
+    "aiida-quantumespresso>=4.4",
     "aiida-wannier90>=2.1",
     "click>=8.0",
     "colorama"
