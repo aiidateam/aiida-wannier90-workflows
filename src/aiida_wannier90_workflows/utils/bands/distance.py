@@ -11,9 +11,13 @@ def fermi_dirac(energy: np.array, mu: float, sigma: float) -> np.array:
     """Fermi-Dirac distribution function."""
     return 1.0 / (np.exp((energy - mu) / sigma) + 1.0)
 
+
 def gaussian(energy: np.array, mu: float, sigma: float) -> np.array:
     """Gaussian distribution function."""
-    return np.exp(-(energy - mu)**2 / (2 * sigma**2))/np.sqrt(2*np.pi*sigma**2)
+    return np.exp(-((energy - mu) ** 2) / (2 * sigma**2)) / np.sqrt(
+        2 * np.pi * sigma**2
+    )
+
 
 def compute_lower_cutoff(energy: np.array, lower_cutoff: float) -> np.array:
     """Return a mask to remove eigenvalues smaller equal than ``lower_cutoff``."""
