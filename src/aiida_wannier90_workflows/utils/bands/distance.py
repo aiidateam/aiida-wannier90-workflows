@@ -12,6 +12,13 @@ def fermi_dirac(energy: np.array, mu: float, sigma: float) -> np.array:
     return 1.0 / (np.exp((energy - mu) / sigma) + 1.0)
 
 
+def gaussian(energy: np.array, mu: float, sigma: float) -> np.array:
+    """Gaussian distribution function."""
+    return np.exp(-((energy - mu) ** 2) / (2 * sigma**2)) / np.sqrt(
+        2 * np.pi * sigma**2
+    )
+
+
 def compute_lower_cutoff(energy: np.array, lower_cutoff: float) -> np.array:
     """Return a mask to remove eigenvalues smaller equal than ``lower_cutoff``."""
     if lower_cutoff is None:
@@ -26,6 +33,7 @@ def bands_distance_raw(  # pylint: disable=too-many-arguments,too-many-locals
     sigma: float,
     exclude_list_dft: list = None,
     lower_cutoff: float = None,
+    gaussian_weight: bool = False,
 ) -> tuple:
     """Calculate bands distance with specified ``mu`` and ``sigma``.
 
@@ -36,6 +44,8 @@ def bands_distance_raw(  # pylint: disable=too-many-arguments,too-many-locals
     :para mu, sigma: in eV.
     :param exclude_list_dft: if passed should be a list of the excluded bands,
        1-indexed
+    :param gaussian_weight: if True, gaussian weight will be used instead of
+        Fermi-Dirac
     """
     if exclude_list_dft is None:
         exclude_list_dft = []
@@ -64,14 +74,22 @@ def bands_distance_raw(  # pylint: disable=too-many-arguments,too-many-locals
     dft_bands_to_compare = dft_bands_filtered[:, : wannier_bands_filtered.shape[1]]
 
     bands_energy_difference = dft_bands_to_compare - wannier_bands_filtered
-    bands_weight_dft = fermi_dirac(
-        dft_bands_to_compare, mu, sigma
-    ) * compute_lower_cutoff(dft_bands_to_compare, lower_cutoff)
-    bands_weight_wannier = fermi_dirac(
-        wannier_bands_filtered, mu, sigma
-    ) * compute_lower_cutoff(dft_bands_to_compare, lower_cutoff)
-    bands_weight = np.sqrt(bands_weight_dft * bands_weight_wannier)
+    if gaussian_weight:
+        bands_weight_dft = gaussian(
+            dft_bands_to_compare, mu, sigma
+        ) * compute_lower_cutoff(dft_bands_to_compare, lower_cutoff)
+        bands_weight_wannier = gaussian(
+            wannier_bands_filtered, mu, sigma
+        ) * compute_lower_cutoff(dft_bands_to_compare, lower_cutoff)
+    else:
+        bands_weight_dft = fermi_dirac(
+            dft_bands_to_compare, mu, sigma
+        ) * compute_lower_cutoff(dft_bands_to_compare, lower_cutoff)
+        bands_weight_wannier = fermi_dirac(
+            wannier_bands_filtered, mu, sigma
+        ) * compute_lower_cutoff(dft_bands_to_compare, lower_cutoff)
 
+    bands_weight = np.sqrt(bands_weight_dft * bands_weight_wannier)
     arr = bands_energy_difference**2 * bands_weight
     bands_dist = np.sqrt(np.sum(arr) / np.sum(bands_weight))
 
@@ -93,6 +111,7 @@ def bands_distance(
     bands_wannier: ty.Union[orm.BandsData, np.array],
     fermi_energy: float,
     exclude_list_dft: list = None,
+    gaussian_weight: bool = False,
 ) -> np.array:
     """Calculate bands distance with ``mu`` set as Ef to Ef+5.
 
@@ -132,6 +151,7 @@ def bands_distance(
             mu=mu,
             sigma=0.1,
             lower_cutoff=-30,
+            gaussian_weight=gaussian_weight,
         )
         # mu, bands_distance, max_distance, max_distance_2
         dist[i, :] = [mu, res[0], res[1], res[2]]
