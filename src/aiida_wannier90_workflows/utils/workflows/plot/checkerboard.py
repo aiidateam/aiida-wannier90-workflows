@@ -78,7 +78,7 @@ def plot_checkerboard_raw(  # pylint: disable=inconsistent-return-statements
     checkerboard: np.array,
     max_range: np.array,
     min_range: np.array,
-    eta_index: int = None,
+    eta_index: int = 2,
     title: str = None,
     ax: plt.Axes = None,
     show: bool = False,
@@ -148,7 +148,9 @@ def plot_checkerboard_raw(  # pylint: disable=inconsistent-return-statements
         im = ax.imshow(
             sorted_checkerboard, origin="lower", cmap="RdYlBu_r"
         )  # pylint: disable=invalid-name
-        ax.set_title(f"E <= EF+{idx_z}eV (meV)")
+        eta_min = np.nanmin(sorted_checkerboard)
+        eta_max = np.nanmax(sorted_checkerboard)
+        ax.set_title(f"E <= EF+{idx_z}eV (meV), min={eta_min:.3f}, max={eta_max:.3f}")
         ax.set_xticks(range(len(label_x)))
         ax.set_xticklabels(label_x[ind_sort_x])
         ax.set_xlabel("dis_proj_max (%)")
@@ -184,17 +186,21 @@ def plot_checkerboard(
     """
 
     checkerboard, max_range, min_range = compute_checkerboard(optimize_workchain)
+    fig, axs = plt.subplots(3, 2, figsize=(24, 8))
 
-    fig = plot_checkerboard_raw(
-        checkerboard,
-        max_range,
-        min_range,
-        title=(
-            f"Bands distance checkerboard for {optimize_workchain.process_label}"
-            f"<{optimize_workchain.pk}> {optimize_workchain.inputs.structure.get_formula()}"
-        ),
-        show=False,
-    )
+    for eta_idx in range(6):
+        plot_checkerboard_raw(
+            checkerboard,
+            max_range,
+            min_range,
+            eta_index=eta_idx,
+            title=(
+                f"Bands distance checkerboard for {optimize_workchain.process_label}"
+                f"<{optimize_workchain.pk}> {optimize_workchain.inputs.structure.get_formula()}"
+            ),
+            ax=axs.flat[eta_idx],
+            show=False,
+        )
 
     if filename:
         fig.savefig(filename, bbox_inches="tight", dpi=300)
