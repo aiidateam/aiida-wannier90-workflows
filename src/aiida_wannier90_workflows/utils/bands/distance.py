@@ -14,9 +14,7 @@ def fermi_dirac(energy: np.array, mu: float, sigma: float) -> np.array:
 
 def gaussian(energy: np.array, mu: float, sigma: float) -> np.array:
     """Gaussian distribution function."""
-    return np.exp(-((energy - mu) ** 2) / (2 * sigma**2)) / np.sqrt(
-        2 * np.pi * sigma**2
-    )
+    return np.exp(-((energy - mu) ** 2) / (2 * sigma**2))
 
 
 def compute_lower_cutoff(energy: np.array, lower_cutoff: float) -> np.array:
@@ -142,7 +140,6 @@ def bands_distance(
     mu_range = np.arange(start, stop + 0.0001, 1)
 
     dist = np.full((len(mu_range), 4), np.nan)
-
     for i, mu in enumerate(mu_range):
         res = bands_distance_raw(
             dft_bands=dft_bands,
@@ -155,6 +152,10 @@ def bands_distance(
         )
         # mu, bands_distance, max_distance, max_distance_2
         dist[i, :] = [mu, res[0], res[1], res[2]]
+        if (
+            gaussian_weight
+        ):  # for gaussian weight only dist[0] contains the result for mu = fermi_energy, other rows are nan
+            break  # this prevents numpy RuntimeWarning warnings due to division by zero when there are no bands close to the shifted fermi level
 
     return dist
 
