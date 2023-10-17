@@ -152,10 +152,11 @@ def bands_distance(
         )
         # mu, bands_distance, max_distance, max_distance_2
         dist[i, :] = [mu, res[0], res[1], res[2]]
-        if (
-            gaussian_weight
-        ):  # for gaussian weight only dist[0] contains the result for mu = fermi_energy, other rows are nan
-            break  # this prevents numpy RuntimeWarning warnings due to division by zero when there are no bands close to the shifted fermi level
+        # for gaussian weight only dist[0] contains the result for mu = fermi_energy, other rows are nan
+        # this prevents numpy RuntimeWarning warnings due to division by zero
+        # when there are no bands close to the shifted fermi level
+        if gaussian_weight:
+            break
 
     return dist
 
