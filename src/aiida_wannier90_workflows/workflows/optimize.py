@@ -265,6 +265,11 @@ class Wannier90OptimizeWorkChain(Wannier90BandsWorkChain):
         )
 
         kwargs.setdefault("projection_type", WannierProjectionType.ATOMIC_PROJECTORS_QE)
+        if reference_bands and kwargs.get("bands_kpoints", None) is None:
+            warnings.warn(
+                "It is recommended to provide both `reference_bands` and `bands_kpoints` so that"
+                " the seekpath step can be skipped."
+            )
         parent_builder = super().get_builder_from_protocol(codes, structure, **kwargs)
 
         if reference_bands is not None:
