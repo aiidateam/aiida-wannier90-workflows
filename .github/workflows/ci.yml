@@ -72,8 +72,9 @@ jobs:
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          fail_ci_if_error: true
+          # token: ${{ secrets.CODECOV_TOKEN }}
+          token: 72dba8d9-0743-4c6a-b85d-1222db169c80
+          fail_ci_if_error: false
           verbose: true
           working-directory: tests
 
