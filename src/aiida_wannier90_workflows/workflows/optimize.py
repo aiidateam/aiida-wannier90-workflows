@@ -31,11 +31,12 @@ def validate_inputs(inputs, ctx=None):  # pylint: disable=unused-argument
 
     parameters = inputs["wannier90"]["wannier90"]["parameters"].get_dict()
 
-    if inputs["optimize_disproj"]:
+    optimize_disproj = inputs.get("optimize_disproj", True)
+    if optimize_disproj:
         if all(_ not in parameters for _ in ("dis_proj_min", "dis_proj_max")):
             return "Trying to optimize dis_proj_min/max but no dis_proj_min/max in wannier90 parameters?"
 
-    if "optimize_reference_bands" in inputs and not inputs["optimize_disproj"]:
+    if "optimize_reference_bands" in inputs and not optimize_disproj:
         warnings.warn(
             "`optimize_reference_bands` is provided but `optimize_disproj = False`?"
         )
@@ -46,7 +47,8 @@ def validate_inputs(inputs, ctx=None):  # pylint: disable=unused-argument
     ):
         return "No `optimize_reference_bands` but `optimize_bands_distance_threshold` is set?"
 
-    if inputs["separate_plotting"]:
+    separate_plotting = inputs.get("separate_plotting", False)
+    if separate_plotting:
         plot_inputs = [
             parameters.get(_, False)
             for _ in Wannier90OptimizeWorkChain._WANNIER90_PLOT_INPUTS  # pylint: disable=protected-access
@@ -57,7 +59,7 @@ def validate_inputs(inputs, ctx=None):  # pylint: disable=unused-argument
                 f"{'/'.join(Wannier90OptimizeWorkChain._WANNIER90_PLOT_INPUTS)} in wannier90 parameters?"  # pylint: disable=protected-access
             )
 
-    if inputs["optimize_disproj"] and not inputs["separate_plotting"]:
+    if optimize_disproj and not separate_plotting:
         warnings.warn(
             "`optimize_disproj = True` but `separate_plotting = False`. For optimizing projectability "
             "disentanglement, it is highly recommended to run the plotting mode in a separate step."
