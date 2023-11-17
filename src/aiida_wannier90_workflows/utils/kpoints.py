@@ -50,13 +50,9 @@ def create_kpoints_from_distance(
     this is not a ``calcfunction``, so the AiiDA database is unchanged.
 
     :param structure: [description]
-    :type structure: [type]
     :param distance: [description]
-    :type distance: [type]
     :param force_parity: whether the generated mesh is even or odd.
-    :type force_parity: bool, aiida.orm.Bool
     :return: [description]
-    :rtype: [type]
     """
     kpoints = orm.KpointsData()
     kpoints.set_cell_from_structure(structure)
@@ -89,7 +85,6 @@ def cartesian_product(*arrays: np.ndarray) -> np.ndarray:
     """Cartesian product.
 
     :return: _description_
-    :rtype: np.ndarray
     """
     la = len(arrays)  # pylint: disable=invalid-name
     dtype = np.result_type(*arrays)
@@ -103,10 +98,8 @@ def get_mesh_from_kpoints(kpoints: orm.KpointsData) -> ty.List:
     """From .
 
     :param kpoints: contains a N1 * N2 * N3 mesh
-    :type kpoints: aiida.orm.KpointsData
     :raises AttributeError: if kmesh does not contains a mesh
     :return: an explicit list of kpoints
-    :rtype: aiida.orm.KpointsData
     """
     try:  # test if it is a mesh
         mesh, _ = kpoints.get_kpoints_mesh()
@@ -137,11 +130,8 @@ def create_kpoints_from_mesh(
     """Create KpointsData from a given distance.
 
     :param structure: [description]
-    :type structure: [type]
     :param mesh: [description]
-    :type mesh: [type]
     :return: [description]
-    :rtype: [type]
     """
     kpoints = orm.KpointsData()
     kpoints.set_cell_from_structure(structure)
@@ -159,11 +149,8 @@ def get_explicit_kpoints_from_mesh(
     """Create an explicit list of kpoints with a given distance.
 
     :param structure: [description]
-    :type structure: [type]
     :param mesh: [description]
-    :type mesh: [type]
     :return: [description]
-    :rtype: [type]
     """
     kpoints = create_kpoints_from_mesh(structure, mesh)
     kpoints = get_explicit_kpoints(kpoints)
@@ -178,9 +165,7 @@ def get_path_from_kpoints(kpoints: orm.KpointsData) -> orm.Dict:
     to the input `kpoint_path` (a Dict object) of Wannier90Calculation.
 
     :param kpoints: the input KpointsData must contain `labels`.
-    :type kpoints: orm.KpointsData
     :return: the returned Dict object contains two keys: `path` and `point_coords`.
-    :rtype: orm.Dict
     """
     assert kpoints.labels is not None, "`kpoints` must have `labels`"
     assert len(kpoints.labels) >= 2
@@ -231,9 +216,7 @@ def get_kpoints_from_bands(bands: orm.BandsData) -> orm.KpointsData:
     """Create a ``KpointsData`` from a ``BandsData``.
 
     :param bands: the input ``BandsData`` object .
-    :type bands: aiida.orm.BandsData
     :return: the returned ``KpointsData`` must contain ``labels``.
-    :rtype: aiida.orm.KpointsData
     """
     kpoints = orm.KpointsData()
 

@@ -54,7 +54,8 @@ extensions = [
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3/", None),
     "numpy": ("https://numpy.org/doc/stable/", None),
-    "aiida": ("https://aiida.readthedocs.io/projects/aiida-core/en/latest", None),
+    "aiida": ("https://aiida.readthedocs.io/projects/aiida-core/en/latest/", None),
+    "aiida_pseudo": ("https://aiida-pseudo.readthedocs.io/en/latest/", None),
 }
 
 # Settings for the `sphinx_copybutton` extension
@@ -63,8 +64,6 @@ copybutton_prompt_text = (
     r">>> |\.\.\. |(?:\(.*\) )?\$ |In \[\d*\]: | {2,5}\.\.\.: | {5,8}: "
 )
 copybutton_prompt_is_regexp = True
-
-nitpick_ignore = [("py:obj", "module")]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
@@ -187,6 +186,10 @@ latex_elements = {
 # Warnings to ignore when using the -n (nitpicky) option
 # We should ignore any python built-in exception, for instance
 nitpick_ignore = [
+    ("py:obj", "module"),
+    ("py:class", "numpy.array"),
+    ("py:class", "np.array"),
+    ("py:class", "ty.Tuple"),
     ("py:exc", "ArithmeticError"),
     ("py:exc", "AssertionError"),
     ("py:exc", "AttributeError"),

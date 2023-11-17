@@ -60,11 +60,8 @@ def generate_supercell(
     """Generate a supercell for finding nearest neighbours.
 
     :param cell: each row is a lattice vector
-    :type cell: np.array
     :param size: number of repetitions = 2*size + 1, defaults to 2
-    :type size: int, optional
     :return: supercell and the translation index
-    :rtype: list[np.array, np.array]
     """
     # Generate a supercell (2D: square, 3D: cube).
     # If the angles between lattice vectors are small, a 3*3*3 supercell is not enough
@@ -221,9 +218,7 @@ def get_wigner_seitz(cell: np.array, search_size: int = 2) -> np.array:
     """Get Wigner-Seitz cell.
 
     :param cell: each row is a lattice vector.
-    :type cell: np.array
     :return: Wigner-Seitz cell
-    :rtype: np.array
     """
     import itertools
 
