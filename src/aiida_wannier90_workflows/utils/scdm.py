@@ -82,13 +82,9 @@ def fit_scdm_mu_sigma(
     This is the AiiDA wrapper of `fit_scdm_mu_sigma_raw`.
 
     :param pw2wan_parameters: pw2wannier90 input parameters (the one to update with this calcfunction)
-    :type pw2wan_parameters: orm.Dict
     :param bands: band structure of the projwfc output
-    :type bands: orm.BandsData
     :param projections: projectability of the projwfc output
-    :type projections: orm.ProjectionData
     :param sigma_factor: sigma_factor of SCDM
-    :type sigma_factor: orm.Float
     """
     bands_array, projections_array = get_projectability_arrays(bands, projections)
     return fit_scdm_mu_sigma_raw(
@@ -128,9 +124,7 @@ def sort_projectability_arrays(bands: np.array, projections: np.array):
     """Sort projectability arrays by energy in ascending order.
 
     :param bands: output of projwfc, it was computed in the nscf calc
-    :type bands: np.array, shape num_kpoints * num_bands
     :param projections: output of projwfc
-    :type projections: np.array, shape num_kpoints * num_bands
     """
     # Flattening (projection modulus squared according to QE, energies)
     projwfc_flat = projections.flatten()
@@ -153,11 +147,8 @@ def get_energy_of_projectability(
     """Return energy corresponds to projectability = thresholds.
 
     :param bands: [description]
-    :type bands: orm.BandsData
     :param projections: [description]
-    :type projections: orm.ProjectionData
     :param thresholds: [description]
-    :type thresholds: float
     """
     bands_array, projections_array = get_projectability_arrays(bands, projections)
     sorted_bands, sorted_projwfc = sort_projectability_arrays(

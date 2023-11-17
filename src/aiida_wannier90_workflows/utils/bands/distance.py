@@ -114,15 +114,10 @@ def bands_distance(
     """Calculate bands distance with ``mu`` set as Ef to Ef+5.
 
     :param bands_dft: [description]
-    :type bands_dft: orm.BandsData
     :param bands_wannier: [description]
-    :type bands_wannier: orm.BandsData
     :param fermi_energy: [description]
-    :type fermi_energy: float
     :param exclude_list_dft: [description], defaults to None
-    :type exclude_list_dft: list, optional
     :return: [description], unit is eV.
-    :rtype: np.array
     """
     if isinstance(bands_dft, orm.BandsData):
         dft_bands = bands_dft.get_bands()

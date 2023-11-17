@@ -17,13 +17,10 @@ def get_pseudo_and_cutoff(
     """Get pseudo potential and cutoffs of a given pseudo family and structure.
 
     :param pseudo_family: [description]
-    :type pseudo_family: str
     :param structure: [description]
-    :type structure: orm.StructureData
     :raises ValueError: [description]
     :raises ValueError: [description]
     :return: [description]
-    :rtype: ty.Tuple[ty.Mapping[str, PseudoPotentialData], float, float]
     """
     try:
         pseudo_set = (PseudoDojoFamily, SsspFamily, CutoffsPseudoPotentialFamily)
@@ -88,11 +85,8 @@ def get_semicore_list(structure: orm.StructureData, pseudo_orbitals: dict) -> li
     """Get semicore states (a subset of pseudo wavefunctions) in the pseudopotential.
 
     :param structure: [description]
-    :type structure: orm.StructureData
     :param pseudo_orbitals: [description]
-    :type pseudo_orbitals: dict
     :return: [description]
-    :rtype: list
     """
     from copy import deepcopy
 
@@ -147,7 +141,6 @@ def get_wannier_number_of_bands(
     """Estimate number of bands for a Wannier90 calculation.
 
     :param structure: crystal structure
-    :type structure: aiida.orm.StructureData
     :param pseudos: dictionary of pseudopotentials
     :type pseudos: dict of aiida.orm.UpfData
     :param only_valence: return only occupied number of badns
