@@ -1,0 +1,12 @@
+pw2wannier90:
+  code: test.quantumespresso.pw2wannier90@localhost
+  metadata:
+    options:
+      max_wallclock_seconds: 43200
+      resources:
+        num_machines: 1
+      withmpi: true
+  parameters:
+    inputpp:
+      atom_proj: true
+      scdm_proj: false
