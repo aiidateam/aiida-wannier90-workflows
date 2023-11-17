@@ -260,9 +260,6 @@ class Wannier90OptimizeWorkChain(Wannier90BandsWorkChain):
         from aiida_wannier90_workflows.utils.workflows.bands import (
             has_overlapping_semicore,
         )
-        from aiida_wannier90_workflows.utils.workflows.builder.submit import (
-            recursive_merge_builder,
-        )
 
         kwargs.setdefault("projection_type", WannierProjectionType.ATOMIC_PROJECTORS_QE)
         if reference_bands and kwargs.get("bands_kpoints", None) is None:
@@ -270,7 +267,15 @@ class Wannier90OptimizeWorkChain(Wannier90BandsWorkChain):
                 "It is recommended to provide both `reference_bands` and `bands_kpoints` so that"
                 " the seekpath step can be skipped."
             )
-        parent_builder = super().get_builder_from_protocol(codes, structure, **kwargs)
+
+        inputs = cls.get_protocol_inputs(
+            protocol=kwargs.get("protocol", None),
+            overrides=kwargs.pop("overrides", None),
+        )
+
+        parent_builder = Wannier90BandsWorkChain.get_builder_from_protocol(
+            codes, structure, overrides=inputs, **kwargs
+        )
 
         if reference_bands is not None:
             exclude_semicore = kwargs.get("exclude_semicore", True)
@@ -286,21 +291,13 @@ class Wannier90OptimizeWorkChain(Wannier90BandsWorkChain):
                         "the exclude_semicore option is set to False."
                     )
                     kwargs["exclude_semicore"] = False
-                    parent_builder = super().get_builder_from_protocol(
-                        codes, structure, **kwargs
+                    parent_builder = Wannier90BandsWorkChain.get_builder_from_protocol(
+                        codes, structure, overrides=inputs, **kwargs
                     )
 
         # Prepare workchain builder
-        builder = Wannier90OptimizeWorkChain.get_builder()
-
-        inputs = Wannier90OptimizeWorkChain.get_protocol_inputs(
-            protocol=kwargs.get("protocol", None),
-            overrides=kwargs.get("overrides", None),
-        )
-        builder = recursive_merge_builder(builder, inputs)
-
-        inputs = parent_builder._inputs(prune=True)  # pylint: disable=protected-access
-        builder = recursive_merge_builder(builder, inputs)
+        builder = cls.get_builder()
+        builder._data = parent_builder._data  # pylint: disable=protected-access
 
         # Inputs for optimizing dis_proj_min/max
         if reference_bands:
