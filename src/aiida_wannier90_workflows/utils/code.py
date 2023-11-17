@@ -31,9 +31,7 @@ def identify_codes(
     ```
 
     :param codes: a list of code identifier
-    :type codes: ty.Iterable[str, int, orm.Code]
     :return: a dict with plugin name as key, ``Code`` as value.
-    :rtype: ty.Dict[str, orm.Code]
     """
     results = {}
 
