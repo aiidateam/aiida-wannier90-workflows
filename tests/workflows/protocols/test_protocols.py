@@ -28,6 +28,7 @@ from aiida_wannier90_workflows.workflows.wannier90 import Wannier90WorkChain
             }
         },
         {"wannier90": {"auto_energy_windows_threshold": 0.01}},
+        {"nscf": {"pw": {"parameters": {"SYSTEM": {"calculation": "bands"}}}}},
     ),
 )
 def test_overrides(
