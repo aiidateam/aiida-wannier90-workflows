@@ -49,11 +49,17 @@ def get_pseudo_and_cutoff(
 
 
 def get_pseudo_orbitals(pseudos: ty.Mapping[str, PseudoPotentialData]) -> dict:
-    """Get the pseudo wavefunctions contained in the pseudopotential.
+    """Get the pseudo wave functions contained in the pseudo potential.
 
     Currently only support the following pseudopotentials installed by `aiida-pseudo`:
-        1. SSSP/1.1/PBE/efficiency
-        2. SSSP/1.1/PBEsol/efficiency
+        * SSSP/1.1/PBE/efficiency
+        * SSSP/1.1/PBEsol/efficiency
+        * PseudoDojo/0.4/LDA/SR/standard/upf
+        * PseudoDojo/0.4/LDA/SR/stringent/upf
+        * PseudoDojo/0.4/PBE/SR/standard/upf
+        * PseudoDojo/0.4/PBE/SR/stringent/upf
+        * PseudoDojo/0.5/PBE/SR/standard/upf
+        * PseudoDojo/0.5/PBE/SR/stringent/upf
     """
     from .data import load_pseudo_metadata
 
@@ -64,13 +70,25 @@ def get_pseudo_orbitals(pseudos: ty.Mapping[str, PseudoPotentialData]) -> dict:
         load_pseudo_metadata("semicore/PseudoDojo_0.4_PBE_SR_standard_upf.json")
     )
     pseudo_data.append(
+        load_pseudo_metadata("semicore/PseudoDojo_0.4_PBE_SR_stringent_upf.json")
+    )
+    pseudo_data.append(
+        load_pseudo_metadata("semicore/PseudoDojo_0.5_PBE_SR_standard_upf.json")
+    )
+    pseudo_data.append(
+        load_pseudo_metadata("semicore/PseudoDojo_0.5_PBE_SR_stringent_upf.json")
+    )
+    pseudo_data.append(
         load_pseudo_metadata("semicore/PseudoDojo_0.4_LDA_SR_standard_upf.json")
+    )
+    pseudo_data.append(
+        load_pseudo_metadata("semicore/PseudoDojo_0.4_LDA_SR_stringent_upf.json")
     )
 
     pseudo_orbitals = {}
     for element in pseudos:
         for data in pseudo_data:
-            if data[element]["md5"] == pseudos[element].md5:
+            if data.get(element, {}).get("md5", "") == pseudos[element].md5:
                 pseudo_orbitals[element] = data[element]
                 break
         else:
