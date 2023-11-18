@@ -1,5 +1,20 @@
 default_inputs:
     clean_workdir: False
+    scf:
+        kpoints_distance: 0.2
+    nscf:
+        kpoints_distance: 0.2
+        pw:
+            parameters:
+                SYSTEM:
+                    nosym: True
+                    noinv: True
+                CONTROL:
+                    calculation: nscf
+                    restart_mode: from_scratch
+                ELECTRONS:
+                    diago_full_acc: True
+                    startingpot: file
 default_protocol: moderate
 protocols:
     moderate:

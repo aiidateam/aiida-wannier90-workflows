@@ -30,3 +30,27 @@ retrieve_matrices:
                     - '*.amn'
                     - '*.mmn'
                     - '*.spn'
+spin_noncollinear:
+    scf:
+        pw:
+            parameters:
+                SYSTEM:
+                    noncolin: True
+    nscf:
+        pw:
+            parameters:
+                SYSTEM:
+                    noncolin: True
+spin_orbit:
+    scf:
+        pw:
+            parameters:
+                SYSTEM:
+                    lspinorb: True
+                    noncolin: True
+    nscf:
+        pw:
+            parameters:
+                SYSTEM:
+                    lspinorb: True
+                    noncolin: True
