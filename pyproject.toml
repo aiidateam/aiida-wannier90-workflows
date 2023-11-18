@@ -65,6 +65,10 @@ docs = [
     "furo",
     "markupsafe"
 ]
+dev = [
+    "typer[all]",
+    "upf_tools~=0.1"
+]
 analysis = ["pandas", "tables", "scikit-learn"]
 
 [project.scripts]

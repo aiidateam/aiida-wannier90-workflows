@@ -23,7 +23,7 @@ jobs:
           python-version: "3.11"
 
       - name: Install dependencies
-        run: pip install -e .[pre-commit,tests,analysis]
+        run: pip install -e .[pre-commit,tests,analysis,dev]
 
       - name: Run pre-commit
         run: pre-commit run --all-files || ( git status --short; git diff; exit 1 )
