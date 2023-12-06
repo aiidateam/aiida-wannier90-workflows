@@ -357,6 +357,11 @@ class Wannier90WorkChain(
         # Note: if overrides are specified, they take precedence!
         protocol_overrides = cls.get_protocol_overrides()
 
+        # If recursive_merge get an arg = None, the arg.copy() will raise an error.
+        # When overrides is not given (default value None), it should be set to an empty dict.
+        if overrides is None:
+            overrides = {}
+
         if plot_wannier_functions:
             overrides = recursive_merge(
                 protocol_overrides["plot_wannier_functions"], overrides
