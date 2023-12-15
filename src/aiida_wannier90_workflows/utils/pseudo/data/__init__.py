@@ -285,14 +285,14 @@ Pu: Pu.$fct-spfn-*_psl.1.0.0"""
         # copy the pseudopotentials to another folder, which only contain the pp we need
         dst_filename = os.path.join(dir_pseudos_install, filename)
         if dirname is not None:
-            filename = os.path.join(dirname, filename)
-            shutil.copy2(filename, dst_filename)
+            shutil.copy2(os.path.join(dirname, filename), dst_filename)
         else:
             if not os.path.exists(filename):
                 # download from QE website
                 url = qe_site + filename
                 urllib.request.urlretrieve(url, dst_filename)
         result[element] = get_metadata(dst_filename)
+        result[element]["filename"] = filename
     # the output file (as well as the pseudo_install if dirname==None) will be placed in the workdir
     with open(output_filename, "w", encoding="utf-8") as handle:
         json.dump(result, handle, indent=2)
