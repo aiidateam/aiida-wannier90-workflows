@@ -225,7 +225,7 @@ class Wannier90BandsWorkChain(Wannier90OpenGridWorkChain):
             overrides=kwargs.pop("overrides", None),
         )
 
-        if run_open_grid and kwargs.get("electronic_type", None) == SpinType.SPIN_ORBIT:
+        if run_open_grid and kwargs.get("spin_type", None) == SpinType.SPIN_ORBIT:
             raise ValueError("open_grid.x does not support spin orbit coupling")
 
         if run_open_grid:

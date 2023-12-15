@@ -357,6 +357,11 @@ class Wannier90WorkChain(
         # Note: if overrides are specified, they take precedence!
         protocol_overrides = cls.get_protocol_overrides()
 
+        # If recursive_merge get an arg = None, the arg.copy() will raise an error.
+        # When overrides is not given (default value None), it should be set to an empty dict.
+        if overrides is None:
+            overrides = {}
+
         if plot_wannier_functions:
             overrides = recursive_merge(
                 protocol_overrides["plot_wannier_functions"], overrides
@@ -389,6 +394,7 @@ class Wannier90WorkChain(
         # desired parameters through the overrides. In this case we need to set the `pw.x`
         # spin_type to SpinType.NONE, otherwise the builder will raise an error.
         # This block should be removed once SOC is supported in PwBaseWorkChain.
+        spin_orbit_coupling = spin_type == SpinType.SPIN_ORBIT
         if spin_type == SpinType.NON_COLLINEAR:
             overrides = recursive_merge(
                 protocol_overrides["spin_noncollinear"], overrides
@@ -501,7 +507,9 @@ class Wannier90WorkChain(
         exclude_projectors = None
         if exclude_semicore:
             pseudo_orbitals = get_pseudo_orbitals(builder["scf"]["pw"]["pseudos"])
-            exclude_projectors = get_semicore_list(structure, pseudo_orbitals)
+            exclude_projectors = get_semicore_list(
+                structure, pseudo_orbitals, spin_orbit_coupling
+            )
         pw2wannier90_overrides = inputs.get("pw2wannier90", {})
         pw2wannier90_builder = Pw2wannier90BaseWorkChain.get_builder_from_protocol(
             code=codes["pw2wannier90"],

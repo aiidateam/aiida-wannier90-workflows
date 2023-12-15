@@ -1,0 +1,162 @@
+clean_workdir: false
+nscf:
+  kpoints: 1000 kpts
+  kpoints_force_parity: false
+  pw:
+    code: test.quantumespresso.pw@localhost
+    metadata:
+      options:
+        max_wallclock_seconds: 43200
+        resources:
+          num_machines: 1
+        withmpi: true
+    parameters:
+      CONTROL:
+        calculation: nscf
+        etot_conv_thr: 2.0e-05
+        forc_conv_thr: 0.0001
+        restart_mode: from_scratch
+        tprnfor: true
+        tstress: true
+      ELECTRONS:
+        conv_thr: 4.0e-10
+        diago_full_acc: true
+        electron_maxstep: 80
+        mixing_beta: 0.4
+        startingpot: file
+      SYSTEM:
+        degauss: 0.01
+        ecutrho: 300.0
+        ecutwfc: 40.0
+        lspinorb: true
+        nbnd: 72
+        noinv: true
+        noncolin: true
+        nosym: true
+        occupations: smearing
+        smearing: cold
+    pseudos:
+      As: As.upf
+      Ga: Ga.upf
+pw2wannier90:
+  pw2wannier90:
+    code: test.quantumespresso.pw2wannier90@localhost
+    metadata:
+      options:
+        max_wallclock_seconds: 43200
+        resources:
+          num_machines: 1
+        withmpi: true
+    parameters:
+      inputpp:
+        atom_proj: true
+        atom_proj_exclude:
+        - 1
+        - 2
+        - 3
+        - 4
+        - 5
+        - 6
+        - 7
+        - 8
+        - 9
+        - 10
+        - 19
+        - 20
+        - 21
+        - 22
+        - 23
+        - 24
+        - 25
+        - 26
+        - 27
+        - 28
+scf:
+  kpoints_distance: 0.2
+  kpoints_force_parity: false
+  pw:
+    code: test.quantumespresso.pw@localhost
+    metadata:
+      options:
+        max_wallclock_seconds: 43200
+        resources:
+          num_machines: 1
+        withmpi: true
+    parameters:
+      CONTROL:
+        calculation: scf
+        etot_conv_thr: 2.0e-05
+        forc_conv_thr: 0.0001
+        tprnfor: true
+        tstress: true
+      ELECTRONS:
+        conv_thr: 4.0e-10
+        electron_maxstep: 80
+        mixing_beta: 0.4
+      SYSTEM:
+        degauss: 0.01
+        ecutrho: 300.0
+        ecutwfc: 40.0
+        lspinorb: true
+        noncolin: true
+        nosym: false
+        occupations: smearing
+        smearing: cold
+    pseudos:
+      As: As.upf
+      Ga: Ga.upf
+structure: AsGa
+wannier90:
+  auto_energy_windows: false
+  auto_energy_windows_threshold: 0.9
+  shift_energy_windows: true
+  wannier90:
+    code: test.wannier90.wannier90@localhost
+    kpoints: 1000 kpts
+    metadata:
+      options:
+        max_wallclock_seconds: 43200
+        resources:
+          num_machines: 1
+        withmpi: true
+    parameters:
+      auto_projections: true
+      bands_plot: true
+      conv_tol: 2.0e-07
+      conv_window: 3
+      dis_conv_tol: 2.0e-07
+      dis_froz_max: 2.0
+      dis_num_iter: 4000
+      dis_proj_max: 0.95
+      dis_proj_min: 0.01
+      exclude_bands:
+      - 1
+      - 2
+      - 3
+      - 4
+      - 5
+      - 6
+      - 7
+      - 8
+      - 9
+      - 10
+      - 11
+      - 12
+      - 13
+      - 14
+      - 15
+      - 16
+      - 17
+      - 18
+      - 19
+      - 20
+      mp_grid:
+      - 10
+      - 10
+      - 10
+      num_bands: 52
+      num_cg_steps: 200
+      num_iter: 4000
+      num_wann: 16
+      spinors: true
+    settings: {}
