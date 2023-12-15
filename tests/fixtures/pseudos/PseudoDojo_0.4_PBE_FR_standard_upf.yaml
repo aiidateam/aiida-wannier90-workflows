@@ -1,0 +1,1672 @@
+Ag:
+  filename: Ag.upf
+  has_so: T
+  md5: 6efb3fe9a042916d98100170a843b995
+  number_of_wfc: 20
+  ppspinorb:
+    jchi:
+    - 0.5
+    - 1.5
+    - 0.5
+    - 2.5
+    - 1.5
+    - 0.5
+    lchi:
+    - 0
+    - 1
+    - 1
+    - 2
+    - 2
+    - 0
+    nn:
+    - 1
+    - 2
+    - 2
+    - 3
+    - 3
+    - 4
+  z_valence: 19.0
+Al:
+  filename: Al.upf
+  has_so: T
+  md5: 4974d48a734c9d7d1eb6780a1419d19d
+  number_of_wfc: 8
+  ppspinorb:
+    jchi:
+    - 0.5
+    - 1.5
+    - 0.5
+    lchi:
+    - 0
+    - 1
+    - 1
+    nn:
+    - 1
+    - 2
+    - 2
+  z_valence: 3.0
+Ar:
+  filename: Ar.upf
+  has_so: T
+  md5: ec1c412fe97526a8a49473797d4479ae
+  number_of_wfc: 8
+  ppspinorb:
+    jchi:
+    - 0.5
+    - 1.5
+    - 0.5
+    lchi:
+    - 0
+    - 1
+    - 1
+    nn:
+    - 1
+    - 2
+    - 2
+  z_valence: 8.0
+As:
+  filename: As.upf
+  has_so: T
+  md5: 92566e412f0eca4e698ac3407aa21570
+  number_of_wfc: 18
+  ppspinorb:
+    jchi:
+    - 2.5
+    - 1.5
+    - 0.5
+    - 1.5
+    - 0.5
+    lchi:
+    - 2
+    - 2
+    - 0
+    - 1
+    - 1
+    nn:
+    - 1
+    - 1
+    - 2
+    - 3
+    - 3
+  z_valence: 15.0
+Au:
+  filename: Au.upf
+  has_so: T
+  md5: 0f4c7ff4841ea3d6668dbbe9cc620d4d
+  number_of_wfc: 20
+  ppspinorb:
+    jchi:
+    - 0.5
+    - 1.5
+    - 0.5
+    - 2.5
+    - 1.5
+    - 0.5
+    lchi:
+    - 0
+    - 1
+    - 1
+    - 2
+    - 2
+    - 0
+    nn:
+    - 1
+    - 2
+    - 2
+    - 3
+    - 3
+    - 4
+  z_valence: 19.0
+B:
+  filename: B.upf
+  has_so: T
+  md5: 8d3529416d991d290d09c9d3752026a1
+  number_of_wfc: 8
+  ppspinorb:
+    jchi:
+    - 0.5
+    - 1.5
+    - 0.5
+    lchi:
+    - 0
+    - 1
+    - 1
+    nn:
+    - 1
+    - 2
+    - 2
+  z_valence: 3.0
+Ba:
+  filename: Ba.upf
+  has_so: T
+  md5: c3493f42e3a3b2e6d8ad780f479f7165
+  number_of_wfc: 10
+  ppspinorb:
+    jchi:
+    - 0.5
+    - 1.5
+    - 0.5
+    - 0.5
+    lchi:
+    - 0
+    - 1
+    - 1
+    - 0
+    nn:
+    - 1
+    - 2
+    - 2
+    - 3
+  z_valence: 10.0
+Be:
+  filename: Be.upf
+  has_so: T
+  md5: ac38f5498bd3766e938aa84f7619f26a
+  number_of_wfc: 4
+  ppspinorb:
+    jchi:
+    - 0.5
+    - 0.5
+    lchi:
+    - 0
+    - 0
+    nn:
+    - 1
+    - 2
+  z_valence: 4.0
+Bi:
+  filename: Bi.upf
+  has_so: T
+  md5: 260977096fd1df4b879f04c556a28fcb
+  number_of_wfc: 18
+  ppspinorb:
+    jchi:
+    - 2.5
+    - 1.5
+    - 0.5
+    - 1.5
+    - 0.5
+    lchi:
+    - 2
+    - 2
+    - 0
+    - 1
+    - 1
+    nn:
+    - 1
+    - 1
+    - 2
+    - 3
+    - 3
+  z_valence: 15.0
+Br:
+  filename: Br.upf
+  has_so: T
+  md5: 41f672ce76ec6f6480a05aabe46aac99
+  number_of_wfc: 8
+  ppspinorb:
+    jchi:
+    - 0.5
+    - 1.5
+    - 0.5
+    lchi:
+    - 0
+    - 1
+    - 1
+    nn:
+    - 1
+    - 2
+    - 2
+  z_valence: 7.0
+C:
+  filename: C.upf
+  has_so: T
+  md5: d80ec9912146af6c4c1760317d1f95e9
+  number_of_wfc: 8
+  ppspinorb:
+    jchi:
+    - 0.5
+    - 1.5
+    - 0.5
+    lchi:
+    - 0
+    - 1
+    - 1
+    nn:
+    - 1
+    - 2
+    - 2
+  z_valence: 4.0
+Ca:
+  filename: Ca.upf
+  has_so: T
+  md5: dc487c86beea18d9c6a1517259e81704
+  number_of_wfc: 10
+  ppspinorb:
+    jchi:
+    - 0.5
+    - 1.5
+    - 0.5
+    - 0.5
+    lchi:
+    - 0
+    - 1
+    - 1
+    - 0
+    nn:
+    - 1
+    - 2
+    - 2
+    - 3
+  z_valence: 10.0
+Cd:
+  filename: Cd.upf
+  has_so: T
+  md5: fc9988adff5645b1bce1836ec33f834f
+  number_of_wfc: 20
+  ppspinorb:
+    jchi:
+    - 0.5
+    - 1.5
+    - 0.5
+    - 2.5
+    - 1.5
+    - 0.5
+    lchi:
+    - 0
+    - 1
+    - 1
+    - 2
+    - 2
+    - 0
+    nn:
+    - 1
+    - 2
+    - 2
+    - 3
+    - 3
+    - 4
+  z_valence: 20.0
+Cl:
+  filename: Cl.upf
+  has_so: T
+  md5: b1ddb435c2952724bdf458cc656d2c80
+  number_of_wfc: 8
+  ppspinorb:
+    jchi:
+    - 0.5
+    - 1.5
+    - 0.5
+    lchi:
+    - 0
+    - 1
+    - 1
+    nn:
+    - 1
+    - 2
+    - 2
+  z_valence: 7.0
+Co:
+  filename: Co.upf
+  has_so: T
+  md5: c7dc2adeeef937498ddd392dae826f35
+  number_of_wfc: 20
+  ppspinorb:
+    jchi:
+    - 0.5
+    - 1.5
+    - 0.5
+    - 2.5
+    - 1.5
+    - 0.5
+    lchi:
+    - 0
+    - 1
+    - 1
+    - 2
+    - 2
+    - 0
+    nn:
+    - 1
+    - 2
+    - 2
+    - 3
+    - 3
+    - 4
+  z_valence: 17.0
+Cr:
+  filename: Cr.upf
+  has_so: T
+  md5: e4755fb39f753e55e5d2a46de4395b17
+  number_of_wfc: 20
+  ppspinorb:
+    jchi:
+    - 0.5
+    - 1.5
+    - 0.5
+    - 2.5
+    - 1.5
+    - 0.5
+    lchi:
+    - 0
+    - 1
+    - 1
+    - 2
+    - 2
+    - 0
+    nn:
+    - 1
+    - 2
+    - 2
+    - 3
+    - 3
+    - 4
+  z_valence: 14.0
+Cs:
+  filename: Cs.upf
+  has_so: T
+  md5: 0949d7fbeea01e664226101e754fa92a
+  number_of_wfc: 10
+  ppspinorb:
+    jchi:
+    - 0.5
+    - 1.5
+    - 0.5
+    - 0.5
+    lchi:
+    - 0
+    - 1
+    - 1
+    - 0
+    nn:
+    - 1
+    - 2
+    - 2
+    - 3
+  z_valence: 9.0
+Cu:
+  filename: Cu.upf
+  has_so: T
+  md5: 4cb9fe66fc25bd54f2aa8c9777a8800c
+  number_of_wfc: 20
+  ppspinorb:
+    jchi:
+    - 0.5
+    - 1.5
+    - 0.5
+    - 2.5
+    - 1.5
+    - 0.5
+    lchi:
+    - 0
+    - 1
+    - 1
+    - 2
+    - 2
+    - 0
+    nn:
+    - 1
+    - 2
+    - 2
+    - 3
+    - 3
+    - 4
+  z_valence: 19.0
+F:
+  filename: F.upf
+  has_so: T
+  md5: abe63f1f76c40dc8c91ba0a2d7d66777
+  number_of_wfc: 8
+  ppspinorb:
+    jchi:
+    - 0.5
+    - 1.5
+    - 0.5
+    lchi:
+    - 0
+    - 1
+    - 1
+    nn:
+    - 1
+    - 2
+    - 2
+  z_valence: 7.0
+Fe:
+  filename: Fe.upf
+  has_so: T
+  md5: b9cfc4dc94fead0ebd2746b016929f5e
+  number_of_wfc: 20
+  ppspinorb:
+    jchi:
+    - 0.5
+    - 1.5
+    - 0.5
+    - 2.5
+    - 1.5
+    - 0.5
+    lchi:
+    - 0
+    - 1
+    - 1
+    - 2
+    - 2
+    - 0
+    nn:
+    - 1
+    - 2
+    - 2
+    - 3
+    - 3
+    - 4
+  z_valence: 16.0
+Ga:
+  filename: Ga.upf
+  has_so: T
+  md5: 007786bba85e1410450b90e7159d237a
+  number_of_wfc: 18
+  ppspinorb:
+    jchi:
+    - 2.5
+    - 1.5
+    - 0.5
+    - 1.5
+    - 0.5
+    lchi:
+    - 2
+    - 2
+    - 0
+    - 1
+    - 1
+    nn:
+    - 1
+    - 1
+    - 2
+    - 3
+    - 3
+  z_valence: 13.0
+Ge:
+  filename: Ge.upf
+  has_so: T
+  md5: 88462bb932a16c32ceaf7b092c78b60a
+  number_of_wfc: 18
+  ppspinorb:
+    jchi:
+    - 2.5
+    - 1.5
+    - 0.5
+    - 1.5
+    - 0.5
+    lchi:
+    - 2
+    - 2
+    - 0
+    - 1
+    - 1
+    nn:
+    - 1
+    - 1
+    - 2
+    - 3
+    - 3
+  z_valence: 14.0
+H:
+  filename: H.upf
+  has_so: T
+  md5: 418cee52d0c413ae40802e6cc37ab9e3
+  number_of_wfc: 2
+  ppspinorb:
+    jchi:
+    - 0.5
+    lchi:
+    - 0
+    nn:
+    - 1
+  z_valence: 1.0
+He:
+  filename: He.upf
+  has_so: T
+  md5: 9272141eebead17f5d158a4ad954fadb
+  number_of_wfc: 2
+  ppspinorb:
+    jchi:
+    - 0.5
+    lchi:
+    - 0
+    nn:
+    - 1
+  z_valence: 2.0
+Hf:
+  filename: Hf.upf
+  has_so: T
+  md5: bde2e012f831674a856dc5e85ca34ee8
+  number_of_wfc: 20
+  ppspinorb:
+    jchi:
+    - 0.5
+    - 1.5
+    - 0.5
+    - 2.5
+    - 1.5
+    - 0.5
+    lchi:
+    - 0
+    - 1
+    - 1
+    - 2
+    - 2
+    - 0
+    nn:
+    - 1
+    - 2
+    - 2
+    - 3
+    - 3
+    - 4
+  z_valence: 12.0
+Hg:
+  filename: Hg.upf
+  has_so: T
+  md5: d85b3e284848a6ef6fce73cef7b59184
+  number_of_wfc: 20
+  ppspinorb:
+    jchi:
+    - 0.5
+    - 1.5
+    - 0.5
+    - 2.5
+    - 1.5
+    - 0.5
+    lchi:
+    - 0
+    - 1
+    - 1
+    - 2
+    - 2
+    - 0
+    nn:
+    - 1
+    - 2
+    - 2
+    - 3
+    - 3
+    - 4
+  z_valence: 20.0
+I:
+  filename: I.upf
+  has_so: T
+  md5: 301f7009ca0a2b18b0adf53dca02d42f
+  number_of_wfc: 8
+  ppspinorb:
+    jchi:
+    - 0.5
+    - 1.5
+    - 0.5
+    lchi:
+    - 0
+    - 1
+    - 1
+    nn:
+    - 1
+    - 2
+    - 2
+  z_valence: 7.0
+In:
+  filename: In.upf
+  has_so: T
+  md5: 7332ee957fb300901b7fa3d5e49d0890
+  number_of_wfc: 18
+  ppspinorb:
+    jchi:
+    - 2.5
+    - 1.5
+    - 0.5
+    - 1.5
+    - 0.5
+    lchi:
+    - 2
+    - 2
+    - 0
+    - 1
+    - 1
+    nn:
+    - 1
+    - 1
+    - 2
+    - 3
+    - 3
+  z_valence: 13.0
+Ir:
+  filename: Ir.upf
+  has_so: T
+  md5: 850b2ad7e2193da95aa23560e3073a97
+  number_of_wfc: 20
+  ppspinorb:
+    jchi:
+    - 0.5
+    - 1.5
+    - 0.5
+    - 2.5
+    - 1.5
+    - 0.5
+    lchi:
+    - 0
+    - 1
+    - 1
+    - 2
+    - 2
+    - 0
+    nn:
+    - 1
+    - 2
+    - 2
+    - 3
+    - 3
+    - 4
+  z_valence: 17.0
+K:
+  filename: K.upf
+  has_so: T
+  md5: 138c3bccb5218ec3316beae0c1f1e8fa
+  number_of_wfc: 10
+  ppspinorb:
+    jchi:
+    - 0.5
+    - 1.5
+    - 0.5
+    - 0.5
+    lchi:
+    - 0
+    - 1
+    - 1
+    - 0
+    nn:
+    - 1
+    - 2
+    - 2
+    - 3
+  z_valence: 9.0
+Kr:
+  filename: Kr.upf
+  has_so: T
+  md5: 6d211bd84e170dbe44fcb9e23c857e21
+  number_of_wfc: 8
+  ppspinorb:
+    jchi:
+    - 0.5
+    - 1.5
+    - 0.5
+    lchi:
+    - 0
+    - 1
+    - 1
+    nn:
+    - 1
+    - 2
+    - 2
+  z_valence: 8.0
+Li:
+  filename: Li.upf
+  has_so: T
+  md5: 28e781596b69f367d040cb5d4c83ad5a
+  number_of_wfc: 4
+  ppspinorb:
+    jchi:
+    - 0.5
+    - 0.5
+    lchi:
+    - 0
+    - 0
+    nn:
+    - 1
+    - 2
+  z_valence: 3.0
+Mg:
+  filename: Mg.upf
+  has_so: T
+  md5: 750ff570619d62cb51988197239ea73b
+  number_of_wfc: 10
+  ppspinorb:
+    jchi:
+    - 0.5
+    - 1.5
+    - 0.5
+    - 0.5
+    lchi:
+    - 0
+    - 1
+    - 1
+    - 0
+    nn:
+    - 1
+    - 2
+    - 2
+    - 3
+  z_valence: 10.0
+Mn:
+  filename: Mn.upf
+  has_so: T
+  md5: 97486758464197a89522fc97795ad216
+  number_of_wfc: 20
+  ppspinorb:
+    jchi:
+    - 0.5
+    - 1.5
+    - 0.5
+    - 2.5
+    - 1.5
+    - 0.5
+    lchi:
+    - 0
+    - 1
+    - 1
+    - 2
+    - 2
+    - 0
+    nn:
+    - 1
+    - 2
+    - 2
+    - 3
+    - 3
+    - 4
+  z_valence: 15.0
+Mo:
+  filename: Mo.upf
+  has_so: T
+  md5: 4e1c3579de4f68baf863f15f5be96aa1
+  number_of_wfc: 20
+  ppspinorb:
+    jchi:
+    - 0.5
+    - 1.5
+    - 0.5
+    - 2.5
+    - 1.5
+    - 0.5
+    lchi:
+    - 0
+    - 1
+    - 1
+    - 2
+    - 2
+    - 0
+    nn:
+    - 1
+    - 2
+    - 2
+    - 3
+    - 3
+    - 4
+  z_valence: 14.0
+N:
+  filename: N.upf
+  has_so: T
+  md5: ff7f9f91e4136e6855b4906c31c1cc72
+  number_of_wfc: 8
+  ppspinorb:
+    jchi:
+    - 0.5
+    - 1.5
+    - 0.5
+    lchi:
+    - 0
+    - 1
+    - 1
+    nn:
+    - 1
+    - 2
+    - 2
+  z_valence: 5.0
+Na:
+  filename: Na.upf
+  has_so: T
+  md5: 5cc9e3e9635f0b9e0056521f6116a380
+  number_of_wfc: 10
+  ppspinorb:
+    jchi:
+    - 0.5
+    - 1.5
+    - 0.5
+    - 0.5
+    lchi:
+    - 0
+    - 1
+    - 1
+    - 0
+    nn:
+    - 1
+    - 2
+    - 2
+    - 3
+  z_valence: 9.0
+Nb:
+  filename: Nb.upf
+  has_so: T
+  md5: c762db8da245f77f81a67bd8eb2832ec
+  number_of_wfc: 20
+  ppspinorb:
+    jchi:
+    - 0.5
+    - 1.5
+    - 0.5
+    - 2.5
+    - 1.5
+    - 0.5
+    lchi:
+    - 0
+    - 1
+    - 1
+    - 2
+    - 2
+    - 0
+    nn:
+    - 1
+    - 2
+    - 2
+    - 3
+    - 3
+    - 4
+  z_valence: 13.0
+Ne:
+  filename: Ne.upf
+  has_so: T
+  md5: 18e1657b2a316ee86e5ac1f3532417a6
+  number_of_wfc: 8
+  ppspinorb:
+    jchi:
+    - 0.5
+    - 1.5
+    - 0.5
+    lchi:
+    - 0
+    - 1
+    - 1
+    nn:
+    - 1
+    - 2
+    - 2
+  z_valence: 8.0
+Ni:
+  filename: Ni.upf
+  has_so: T
+  md5: 14a7e289c5fff9cacaba393040e62f02
+  number_of_wfc: 20
+  ppspinorb:
+    jchi:
+    - 0.5
+    - 1.5
+    - 0.5
+    - 2.5
+    - 1.5
+    - 0.5
+    lchi:
+    - 0
+    - 1
+    - 1
+    - 2
+    - 2
+    - 0
+    nn:
+    - 1
+    - 2
+    - 2
+    - 3
+    - 3
+    - 4
+  z_valence: 18.0
+O:
+  filename: O.upf
+  has_so: T
+  md5: e357869f07dbe8d608261c380baea405
+  number_of_wfc: 8
+  ppspinorb:
+    jchi:
+    - 0.5
+    - 1.5
+    - 0.5
+    lchi:
+    - 0
+    - 1
+    - 1
+    nn:
+    - 1
+    - 2
+    - 2
+  z_valence: 6.0
+Os:
+  filename: Os.upf
+  has_so: T
+  md5: b5c40bb6643eb5d69e8181192c70fae9
+  number_of_wfc: 20
+  ppspinorb:
+    jchi:
+    - 0.5
+    - 1.5
+    - 0.5
+    - 2.5
+    - 1.5
+    - 0.5
+    lchi:
+    - 0
+    - 1
+    - 1
+    - 2
+    - 2
+    - 0
+    nn:
+    - 1
+    - 2
+    - 2
+    - 3
+    - 3
+    - 4
+  z_valence: 16.0
+P:
+  filename: P.upf
+  has_so: T
+  md5: 04c1173e06a58ef69d00f9ee2aabe133
+  number_of_wfc: 8
+  ppspinorb:
+    jchi:
+    - 0.5
+    - 1.5
+    - 0.5
+    lchi:
+    - 0
+    - 1
+    - 1
+    nn:
+    - 1
+    - 2
+    - 2
+  z_valence: 5.0
+Pb:
+  filename: Pb.upf
+  has_so: T
+  md5: 73abbbd201951038fc1bdacebad68d2f
+  number_of_wfc: 18
+  ppspinorb:
+    jchi:
+    - 2.5
+    - 1.5
+    - 0.5
+    - 1.5
+    - 0.5
+    lchi:
+    - 2
+    - 2
+    - 0
+    - 1
+    - 1
+    nn:
+    - 1
+    - 1
+    - 2
+    - 3
+    - 3
+  z_valence: 14.0
+Pd:
+  filename: Pd.upf
+  has_so: T
+  md5: be3bbc102036a849029d587ce4b31d2e
+  number_of_wfc: 18
+  ppspinorb:
+    jchi:
+    - 0.5
+    - 1.5
+    - 0.5
+    - 2.5
+    - 1.5
+    lchi:
+    - 0
+    - 1
+    - 1
+    - 2
+    - 2
+    nn:
+    - 1
+    - 2
+    - 2
+    - 3
+    - 3
+  z_valence: 18.0
+Po:
+  filename: Po.upf
+  has_so: T
+  md5: d75686d9dec8951092fb7be265ebbbe1
+  number_of_wfc: 18
+  ppspinorb:
+    jchi:
+    - 2.5
+    - 1.5
+    - 0.5
+    - 1.5
+    - 0.5
+    lchi:
+    - 2
+    - 2
+    - 0
+    - 1
+    - 1
+    nn:
+    - 1
+    - 1
+    - 2
+    - 3
+    - 3
+  z_valence: 16.0
+Pt:
+  filename: Pt.upf
+  has_so: T
+  md5: 38b37cc9fce0bd1ebfe8ed3e237ab632
+  number_of_wfc: 20
+  ppspinorb:
+    jchi:
+    - 0.5
+    - 1.5
+    - 0.5
+    - 2.5
+    - 1.5
+    - 0.5
+    lchi:
+    - 0
+    - 1
+    - 1
+    - 2
+    - 2
+    - 0
+    nn:
+    - 1
+    - 2
+    - 2
+    - 3
+    - 3
+    - 4
+  z_valence: 18.0
+Rb:
+  filename: Rb.upf
+  has_so: T
+  md5: 1f418f1ed72b6579f8407a2dc217539d
+  number_of_wfc: 10
+  ppspinorb:
+    jchi:
+    - 0.5
+    - 1.5
+    - 0.5
+    - 0.5
+    lchi:
+    - 0
+    - 1
+    - 1
+    - 0
+    nn:
+    - 1
+    - 2
+    - 2
+    - 3
+  z_valence: 9.0
+Re:
+  filename: Re.upf
+  has_so: T
+  md5: b5f6a4eed0c71b9177890aff2d2363a2
+  number_of_wfc: 20
+  ppspinorb:
+    jchi:
+    - 0.5
+    - 1.5
+    - 0.5
+    - 2.5
+    - 1.5
+    - 0.5
+    lchi:
+    - 0
+    - 1
+    - 1
+    - 2
+    - 2
+    - 0
+    nn:
+    - 1
+    - 2
+    - 2
+    - 3
+    - 3
+    - 4
+  z_valence: 15.0
+Rh:
+  filename: Rh.upf
+  has_so: T
+  md5: 241d26aaf374bcfaabd851d12f133a4e
+  number_of_wfc: 20
+  ppspinorb:
+    jchi:
+    - 0.5
+    - 1.5
+    - 0.5
+    - 2.5
+    - 1.5
+    - 0.5
+    lchi:
+    - 0
+    - 1
+    - 1
+    - 2
+    - 2
+    - 0
+    nn:
+    - 1
+    - 2
+    - 2
+    - 3
+    - 3
+    - 4
+  z_valence: 17.0
+Rn:
+  filename: Rn.upf
+  has_so: T
+  md5: 5b92fb1c94902cd74f9fa44376ed130a
+  number_of_wfc: 18
+  ppspinorb:
+    jchi:
+    - 2.5
+    - 1.5
+    - 0.5
+    - 1.5
+    - 0.5
+    lchi:
+    - 2
+    - 2
+    - 0
+    - 1
+    - 1
+    nn:
+    - 1
+    - 1
+    - 2
+    - 3
+    - 3
+  z_valence: 18.0
+Ru:
+  filename: Ru.upf
+  has_so: T
+  md5: 90ff6e8e149ee22343b569aff5daab8f
+  number_of_wfc: 20
+  ppspinorb:
+    jchi:
+    - 0.5
+    - 1.5
+    - 0.5
+    - 2.5
+    - 1.5
+    - 0.5
+    lchi:
+    - 0
+    - 1
+    - 1
+    - 2
+    - 2
+    - 0
+    nn:
+    - 1
+    - 2
+    - 2
+    - 3
+    - 3
+    - 4
+  z_valence: 16.0
+S:
+  filename: S.upf
+  has_so: T
+  md5: a7319d53700e7dada26ada44d0048388
+  number_of_wfc: 8
+  ppspinorb:
+    jchi:
+    - 0.5
+    - 1.5
+    - 0.5
+    lchi:
+    - 0
+    - 1
+    - 1
+    nn:
+    - 1
+    - 2
+    - 2
+  z_valence: 6.0
+Sb:
+  filename: Sb.upf
+  has_so: T
+  md5: f524120fbd47438d62aeb3dc8eb03f3c
+  number_of_wfc: 18
+  ppspinorb:
+    jchi:
+    - 2.5
+    - 1.5
+    - 0.5
+    - 1.5
+    - 0.5
+    lchi:
+    - 2
+    - 2
+    - 0
+    - 1
+    - 1
+    nn:
+    - 1
+    - 1
+    - 2
+    - 3
+    - 3
+  z_valence: 15.0
+Sc:
+  filename: Sc.upf
+  has_so: T
+  md5: f613200ef442e369aae3332e14fc0a4a
+  number_of_wfc: 20
+  ppspinorb:
+    jchi:
+    - 0.5
+    - 1.5
+    - 0.5
+    - 2.5
+    - 1.5
+    - 0.5
+    lchi:
+    - 0
+    - 1
+    - 1
+    - 2
+    - 2
+    - 0
+    nn:
+    - 1
+    - 2
+    - 2
+    - 3
+    - 3
+    - 4
+  z_valence: 11.0
+Se:
+  filename: Se.upf
+  has_so: T
+  md5: cb2cefba1335ec1a0ef320de5a6fd81a
+  number_of_wfc: 18
+  ppspinorb:
+    jchi:
+    - 2.5
+    - 1.5
+    - 0.5
+    - 1.5
+    - 0.5
+    lchi:
+    - 2
+    - 2
+    - 0
+    - 1
+    - 1
+    nn:
+    - 1
+    - 1
+    - 2
+    - 3
+    - 3
+  z_valence: 16.0
+Si:
+  filename: Si.upf
+  has_so: T
+  md5: d8e8ea3dd55db7858206a05f373c9c65
+  number_of_wfc: 8
+  ppspinorb:
+    jchi:
+    - 0.5
+    - 1.5
+    - 0.5
+    lchi:
+    - 0
+    - 1
+    - 1
+    nn:
+    - 1
+    - 2
+    - 2
+  z_valence: 4.0
+Sn:
+  filename: Sn.upf
+  has_so: T
+  md5: 789b5e66fce167ac30fcdcb6618e706a
+  number_of_wfc: 18
+  ppspinorb:
+    jchi:
+    - 2.5
+    - 1.5
+    - 0.5
+    - 1.5
+    - 0.5
+    lchi:
+    - 2
+    - 2
+    - 0
+    - 1
+    - 1
+    nn:
+    - 1
+    - 1
+    - 2
+    - 3
+    - 3
+  z_valence: 14.0
+Sr:
+  filename: Sr.upf
+  has_so: T
+  md5: 35c616a94c00de6e6c519f87ccc4bf75
+  number_of_wfc: 10
+  ppspinorb:
+    jchi:
+    - 0.5
+    - 1.5
+    - 0.5
+    - 0.5
+    lchi:
+    - 0
+    - 1
+    - 1
+    - 0
+    nn:
+    - 1
+    - 2
+    - 2
+    - 3
+  z_valence: 10.0
+Ta:
+  filename: Ta.upf
+  has_so: T
+  md5: d169f01d5844f7e04fd61951733e7fec
+  number_of_wfc: 20
+  ppspinorb:
+    jchi:
+    - 0.5
+    - 1.5
+    - 0.5
+    - 2.5
+    - 1.5
+    - 0.5
+    lchi:
+    - 0
+    - 1
+    - 1
+    - 2
+    - 2
+    - 0
+    nn:
+    - 1
+    - 2
+    - 2
+    - 3
+    - 3
+    - 4
+  z_valence: 13.0
+Tc:
+  filename: Tc.upf
+  has_so: T
+  md5: a68e1ec66280a56f246b117cfc93479e
+  number_of_wfc: 20
+  ppspinorb:
+    jchi:
+    - 0.5
+    - 1.5
+    - 0.5
+    - 2.5
+    - 1.5
+    - 0.5
+    lchi:
+    - 0
+    - 1
+    - 1
+    - 2
+    - 2
+    - 0
+    nn:
+    - 1
+    - 2
+    - 2
+    - 3
+    - 3
+    - 4
+  z_valence: 15.0
+Te:
+  filename: Te.upf
+  has_so: T
+  md5: d198e370297ac1d7edee156d0fe975c4
+  number_of_wfc: 18
+  ppspinorb:
+    jchi:
+    - 2.5
+    - 1.5
+    - 0.5
+    - 1.5
+    - 0.5
+    lchi:
+    - 2
+    - 2
+    - 0
+    - 1
+    - 1
+    nn:
+    - 1
+    - 1
+    - 2
+    - 3
+    - 3
+  z_valence: 16.0
+Ti:
+  filename: Ti.upf
+  has_so: T
+  md5: 4a66ab2547244c2167df87966c0752a5
+  number_of_wfc: 20
+  ppspinorb:
+    jchi:
+    - 0.5
+    - 1.5
+    - 0.5
+    - 2.5
+    - 1.5
+    - 0.5
+    lchi:
+    - 0
+    - 1
+    - 1
+    - 2
+    - 2
+    - 0
+    nn:
+    - 1
+    - 2
+    - 2
+    - 3
+    - 3
+    - 4
+  z_valence: 12.0
+Tl:
+  filename: Tl.upf
+  has_so: T
+  md5: 0dec2a197a21ab96ff7b9bc3defb4998
+  number_of_wfc: 18
+  ppspinorb:
+    jchi:
+    - 2.5
+    - 1.5
+    - 0.5
+    - 1.5
+    - 0.5
+    lchi:
+    - 2
+    - 2
+    - 0
+    - 1
+    - 1
+    nn:
+    - 1
+    - 1
+    - 2
+    - 3
+    - 3
+  z_valence: 13.0
+V:
+  filename: V.upf
+  has_so: T
+  md5: f3eaf2f8b12999b28b8a4e139b19fe14
+  number_of_wfc: 20
+  ppspinorb:
+    jchi:
+    - 0.5
+    - 1.5
+    - 0.5
+    - 2.5
+    - 1.5
+    - 0.5
+    lchi:
+    - 0
+    - 1
+    - 1
+    - 2
+    - 2
+    - 0
+    nn:
+    - 1
+    - 2
+    - 2
+    - 3
+    - 3
+    - 4
+  z_valence: 13.0
+W:
+  filename: W.upf
+  has_so: T
+  md5: 75b1d432d85d028982bb81b068264ebf
+  number_of_wfc: 20
+  ppspinorb:
+    jchi:
+    - 0.5
+    - 1.5
+    - 0.5
+    - 2.5
+    - 1.5
+    - 0.5
+    lchi:
+    - 0
+    - 1
+    - 1
+    - 2
+    - 2
+    - 0
+    nn:
+    - 1
+    - 2
+    - 2
+    - 3
+    - 3
+    - 4
+  z_valence: 14.0
+Xe:
+  filename: Xe.upf
+  has_so: T
+  md5: 5bb07fb442a461471c178c2fcbb91b1b
+  number_of_wfc: 8
+  ppspinorb:
+    jchi:
+    - 0.5
+    - 1.5
+    - 0.5
+    lchi:
+    - 0
+    - 1
+    - 1
+    nn:
+    - 1
+    - 2
+    - 2
+  z_valence: 8.0
+Y:
+  filename: Y.upf
+  has_so: T
+  md5: 1c07ae898b396ab0948291dc189e371c
+  number_of_wfc: 20
+  ppspinorb:
+    jchi:
+    - 0.5
+    - 1.5
+    - 0.5
+    - 2.5
+    - 1.5
+    - 0.5
+    lchi:
+    - 0
+    - 1
+    - 1
+    - 2
+    - 2
+    - 0
+    nn:
+    - 1
+    - 2
+    - 2
+    - 3
+    - 3
+    - 4
+  z_valence: 11.0
+Zn:
+  filename: Zn.upf
+  has_so: T
+  md5: 506e7667e9e4d2294b6195faf3386e92
+  number_of_wfc: 20
+  ppspinorb:
+    jchi:
+    - 0.5
+    - 1.5
+    - 0.5
+    - 2.5
+    - 1.5
+    - 0.5
+    lchi:
+    - 0
+    - 1
+    - 1
+    - 2
+    - 2
+    - 0
+    nn:
+    - 1
+    - 2
+    - 2
+    - 3
+    - 3
+    - 4
+  z_valence: 20.0
+Zr:
+  filename: Zr.upf
+  has_so: T
+  md5: 56dce08add83a74c8134698ad5f23cbc
+  number_of_wfc: 20
+  ppspinorb:
+    jchi:
+    - 0.5
+    - 1.5
+    - 0.5
+    - 2.5
+    - 1.5
+    - 0.5
+    lchi:
+    - 0
+    - 1
+    - 1
+    - 2
+    - 2
+    - 0
+    nn:
+    - 1
+    - 2
+    - 2
+    - 3
+    - 3
+    - 4
+  z_valence: 12.0

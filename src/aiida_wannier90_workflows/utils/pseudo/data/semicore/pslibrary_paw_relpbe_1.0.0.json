@@ -1,0 +1,1456 @@
+{
+  "H": {
+    "filename": "H.rel-pbe-kjpaw_psl.1.0.0.UPF",
+    "md5": "037bf403638bd299dbaaf1173eb7767f",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 46.0,
+    "cutoff_rho": 221.0,
+    "pswfcs": [
+      "1S"
+    ],
+    "semicores": []
+  },
+  "He": {
+    "filename": "He.rel-pbe-kjpaw_psl.1.0.0.UPF",
+    "md5": "afe997fbd81e4d085705fc8d3505622d",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 46.0,
+    "cutoff_rho": 203.0,
+    "pswfcs": [
+      "1S"
+    ],
+    "semicores": []
+  },
+  "Li": {
+    "filename": "Li.rel-pbe-sl-kjpaw_psl.1.0.0.UPF",
+    "md5": "9a8f4f81f428697f6e12a9a20a0b1c43",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 50.0,
+    "cutoff_rho": 325.0,
+    "pswfcs": [
+      "1S",
+      "2S",
+      "2P"
+    ],
+    "semicores": [
+      "1S"
+    ]
+  },
+  "Be": {
+    "filename": "Be.rel-pbe-sl-kjpaw_psl.1.0.0.UPF",
+    "md5": "1e68d8743e8e6ffa5a3b0a77cc54e2fd",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 70.0,
+    "cutoff_rho": 710.0,
+    "pswfcs": [
+      "1S",
+      "2S",
+      "2P"
+    ],
+    "semicores": [
+      "1S"
+    ]
+  },
+  "B": {
+    "filename": "B.rel-pbe-n-kjpaw_psl.1.0.0.UPF",
+    "md5": "a48664298749fd77b6d4a2ac3e2adea4",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 43.0,
+    "cutoff_rho": 325.0,
+    "pswfcs": [
+      "2S",
+      "2P"
+    ],
+    "semicores": []
+  },
+  "C": {
+    "filename": "C.rel-pbe-n-kjpaw_psl.1.0.0.UPF",
+    "md5": "dd2b8f743de1f3a10095e4114fb28074",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 40.0,
+    "cutoff_rho": 326.0,
+    "pswfcs": [
+      "2S",
+      "2P"
+    ],
+    "semicores": []
+  },
+  "N": {
+    "filename": "N.rel-pbe-n-kjpaw_psl.1.0.0.UPF",
+    "md5": "ce13193a5f6649a469ffa31f3b7b4cff",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 44.0,
+    "cutoff_rho": 320.0,
+    "pswfcs": [
+      "2S",
+      "2P"
+    ],
+    "semicores": []
+  },
+  "O": {
+    "filename": "O.rel-pbe-n-kjpaw_psl.1.0.0.UPF",
+    "md5": "8d6a81564d6b023d29e58f26e74c0d2c",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 47.0,
+    "cutoff_rho": 323.0,
+    "pswfcs": [
+      "2S",
+      "2P"
+    ],
+    "semicores": []
+  },
+  "F": {
+    "filename": "F.rel-pbe-n-kjpaw_psl.1.0.0.UPF",
+    "md5": "aadd520ad1d9d363ccca3cf2760e2cc2",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 49.0,
+    "cutoff_rho": 316.0,
+    "pswfcs": [
+      "2S",
+      "2P"
+    ],
+    "semicores": []
+  },
+  "Ne": {
+    "filename": "Ne.rel-pbe-n-kjpaw_psl.1.0.0.UPF",
+    "md5": "f2a593411650ce398e62eb9459a52a1e",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 54.0,
+    "cutoff_rho": 264.0,
+    "pswfcs": [
+      "2S",
+      "2P"
+    ],
+    "semicores": []
+  },
+  "Na": {
+    "filename": "Na.rel-pbe-spnl-kjpaw_psl.1.0.0.UPF",
+    "md5": "ab3da668fb837a757098f90f200778bd",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 66.0,
+    "cutoff_rho": 323.0,
+    "pswfcs": [
+      "2S",
+      "3S",
+      "2P"
+    ],
+    "semicores": [
+      "2S",
+      "2P"
+    ]
+  },
+  "Mg": {
+    "filename": "Mg.rel-pbe-spnl-kjpaw_psl.1.0.0.UPF",
+    "md5": "8f8702462a0e2779f1456d461402b56f",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 58.0,
+    "cutoff_rho": 385.0,
+    "pswfcs": [
+      "2S",
+      "3S",
+      "2P"
+    ],
+    "semicores": [
+      "2S",
+      "2P"
+    ]
+  },
+  "Al": {
+    "filename": "Al.rel-pbe-nl-kjpaw_psl.1.0.0.UPF",
+    "md5": "8603568e0b092ac6002233ea90ded6aa",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 29.0,
+    "cutoff_rho": 121.0,
+    "pswfcs": [
+      "3S",
+      "3P"
+    ],
+    "semicores": []
+  },
+  "Si": {
+    "filename": "Si.rel-pbe-nl-kjpaw_psl.1.0.0.UPF",
+    "md5": "2f2fadda267dbd22f844df6c3323d5c7",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 44.0,
+    "cutoff_rho": 175.0,
+    "pswfcs": [
+      "3S",
+      "3P"
+    ],
+    "semicores": []
+  },
+  "P": {
+    "filename": "P.rel-pbe-nl-kjpaw_psl.1.0.0.UPF",
+    "md5": "7fa0983dd65a922f5b56b305378c65b7",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 34.0,
+    "cutoff_rho": 138.0,
+    "pswfcs": [
+      "3S",
+      "3P"
+    ],
+    "semicores": []
+  },
+  "S": {
+    "filename": "S.rel-pbe-nl-kjpaw_psl.1.0.0.UPF",
+    "md5": "1888ec88091fbc32d6e8c9017227a460",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 39.0,
+    "cutoff_rho": 157.0,
+    "pswfcs": [
+      "3S",
+      "3P"
+    ],
+    "semicores": []
+  },
+  "Cl": {
+    "filename": "Cl.rel-pbe-nl-kjpaw_psl.1.0.0.UPF",
+    "md5": "1aaa40c4a7006a23baa36134b47c89fd",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 46.0,
+    "cutoff_rho": 182.0,
+    "pswfcs": [
+      "3S",
+      "3P"
+    ],
+    "semicores": []
+  },
+  "Ar": {
+    "filename": "Ar.rel-pbe-n-kjpaw_psl.1.0.0.UPF",
+    "md5": "7bff8f0fe67f22b55e13dff25e0eb763",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 48.0,
+    "cutoff_rho": 225.0,
+    "pswfcs": [
+      "3S",
+      "3P"
+    ],
+    "semicores": []
+  },
+  "K": {
+    "filename": "K.rel-pbe-spn-kjpaw_psl.1.0.0.UPF",
+    "md5": "9d8319e24d37a63b3f5001d557e1418a",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 41.0,
+    "cutoff_rho": 277.0,
+    "pswfcs": [
+      "3S",
+      "4S",
+      "3P",
+      "4P"
+    ],
+    "semicores": [
+      "3S",
+      "3P"
+    ]
+  },
+  "Ca": {
+    "filename": "Ca.rel-pbe-spn-kjpaw_psl.1.0.0.UPF",
+    "md5": "72fbe3e93cd36ebee05e133e448dce26",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 45.0,
+    "cutoff_rho": 274.0,
+    "pswfcs": [
+      "3S",
+      "4S",
+      "3P",
+      "4P"
+    ],
+    "semicores": [
+      "3S",
+      "3P"
+    ]
+  },
+  "Sc": {
+    "filename": "Sc.rel-pbe-spn-kjpaw_psl.1.0.0.UPF",
+    "md5": "552fa75300d239cdb4413d1eac98d48c",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 50.0,
+    "cutoff_rho": 402.0,
+    "pswfcs": [
+      "3S",
+      "4S",
+      "3P",
+      "3D"
+    ],
+    "semicores": [
+      "3S",
+      "3P"
+    ]
+  },
+  "Ti": {
+    "filename": "Ti.rel-pbe-spn-kjpaw_psl.1.0.0.UPF",
+    "md5": "cc20945288f03d965ca1bdfdb5c7af61",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 52.0,
+    "cutoff_rho": 575.0,
+    "pswfcs": [
+      "3S",
+      "4S",
+      "3P",
+      "3D"
+    ],
+    "semicores": [
+      "3S",
+      "3P"
+    ]
+  },
+  "V": {
+    "filename": "V.rel-pbe-spnl-kjpaw_psl.1.0.0.UPF",
+    "md5": "e977907b3d84fd67c1b4d432f1cac99b",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 48.0,
+    "cutoff_rho": 645.0,
+    "pswfcs": [
+      "3S",
+      "4S",
+      "3P",
+      "3D"
+    ],
+    "semicores": [
+      "3S",
+      "3P"
+    ]
+  },
+  "Cr": {
+    "filename": "Cr.rel-pbe-spn-kjpaw_psl.1.0.0.UPF",
+    "md5": "1e24e2b5251376a8b945118fca0c7981",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 48.0,
+    "cutoff_rho": 457.0,
+    "pswfcs": [
+      "3S",
+      "4S",
+      "3P",
+      "3D"
+    ],
+    "semicores": [
+      "3S",
+      "3P"
+    ]
+  },
+  "Mn": {
+    "filename": "Mn.rel-pbe-spn-kjpaw_psl.0.3.1.UPF",
+    "md5": "dfba1c7561257014502ac20495784078",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 46.0,
+    "cutoff_rho": 244.0,
+    "pswfcs": [
+      "3S",
+      "4S",
+      "3P",
+      "3D"
+    ],
+    "semicores": [
+      "3S",
+      "3P"
+    ]
+  },
+  "Fe": {
+    "filename": "Fe.rel-pbe-spn-kjpaw_psl.1.0.0.UPF",
+    "md5": "35347985ef08859638de3692e9baaf78",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 71.0,
+    "cutoff_rho": 496.0,
+    "pswfcs": [
+      "3S",
+      "4S",
+      "3P",
+      "3D"
+    ],
+    "semicores": [
+      "3S",
+      "3P"
+    ]
+  },
+  "Co": {
+    "filename": "Co.rel-pbe-spn-kjpaw_psl.0.3.1.UPF",
+    "md5": "c7d2b4999b9b1346d82f91e66db16ece",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 60.0,
+    "cutoff_rho": 450.0,
+    "pswfcs": [
+      "3S",
+      "4S",
+      "3P",
+      "3D"
+    ],
+    "semicores": [
+      "3S",
+      "3P"
+    ]
+  },
+  "Ni": {
+    "filename": "Ni.rel-pbe-spn-kjpaw_psl.1.0.0.UPF",
+    "md5": "14b1cfadbfd847dd2c10390e1efa1736",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 75.0,
+    "cutoff_rho": 478.0,
+    "pswfcs": [
+      "3S",
+      "4S",
+      "3P",
+      "3D"
+    ],
+    "semicores": [
+      "3S",
+      "3P"
+    ]
+  },
+  "Cu": {
+    "filename": "Cu.rel-pbe-dn-kjpaw_psl.1.0.0.UPF",
+    "md5": "685c458065e0290f618c4a0502362fc1",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 45.0,
+    "cutoff_rho": 236.0,
+    "pswfcs": [
+      "4S",
+      "4P",
+      "3D"
+    ],
+    "semicores": []
+  },
+  "Zn": {
+    "filename": "Zn.rel-pbe-dnl-kjpaw_psl.1.0.0.UPF",
+    "md5": "fb1d41a37581caea8740f542fa3410bf",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 44.0,
+    "cutoff_rho": 276.0,
+    "pswfcs": [
+      "4S",
+      "4P",
+      "3D"
+    ],
+    "semicores": []
+  },
+  "Ga": {
+    "filename": "Ga.rel-pbe-dnl-kjpaw_psl.1.0.0.UPF",
+    "md5": "b08e22b1d37c8cde44286e4f80e41096",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 44.0,
+    "cutoff_rho": 240.0,
+    "pswfcs": [
+      "4S",
+      "4P",
+      "3D"
+    ],
+    "semicores": [
+      "3D"
+    ]
+  },
+  "Ge": {
+    "filename": "Ge.rel-pbe-n-kjpaw_psl.1.0.0.UPF",
+    "md5": "b5873b046eebfd6239f19c32a73b61dd",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 20.0,
+    "cutoff_rho": 116.0,
+    "pswfcs": [
+      "4S",
+      "4P"
+    ],
+    "semicores": []
+  },
+  "As": {
+    "filename": "As.rel-pbe-n-kjpaw_psl.1.0.0.UPF",
+    "md5": "64fce746f52c6128fdf7901f08bfcabb",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 20.0,
+    "cutoff_rho": 103.0,
+    "pswfcs": [
+      "4S",
+      "4P"
+    ],
+    "semicores": []
+  },
+  "Se": {
+    "filename": "Se.rel-pbe-n-kjpaw_psl.1.0.0.UPF",
+    "md5": "c57aeb42e1736c5d96bbb16beed8c03e",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 22.0,
+    "cutoff_rho": 117.0,
+    "pswfcs": [
+      "4S",
+      "4P"
+    ],
+    "semicores": []
+  },
+  "Br": {
+    "filename": "Br.rel-pbe-n-kjpaw_psl.1.0.0.UPF",
+    "md5": "607cf9a8bc29ab81ba9cc3e40c68b5e9",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 49.0,
+    "cutoff_rho": 243.0,
+    "pswfcs": [
+      "4S",
+      "4P"
+    ],
+    "semicores": []
+  },
+  "Kr": {
+    "filename": "Kr.rel-pbe-dn-kjpaw_psl.1.0.0.UPF",
+    "md5": "2b9a82e44cb7692ad01e4a272cc510b7",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 63.0,
+    "cutoff_rho": 305.0,
+    "pswfcs": [
+      "4S",
+      "4P",
+      "3D"
+    ],
+    "semicores": [
+      "3D"
+    ]
+  },
+  "Rb": {
+    "filename": "Rb.rel-pbe-spn-kjpaw_psl.1.0.0.UPF",
+    "md5": "f262b9acce4965c94454ac3028ead90f",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 35.0,
+    "cutoff_rho": 259.0,
+    "pswfcs": [
+      "4S",
+      "5S",
+      "4P",
+      "5P"
+    ],
+    "semicores": [
+      "4S",
+      "4P"
+    ]
+  },
+  "Sr": {
+    "filename": "Sr.rel-pbe-spn-kjpaw_psl.1.0.0.UPF",
+    "md5": "29a0b1eb8c76fb9ad17737588e801ee1",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 39.0,
+    "cutoff_rho": 263.0,
+    "pswfcs": [
+      "4S",
+      "5S",
+      "4P",
+      "5P"
+    ],
+    "semicores": [
+      "4S",
+      "4P"
+    ]
+  },
+  "Y": {
+    "filename": "Y.rel-pbe-spn-kjpaw_psl.1.0.0.UPF",
+    "md5": "fd680bd0e1485fe407cd35146ec60b30",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 39.0,
+    "cutoff_rho": 257.0,
+    "pswfcs": [
+      "4S",
+      "5S",
+      "4P",
+      "5P",
+      "4D"
+    ],
+    "semicores": [
+      "4S",
+      "4P"
+    ]
+  },
+  "Zr": {
+    "filename": "Zr.rel-pbe-spn-kjpaw_psl.1.0.0.UPF",
+    "md5": "1e2ec7b1d5fa9b223e51cddc9b0ada63",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 46.0,
+    "cutoff_rho": 268.0,
+    "pswfcs": [
+      "4S",
+      "5S",
+      "4P",
+      "5P",
+      "4D"
+    ],
+    "semicores": [
+      "4S",
+      "4P"
+    ]
+  },
+  "Nb": {
+    "filename": "Nb.rel-pbe-spn-kjpaw_psl.1.0.0.UPF",
+    "md5": "2306cb666db741a7975d44936f4113f9",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 48.0,
+    "cutoff_rho": 266.0,
+    "pswfcs": [
+      "4S",
+      "5S",
+      "4P",
+      "5P",
+      "4D"
+    ],
+    "semicores": [
+      "4S",
+      "4P"
+    ]
+  },
+  "Mo": {
+    "filename": "Mo.rel-pbe-spn-kjpaw_psl.1.0.0.UPF",
+    "md5": "6cda9dff73cdab358834687290e4775f",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 49.0,
+    "cutoff_rho": 307.0,
+    "pswfcs": [
+      "4S",
+      "5S",
+      "4P",
+      "4D"
+    ],
+    "semicores": [
+      "4S",
+      "4P"
+    ]
+  },
+  "Tc": {
+    "filename": "Tc.rel-pbe-spn-kjpaw_psl.0.3.0.UPF",
+    "md5": "5f2582970073318d70d8745f885458ea",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 63.0,
+    "cutoff_rho": 853.0,
+    "pswfcs": [
+      "4S",
+      "5S",
+      "4P",
+      "5P",
+      "4D"
+    ],
+    "semicores": [
+      "4S",
+      "4P"
+    ]
+  },
+  "Ru": {
+    "filename": "Ru.rel-pbe-spn-kjpaw_psl.1.0.0.UPF",
+    "md5": "bef6ff591f01cbcb98cd5c3cd9671440",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 52.0,
+    "cutoff_rho": 368.0,
+    "pswfcs": [
+      "4S",
+      "5S",
+      "4P",
+      "4D"
+    ],
+    "semicores": [
+      "4S",
+      "4P"
+    ]
+  },
+  "Rh": {
+    "filename": "Rh.rel-pbe-spn-kjpaw_psl.1.0.0.UPF",
+    "md5": "be0a2eb4ef258aa3684c35caeb929b78",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 54.0,
+    "cutoff_rho": 453.0,
+    "pswfcs": [
+      "4S",
+      "5S",
+      "4P",
+      "4D"
+    ],
+    "semicores": [
+      "4S",
+      "4P"
+    ]
+  },
+  "Pd": {
+    "filename": "Pd.rel-pbe-n-kjpaw_psl.1.0.0.UPF",
+    "md5": "a714dc8e170841c784d7b7259c5b8e99",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 37.0,
+    "cutoff_rho": 448.0,
+    "pswfcs": [
+      "5S",
+      "5P",
+      "4D"
+    ],
+    "semicores": []
+  },
+  "Ag": {
+    "filename": "Ag.rel-pbe-n-kjpaw_psl.1.0.0.UPF",
+    "md5": "3d80c1377587b16f7a0a130fe984ec3c",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 45.0,
+    "cutoff_rho": 182.0,
+    "pswfcs": [
+      "5S",
+      "5P",
+      "4D"
+    ],
+    "semicores": []
+  },
+  "Cd": {
+    "filename": "Cd.rel-pbe-n-kjpaw_psl.1.0.0.UPF",
+    "md5": "a93254e88be9606c5d1c3af865ba934e",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 37.0,
+    "cutoff_rho": 638.0,
+    "pswfcs": [
+      "5S",
+      "5P",
+      "4D"
+    ],
+    "semicores": []
+  },
+  "In": {
+    "filename": "In.rel-pbe-dn-kjpaw_psl.1.0.0.UPF",
+    "md5": "ec524eff3d3f5f608c97c0d1a988d36f",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 41.0,
+    "cutoff_rho": 217.0,
+    "pswfcs": [
+      "5S",
+      "5P",
+      "4D"
+    ],
+    "semicores": [
+      "4D"
+    ]
+  },
+  "Sn": {
+    "filename": "Sn.rel-pbe-dn-kjpaw_psl.1.0.0.UPF",
+    "md5": "6bcaba2b82cf8d008985ef5bb9854e68",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 47.0,
+    "cutoff_rho": 250.0,
+    "pswfcs": [
+      "5S",
+      "5P",
+      "4D"
+    ],
+    "semicores": [
+      "4D"
+    ]
+  },
+  "Sb": {
+    "filename": "Sb.rel-pbe-n-kjpaw_psl.1.0.0.UPF",
+    "md5": "fdb47162c1d03e2226be93e80d85f130",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 27.0,
+    "cutoff_rho": 242.0,
+    "pswfcs": [
+      "5S",
+      "5P"
+    ],
+    "semicores": []
+  },
+  "Te": {
+    "filename": "Te.rel-pbe-n-kjpaw_psl.1.0.0.UPF",
+    "md5": "6ffde90f16471d786941b44326de665d",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 32.0,
+    "cutoff_rho": 157.0,
+    "pswfcs": [
+      "5S",
+      "5P"
+    ],
+    "semicores": []
+  },
+  "I": {
+    "filename": "I.rel-pbe-n-kjpaw_psl.1.0.0.UPF",
+    "md5": "1650324410fde579213a6e5684c4bdbf",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 37.0,
+    "cutoff_rho": 154.0,
+    "pswfcs": [
+      "5S",
+      "5P"
+    ],
+    "semicores": []
+  },
+  "Xe": {
+    "filename": "Xe.rel-pbe-dn-kjpaw_psl.1.0.0.UPF",
+    "md5": "10097592cf2890105a7512c6ff9f6bd2",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 45.0,
+    "cutoff_rho": 212.0,
+    "pswfcs": [
+      "5S",
+      "5P",
+      "4D"
+    ],
+    "semicores": [
+      "4D"
+    ]
+  },
+  "Cs": {
+    "filename": "Cs.rel-pbe-spn-kjpaw_psl.1.0.0.UPF",
+    "md5": "a112b951ec9e765992cdd678db6f3609",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 34.0,
+    "cutoff_rho": 243.0,
+    "pswfcs": [
+      "5S",
+      "6S",
+      "5P"
+    ],
+    "semicores": [
+      "5S",
+      "5P"
+    ]
+  },
+  "Ba": {
+    "filename": "Ba.rel-pbe-spn-kjpaw_psl.1.0.0.UPF",
+    "md5": "e0a6704b63fd109dcd1beae34e497b38",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 38.0,
+    "cutoff_rho": 192.0,
+    "pswfcs": [
+      "5S",
+      "6S",
+      "5P"
+    ],
+    "semicores": [
+      "5S",
+      "5P"
+    ]
+  },
+  "La": {
+    "filename": "La.rel-pbe-spfn-kjpaw_psl.1.0.0.UPF",
+    "md5": "b0542c53e79b904402c04089a938eaf7",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 75.0,
+    "cutoff_rho": 537.0,
+    "pswfcs": [
+      "5S",
+      "6S",
+      "5P",
+      "6P",
+      "5D",
+      "4F"
+    ],
+    "semicores": [
+      "5S",
+      "5P"
+    ]
+  },
+  "Ce": {
+    "filename": "Ce.rel-pbe-spdn-kjpaw_psl.1.0.0.UPF",
+    "md5": "ac0589d7a8aa323f6f089402d08f5237",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 37.0,
+    "cutoff_rho": 179.0,
+    "pswfcs": [
+      "5S",
+      "6S",
+      "5P",
+      "6P",
+      "5D"
+    ],
+    "semicores": [
+      "5S",
+      "5P"
+    ]
+  },
+  "Pr": {
+    "filename": "Pr.rel-pbe-spdn-kjpaw_psl.1.0.0.UPF",
+    "md5": "bb1b2b058161422b68becb8df0d1f262",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 41.0,
+    "cutoff_rho": 310.0,
+    "pswfcs": [
+      "5S",
+      "6S",
+      "5P",
+      "6P",
+      "5D"
+    ],
+    "semicores": [
+      "5S",
+      "5P"
+    ]
+  },
+  "Nd": {
+    "filename": "Nd.rel-pbe-spdn-kjpaw_psl.1.0.0.UPF",
+    "md5": "6ff95a8fee99aa3d44d5d8ac73bb2e80",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 38.0,
+    "cutoff_rho": 202.0,
+    "pswfcs": [
+      "5S",
+      "6S",
+      "5P",
+      "6P",
+      "5D"
+    ],
+    "semicores": [
+      "5S",
+      "5P"
+    ]
+  },
+  "Pm": {
+    "filename": "Pm.rel-pbe-spdn-kjpaw_psl.1.0.0.UPF",
+    "md5": "a2e5bc1f9393ebaa72fc7e86f1554155",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 34.0,
+    "cutoff_rho": 198.0,
+    "pswfcs": [
+      "5S",
+      "6S",
+      "5P",
+      "6P",
+      "5D"
+    ],
+    "semicores": [
+      "5S",
+      "5P"
+    ]
+  },
+  "Sm": {
+    "filename": "Sm.rel-pbe-spdn-kjpaw_psl.1.0.0.UPF",
+    "md5": "b6519f5cc08770db5cfae66c810ff3b8",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 34.0,
+    "cutoff_rho": 195.0,
+    "pswfcs": [
+      "5S",
+      "6S",
+      "5P",
+      "6P",
+      "5D"
+    ],
+    "semicores": [
+      "5S",
+      "5P"
+    ]
+  },
+  "Eu": {
+    "filename": "Eu.rel-pbe-spn-kjpaw_psl.1.0.0.UPF",
+    "md5": "0f4890f90715dec083c371bcc9b256a7",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 34.0,
+    "cutoff_rho": 258.0,
+    "pswfcs": [
+      "5S",
+      "6S",
+      "5P",
+      "6P",
+      "5D"
+    ],
+    "semicores": [
+      "5S",
+      "5P"
+    ]
+  },
+  "Gd": {
+    "filename": "Gd.rel-pbe-spdn-kjpaw_psl.1.0.0.UPF",
+    "md5": "cf50ec46d1536b4a0251694df1946a53",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 35.0,
+    "cutoff_rho": 227.0,
+    "pswfcs": [
+      "5S",
+      "6S",
+      "5P",
+      "6P",
+      "5D"
+    ],
+    "semicores": [
+      "5S",
+      "5P"
+    ]
+  },
+  "Tb": {
+    "filename": "Tb.rel-pbe-spdn-kjpaw_psl.1.0.0.UPF",
+    "md5": "700eebc4f50079decd557a28dc109dda",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 37.0,
+    "cutoff_rho": 229.0,
+    "pswfcs": [
+      "5S",
+      "6S",
+      "5P",
+      "6P",
+      "5D"
+    ],
+    "semicores": [
+      "5S",
+      "5P"
+    ]
+  },
+  "Dy": {
+    "filename": "Dy.rel-pbe-spdn-kjpaw_psl.1.0.0.UPF",
+    "md5": "42720cd9d253473921ac26539f12d6ce",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 38.0,
+    "cutoff_rho": 266.0,
+    "pswfcs": [
+      "5S",
+      "6S",
+      "5P",
+      "6P",
+      "5D"
+    ],
+    "semicores": [
+      "5S",
+      "5P"
+    ]
+  },
+  "Ho": {
+    "filename": "Ho.rel-pbe-spdn-kjpaw_psl.1.0.0.UPF",
+    "md5": "4e7d248ab65f475caafadc0ff536b909",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 39.0,
+    "cutoff_rho": 269.0,
+    "pswfcs": [
+      "5S",
+      "6S",
+      "5P",
+      "6P",
+      "5D"
+    ],
+    "semicores": [
+      "5S",
+      "5P"
+    ]
+  },
+  "Er": {
+    "filename": "Er.rel-pbe-spdn-kjpaw_psl.1.0.0.UPF",
+    "md5": "8c298ca11345cf5d9b596ed50b214319",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 41.0,
+    "cutoff_rho": 267.0,
+    "pswfcs": [
+      "5S",
+      "6S",
+      "5P",
+      "6P",
+      "5D"
+    ],
+    "semicores": [
+      "5S",
+      "5P"
+    ]
+  },
+  "Tm": {
+    "filename": "Tm.rel-pbe-spdn-kjpaw_psl.1.0.0.UPF",
+    "md5": "5d7679c4767fe0044790657f41612833",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 42.0,
+    "cutoff_rho": 319.0,
+    "pswfcs": [
+      "5S",
+      "6S",
+      "5P",
+      "6P",
+      "5D"
+    ],
+    "semicores": [
+      "5S",
+      "5P"
+    ]
+  },
+  "Yb": {
+    "filename": "Yb.rel-pbe-spn-kjpaw_psl.1.0.0.UPF",
+    "md5": "0fbbf752bbc253549dc5dfd7522b5c46",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 41.0,
+    "cutoff_rho": 283.0,
+    "pswfcs": [
+      "5S",
+      "6S",
+      "5P",
+      "6P",
+      "5D"
+    ],
+    "semicores": [
+      "5S",
+      "5P"
+    ]
+  },
+  "Lu": {
+    "filename": "Lu.rel-pbe-spdn-kjpaw_psl.1.0.0.UPF",
+    "md5": "fad49a86ec33ae00582513928e6a0c76",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 46.0,
+    "cutoff_rho": 346.0,
+    "pswfcs": [
+      "5S",
+      "6S",
+      "5P",
+      "6P",
+      "5D"
+    ],
+    "semicores": [
+      "5S",
+      "5P"
+    ]
+  },
+  "Hf": {
+    "filename": "Hf.rel-pbe-spn-kjpaw_psl.1.0.0.UPF",
+    "md5": "8ce506c0f46fc2cc302dfd56fbe7bf7a",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 47.0,
+    "cutoff_rho": 265.0,
+    "pswfcs": [
+      "5S",
+      "6S",
+      "5P",
+      "5D"
+    ],
+    "semicores": [
+      "5S",
+      "5P"
+    ]
+  },
+  "Ta": {
+    "filename": "Ta.rel-pbe-spn-kjpaw_psl.1.0.0.UPF",
+    "md5": "6e1ba5769453fa802ec161040803b94f",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 44.0,
+    "cutoff_rho": 265.0,
+    "pswfcs": [
+      "5S",
+      "6S",
+      "5P",
+      "5D"
+    ],
+    "semicores": [
+      "5S",
+      "5P"
+    ]
+  },
+  "W": {
+    "filename": "W.rel-pbe-spn-kjpaw_psl.1.0.0.UPF",
+    "md5": "51235a9978e123729cef7a6d558439d4",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 55.0,
+    "cutoff_rho": 373.0,
+    "pswfcs": [
+      "5S",
+      "6S",
+      "5P",
+      "6P",
+      "5D"
+    ],
+    "semicores": [
+      "5S",
+      "5P"
+    ]
+  },
+  "Re": {
+    "filename": "Re.rel-pbe-spn-kjpaw_psl.1.0.0.UPF",
+    "md5": "bab10902f3fc225f315186e6d4fb561d",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 54.0,
+    "cutoff_rho": 290.0,
+    "pswfcs": [
+      "5S",
+      "6S",
+      "5P",
+      "5D"
+    ],
+    "semicores": [
+      "5S",
+      "5P"
+    ]
+  },
+  "Os": {
+    "filename": "Os.rel-pbe-spn-kjpaw_psl.1.0.0.UPF",
+    "md5": "51c2f091ef93c19d3c8bc1be2c896382",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 54.0,
+    "cutoff_rho": 270.0,
+    "pswfcs": [
+      "5S",
+      "6S",
+      "5P",
+      "5D"
+    ],
+    "semicores": [
+      "5S",
+      "5P"
+    ]
+  },
+  "Ir": {
+    "filename": "Ir.rel-pbe-n-kjpaw_psl.0.2.3.UPF",
+    "md5": "7464b96378ac869c952ab691ff2c142a",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 40.0,
+    "cutoff_rho": 526.0,
+    "pswfcs": [
+      "6S",
+      "6P",
+      "5D"
+    ],
+    "semicores": []
+  },
+  "Pt": {
+    "filename": "Pt.rel-pbe-n-kjpaw_psl.1.0.0.UPF",
+    "md5": "0dcc0e6bd842dd014541fe5e1bebba10",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 40.0,
+    "cutoff_rho": 433.0,
+    "pswfcs": [
+      "6S",
+      "6P",
+      "5D"
+    ],
+    "semicores": []
+  },
+  "Au": {
+    "filename": "Au.rel-pbe-n-kjpaw_psl.1.0.0.UPF",
+    "md5": "b87bb77ae6867f007b35a4e582de23d4",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 42.0,
+    "cutoff_rho": 423.0,
+    "pswfcs": [
+      "6S",
+      "6P",
+      "5D"
+    ],
+    "semicores": []
+  },
+  "Hg": {
+    "filename": "Hg.rel-pbe-n-kjpaw_psl.1.0.0.UPF",
+    "md5": "6e7b0decf2762d189d0a600be1e5846d",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 43.0,
+    "cutoff_rho": 415.0,
+    "pswfcs": [
+      "6S",
+      "6P",
+      "5D"
+    ],
+    "semicores": []
+  },
+  "Tl": {
+    "filename": "Tl.rel-pbe-dn-kjpaw_psl.1.0.0.UPF",
+    "md5": "add605f074e4fa0ec7ec06e2454b19f5",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 45.0,
+    "cutoff_rho": 210.0,
+    "pswfcs": [
+      "6S",
+      "6P",
+      "5D"
+    ],
+    "semicores": [
+      "5D"
+    ]
+  },
+  "Pb": {
+    "filename": "Pb.rel-pbe-dn-kjpaw_psl.1.0.0.UPF",
+    "md5": "e49cd5e0d5070c0a75e92fa0a9ace710",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 46.0,
+    "cutoff_rho": 211.0,
+    "pswfcs": [
+      "6S",
+      "6P",
+      "5D"
+    ],
+    "semicores": [
+      "5D"
+    ]
+  },
+  "Bi": {
+    "filename": "Bi.rel-pbe-dn-kjpaw_psl.1.0.0.UPF",
+    "md5": "a2fd874d7f712db44af558c1e47d3b28",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 45.0,
+    "cutoff_rho": 456.0,
+    "pswfcs": [
+      "6S",
+      "6P",
+      "5D"
+    ],
+    "semicores": [
+      "5D"
+    ]
+  },
+  "Po": {
+    "filename": "Po.rel-pbe-dn-kjpaw_psl.1.0.0.UPF",
+    "md5": "c1d82601782829f2bd78463fb241e97a",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 85.0,
+    "cutoff_rho": 457.0,
+    "pswfcs": [
+      "6S",
+      "6P",
+      "5D"
+    ],
+    "semicores": [
+      "5D"
+    ]
+  },
+  "At": {
+    "filename": "At.rel-pbe-dn-kjpaw_psl.1.0.0.UPF",
+    "md5": "c0dd30d4e93ba7514619d0c6dc065c5a",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 50.0,
+    "cutoff_rho": 473.0,
+    "pswfcs": [
+      "6S",
+      "6P",
+      "5D"
+    ],
+    "semicores": [
+      "5D"
+    ]
+  },
+  "Rn": {
+    "filename": "Rn.rel-pbe-dn-kjpaw_psl.1.0.0.UPF",
+    "md5": "1156f8d53df07c76c6e1eccde6d42143",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 50.0,
+    "cutoff_rho": 220.0,
+    "pswfcs": [
+      "6S",
+      "6P",
+      "5D"
+    ],
+    "semicores": [
+      "5D"
+    ]
+  },
+  "Fr": {
+    "filename": "Fr.rel-pbe-spdn-kjpaw_psl.1.0.0.UPF",
+    "md5": "0e717d8e6ffb84a12ff4b3ea0f1965c0",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 67.0,
+    "cutoff_rho": 508.0,
+    "pswfcs": [
+      "6S",
+      "7S",
+      "6P",
+      "5D"
+    ],
+    "semicores": [
+      "6S",
+      "6P",
+      "5D"
+    ]
+  },
+  "Ra": {
+    "filename": "Ra.rel-pbe-spdn-kjpaw_psl.1.0.0.UPF",
+    "md5": "a50650454229b68ce33d2bac4ee18716",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 82.0,
+    "cutoff_rho": 534.0,
+    "pswfcs": [
+      "6S",
+      "7S",
+      "6P",
+      "5D"
+    ],
+    "semicores": [
+      "6S",
+      "6P",
+      "5D"
+    ]
+  },
+  "Ac": {
+    "filename": "Ac.rel-pbe-spfn-kjpaw_psl.1.0.0.UPF",
+    "md5": "e8e3517250e7f5db38a4f823e9d8df7b",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 48.0,
+    "cutoff_rho": 329.0,
+    "pswfcs": [
+      "6S",
+      "7S",
+      "6P",
+      "7P",
+      "6D"
+    ],
+    "semicores": [
+      "6S",
+      "6P"
+    ]
+  },
+  "Th": {
+    "filename": "Th.rel-pbe-spfn-kjpaw_psl.1.0.0.UPF",
+    "md5": "41f00f31c519dd19b3c396b9be9857e8",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 103.0,
+    "cutoff_rho": 414.0,
+    "pswfcs": [
+      "6S",
+      "7S",
+      "6P",
+      "6D",
+      "5F"
+    ],
+    "semicores": [
+      "6S",
+      "6P"
+    ]
+  },
+  "Pa": {
+    "filename": "Pa.rel-pbe-spfn-kjpaw_psl.1.0.0.UPF",
+    "md5": "5ae4273d92b79b6f3060f74e478631c9",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 91.0,
+    "cutoff_rho": 447.0,
+    "pswfcs": [
+      "6S",
+      "7S",
+      "6P",
+      "6D",
+      "5F"
+    ],
+    "semicores": [
+      "6S",
+      "6P"
+    ]
+  },
+  "U": {
+    "filename": "U.rel-pbe-spfn-kjpaw_psl.1.0.0.UPF",
+    "md5": "cdc9612a36cd57600ea475b5246d9738",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 93.0,
+    "cutoff_rho": 701.0,
+    "pswfcs": [
+      "6S",
+      "7S",
+      "6P",
+      "6D",
+      "5F"
+    ],
+    "semicores": [
+      "6S",
+      "6P"
+    ]
+  },
+  "Np": {
+    "filename": "Np.rel-pbe-spfn-kjpaw_psl.1.0.0.UPF",
+    "md5": "35915e68fa6a4b3a8cbe18e970f64960",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 111.0,
+    "cutoff_rho": 561.0,
+    "pswfcs": [
+      "6S",
+      "7S",
+      "6P",
+      "6D",
+      "5F"
+    ],
+    "semicores": [
+      "6S",
+      "6P"
+    ]
+  },
+  "Pu": {
+    "filename": "Pu.rel-pbe-spfn-kjpaw_psl.1.0.0.UPF",
+    "md5": "e010d28413c0ccffc9c18da7c0afce86",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 45.0,
+    "cutoff_rho": 353.0,
+    "pswfcs": [
+      "6S",
+      "7S",
+      "6P",
+      "6D",
+      "5F"
+    ],
+    "semicores": [
+      "6S",
+      "6P"
+    ]
+  }
+}

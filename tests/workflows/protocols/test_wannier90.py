@@ -54,6 +54,23 @@ def test_atomic_projectors_qe(
     data_regression.check(serialize_builder(builder))
 
 
+@pytest.mark.parametrize("structure", ("Si", "H2O", "GaAs", "BaTiO3"))
+def test_spin_orbit(
+    generate_builder_inputs, data_regression, serialize_builder, structure
+):
+    """Test ``Wannier90WorkChain.get_builder_from_protocol`` for the default protocol."""
+
+    inputs = generate_builder_inputs(structure)
+    builder = Wannier90WorkChain.get_builder_from_protocol(
+        **inputs,
+        spin_type=SpinType.SPIN_ORBIT,
+        print_summary=False,
+    )
+
+    assert isinstance(builder, ProcessBuilder)
+    data_regression.check(serialize_builder(builder))
+
+
 def test_electronic_type(generate_builder_inputs):
     """Test ``Wannier90WorkChain.get_builder_from_protocol`` with ``electronic_type`` keyword."""
     with pytest.raises(NotImplementedError):
@@ -103,6 +120,14 @@ def test_spin_type(generate_builder_inputs):
         parameters = namespace["pw"]["parameters"].get_dict()
         assert "nspin" not in parameters["SYSTEM"]
         assert "starting_magnetization" not in parameters["SYSTEM"]
+
+    builder = Wannier90WorkChain.get_builder_from_protocol(
+        **generate_builder_inputs(), spin_type=SpinType.SPIN_ORBIT, print_summary=False
+    )
+    for namespace in [builder.scf, builder.nscf]:
+        parameters = namespace["pw"]["parameters"].get_dict()
+        assert parameters["SYSTEM"]["lspinorb"] is True
+        assert parameters["SYSTEM"]["noncolin"] is True
 
 
 def test_projection_type(generate_builder_inputs):
