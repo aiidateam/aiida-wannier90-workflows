@@ -130,6 +130,7 @@ def get_semicore_list(
     # }
     label2num = {"S": 1, "P": 3, "D": 5, "F": 7}
     # for spin-orbit-coupling, every orbit contains 2 electrons
+    nspin = 2 if spin_orbit_coupling else 1
 
     semicore_list = []  # index should start from 1
     num_pswfcs = 0
@@ -140,7 +141,6 @@ def get_semicore_list(
         site_semicores = deepcopy(pseudo_orbitals[site.kind_name]["semicores"])
 
         for orb in site_pswfcs:
-            nspin = 2 if spin_orbit_coupling else 1
             num_orbs = label2num[orb[-1]] * nspin
             if orb in site_semicores:
                 site_semicores.remove(orb)
