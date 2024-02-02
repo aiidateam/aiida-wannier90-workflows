@@ -188,6 +188,13 @@ class Wannier90BaseWorkChain(ProtocolMixin, BaseRestartWorkChain):
             serializer=to_aiida_type,
             help="Additional settings.",
         )
+        spec.input(
+            "current_spin",
+            valid_type=orm.Str,
+            required=False,
+            serializer=to_aiida_type,
+            help="Current calculating spin when set Spin.",
+        )
         spec.inputs.validator = validate_inputs
 
         spec.outline(
@@ -604,6 +611,11 @@ class Wannier90BaseWorkChain(ProtocolMixin, BaseRestartWorkChain):
         #   dis_windows: More states in the frozen window than target WFs
         if "dis_froz_max" in parameters and "bands" in self.inputs:
             bands = self.inputs.bands.get_bands()
+            if "current_spin" in self.inputs:
+                if self.inputs.current_spin == "up":
+                    bands = bands[0, :, :]
+                elif self.inputs.current_spin == "down":
+                    bands = bands[1, :, :]
             if parameters.get("exclude_bands", None):
                 # Index of parameters['exclude_bands'] starts from 1,
                 # I need to change it to 0-based

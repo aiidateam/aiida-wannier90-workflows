@@ -175,9 +175,54 @@ class Wannier90WorkChain(
             namespace="projwfc",
             namespace_options={"required": False},
         )
-        spec.expose_outputs(Pw2wannier90BaseWorkChain, namespace="pw2wannier90")
-        spec.expose_outputs(Wannier90BaseWorkChain, namespace="wannier90_pp")
-        spec.expose_outputs(Wannier90BaseWorkChain, namespace="wannier90")
+        # spec.expose_outputs(Pw2wannier90BaseWorkChain, namespace="pw2wannier90")
+        # spec.expose_outputs(Wannier90BaseWorkChain, namespace="wannier90_pp")
+        # spec.expose_outputs(Wannier90BaseWorkChain, namespace="wannier90")
+        spec.expose_outputs(
+            Pw2wannier90BaseWorkChain,
+            namespace="pw2wannier90",
+            namespace_options={"required": False},
+        )
+        spec.expose_outputs(
+            Wannier90BaseWorkChain,
+            namespace="wannier90_pp",
+            namespace_options={"required": False},
+        )
+        spec.expose_outputs(
+            Wannier90BaseWorkChain,
+            namespace="wannier90",
+            namespace_options={"required": False},
+        )
+        spec.expose_outputs(
+            Pw2wannier90BaseWorkChain,
+            namespace="pw2wannier90_up",
+            namespace_options={"required": False},
+        )
+        spec.expose_outputs(
+            Wannier90BaseWorkChain,
+            namespace="wannier90_pp_up",
+            namespace_options={"required": False},
+        )
+        spec.expose_outputs(
+            Wannier90BaseWorkChain,
+            namespace="wannier90_up",
+            namespace_options={"required": False},
+        )
+        spec.expose_outputs(
+            Pw2wannier90BaseWorkChain,
+            namespace="pw2wannier90_down",
+            namespace_options={"required": False},
+        )
+        spec.expose_outputs(
+            Wannier90BaseWorkChain,
+            namespace="wannier90_pp_down",
+            namespace_options={"required": False},
+        )
+        spec.expose_outputs(
+            Wannier90BaseWorkChain,
+            namespace="wannier90_down",
+            namespace_options={"required": False},
+        )
 
         spec.exit_code(
             420,
@@ -339,6 +384,7 @@ class Wannier90WorkChain(
             SpinType.NONE,
             SpinType.SPIN_ORBIT,
             SpinType.NON_COLLINEAR,
+            SpinType.COLLINEAR
         ]:
             raise NotImplementedError(f"spin type `{spin_type}` is not supported.")
 
@@ -649,6 +695,13 @@ class Wannier90WorkChain(
                 self.ctx.current_folder = self.inputs["pw2wannier90"]["pw2wannier90"][
                     "parent_folder"
                 ]
+            self.ctx.spin_collinear = (
+                self.inputs["nscf"]["pw"]["parameters"]["SYSTEM"].get("nspin", 1) == 2
+            )
+        else:
+            self.ctx.spin_collinear = (
+                self.inputs["scf"]["pw"]["parameters"]["SYSTEM"].get("nspin", 1) == 2
+            )
 
     def should_run_scf(self) -> bool:
         """If the 'scf' input namespace was specified, run the scf workchain."""
@@ -801,28 +854,82 @@ class Wannier90WorkChain(
 
         base_inputs["clean_workdir"] = orm.Bool(False)
 
+        # The "current_spin" in inputs will be passed to Wannier90BaseWorkChain,
+        # which is not parent workchain of current workchain.
+        # We have to set it in inputs dict.
+        if "current_spin" in self.ctx:
+            base_inputs["current_spin"] = self.ctx.current_spin
+
         return base_inputs
 
+    # If spin_collinear .eq. True, we should run wannier90_pp, pw2wannier90 and wannier90
+    # in 2 separate process(_up and _down)
     def run_wannier90_pp(self):
         """Wannier90 post processing step."""
+        if not self.ctx.spin_collinear:
+            inputs = self.prepare_wannier90_pp_inputs()
+            inputs["metadata"] = {"call_link_label": "wannier90_pp"}
+
+            inputs = prepare_process_inputs(Wannier90BaseWorkChain, inputs)
+            running = self.submit(Wannier90BaseWorkChain, **inputs)
+            self.report(
+                f"launching {running.process_label}<{running.pk}> in postproc mode"
+            )
+
+            result_wannier90_pp = ToContext(workchain_wannier90_pp=running)
+        else:
+            result_wannier90_pp = {}
+            self.ctx.current_spin = "up"
+            result_wannier90_pp.update(self.run_wannier90_pp_up())
+            self.ctx.current_spin = "down"
+            result_wannier90_pp.update(self.run_wannier90_pp_down())
+
+        return result_wannier90_pp
+
+    def run_wannier90_pp_up(self):
+        """Wannier90 post processing step for spin up."""
         inputs = self.prepare_wannier90_pp_inputs()
-        inputs["metadata"] = {"call_link_label": "wannier90_pp"}
+        inputs["metadata"] = {"call_link_label": "wannier90_pp_up"}
 
         inputs = prepare_process_inputs(Wannier90BaseWorkChain, inputs)
         running = self.submit(Wannier90BaseWorkChain, **inputs)
         self.report(f"launching {running.process_label}<{running.pk}> in postproc mode")
 
-        return ToContext(workchain_wannier90_pp=running)
+        return ToContext(workchain_wannier90_pp_up=running)
+
+    def run_wannier90_pp_down(self):
+        """Wannier90 post processing step for spin down."""
+        inputs = self.prepare_wannier90_pp_inputs()
+        inputs["metadata"] = {"call_link_label": "wannier90_pp_down"}
+
+        inputs = prepare_process_inputs(Wannier90BaseWorkChain, inputs)
+        running = self.submit(Wannier90BaseWorkChain, **inputs)
+        self.report(f"launching {running.process_label}<{running.pk}> in postproc mode")
+
+        return ToContext(workchain_wannier90_pp_down=running)
 
     def inspect_wannier90_pp(self):  # pylint: disable=inconsistent-return-statements
         """Verify that the `Wannier90Calculation` for the wannier90 run successfully finished."""
-        workchain = self.ctx.workchain_wannier90_pp
+        if not self.ctx.spin_collinear:
+            workchain = self.ctx.workchain_wannier90_pp
+            if not workchain.is_finished_ok:
+                self.report(
+                    f"wannier90 postproc {workchain.process_label} failed with exit status {workchain.exit_status}"
+                )
+                return self.exit_codes.ERROR_SUB_PROCESS_FAILED_WANNIER90PP
 
-        if not workchain.is_finished_ok:
-            self.report(
-                f"wannier90 postproc {workchain.process_label} failed with exit status {workchain.exit_status}"
-            )
-            return self.exit_codes.ERROR_SUB_PROCESS_FAILED_WANNIER90PP
+        else:
+            workchain = [
+                self.ctx.workchain_wannier90_pp_up,
+                self.ctx.workchain_wannier90_pp_down,
+            ]
+            for workchain_spin in workchain:
+                if not workchain_spin.is_finished_ok:
+                    self.report(
+                        f"wannier90 postproc {workchain_spin.process_label} "
+                        + f"failed with exit status {workchain_spin.exit_status}"
+                    )
+                    return self.exit_codes.ERROR_SUB_PROCESS_FAILED_WANNIER90PP
 
     def prepare_pw2wannier90_inputs(self):
         """Prepare the inputs of `Pw2wannier90BaseWorkChain` before submission.
@@ -849,16 +956,41 @@ class Wannier90WorkChain(
             and (scdm_mu is None or scdm_sigma is None)
         )
 
+        # Check whether it is in nspin=2 calculation
+        if "current_spin" in self.ctx:
+            spin = self.ctx.current_spin
+        else:
+            spin = None
+
         if fit_scdm:
             if "workchain_projwfc" not in self.ctx:
                 raise ValueError("Needs to run projwfc for SCDM projection")
-            base_inputs["bands"] = self.ctx.workchain_projwfc.outputs.bands
-            base_inputs["bands_projections"] = (
-                self.ctx.workchain_projwfc.outputs.projections
-            )
+
+            if spin is None:
+                base_inputs["bands"] = self.ctx.workchain_projwfc.outputs.bands
+                base_inputs[
+                    "bands_projections"
+                ] = self.ctx.workchain_projwfc.outputs.projections
+            elif spin == "up":
+                base_inputs["bands"] = self.ctx.workchain_projwfc.outputs.bands_up
+                base_inputs[
+                    "bands_projections"
+                ] = self.ctx.workchain_projwfc.outputs.projections_up
+            elif spin == "down":
+                base_inputs["bands"] = self.ctx.workchain_projwfc.outputs.bands_down
+                base_inputs[
+                    "bands_projections"
+                ] = self.ctx.workchain_projwfc.outputs.projections_down
+            else:
+                raise ValueError(f"Not supported spin component {spin}")
 
         inputs["parent_folder"] = self.ctx.current_folder
-        inputs["nnkp_file"] = self.ctx.workchain_wannier90_pp.outputs.nnkp_file
+        if spin is None:
+            inputs["nnkp_file"] = self.ctx.workchain_wannier90_pp.outputs.nnkp_file
+        elif spin == "up":
+            inputs["nnkp_file"] = self.ctx.workchain_wannier90_pp_up.outputs.nnkp_file
+        elif spin == "down":
+            inputs["nnkp_file"] = self.ctx.workchain_wannier90_pp_down.outputs.nnkp_file
 
         base_inputs["pw2wannier90"] = inputs
 
@@ -866,26 +998,80 @@ class Wannier90WorkChain(
 
     def run_pw2wannier90(self):
         """Run the pw2wannier90 step."""
+        if not self.ctx.spin_collinear:
+            inputs = self.prepare_pw2wannier90_inputs()
+            inputs.metadata.call_link_label = "pw2wannier90"
+
+            inputs = prepare_process_inputs(Pw2wannier90BaseWorkChain, inputs)
+            running = self.submit(Pw2wannier90BaseWorkChain, **inputs)
+            self.report(f"launching {running.process_label}<{running.pk}>")
+
+            result_pw2wannier90 = ToContext(workchain_pw2wannier90=running)
+        else:
+            result_pw2wannier90 = {}
+            self.ctx.current_spin = "up"
+            result_pw2wannier90.update(self.run_pw2wannier90_up())
+            self.ctx.current_spin = "down"
+            result_pw2wannier90.update(self.run_pw2wannier90_down())
+
+        return result_pw2wannier90
+
+    def run_pw2wannier90_up(self):
+        """Run the pw2wannier90 setup."""
         inputs = self.prepare_pw2wannier90_inputs()
-        inputs.metadata.call_link_label = "pw2wannier90"
+        inputs.metadata.call_link_label = "pw2wannier90_up"
+        inputs["pw2wannier90"]["parent_folder"] = self.ctx.current_folder
 
         inputs = prepare_process_inputs(Pw2wannier90BaseWorkChain, inputs)
+        parameters = inputs["pw2wannier90"]["parameters"].get_dict()
+        parameters["inputpp"].update({"spin_component": "up"})
+        inputs["pw2wannier90"]["parameters"] = orm.Dict(parameters)
         running = self.submit(Pw2wannier90BaseWorkChain, **inputs)
         self.report(f"launching {running.process_label}<{running.pk}>")
 
-        return ToContext(workchain_pw2wannier90=running)
+        return ToContext(workchain_pw2wannier90_up=running)
+
+    def run_pw2wannier90_down(self):
+        """Run the pw2wannier90 setup."""
+        inputs = self.prepare_pw2wannier90_inputs()
+        inputs.metadata.call_link_label = "pw2wannier90_down"
+        inputs["pw2wannier90"]["parent_folder"] = self.ctx.current_folder
+
+        inputs = prepare_process_inputs(Pw2wannier90BaseWorkChain, inputs)
+        parameters = inputs["pw2wannier90"]["parameters"].get_dict()
+        parameters["inputpp"].update({"spin_component": "down"})
+        inputs["pw2wannier90"]["parameters"] = orm.Dict(parameters)
+        running = self.submit(Pw2wannier90BaseWorkChain, **inputs)
+        self.report(f"launching {running.process_label}<{running.pk}>")
+
+        return ToContext(workchain_pw2wannier90_down=running)
 
     def inspect_pw2wannier90(self):  # pylint: disable=inconsistent-return-statements
         """Verify that the Pw2wannier90BaseWorkChain for the pw2wannier90 run successfully finished."""
-        workchain = self.ctx.workchain_pw2wannier90
+        if not self.ctx.spin_collinear:
+            workchain = self.ctx.workchain_pw2wannier90
+            self.ctx.current_folder = workchain.outputs.remote_folder
+            if not workchain.is_finished_ok:
+                self.report(
+                    f"{workchain.process_label} failed with exit status {workchain.exit_status}"
+                )
 
-        if not workchain.is_finished_ok:
-            self.report(
-                f"{workchain.process_label} failed with exit status {workchain.exit_status}"
+        else:
+            workchain = [
+                self.ctx.workchain_pw2wannier90_up,
+                self.ctx.workchain_pw2wannier90_down,
+            ]
+            # current_folder for wannier90_up and _down will be defined seperately
+            self.ctx.current_folder_up, self.ctx.current_folder_down = (
+                self.ctx.workchain_pw2wannier90_up.outputs.remote_folder,
+                self.ctx.workchain_pw2wannier90_down.outputs.remote_folder,
             )
-            return self.exit_codes.ERROR_SUB_PROCESS_FAILED_PW2WANNIER90
-
-        self.ctx.current_folder = workchain.outputs.remote_folder
+            for workchain_spin in workchain:
+                if not workchain_spin.is_finished_ok:
+                    self.report(
+                        f"{workchain_spin.process_label} failed with exit status {workchain_spin.exit_status}"
+                    )
+                    return self.exit_codes.ERROR_SUB_PROCESS_FAILED_PW2WANNIER90
 
     def prepare_wannier90_inputs(self):  # pylint: disable=too-many-statements
         """Prepare the inputs of wannier90 calculation before submission.
@@ -918,12 +1104,20 @@ class Wannier90WorkChain(
             stash = deepcopy(inputs["metadata"]["options"]["stash"])
 
         # Use the Wannier90BaseWorkChain-corrected parameters
-        last_calc = get_last_calcjob(self.ctx.workchain_wannier90_pp)
+        if "current_spin" in self.ctx:
+            if self.ctx.current_spin == "up":
+                last_calc = get_last_calcjob(self.ctx.workchain_wannier90_pp_up)
+                inputs["remote_input_folder"] = self.ctx.current_folder_up
+            elif self.ctx.current_spin == "down":
+                last_calc = get_last_calcjob(self.ctx.workchain_wannier90_pp_down)
+                inputs["remote_input_folder"] = self.ctx.current_folder_down
+        else:
+            last_calc = get_last_calcjob(self.ctx.workchain_wannier90_pp)
+            inputs["remote_input_folder"] = self.ctx.current_folder
         # copy postproc inputs, especially the `kmesh_tol` might have been corrected
         for key in last_calc.inputs:
-            inputs[key] = last_calc.inputs[key]
-
-        inputs["remote_input_folder"] = self.ctx.current_folder
+            if key != "remote_input_folder":
+                inputs[key] = last_calc.inputs[key]
 
         if "settings" in inputs:
             settings = inputs.settings.get_dict()
@@ -946,26 +1140,74 @@ class Wannier90WorkChain(
 
     def run_wannier90(self):
         """Wannier90 step for MLWF."""
+        if not self.ctx.spin_collinear:
+            inputs = self.prepare_wannier90_inputs()
+            inputs["metadata"] = {"call_link_label": "wannier90"}
+
+            inputs = prepare_process_inputs(Wannier90BaseWorkChain, inputs)
+            running = self.submit(Wannier90BaseWorkChain, **inputs)
+            self.report(f"launching {running.process_label}<{running.pk}>")
+
+            result_wannier90 = ToContext(workchain_wannier90=running)
+
+        else:
+            result_wannier90 = {}
+            self.ctx.current_spin = "up"
+            result_wannier90.update(self.run_wannier90_up())
+            self.ctx.current_spin = "down"
+            result_wannier90.update(self.run_wannier90_down())
+
+        return result_wannier90
+
+    def run_wannier90_up(self):
+        """Wannier90 step for MLWF."""
         inputs = self.prepare_wannier90_inputs()
-        inputs["metadata"] = {"call_link_label": "wannier90"}
+        inputs["metadata"] = {"call_link_label": "wannier90_up"}
 
         inputs = prepare_process_inputs(Wannier90BaseWorkChain, inputs)
         running = self.submit(Wannier90BaseWorkChain, **inputs)
         self.report(f"launching {running.process_label}<{running.pk}>")
 
-        return ToContext(workchain_wannier90=running)
+        return ToContext(workchain_wannier90_up=running)
+
+    def run_wannier90_down(self):
+        """Wannier90 step for MLWF."""
+        inputs = self.prepare_wannier90_inputs()
+        inputs["metadata"] = {"call_link_label": "wannier90_down"}
+
+        inputs = prepare_process_inputs(Wannier90BaseWorkChain, inputs)
+        running = self.submit(Wannier90BaseWorkChain, **inputs)
+        self.report(f"launching {running.process_label}<{running.pk}>")
+
+        return ToContext(workchain_wannier90_down=running)
 
     def inspect_wannier90(self):  # pylint: disable=inconsistent-return-statements
         """Verify that the `Wannier90BaseWorkChain` for the wannier90 run successfully finished."""
-        workchain = self.ctx.workchain_wannier90
-
-        if not workchain.is_finished_ok:
-            self.report(
-                f"{workchain.process_label} failed with exit status {workchain.exit_status}"
+        if not self.ctx.spin_collinear:
+            workchain = self.ctx.workchain_wannier90
+            self.ctx.current_folder = self.ctx.workchain_wannier90.outputs.remote_folder
+            if not workchain.is_finished_ok:
+                self.report(
+                    f"{workchain.process_label} failed with exit status {workchain.exit_status}"
+                )
+                return self.exit_codes.ERROR_SUB_PROCESS_FAILED_WANNIER90
+        else:
+            workchain = [
+                self.ctx.workchain_wannier90_up,
+                self.ctx.workchain_wannier90_down,
+            ]
+            self.ctx.current_folder_up, self.ctx.current_folder_down = (
+                self.ctx.workchain_wannier90_up.outputs.remote_folder,
+                self.ctx.workchain_wannier90_down.outputs.remote_folder,
             )
-            return self.exit_codes.ERROR_SUB_PROCESS_FAILED_WANNIER90
+            self.ctx.workchain_wannier90 = workchain
 
-        self.ctx.current_folder = workchain.outputs.remote_folder
+            for workchain_spin in workchain:
+                if not workchain_spin.is_finished_ok:
+                    self.report(
+                        f"{workchain_spin.process_label} failed with exit status {workchain_spin.exit_status}"
+                    )
+                    return self.exit_codes.ERROR_SUB_PROCESS_FAILED_WANNIER90
 
     def results(self):  # pylint: disable=inconsistent-return-statements
         """Attach the desired output nodes directly as outputs of the workchain."""
@@ -993,29 +1235,78 @@ class Wannier90WorkChain(
                 )
             )
 
-        self.out_many(
-            self.exposed_outputs(
-                self.ctx.workchain_pw2wannier90,
-                Pw2wannier90BaseWorkChain,
-                namespace="pw2wannier90",
+        if not self.ctx.spin_collinear:
+            self.out_many(
+                self.exposed_outputs(
+                    self.ctx.workchain_pw2wannier90,
+                    Pw2wannier90BaseWorkChain,
+                    namespace="pw2wannier90",
+                )
             )
-        )
-        self.out_many(
-            self.exposed_outputs(
-                self.ctx.workchain_wannier90_pp,
-                Wannier90BaseWorkChain,
-                namespace="wannier90_pp",
+            self.out_many(
+                self.exposed_outputs(
+                    self.ctx.workchain_wannier90_pp,
+                    Wannier90BaseWorkChain,
+                    namespace="wannier90_pp",
+                )
             )
-        )
-        self.out_many(
-            self.exposed_outputs(
-                self.ctx.workchain_wannier90,
-                Wannier90BaseWorkChain,
-                namespace="wannier90",
+            self.out_many(
+                self.exposed_outputs(
+                    self.ctx.workchain_wannier90,
+                    Wannier90BaseWorkChain,
+                    namespace="wannier90",
+                )
             )
-        )
+        else:
+            # Output up component
+            self.out_many(
+                self.exposed_outputs(
+                    self.ctx.workchain_pw2wannier90_up,
+                    Pw2wannier90BaseWorkChain,
+                    namespace="pw2wannier90_up",
+                )
+            )
+            self.out_many(
+                self.exposed_outputs(
+                    self.ctx.workchain_wannier90_pp_up,
+                    Wannier90BaseWorkChain,
+                    namespace="wannier90_pp_up",
+                )
+            )
+            self.out_many(
+                self.exposed_outputs(
+                    self.ctx.workchain_wannier90_up,
+                    Wannier90BaseWorkChain,
+                    namespace="wannier90_up",
+                )
+            )
+            # Output down component
+            self.out_many(
+                self.exposed_outputs(
+                    self.ctx.workchain_pw2wannier90_down,
+                    Pw2wannier90BaseWorkChain,
+                    namespace="pw2wannier90_down",
+                )
+            )
+            self.out_many(
+                self.exposed_outputs(
+                    self.ctx.workchain_wannier90_pp_down,
+                    Wannier90BaseWorkChain,
+                    namespace="wannier90_pp_down",
+                )
+            )
+            self.out_many(
+                self.exposed_outputs(
+                    self.ctx.workchain_wannier90_down,
+                    Wannier90BaseWorkChain,
+                    namespace="wannier90_down",
+                )
+            )
 
-        result = self.sanity_check()
+        if not self.ctx.spin_collinear:
+            result = self.sanity_check()
+        else:
+            result = self.sanity_check_spin_collinear()
         if result:
             return result
 
@@ -1073,20 +1364,145 @@ class Wannier90WorkChain(
                 num_proj = len(
                     self.ctx.workchain_projwfc.outputs["projections"].get_orbitals()
                 )
-                params = self.ctx.workchain_wannier90.inputs["wannier90"][
+            params = self.ctx.workchain_wannier90.inputs["wannier90"][
+                "parameters"
+            ].get_dict()
+            spin_orbit_coupling = params.get("spinors", False)
+            number_of_projections = get_number_of_projections(
+                **args, spin_orbit_coupling=spin_orbit_coupling
+            )
+            if number_of_projections != num_proj:
+                self.report(
+                    f"number of projections {number_of_projections} != projwfc.x output {num_proj}"
+                )
+                return self.exit_codes.ERROR_SANITY_CHECK_FAILED
+
+        # 2. the number of electrons is consistent with QE output
+        if "workchain_scf" in self.ctx:
+            num_elec = self.ctx.workchain_scf.outputs["output_parameters"][
+                "number_of_electrons"
+            ]
+        else:
+            num_elec = self.ctx.workchain_nscf.outputs["output_parameters"][
+                "number_of_electrons"
+            ]
+        number_of_electrons = get_number_of_electrons(**args)
+        if number_of_electrons != num_elec:
+            self.report(
+                f"number of electrons {number_of_electrons} != QE output {num_elec}"
+            )
+            return self.exit_codes.ERROR_SANITY_CHECK_FAILED
+
+    # pylint: disable=inconsistent-return-statements,too-many-return-statements
+    def sanity_check_spin_collinear(
+        self,
+    ):
+        """Sanity checks for final outputs.
+
+        Not necessary but it is good to check it.
+        Because we run a spin separated calculation, some virables/workchain may have
+        different name with causual workchain. So we have to do some correct.
+        """
+        # (e.g.   self.ctx.workchain_projwfc.outputs.projections
+        # -> self.ctx.workchain_projwfc.outputs.projections_up/down,
+        # self.ctx.workchain_pw2wannier90
+        # -> self.ctx.workchain_pw2wannier90_up/down)
+        from aiida_wannier90_workflows.utils.pseudo import (
+            get_number_of_electrons,
+            get_number_of_projections,
+        )
+
+        # If using external atomic projectors, disable sanity check
+        if "workchain_pw2wannier90_up" in self.ctx:
+            p2w_params_up = self.ctx.workchain_pw2wannier90_up.inputs["pw2wannier90"][
+                "parameters"
+            ].get_dict()["inputpp"]
+            atom_proj = p2w_params_up.get("atom_proj", False)
+            atom_proj_ext = p2w_params_up.get("atom_proj_ext", False)
+            if atom_proj and atom_proj_ext:
+                return
+        if "workchain_pw2wannier90_down" in self.ctx:
+            p2w_params_down = self.ctx.workchain_pw2wannier90_down.inputs[
+                "pw2wannier90"
+            ]["parameters"].get_dict()["inputpp"]
+            atom_proj = p2w_params_down.get("atom_proj", False)
+            atom_proj_ext = p2w_params_down.get("atom_proj_ext", False)
+            if atom_proj and atom_proj_ext:
+                return
+
+        # 1. the calculated number of projections is consistent with QE projwfc.x
+        if "scf" in self.inputs:
+            pseudos = self.inputs["scf"]["pw"]["pseudos"]
+        else:
+            pseudos = self.inputs["nscf"]["pw"]["pseudos"]
+        args = {
+            "structure": self.ctx.current_structure,
+            # The type of `self.inputs['scf']['pw']['pseudos']` is AttributesFrozendict,
+            # we need to convert it to dict, otherwise get_number_of_projections will fail.
+            "pseudos": dict(pseudos),
+        }
+        if "workchain_projwfc" in self.ctx:
+            if self.ctx.spin_collinear:
+                num_proj_up = len(
+                    self.ctx.workchain_projwfc.outputs["projections_up"].get_orbitals()
+                )
+                num_proj_down = len(
+                    self.ctx.workchain_projwfc.outputs[
+                        "projections_down"
+                    ].get_orbitals()
+                )
+                if num_proj_up != num_proj_down:
+                    self.report(
+                        "number of projections in projwfc.x output "
+                        + f"for spin up {num_proj_up} != spin down {num_proj_down}"
+                    )
+                    return self.exit_codes.ERROR_SANITY_CHECK_FAILED
+
+                num_proj = num_proj_up
+            else:
+                num_proj = self.ctx.workchain_projwfc.outputs[
+                    "projections"
+                ].get_orbitals()
+            if "workchain_wannier90_up" in self.ctx:
+                params = self.ctx.workchain_wannier90_up.inputs["wannier90"][
                     "parameters"
                 ].get_dict()
-                spin_non_collinear = params.get("spinors", False)
+                spin_orbit_coupling = params.get("spinors", False)
                 number_of_projections = get_number_of_projections(
-                    **args,
-                    spin_non_collinear=spin_non_collinear,
-                    spin_orbit_coupling=spin_orbit_coupling,
+                    **args, spin_orbit_coupling=spin_orbit_coupling
                 )
                 if number_of_projections != num_proj:
                     self.report(
                         f"number of projections {number_of_projections} != projwfc.x output {num_proj}"
                     )
                     return self.exit_codes.ERROR_SANITY_CHECK_FAILED
+            if "workchain_wannier90_down" in self.ctx:
+                params = self.ctx.workchain_wannier90_down.inputs["wannier90"][
+                    "parameters"
+                ].get_dict()
+                spin_orbit_coupling = params.get("spinors", False)
+                number_of_projections = get_number_of_projections(
+                    **args, spin_orbit_coupling=spin_orbit_coupling
+                )
+                if number_of_projections != num_proj:
+                    self.report(
+                        f"number of projections {number_of_projections} != projwfc.x output {num_proj}"
+                    )
+                    return self.exit_codes.ERROR_SANITY_CHECK_FAILED
+
+            if "workchain_wannier90" in self.ctx and not self.ctx.spin_collinear:
+                    params = self.ctx.workchain_wannier90.inputs["wannier90"][
+                        "parameters"
+                    ].get_dict()
+                    spin_orbit_coupling = params.get("spinors", False)
+                    number_of_projections = get_number_of_projections(
+                        **args, spin_orbit_coupling=spin_orbit_coupling
+                    )
+                    if number_of_projections != num_proj:
+                        self.report(
+                            f"number of projections {number_of_projections} != projwfc.x output {num_proj}"
+                        )
+                        return self.exit_codes.ERROR_SANITY_CHECK_FAILED
 
         # 2. the number of electrons is consistent with QE output
         # only check num electrons when we already know pseudos in the check num projectors step

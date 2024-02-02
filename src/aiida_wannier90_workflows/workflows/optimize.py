@@ -82,7 +82,10 @@ def validate_inputs(inputs, ctx=None):  # pylint: disable=unused-argument
     return None
 
 
-class Wannier90OptimizeWorkChain(Wannier90BandsWorkChain):
+# pylint: disable=too-many-lines
+class Wannier90OptimizeWorkChain(
+    Wannier90BandsWorkChain
+):  # pylint: disable=too-many-public-methods
     """Workchain to optimize dis_proj_min/max for projectability disentanglement."""
 
     # The following keys are for wannier90.x plotting, i.e. they can be restarted from
@@ -226,6 +229,27 @@ class Wannier90OptimizeWorkChain(Wannier90BandsWorkChain):
             namespace="wannier90_plot",
             namespace_options={"required": False},
         )
+        # for spin_collinear condition:
+        spec.expose_outputs(
+            Wannier90BaseWorkChain,
+            namespace="wannier90_optimal_up",
+            namespace_options={"required": False},
+        )
+        spec.expose_outputs(
+            Wannier90BaseWorkChain,
+            namespace="wannier90_plot_up",
+            namespace_options={"required": False},
+        )
+        spec.expose_outputs(
+            Wannier90BaseWorkChain,
+            namespace="wannier90_optimal_down",
+            namespace_options={"required": False},
+        )
+        spec.expose_outputs(
+            Wannier90BaseWorkChain,
+            namespace="wannier90_plot_down",
+            namespace_options={"required": False},
+        )
 
         spec.output(
             "bands_distance",
@@ -352,6 +376,9 @@ class Wannier90OptimizeWorkChain(Wannier90BandsWorkChain):
         self.ctx.optimize_spreads_imbalence = []
         # The optimal wannier90 workchain
         self.ctx.optimize_best = None
+        # Store the spinor bands for spin_collinear calculation
+        if self.ctx.spin_collinear:
+            self.ctx.optimize_spinor_bands = []
 
         # For separate_plotting, restore these inputs when running plotting calc.
         self.ctx.saved_parameters = {}
@@ -398,7 +425,14 @@ class Wannier90OptimizeWorkChain(Wannier90BandsWorkChain):
 
     def has_run_wannier90_optimize(self):
         """Whether the optimization loop has been invoked."""
-        return "workchain_wannier90_optimize" in self.ctx
+        if not self.ctx.spin_collinear:
+            result = "workchain_wannier90_optimize" in self.ctx
+        else:
+            result = (
+                "workchain_wannier90_optimize_up" in self.ctx
+                and "workchain_wannier90_optimize_down" in self.ctx
+            )
+        return result
 
     def should_run_wannier90_plot(self):
         """Whether to run wannier90 maximal localisation and plotting in two steps or in one step."""
@@ -450,35 +484,89 @@ class Wannier90OptimizeWorkChain(Wannier90BandsWorkChain):
 
     def run_wannier90(self):
         """Overide parent, pop stash settings."""
-        inputs = self.prepare_wannier90_inputs()
+        if not self.ctx.spin_collinear:
+            inputs = self.prepare_wannier90_inputs()
 
-        # I should not stash files if there is an additional plotting step,
-        # otherwise there is a RemoteStashFolderData in outputs
+            # I should not stash files if there is an additional plotting step,
+            # otherwise there is a RemoteStashFolderData in outputs
+            if self.should_run_wannier90_plot():
+                inputs["wannier90"]["metadata"]["options"].pop("stash", None)
+
+            inputs["metadata"] = {"call_link_label": "wannier90"}
+            inputs = prepare_process_inputs(Wannier90BaseWorkChain, inputs)
+            running = self.submit(Wannier90BaseWorkChain, **inputs)
+            self.report(f"launching {running.process_label}<{running.pk}>")
+
+            result_wannier90 = ToContext(workchain_wannier90=running)
+        else:
+            result_wannier90 = {}
+            self.ctx.current_spin = "up"
+            result_wannier90.update(self.run_wannier90_up())
+            self.ctx.current_spin = "down"
+            result_wannier90.update(self.run_wannier90_down())
+
+        return result_wannier90
+
+    def run_wannier90_up(self):
+        """Wannier90 step for MLWF."""
+        inputs = self.prepare_wannier90_inputs()
         if self.should_run_wannier90_plot():
             inputs["wannier90"]["metadata"]["options"].pop("stash", None)
+        inputs["metadata"] = {"call_link_label": "wannier90_up"}
 
-        inputs["metadata"] = {"call_link_label": "wannier90"}
         inputs = prepare_process_inputs(Wannier90BaseWorkChain, inputs)
         running = self.submit(Wannier90BaseWorkChain, **inputs)
         self.report(f"launching {running.process_label}<{running.pk}>")
 
-        return ToContext(workchain_wannier90=running)
+        return ToContext(workchain_wannier90_up=running)
+
+    def run_wannier90_down(self):
+        """Wannier90 step for MLWF."""
+        inputs = self.prepare_wannier90_inputs()
+        if self.should_run_wannier90_plot():
+            inputs["wannier90"]["metadata"]["options"].pop("stash", None)
+        inputs["metadata"] = {"call_link_label": "wannier90_down"}
+
+        inputs = prepare_process_inputs(Wannier90BaseWorkChain, inputs)
+        running = self.submit(Wannier90BaseWorkChain, **inputs)
+        self.report(f"launching {running.process_label}<{running.pk}>")
+
+        return ToContext(workchain_wannier90_down=running)
 
     def inspect_wannier90(self):
         """Overide parent."""
         super().inspect_wannier90()
 
-        workchain = self.ctx.workchain_wannier90
+        if not self.ctx.spin_collinear:
+            workchain = self.ctx.workchain_wannier90
+        else:
+            workchain = [
+                self.ctx.workchain_wannier90_up,
+                self.ctx.workchain_wannier90_down,
+            ]
+
         if "optimize_reference_bands" in self.inputs:
             bandsdist = self._get_bands_distance(workchain)
             self.ctx.workchain_wannier90_bandsdist = bandsdist
-            self.report(
-                f"current workchain<{workchain.pk}> bands distance={bandsdist:.2e}eV"
-            )
+            if not self.ctx.spin_collinear:
+                self.report(
+                    f"current workchain<{workchain.pk}> bands distance={bandsdist:.2e}eV"
+                )
+            else:
+                self.report(
+                    f"current workchain(up: <{workchain[0].pk}>, down: <{workchain[1].pk}>) "
+                    f"bands distance={bandsdist:.2e}eV"
+                )
 
-        self.ctx.workchain_wannier90_spreads_imbalence = get_spreads_imbalence(
-            workchain.outputs.output_parameters["wannier_functions_output"]
-        )
+        if not self.ctx.spin_collinear:
+            self.ctx.workchain_wannier90_spreads_imbalence = get_spreads_imbalence(
+                workchain.outputs.output_parameters["wannier_functions_output"]
+            )
+        else:
+            self.ctx.workchain_wannier90_spreads_imbalence = get_spreads_imbalence(
+                workchain[0].outputs.output_parameters["wannier_functions_output"]
+                + workchain[1].outputs.output_parameters["wannier_functions_output"]
+            )
 
     def prepare_wannier90_optimize_inputs(self):
         """Prepare inputs for optimize run."""
@@ -490,7 +578,11 @@ class Wannier90OptimizeWorkChain(Wannier90BandsWorkChain):
         # resources = base_inputs['wannier90']['wannier90']['metadata']['options']['resources']
 
         # Use the Wannier90BaseWorkChain-corrected parameters, especially `num_mpiprocs_per_machine`
-        last_calc = get_last_calcjob(self.ctx.workchain_wannier90)
+        if self.ctx.spin_collinear:
+            if self.ctx.current_spin == "up":
+                last_calc = get_last_calcjob(self.ctx.workchain_wannier90_up)
+            elif self.ctx.current_spin == "down":
+                last_calc = get_last_calcjob(self.ctx.workchain_wannier90_down)
         for key in last_calc.inputs:
             inputs[key] = last_calc.inputs[key]
 
@@ -521,11 +613,48 @@ class Wannier90OptimizeWorkChain(Wannier90BandsWorkChain):
 
     def run_wannier90_optimize(self):
         """Optimize dis_proj_min/max."""
+        if not self.ctx.spin_collinear:
+            inputs = self.prepare_wannier90_optimize_inputs()
+
+            iteration = len(self.ctx.optimize_minmax) + 1  # Start from 1
+            inputs["metadata"] = {
+                "call_link_label": f"wannier90_optimize_iteration{iteration}"
+            }
+
+            # Disable the error handler which might modify dis_proj_min
+            handler_overrides = {
+                "handle_disentanglement_not_enough_states": {"enabled": False}
+            }
+            inputs["handler_overrides"] = orm.Dict(handler_overrides)
+
+            inputs = prepare_process_inputs(Wannier90BaseWorkChain, inputs)
+            running = self.submit(Wannier90BaseWorkChain, **inputs)
+
+            dis_proj_min, dis_proj_max = self.ctx.optimize_minmax_new[0]
+            self.report(
+                f"launching {running.process_label}<{running.pk}> with dis_proj_min={dis_proj_min} "
+                f"dis_proj_max={dis_proj_max}"
+            )
+
+            result_wannier90_optmize = ToContext(
+                workchain_wannier90_optimize=append_(running)
+            )
+        else:
+            result_wannier90_optmize = {}
+            self.ctx.current_spin = "up"
+            result_wannier90_optmize.update(self.run_wannier90_optimize_up())
+            self.ctx.current_spin = "down"
+            result_wannier90_optmize.update(self.run_wannier90_optimize_down())
+
+        return result_wannier90_optmize
+
+    def run_wannier90_optimize_up(self):
+        """Optimize dis_proj_min/max."""
         inputs = self.prepare_wannier90_optimize_inputs()
 
         iteration = len(self.ctx.optimize_minmax) + 1  # Start from 1
         inputs["metadata"] = {
-            "call_link_label": f"wannier90_optimize_iteration{iteration}"
+            "call_link_label": f"wannier90_optimize_up_iteration{iteration}"
         }
 
         # Disable the error handler which might modify dis_proj_min
@@ -543,31 +672,89 @@ class Wannier90OptimizeWorkChain(Wannier90BandsWorkChain):
             f"dis_proj_max={dis_proj_max}"
         )
 
-        return ToContext(workchain_wannier90_optimize=append_(running))
+        return ToContext(workchain_wannier90_optimize_up=append_(running))
+
+    def run_wannier90_optimize_down(self):
+        """Optimize dis_proj_min/max."""
+        inputs = self.prepare_wannier90_optimize_inputs()
+
+        iteration = len(self.ctx.optimize_minmax) + 1  # Start from 1
+        inputs["metadata"] = {
+            "call_link_label": f"wannier90_optimize_down_iteration{iteration}"
+        }
+
+        # Disable the error handler which might modify dis_proj_min
+        handler_overrides = {
+            "handle_disentanglement_not_enough_states": {"enabled": False}
+        }
+        inputs["handler_overrides"] = orm.Dict(handler_overrides)
+
+        inputs = prepare_process_inputs(Wannier90BaseWorkChain, inputs)
+        running = self.submit(Wannier90BaseWorkChain, **inputs)
+
+        dis_proj_min, dis_proj_max = self.ctx.optimize_minmax_new[0]
+        self.report(
+            f"launching {running.process_label}<{running.pk}> with dis_proj_min={dis_proj_min} "
+            f"dis_proj_max={dis_proj_max}"
+        )
+
+        return ToContext(workchain_wannier90_optimize_down=append_(running))
 
     def inspect_wannier90_optimize(self):
         """Verify that the `Wannier90BaseWorkChain` for the wannier90 optimization run successfully finished."""
-        workchain = self.ctx.workchain_wannier90_optimize[-1]
-
-        if workchain.is_finished_ok:
-            spreads = get_spreads_imbalence(
-                workchain.outputs.output_parameters["wannier_functions_output"]
-            )
-            if (
+        if not self.ctx.spin_collinear:
+            workchain = self.ctx.workchain_wannier90_optimize[-1]
+            workchain_is_finished_ok = workchain.is_finished_ok
+            workchain_optimize_ok = (
                 "optimize_reference_bands" in self.inputs
                 and "interpolated_bands" in workchain.outputs
-            ):
-                bandsdist = self._get_bands_distance(workchain)
-                self.report(
-                    f"current workchain<{workchain.pk}> bands distance={bandsdist:.2e}eV"
+            )
+        else:
+            workchain = [
+                self.ctx.workchain_wannier90_optimize_up[-1],
+                self.ctx.workchain_wannier90_optimize_down[-1],
+            ]
+            workchain_is_finished_ok = all(_.is_finished_ok for _ in workchain)
+            workchain_optimize_ok = "optimize_reference_bands" in self.inputs and all(
+                "interpolated_bands" in _.outputs for _ in workchain
+            )
+
+        if workchain_is_finished_ok:
+            if not self.ctx.spin_collinear:
+                spreads = get_spreads_imbalence(
+                    workchain.outputs.output_parameters["wannier_functions_output"]
                 )
+            else:
+                spreads = get_spreads_imbalence(
+                    workchain[0].outputs.output_parameters["wannier_functions_output"]
+                    + workchain[1].outputs.output_parameters["wannier_functions_output"]
+                )
+            if workchain_optimize_ok:
+                bandsdist = self._get_bands_distance(workchain)
+                if not self.ctx.spin_collinear:
+                    self.report(
+                        f"current workchain<{workchain.pk}> bands distance={bandsdist:.2e}eV"
+                    )
+                else:
+                    self.report(
+                        f"current workchain(up: <{workchain[0].pk}>, down: <{workchain[1].pk}>) "
+                        f"bands distance={bandsdist:.2e}eV"
+                    )
             else:
                 bandsdist = None
         else:
-            self.report(
-                f"{workchain.process_label} failed with exit status {workchain.exit_status}, "
-                "but I will keep launching next iteration"
-            )
+            if not self.ctx.collinear:
+                self.report(
+                    f"{workchain.process_label} failed with exit status {workchain.exit_status}, "
+                    "but I will keep launching next iteration"
+                )
+            else:
+                for workchain_spin in workchain:
+                    if not workchain_spin.is_finished_ok:
+                        self.report(
+                            f"{workchain_spin.process_label} failed with exit status {workchain_spin.exit_status}, "
+                            "but I will keep launching next iteration"
+                        )
             spreads = None
             bandsdist = None
 
@@ -575,13 +762,23 @@ class Wannier90OptimizeWorkChain(Wannier90BandsWorkChain):
         self.ctx.optimize_minmax.append(minmax)
         self.ctx.optimize_bandsdist.append(bandsdist)
         self.ctx.optimize_spreads_imbalence.append(spreads)
+        if self.ctx.spin_collinear and "spinor_bands" in self.ctx:
+            self.ctx.optimize_spinor_bands.append(self.ctx.spinor_bands)
 
     def inspect_wannier90_optimize_final(self):
         """Select the optimal choice for dis_proj_min/max."""
         if not self.has_run_wannier90_optimize():
             return
 
-        workchains = self.ctx.workchain_wannier90_optimize
+        if not self.ctx.spin_collinear:
+            workchains = self.ctx.workchain_wannier90_optimize
+        else:
+            workchains = [
+                self.ctx.workchain_wannier90_optimize_up,
+                self.ctx.workchain_wannier90_optimize_down,
+            ]
+            # Transpose the list so workchains[i_wc] = [wc_up, wc_down]
+            workchains = list(map(list, zip(*workchains)))
 
         # The optimal wannier90 workchain
         self.ctx.optimize_best = None
@@ -595,23 +792,45 @@ class Wannier90OptimizeWorkChain(Wannier90BandsWorkChain):
             idx = np.argmin(bandsdist)
             if bandsdist[idx] < min(fake_max, self.ctx.workchain_wannier90_bandsdist):
                 self.ctx.optimize_best = workchains[idx]
-                opt_bandsdist = bandsdist[idx]
-                minmax = self.ctx.optimize_minmax[idx]
+                self.ctx.optimize_bandsdist_best = bandsdist[idx]
+                self.ctx.optimize_minmax_best = self.ctx.optimize_minmax[idx]
+                if not self.ctx.spin_collinear:
+                    try:
+                        self.ctx.optimize_band_best = (
+                            self.ctx.optimize_best.outputs.interpolated_bands
+                        )
+                    except KeyError:
+                        self.ctx.optimize_band_best = None
+                else:
+                    self.ctx.optimize_band_best = self.ctx.optimize_spinor_bands[idx]
             else:
                 # All optimizations failed, just output the initial w90
-                self.ctx.optimize_best = self.ctx.workchain_wannier90
-                opt_bandsdist = self.ctx.workchain_wannier90_bandsdist
-                # dis_proj_min/max might be corrected by error handlers,
-                # output the last min/max.
-                last_calc = get_last_calcjob(self.ctx.optimize_best)
+                if not self.ctx.spin_collinear:
+                    self.ctx.optimize_best = self.ctx.workchain_wannier90
+                    self.ctx.optimize_bandsdist_best = (
+                        self.ctx.workchain_wannier90_bandsdist
+                    )
+                    # dis_proj_min/max might be corrected by error handlers,
+                    # output the last min/max.
+                    last_calc = get_last_calcjob(self.ctx.optimize_best)
+                else:
+                    self.ctx.optimize_best = [
+                        self.ctx.workchain_wannier90_up,
+                        self.ctx.workchain_wannier90_down,
+                    ]
+                    self.ctx.optimize_bandsdist_best = (
+                        self.ctx.workchain_wannier90_bandsdist
+                    )
+                    last_calc = get_last_calcjob(self.ctx.optimize_best[0])
                 params = last_calc.inputs.parameters.get_dict()
-                minmax = (
+                self.ctx.optimize_minmax_best = (
                     params.get("dis_proj_min", None),
                     params.get("dis_proj_max", None),
                 )
             self.report(
-                f"Optimal bands distance={opt_bandsdist:.2e}, "
-                f"dis_proj_min={minmax[0]} dis_proj_max={minmax[1]}"
+                f"Optimal bands distance={self.ctx.optimize_bandsdist_best:.2e}, "
+                f"dis_proj_min={self.ctx.optimize_minmax_best[0]} "
+                f"dis_proj_max={self.ctx.optimize_minmax_best[1]}"
             )
         else:
             # I only check the spreads are balenced
@@ -620,13 +839,20 @@ class Wannier90OptimizeWorkChain(Wannier90BandsWorkChain):
             )
             idx = np.argmin(spreads)
             self.ctx.optimize_best = workchains[idx]
-            minmax = self.ctx.optimize_minmax[idx]
+            self.ctx.optimize_minmax_best = self.ctx.optimize_minmax[idx]
             self.report(
                 f"Optimal spreads={spreads[idx]}, "
-                f"dis_proj_min={minmax[0]} dis_proj_max={minmax[1]}"
+                f"dis_proj_min={self.ctx.optimize_minmax_best[0]} "
+                f"dis_proj_max={self.ctx.optimize_minmax_best[1]}"
             )
 
-        self.ctx.current_folder = self.ctx.optimize_best.outputs.remote_folder
+        if not self.ctx.spin_collinear:
+            self.ctx.current_folder = self.ctx.optimize_best.outputs.remote_folder
+        else:
+            self.ctx.current_folder_up = self.ctx.optimize_best[0].outputs.remote_folder
+            self.ctx.current_folder_down = self.ctx.optimize_best[
+                1
+            ].outputs.remote_folder
 
     def prepare_wannier90_plot_inputs(self):
         """Wannier90 plot step, also stash files."""
@@ -643,23 +869,44 @@ class Wannier90OptimizeWorkChain(Wannier90BandsWorkChain):
             # Just use the base workchain
             optimal_workchain = self.ctx.workchain_wannier90
         # Copy inputs, especially the `dis_proj_min/max` might have been corrected
-        last_calc = get_last_calcjob(optimal_workchain)
+        if not self.ctx.spin_collinear:
+            last_calc = get_last_calcjob(optimal_workchain)
+        else:
+            if self.ctx.current_spin == "up":
+                last_calc = get_last_calcjob(optimal_workchain[0])
+            elif self.ctx.current_spin == "down":
+                last_calc = get_last_calcjob(optimal_workchain[1])
         for key in last_calc.inputs:
             inputs[key] = last_calc.inputs[key]
 
         # Use `current_folder` which points to the optimal wannier90 folder, since we need the chk file.
         # However we need to explicitly
         # symlink UNK files in that folder, otherwise the plot calculation would fail.
-        inputs["remote_input_folder"] = self.ctx.current_folder
+        if not self.ctx.spin_collinear:
+            inputs["remote_input_folder"] = self.ctx["current_folder"]
+        else:
+            inputs["remote_input_folder"] = self.ctx[
+                f"current_folder_{self.ctx.current_spin}"
+            ]
         # Maybe in aiida-w90, should let Calculation accepts an optional SinglefileData? for chk,
         # so we don't need to explicitly symlink.
         settings = inputs.settings.get_dict()
-        remote_input_folder_uuid = (
-            self.ctx.workchain_pw2wannier90.outputs.remote_folder.computer.uuid
-        )
-        remote_input_folder_path = pathlib.Path(
-            self.ctx.workchain_pw2wannier90.outputs.remote_folder.get_remote_path()
-        )
+        if not self.ctx.spin_collinear:
+            remote_input_folder_uuid = (
+                self.ctx.workchain_pw2wannier90.outputs.remote_folder.computer.uuid
+            )
+            remote_input_folder_path = pathlib.Path(
+                self.ctx.workchain_pw2wannier90.outputs.remote_folder.get_remote_path()
+            )
+        else:
+            remote_input_folder_uuid = self.ctx[
+                "workchain_pw2wannier90"
+            ].outputs.remote_folder.computer.uuid
+            remote_input_folder_path = pathlib.Path(
+                self.ctx[
+                    f"workchain_pw2wannier90_{self.ctx.current_spin}"
+                ].outputs.remote_folder.get_remote_path()
+            )
         additional_remote_symlink_list = settings.get(
             "additional_remote_symlink_list", []
         )
@@ -690,87 +937,204 @@ class Wannier90OptimizeWorkChain(Wannier90BandsWorkChain):
 
     def run_wannier90_plot(self):
         """Wannier90 plot step, also stash files."""
+        if not self.ctx.spin_collinear:
+            inputs = self.prepare_wannier90_plot_inputs()
+            inputs["metadata"] = {"call_link_label": "wannier90_plot"}
+
+            inputs = prepare_process_inputs(Wannier90BaseWorkChain, inputs)
+            running = self.submit(Wannier90BaseWorkChain, **inputs)
+            self.report(
+                f"launching {running.process_label}<{running.pk}> in plotting mode"
+            )
+
+            result_wannier90_plot = ToContext(workchain_wannier90_plot=running)
+        else:
+            result_wannier90_plot = {}
+            self.ctx.current_spin = "up"
+            result_wannier90_plot.update(self.run_wannier90_plot_up())
+            self.ctx.current_spin = "down"
+            result_wannier90_plot.update(self.run_wannier90_plot_down())
+
+        return result_wannier90_plot
+
+    def run_wannier90_plot_up(self):
+        """Wannier90_up plot step, also stash files."""
         inputs = self.prepare_wannier90_plot_inputs()
-        inputs["metadata"] = {"call_link_label": "wannier90_plot"}
+        inputs["metadata"] = {"call_link_label": "wannier90_plot_up"}
 
         inputs = prepare_process_inputs(Wannier90BaseWorkChain, inputs)
         running = self.submit(Wannier90BaseWorkChain, **inputs)
         self.report(f"launching {running.process_label}<{running.pk}> in plotting mode")
 
-        return ToContext(workchain_wannier90_plot=running)
+        return ToContext(workchain_wannier90_plot_up=running)
+
+    def run_wannier90_plot_down(self):
+        """Wannier90_down plot step, also stash files."""
+        inputs = self.prepare_wannier90_plot_inputs()
+        inputs["metadata"] = {"call_link_label": "wannier90_plot_down"}
+
+        inputs = prepare_process_inputs(Wannier90BaseWorkChain, inputs)
+        running = self.submit(Wannier90BaseWorkChain, **inputs)
+        self.report(f"launching {running.process_label}<{running.pk}> in plotting mode")
+
+        return ToContext(workchain_wannier90_plot_down=running)
 
     def inspect_wannier90_plot(self):
         """Verify that the `Wannier90BaseWorkChain` for the wannier90 plotting run successfully finished."""
-        workchain = self.ctx.workchain_wannier90_plot
+        if not self.ctx.spin_collinear:
+            workchain = self.ctx.workchain_wannier90_plot
+            workchain_is_finished_ok = workchain.is_finished_ok
+        else:
+            workchain = [
+                self.ctx.workchain_wannier90_plot_up,
+                self.ctx.workchain_wannier90_plot_down,
+            ]
+            workchain_is_finished_ok = all(_.is_finished_ok for _ in workchain)
 
-        if not workchain.is_finished_ok:
-            self.report(
-                f"{workchain.process_label} failed with exit status {workchain.exit_status}"
-            )
+        if not workchain_is_finished_ok:
+            if not self.ctx.spin_collinear:
+                self.report(
+                    f"{workchain.process_label} failed with exit status {workchain.exit_status}"
+                )
+            else:
+                for workchain_spin in workchain:
+                    if not workchain_spin.is_finished_ok:
+                        self.report(
+                            f"{workchain_spin.process_label} failed with exit status {workchain_spin.exit_status}, "
+                            "but I will keep launching next iteration"
+                        )
             return self.exit_codes.ERROR_SUB_PROCESS_FAILED_WANNIER90_PLOT
 
-        self.ctx.current_folder = workchain.outputs.remote_folder
+        if not self.ctx.spin_collinear:
+            self.ctx.current_folder = workchain.outputs.remote_folder
+        else:
+            self.ctx.current_folder_up = workchain[0].outputs.remote_folder
+            self.ctx.current_folder_down = workchain[1].output.remote_folder
         return None
 
     def results(self):
         """Attach the relevant output nodes from the band calculation to the workchain outputs for convenience."""
+
         super().results()
 
         if self.inputs["optimize_disproj"]:
             if self.has_run_wannier90_optimize():
                 optimal_workchain = self.ctx.optimize_best
+                if "optimize_band_best" in self.ctx:
+                    # Optimize succeed in workchain.
+                    if self.ctx.optimize_band_best is not None:
+                        # Override the output band_structure.
+                        # Parent Workchain W90BandsWC output interpolated_bands from initial W90 run.
+                        # And bands_plot is removed from separate_plot, so bands output will not be overrided there.
+                        # I record the best optimized bands in inspect_wan_optimize_final, and override the output here
+                        # if optimize workchain succeed and the best optimized band was recorded
+                        self.out("band_structure", self.ctx.optimize_band_best)
+
             else:
                 optimal_workchain = self.ctx.workchain_wannier90
-            self.out_many(
-                self.exposed_outputs(
-                    optimal_workchain,
-                    Wannier90BaseWorkChain,
-                    namespace="wannier90_optimal",
+            if not self.ctx.spin_collinear:
+                self.out_many(
+                    self.exposed_outputs(
+                        optimal_workchain,
+                        Wannier90BaseWorkChain,
+                        namespace="wannier90_optimal",
+                    )
                 )
-            )
+            else:
+                self.out_many(
+                    self.exposed_outputs(
+                        optimal_workchain[0],
+                        Wannier90BaseWorkChain,
+                        namespace="wannier90_optimal_up",
+                    )
+                )
+                self.out_many(
+                    self.exposed_outputs(
+                        optimal_workchain[1],
+                        Wannier90BaseWorkChain,
+                        namespace="wannier90_optimal_down",
+                    )
+                )
 
         if self.should_run_wannier90_plot():
-            self.out_many(
-                self.exposed_outputs(
-                    self.ctx.workchain_wannier90_plot,
-                    Wannier90BaseWorkChain,
-                    namespace="wannier90_plot",
+            if not self.ctx.spin_collinear:
+                self.out_many(
+                    self.exposed_outputs(
+                        self.ctx.workchain_wannier90_plot,
+                        Wannier90BaseWorkChain,
+                        namespace="wannier90_plot",
+                    )
                 )
-            )
+                # Now band_plot has been removed from separate_plot
+                # if "interpolated_bands" in self.outputs["wannier90_plot"]:
+                #     w90_bands = self.outputs["wannier90_plot"]["interpolated_bands"]
+                #     self.out("band_structure", w90_bands)
+            else:
+                self.out_many(
+                    self.exposed_outputs(
+                        self.ctx.workchain_wannier90_plot_up,
+                        Wannier90BaseWorkChain,
+                        namespace="wannier90_plot_up",
+                    )
+                )
+                self.out_many(
+                    self.exposed_outputs(
+                        self.ctx.workchain_wannier90_plot_down,
+                        Wannier90BaseWorkChain,
+                        namespace="wannier90_plot_down",
+                    )
+                )
 
         if "optimize_reference_bands" in self.inputs:
             if self.has_run_wannier90_optimize():
                 optimal_workchain = self.ctx.optimize_best
+                bandsdist = self.ctx.optimize_bandsdist_best
             else:
                 # Even if I haven't run optimization, I still output bands distance if reference bands is present
                 optimal_workchain = self.ctx.workchain_wannier90
-
-            if "interpolated_bands" in optimal_workchain.outputs:
-                # Override the `band_strucure` from W90BandsWorkChain
-                w90_optimal_bands = optimal_workchain.outputs["interpolated_bands"]
-                self.out("band_structure", w90_optimal_bands)
-            bandsdist = self._get_bands_distance(optimal_workchain)
+                bandsdist = self.ctx.workchain_wannier90_bandsdist
             bandsdist = orm.Float(bandsdist)
             bandsdist.store()
             self.out("bands_distance", bandsdist)
 
-    def _get_bands_distance(self, wannier_workchain: Wannier90BaseWorkChain) -> float:
+    def _get_bands_distance(
+        self, wannier_workchain: ty.Union[Wannier90BaseWorkChain, list]
+    ) -> float:
         """Get bands distance for Fermi energy + 2eV."""
         ref_bands = self.inputs["optimize_reference_bands"]
-        bandsdist = get_bands_distance_ef2(ref_bands, wannier_workchain)
+        if self.ctx.spin_collinear:
+            bandsdist, spinor_bands = get_bands_distance_ef2(
+                ref_bands, wannier_workchain
+            )
+            self.ctx.spinor_bands = spinor_bands
+        else:
+            bandsdist = get_bands_distance_ef2(ref_bands, wannier_workchain)[0]
 
         return bandsdist
 
 
 def get_bands_distance_ef2(
-    ref_bands: orm.BandsData, wannier_workchain: Wannier90BaseWorkChain
-) -> float:
+    ref_bands: orm.BandsData, wannier_workchain: ty.Union[Wannier90BaseWorkChain, list]
+) -> ty.Union[float, ty.Tuple[float, orm.BandsData]]:
     """Get bands distance for E <= Fermi energy + 2eV."""
     from aiida_wannier90_workflows.utils.bands.distance import bands_distance
+    from aiida_wannier90_workflows.workflows.bands import get_spinor_band_structure
 
-    wan_bands = wannier_workchain.outputs["interpolated_bands"]
+    if isinstance(
+        wannier_workchain, list
+    ):  # list of Wannier90BaseWorkChain for spin up and down
+        wan_bands_up = wannier_workchain[0].outputs["interpolated_bands"]
+        wan_bands_down = wannier_workchain[1].outputs["interpolated_bands"]
+        structure = wannier_workchain[0].inputs["wannier90"]["structure"]
+        wan_bands = get_spinor_band_structure(wan_bands_up, wan_bands_down, structure)
+        wan_parameters = (
+            wannier_workchain[0].inputs["wannier90"]["parameters"].get_dict()
+        )
+        #
+    else:
+        wan_bands = wannier_workchain.outputs["interpolated_bands"]
+        wan_parameters = wannier_workchain.inputs["wannier90"]["parameters"].get_dict()
 
-    wan_parameters = wannier_workchain.inputs["wannier90"]["parameters"].get_dict()
     fermi_energy = wan_parameters.get("fermi_energy")
     exclude_list_dft = wan_parameters.get("exclude_bands", None)
 
@@ -781,15 +1145,15 @@ def get_bands_distance_ef2(
     # Return Ef+2
     bandsdist = bandsdist[2]
 
-    return bandsdist
+    return bandsdist, wan_bands
 
 
-def get_spreads_imbalence(wannier_functions_output: dict) -> float:
+def get_spreads_imbalence(wannier_functions_output: list) -> float:
     """Calculate the variance of spreads.
 
     There could be other ways to calculate the spreads imbalence, for now I just use variance.
     :param wannier_functions_output: [description]
-    :type wannier_functions_output: dict
+    :type wannier_functions_output: dict (in fact list of dicts)
     :return: [description]
     :rtype: float
     """
