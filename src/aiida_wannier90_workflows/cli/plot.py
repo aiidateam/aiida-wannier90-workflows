@@ -65,6 +65,9 @@ def cmd_plot_band(ctx, node, save, save_format):  # pylint: disable=unused-argum
     )
 
     bands = get_output_bands(node)
+    spin_collinear = (
+        len(bands.get_bands().shape) == 3
+    )  # (num_spins, num_kpts, num_bands)
 
     # pylint: disable=protected-access
     mpl_code = bands._exportcontent(fileformat="mpl_singlefile", main_file_name="")[0]
@@ -80,7 +83,10 @@ def cmd_plot_band(ctx, node, save, save_format):  # pylint: disable=unused-argum
     if isinstance(node, orm.WorkChainNode):
         fermi_energy = get_workchain_fermi_energy(node)
         replacement = f"fermi_energy = {fermi_energy}\n\n"
-        replacement += "p.axhline(y=fermi_energy, color='blue', linestyle='--', label='Fermi', zorder=-1)\n"
+        if spin_collinear:
+            replacement += "p.axhline(y=fermi_energy, color='green', linestyle='--', label='Fermi', zorder=-1)\n"
+        else:
+            replacement += "p.axhline(y=fermi_energy, color='blue', linestyle='--', label='Fermi', zorder=-1)\n"
         replacement += "pl.legend()\n\n"
         replacement += "for path in paths:"
         mpl_code = mpl_code.replace(b"for path in paths:", replacement.encode())
@@ -88,6 +94,25 @@ def cmd_plot_band(ctx, node, save, save_format):  # pylint: disable=unused-argum
     mpl_code = mpl_code.replace(
         b"plt.rcParams.update({'text.latex.preview': True})", b""
     )
+
+    # spin separate plot
+    if spin_collinear:
+        mpl_code = mpl_code.replace(
+            b"further_plot_options1['color'] = all_data.get('bands_color', 'k')",
+            b"further_plot_options1['color'] = all_data.get('bands_color', 'r')",
+        )
+        mpl_code = mpl_code.replace(
+            b"further_plot_options2['color'] = all_data.get('bands_color2', 'r')",
+            b"further_plot_options2['color'] = all_data.get('bands_color2', 'b')",
+        )
+        mpl_code = mpl_code.replace(
+            b'"legend_text": null,',
+            b'"legend_text": "spin up",',
+        )
+        mpl_code = mpl_code.replace(
+            b'"legend_text2": null,',
+            b'"legend_text2": "spin down",',
+        )
 
     if save:
         if save_format:

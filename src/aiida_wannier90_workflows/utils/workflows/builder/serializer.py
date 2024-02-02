@@ -47,7 +47,7 @@ def serialize(node: orm.Node, show_pk: bool = True) -> ty.Any:
 
     # BandsData is a subclass of KpointsData, need to before KpointsData
     elif isinstance(node, orm.BandsData):
-        num_kpoints, num_bands = node.base.attributes.all["array|bands"]
+        num_kpoints, num_bands = node.base.attributes.all["array|bands"][-2:]
         res = f"nkpt={num_kpoints},nbnd={num_bands}"
         if "labels" in node.base.attributes.all:
             res += f",{serialize_kpoints(node, show_pk)}"

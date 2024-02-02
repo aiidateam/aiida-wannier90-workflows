@@ -45,6 +45,13 @@ def bands_distance_raw(  # pylint: disable=too-many-arguments,too-many-locals
     :param gaussian_weight: if True, gaussian weight will be used instead of
         Fermi-Dirac
     """
+
+    # When spin collinear bands, bands.shape == (num_spins, num_kpts, num_bands)
+    # Move it to bands.shape = (num_kpts, num_bands, num_spins), so we should not
+    # move the index position
+    if len(dft_bands.shape) == 3 and len(wannier_bands.shape) == 3:
+        dft_bands = np.moveaxis(dft_bands, [-2, -1], [0, 1])
+        wannier_bands = np.moveaxis(wannier_bands, [-2, -1], [0, 1])
     if exclude_list_dft is None:
         exclude_list_dft = []
         dft_bands_filtered = dft_bands

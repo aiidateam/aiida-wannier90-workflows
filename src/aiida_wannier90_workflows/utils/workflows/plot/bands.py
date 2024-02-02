@@ -77,62 +77,94 @@ def plot_scdm_fit(  # pylint: disable=too-many-locals
 ):
     """Plot the projectabilities distribution of SCDM fitting."""
     from aiida_wannier90_workflows.utils.scdm import fit_scdm_mu_sigma
-    from aiida_wannier90_workflows.utils.workflows import get_last_calcjob
 
     valid_classes = [Wannier90BandsWorkChain, Wannier90WorkChain]
     if workchain.process_class not in valid_classes:
         raise ValueError(f"Input workchain type should be {valid_classes}")
 
     formula = workchain.inputs.structure.get_formula()
-
+    spin_collinear = (
+        workchain.inputs.nscf.pw.parameters.get_dict()["SYSTEM"].get("nspin", 1) == 2
+    )
+    fermi_energy = get_workchain_fermi_energy(workchain)
     # w90calc = workchain.get_outgoing(link_label_filter="wannier90").one().node
-    w90calc = workchain.outputs.wannier90.remote_folder.creator
-    p2w_workchain = (
-        workchain.base.links.get_outgoing(link_label_filter="pw2wannier90").one().node
-    )
-    p2wcalc = get_last_calcjob(p2w_workchain)
-    projcalc = workchain.base.links.get_outgoing(link_label_filter="projwfc").one().node
+    bands, projections, sigma, mu = ({} for _ in range(4))
+    if spin_collinear:
+        nspin = 2
+        spins = ["_up", "_down"]
+    else:
+        nspin = 1
+        spins = [""]
+    for spin in spins:
+        results = read_band_proj_sigma_mu_from_workchain(workchain, spin)
+        bands.update({spin: results["bands"]})
+        projections.update({spin: results["projections"]})
+        sigma.update({spin: results["sigma"]})
+        mu.update({spin: results["mu"]})
 
-    fermi_energy = w90calc.inputs.parameters["fermi_energy"]
-    sigma = p2wcalc.inputs.parameters["inputpp"]["scdm_sigma"]
-    mu = p2wcalc.inputs.parameters["inputpp"]["scdm_mu"]
-    projections = projcalc.outputs.projections
-    bands = projcalc.outputs.bands
+    for i, spin in enumerate(list(bands.keys())):
+        mu_fit, sigma_fit, data = fit_scdm_mu_sigma(
+            bands[spin], projections[spin], sigma_factor=orm.Float(0), return_data=True
+        )
+        print(f"{(formula+spin)}\t:")
+        print(
+            f"        fermi_energy = {fermi_energy}, mu = {mu[spin]}, sigma = {sigma[spin]}"
+        )
 
-    mu_fit, sigma_fit, data = fit_scdm_mu_sigma(
-        bands, projections, sigma_factor=orm.Float(0), return_data=True
-    )
-
-    print(f"{formula:6s}:")
-    print(f"        fermi_energy = {fermi_energy}, mu = {mu}, sigma = {sigma}")
-
-    # check the fitting are consistent
-    eps = 1e-6
-    assert abs(sigma - sigma_fit) < eps
-    # sigma_factor = workchain.inputs.scdm_sigma_factor.value
-    sigma_factor = 3
-    assert abs(mu - (mu_fit - sigma_fit * sigma_factor)) < eps
-    sorted_bands = data[0, :]
-    sorted_projwfc = data[1, :]
-
-    _, ax = plt.subplots()
-
-    title = f"{workchain.process_label}<{workchain.pk}>: {formula}"
-    plot_scdm_fit_raw(
-        sorted_bands,
-        sorted_projwfc,
-        mu_fit,
-        sigma_fit,
-        sigma_factor,
-        fermi_energy,
-        title=title,
-        ax=ax,
-    )
+        # check the fitting are consistent
+        eps = 1e-6
+        assert abs(sigma[spin] - sigma_fit) < eps
+        # sigma_factor = workchain.inputs.scdm_sigma_factor.value
+        sigma_factor = 3
+        assert abs(mu[spin] - (mu_fit - sigma_fit * sigma_factor)) < eps
+        sorted_bands = data[0, :]
+        sorted_projwfc = data[1, :]
+        ax = plt.subplot(nspin, 1, i + 1)
+        title = f"{workchain.process_label}<{workchain.pk}>: {formula}{spin}"
+        plot_scdm_fit_raw(
+            sorted_bands,
+            sorted_projwfc,
+            mu_fit,
+            sigma_fit,
+            sigma_factor,
+            fermi_energy,
+            title=title,
+            ax=ax,
+        )
 
     if save:
         plt.savefig(f"scdmfit_{formula}_{workchain.pk}.png")
     else:
         plt.show()
+
+
+def read_band_proj_sigma_mu_from_workchain(
+    workchain: orm.WorkChainNode, spin_component: str = ""
+):
+    """Read the projectabilities distribution from workchain."""
+    from aiida_wannier90_workflows.utils.workflows import get_last_calcjob
+
+    valid_classes = [Wannier90BandsWorkChain, Wannier90WorkChain]
+    if workchain.process_class not in valid_classes:
+        raise ValueError(f"Input workchain type should be {valid_classes}")
+
+    projcalc = workchain.base.links.get_outgoing(link_label_filter="projwfc").one().node
+    p2w_workchain = (
+        workchain.base.links.get_outgoing(
+            link_label_filter=f"pw2wannier90{spin_component}"
+        )
+        .one()
+        .node
+    )
+    p2wcalc = get_last_calcjob(p2w_workchain)
+    projections = projcalc.outputs[f"projections{spin_component}"]
+    bands = projcalc.outputs[f"bands{spin_component}"]
+
+    sigma = p2wcalc.inputs.parameters["inputpp"]["scdm_sigma"]
+    mu = p2wcalc.inputs.parameters["inputpp"]["scdm_mu"]
+
+    results = {"bands": bands, "projections": projections, "sigma": sigma, "mu": mu}
+    return results
 
 
 def get_mpl_code_for_bands(
@@ -154,10 +186,14 @@ def get_mpl_code_for_bands(
     # dft_bands.show_mpl()
     legend = f"{dft_bands.pk}" if dft_bands.pk else "DFT"
     dft_mpl_code = dft_bands._exportcontent(  # pylint: disable=protected-access
-        fileformat="mpl_singlefile", legend=legend, main_file_name=""
+        fileformat="mpl_singlefile", legend=legend, main_file_name="", bands_color="k"
     )[
         0
     ]  # pylint: disable=protected-access
+    dft_mpl_code = dft_mpl_code.replace(
+        b"further_plot_options2['color'] = all_data.get('bands_color2', 'r')",
+        b"further_plot_options2['color'] = all_data.get('bands_color2', 'k')",
+    )
     legend = f"{wan_bands.pk}" if wan_bands.pk else "W90"
     wan_mpl_code = wan_bands._exportcontent(  # pylint: disable=protected-access
         fileformat="mpl_singlefile",
@@ -308,6 +344,11 @@ def get_workchain_fermi_energy(
         fermi_energy = get_fermi_energy(workchain.outputs["scf"]["output_parameters"])
     elif "scf_parameters" in workchain.outputs:
         fermi_energy = get_fermi_energy(workchain.outputs["scf_parameters"])
+    elif "nscf" in workchain.outputs:
+        nscf_calc = get_last_calcjob(
+            workchain.base.links.get_outgoing(link_label_filter="nscf").one().node
+        )
+        fermi_energy = get_fermi_energy_from_nscf(nscf_calc)
     else:
         if workchain.process_class in (PwBaseWorkChain, PwCalculation):
             pw_calc = get_last_calcjob(workchain)
@@ -321,8 +362,12 @@ def get_workchain_fermi_energy(
                 Wannier90BandsWorkChain,
                 Wannier90OptimizeWorkChain,
             ):
+                if "wannier90_up" in workchain.get_outputs:
+                    link_label = "wannier90_up"
+                else:
+                    link_label = "wannier90"
                 w90calc = get_last_calcjob(
-                    workchain.base.links.get_outgoing(link_label_filter="wannier90")
+                    workchain.base.links.get_outgoing(link_label_filter=link_label)
                     .one()
                     .node
                 )
