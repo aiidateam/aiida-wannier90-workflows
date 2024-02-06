@@ -583,6 +583,8 @@ class Wannier90OptimizeWorkChain(
                 last_calc = get_last_calcjob(self.ctx.workchain_wannier90_up)
             elif self.ctx.current_spin == "down":
                 last_calc = get_last_calcjob(self.ctx.workchain_wannier90_down)
+        else:
+            last_calc = get_last_calcjob(self.ctx.workchain_wannier90)
         for key in last_calc.inputs:
             inputs[key] = last_calc.inputs[key]
 

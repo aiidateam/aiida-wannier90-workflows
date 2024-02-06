@@ -61,6 +61,10 @@ def get_pseudo_orbitals(pseudos: ty.Mapping[str, PseudoPotentialData]) -> dict:
         * PseudoDojo/0.4/PBE/SR/stringent/upf
         * PseudoDojo/0.5/PBE/SR/standard/upf
         * PseudoDojo/0.5/PBE/SR/stringent/upf
+        * PseudoDojo/0.4/PBE/FR/standard/upf
+        * Pslibrary/1.0.0/relPBE/PAW
+            ** Pslibrary should be installed manually.
+            ** Please follow `src/aiida_wannier90_workflows/utils/pseudo/data/__init__.py`
     """
     from .data import load_pseudo_metadata
 
