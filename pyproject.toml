@@ -10,12 +10,12 @@ dynamic = ["version"] # read from aiida_wannier90_workflows/__init__.py
 description = "Advanced AiiDA workflows for Wannier90"
 authors = [{name = 'The AiiDA team', email = 'developers@aiida.net'}]
 readme = "README.md"
-license = { file = "LICENSE" }
+license = { file = "LICENSE.txt" }
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Framework :: AiiDA",
     "Environment :: Plugins",
-    "License :: OSI Approved :: MIT License",
+    "License :: Free To Use But Restricted",
     "Operating System :: POSIX :: Linux",
     "Operating System :: MacOS :: MacOS X",
     "Programming Language :: Python",
