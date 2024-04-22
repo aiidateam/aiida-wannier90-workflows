@@ -66,26 +66,34 @@ class PSHandler(xml.sax.ContentHandler):
         This will later be used to identify semicores.
         """
 
-        if name == "PP_MESH":
-            try:
-                self.znum = int(float(attrs["zmesh"]))
-            except ValueError:
-                print(f"z = {attrs['zmesh']} is not acceptable")
+        # dojo UPF does not have zmesh, use PP_HEADER to be safe
+        # if name == "PP_MESH":
+        #     try:
+        #         self.znum = int(float(attrs["zmesh"]))
+        #     except ValueError:
+        #         print(f"z = {attrs['zmesh']} is not acceptable")
+        if name == "PP_HEADER":
+            from ase.data import atomic_numbers
 
-        if name == "PP_SPIN_ORB":
-            # <PP_SPIN_ORB>
-            #   <PP_RELWFC.1 index="1" els="5S" nn="1" lchi="0" jchi="0.500000000000000" oc="2.00000000000000"/>
-            #   <PP_RELWFC.2 index="2" els="6S" nn="2" lchi="0" jchi="0.500000000000000" oc="1.00000000000000"/>
-            #   ...
-            #   <PP_RELBETA.1 index="1" lll="0" jjj="0.500000000000000"/>
-            #   <PP_RELBETA.2 index="2" lll="0" jjj="0.500000000000000"/>
-            #   <PP_RELBETA.3 index="3" lll="0" jjj="0.500000000000000"/>
-            #   ...
-            # </PP_SPIN_ORB>
+            self.znum = atomic_numbers[attrs["element"].strip()]
 
+        # Instead of PP_RELWFC, PSWFC/PP_CHI is what is used as projection functions
+        # if name == "PP_SPIN_ORB":
+        #     # <PP_SPIN_ORB>
+        #     #   <PP_RELWFC.1 index="1" els="5S" nn="1" lchi="0" jchi="0.500000000000000" oc="2.00000000000000"/>
+        #     #   <PP_RELWFC.2 index="2" els="6S" nn="2" lchi="0" jchi="0.500000000000000" oc="1.00000000000000"/>
+        #     #   ...
+        #     #   <PP_RELBETA.1 index="1" lll="0" jjj="0.500000000000000"/>
+        #     #   <PP_RELBETA.2 index="2" lll="0" jjj="0.500000000000000"/>
+        #     #   <PP_RELBETA.3 index="3" lll="0" jjj="0.500000000000000"/>
+        #     #   ...
+        #     # </PP_SPIN_ORB>
+        if name == "PP_PSWFC":
             self.readWFC = True
-        if "PP_RELWFC" in name and self.readWFC:
-            orb = attrs["els"]
+        # if "PP_RELWFC" in name and self.readWFC:
+        #     orb = attrs["els"]
+        if "PP_CHI" in name and self.readWFC:
+            orb = attrs["label"]
             if not orb in self.pswfcs:
                 self.pswfcs.append(orb)
                 nn = int(orb[0])
@@ -105,7 +113,8 @@ class PSHandler(xml.sax.ContentHandler):
         then we can determine semicores using the rules introduced in init
         """
 
-        if name == "PP_SPIN_ORB":
+        # if name == "PP_SPIN_ORB":
+        if name == "PP_PSWFC":
             self.readWFC = False
             self.znum = 0
             maxshell = max(self.pswfcs_shell)
@@ -114,25 +123,29 @@ class PSHandler(xml.sax.ContentHandler):
                     self.semicores.append(self.pswfcs[iorb[0]])
 
 
-def get_metadata(filename):
+def get_metadata(filename, cutoff: bool = True):
     """Return metadata."""
 
     # this part reads the upf file twice, but it do not take too much time
-    result = {"filename": filename, "md5": md5(filename), "pseudopotential": "100PAW"}
-    with open(filename, encoding="utf-8") as handle:
-        for line in handle:
-            if "Suggested minimum cutoff for wavefunctions" in line:
-                wave = float(line.strip().split()[-2])
-            if "Suggested minimum cutoff for charge density" in line:
-                charge = float(line.strip().split()[-2])
+    result = {"filename": filename, "md5": md5(filename)}
+    if cutoff:
+        result["pseudopotential"] = "100PAW"
+    if cutoff:
+        with open(filename, encoding="utf-8") as handle:
+            for line in handle:
+                if "Suggested minimum cutoff for wavefunctions" in line:
+                    wave = float(line.strip().split()[-2])
+                if "Suggested minimum cutoff for charge density" in line:
+                    charge = float(line.strip().split()[-2])
     # use xml.sax to parse upf file
     parser = xml.sax.make_parser()
     Handler = PSHandler()
     parser.setContentHandler(Handler)
     parser.parse(filename)
-    # cutoffs in unit: Ry
-    result["cutoff_wfc"] = wave
-    result["cutoff_rho"] = charge
+    if cutoff:
+        # cutoffs in unit: Ry
+        result["cutoff_wfc"] = wave
+        result["cutoff_rho"] = charge
     result["pswfcs"] = Handler.pswfcs
     result["semicores"] = Handler.semicores
     return result
@@ -324,8 +337,8 @@ def generate_dojo_metadata():
 
     result = {}
     for element in dojo:
-        # in pseudo-dojo standard accurary, there is no UPF endswith '_r',
-        # in stringent accruray, there are UPF endswith '_r'.
+        # in pseudo-dojo standard accuracy, there is no UPF endswith '_r',
+        # in stringent accuracy, there are UPF endswith '_r'.
         # Not sure what '_r' means, but if a element endswith '_r', then
         # its cutoff is not shown in the HTML page.
         if element.endswith("_r"):
@@ -364,6 +377,27 @@ def _print_exclude_semicore():
         print(f"{kind:2s} {' '.join(remaining)}")
 
 
-# if __name__ == '__main__':
-#     generate_pslibrary_metadata()
-#     # generate_dojo_metadata()
+def generate_dojo_semicore():
+    """Generate semicore data for dojo fr pbesol standard."""
+    with open("nc-fr-04_pbesol_standard.json", encoding="utf-8") as handle:
+        data = json.load(handle)
+
+    result = {}
+    for kind in data:
+        symbol = kind.removesuffix("_r")
+        filename = f"{symbol}.upf"
+        result[symbol] = {
+            "filename": filename,
+            "md5": md5(filename),
+            **get_metadata(filename, cutoff=False),
+        }
+    with open(
+        "PseudoDojo_0.4_PBEsol_FR_standard_upf.json", "w", encoding="utf-8"
+    ) as handle:
+        json.dump(result, handle, indent=2)
+
+
+if __name__ == "__main__":
+    # generate_pslibrary_metadata()
+    # generate_dojo_metadata()
+    generate_dojo_semicore()
