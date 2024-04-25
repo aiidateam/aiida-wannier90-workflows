@@ -36,7 +36,7 @@ def validate_inputs(  # pylint: disable=unused-argument,inconsistent-return-stat
     """Validate the inputs of the entire input namespace of `Wannier90WorkChain`."""
     # If no scf inputs, the nscf must have a `parent_folder`
     if "scf" not in inputs:
-        if "parent_folder" not in inputs["nscf"]["pw"]:
+        if "nscf" in inputs and "parent_folder" not in inputs["nscf"]["pw"]:
             return "If skipping scf step, nscf inputs must have a `parent_folder`"
 
     # Cannot specify both `auto_energy_windows` and `scdm_proj`
@@ -572,7 +572,16 @@ class Wannier90WorkChain(
         self.ctx.current_structure = self.inputs.structure
 
         if not self.should_run_scf():
-            self.ctx.current_folder = self.inputs["nscf"]["pw"]["parent_folder"]
+            if self.should_run_nscf():
+                self.ctx.current_folder = self.inputs["nscf"]["pw"]["parent_folder"]
+            elif self.should_run_projwfc():
+                self.ctx.current_folder = self.inputs["projwfc"]["projwfc"][
+                    "parent_folder"
+                ]
+            else:
+                self.ctx.current_folder = self.inputs["pw2wannier90"]["pw2wannier90"][
+                    "parent_folder"
+                ]
 
     def should_run_scf(self) -> bool:
         """If the 'scf' input namespace was specified, run the scf workchain."""
@@ -685,7 +694,10 @@ class Wannier90WorkChain(
         elif "workchain_nscf" in self.ctx:
             fermi_energy = get_fermi_energy_from_nscf(self.ctx.workchain_nscf)
         else:
-            raise ValueError("Cannot retrieve Fermi energy from scf or nscf output")
+            if "fermi_energy" in parameters:
+                fermi_energy = parameters["fermi_energy"]
+            else:
+                raise ValueError("Cannot retrieve Fermi energy from scf or nscf output")
         parameters["fermi_energy"] = fermi_energy
 
         inputs.parameters = orm.Dict(parameters)
@@ -962,48 +974,57 @@ class Wannier90WorkChain(
             return
 
         # 1. the calculated number of projections is consistent with QE projwfc.x
-        if "scf" in self.inputs:
+        check_num_projs = True
+        if self.should_run_scf():
             pseudos = self.inputs["scf"]["pw"]["pseudos"]
-        else:
+        elif self.should_run_nscf():
             pseudos = self.inputs["nscf"]["pw"]["pseudos"]
-        args = {
-            "structure": self.ctx.current_structure,
-            # The type of `self.inputs['scf']['pw']['pseudos']` is AttributesFrozendict,
-            # we need to convert it to dict, otherwise get_number_of_projections will fail.
-            "pseudos": dict(pseudos),
-        }
-        if "workchain_projwfc" in self.ctx:
-            num_proj = len(
-                self.ctx.workchain_projwfc.outputs["projections"].get_orbitals()
-            )
-            params = self.ctx.workchain_wannier90.inputs["wannier90"][
-                "parameters"
-            ].get_dict()
-            spin_orbit_coupling = params.get("spinors", False)
-            number_of_projections = get_number_of_projections(
-                **args, spin_orbit_coupling=spin_orbit_coupling
-            )
-            if number_of_projections != num_proj:
-                self.report(
-                    f"number of projections {number_of_projections} != projwfc.x output {num_proj}"
+        else:
+            check_num_projs = False
+        if check_num_projs:
+            args = {
+                "structure": self.ctx.current_structure,
+                # The type of `self.inputs['scf']['pw']['pseudos']` is AttributesFrozendict,
+                # we need to convert it to dict, otherwise get_number_of_projections will fail.
+                "pseudos": dict(pseudos),
+            }
+            if "workchain_projwfc" in self.ctx:
+                num_proj = len(
+                    self.ctx.workchain_projwfc.outputs["projections"].get_orbitals()
                 )
-                return self.exit_codes.ERROR_SANITY_CHECK_FAILED
+                params = self.ctx.workchain_wannier90.inputs["wannier90"][
+                    "parameters"
+                ].get_dict()
+                spin_orbit_coupling = params.get("spinors", False)
+                number_of_projections = get_number_of_projections(
+                    **args, spin_orbit_coupling=spin_orbit_coupling
+                )
+                if number_of_projections != num_proj:
+                    self.report(
+                        f"number of projections {number_of_projections} != projwfc.x output {num_proj}"
+                    )
+                    return self.exit_codes.ERROR_SANITY_CHECK_FAILED
 
         # 2. the number of electrons is consistent with QE output
+        # only check num electrons when we already know pseudos in the check num projectors step
+        check_num_elecs = check_num_projs
         if "workchain_scf" in self.ctx:
             num_elec = self.ctx.workchain_scf.outputs["output_parameters"][
                 "number_of_electrons"
             ]
-        else:
+        elif "workchain_nscf" in self.ctx:
             num_elec = self.ctx.workchain_nscf.outputs["output_parameters"][
                 "number_of_electrons"
             ]
-        number_of_electrons = get_number_of_electrons(**args)
-        if number_of_electrons != num_elec:
-            self.report(
-                f"number of electrons {number_of_electrons} != QE output {num_elec}"
-            )
-            return self.exit_codes.ERROR_SANITY_CHECK_FAILED
+        else:
+            check_num_elecs = False
+        if check_num_elecs:
+            number_of_electrons = get_number_of_electrons(**args)
+            if number_of_electrons != num_elec:
+                self.report(
+                    f"number of electrons {number_of_electrons} != QE output {num_elec}"
+                )
+                return self.exit_codes.ERROR_SANITY_CHECK_FAILED
 
     def on_terminated(self):
         """Clean the working directories of all child calculations if `clean_workdir=True` in the inputs."""
