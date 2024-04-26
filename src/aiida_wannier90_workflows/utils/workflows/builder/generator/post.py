@@ -57,15 +57,15 @@ def get_pwbands_builder_from_wannier(
 
     wannier_kpoints = orm.KpointsData()
     wannier_kpoints.set_kpoints(wannier_bands.get_kpoints())
-    wannier_kpoints.set_attribute_many(
+    wannier_kpoints.base.attributes.set_many(
         {
-            "cell": wannier_bands.attributes["cell"],
-            "pbc1": wannier_bands.attributes["pbc1"],
-            "pbc2": wannier_bands.attributes["pbc2"],
-            "pbc3": wannier_bands.attributes["pbc3"],
-            "labels": wannier_bands.attributes["labels"],
+            "cell": wannier_bands.base.attributes.all["cell"],
+            "pbc1": wannier_bands.base.attributes.all["pbc1"],
+            "pbc2": wannier_bands.base.attributes.all["pbc2"],
+            "pbc3": wannier_bands.base.attributes.all["pbc3"],
+            "labels": wannier_bands.base.attributes.all["labels"],
             # 'array|kpoints': ,
-            "label_numbers": wannier_bands.attributes["label_numbers"],
+            "label_numbers": wannier_bands.base.attributes.all["label_numbers"],
         }
     )
     builder.kpoints = wannier_kpoints
@@ -114,7 +114,7 @@ def get_wannier_builder_from_pwbands(
         raise ValueError(f"Input workchain is not a `PwBandsWorkChain`: {workchain}")
 
     scf_workchain = (
-        workchain.get_outgoing(
+        workchain.base.links.get_outgoing(
             node_class=PwBaseWorkChain,
             link_type=LinkType.CALL_WORK,
             link_label_filter="scf",

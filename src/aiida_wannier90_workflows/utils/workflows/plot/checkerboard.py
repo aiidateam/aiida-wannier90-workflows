@@ -37,7 +37,9 @@ def compute_checkerboard(
     max_range = optimize_workchain.inputs.optimize_disprojmax_range.get_list()
 
     wannier_base = (
-        optimize_workchain.get_outgoing(link_label_filter="wannier90").one().node
+        optimize_workchain.base.links.get_outgoing(link_label_filter="wannier90")
+        .one()
+        .node
     )
     wannier_calc = get_last_calcjob(wannier_base)
     wan_parameters = wannier_calc.inputs["parameters"].get_dict()
@@ -47,7 +49,7 @@ def compute_checkerboard(
     # Last dimension = 6 is EF to EF+5eV
     checkerboard = np.full((len(max_range), len(min_range), 6), np.nan)
 
-    all_optimize_workchains = optimize_workchain.get_outgoing(
+    all_optimize_workchains = optimize_workchain.base.links.get_outgoing(
         link_type=LinkType.CALL_WORK, link_label_filter="wannier90_optimize_iteration%"
     ).all()
     all_optimize_workchains = [_.node for _ in all_optimize_workchains]

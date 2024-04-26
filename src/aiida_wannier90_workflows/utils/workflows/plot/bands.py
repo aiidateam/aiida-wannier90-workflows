@@ -87,9 +87,11 @@ def plot_scdm_fit(  # pylint: disable=too-many-locals
 
     # w90calc = workchain.get_outgoing(link_label_filter="wannier90").one().node
     w90calc = workchain.outputs.wannier90.remote_folder.creator
-    p2w_workchain = workchain.get_outgoing(link_label_filter="pw2wannier90").one().node
+    p2w_workchain = (
+        workchain.base.links.get_outgoing(link_label_filter="pw2wannier90").one().node
+    )
     p2wcalc = get_last_calcjob(p2w_workchain)
-    projcalc = workchain.get_outgoing(link_label_filter="projwfc").one().node
+    projcalc = workchain.base.links.get_outgoing(link_label_filter="projwfc").one().node
 
     fermi_energy = w90calc.inputs.parameters["fermi_energy"]
     sigma = p2wcalc.inputs.parameters["inputpp"]["scdm_sigma"]
@@ -309,7 +311,9 @@ def get_workchain_fermi_energy(
                 Wannier90OptimizeWorkChain,
             ):
                 w90calc = get_last_calcjob(
-                    workchain.get_outgoing(link_label_filter="wannier90").one().node
+                    workchain.base.links.get_outgoing(link_label_filter="wannier90")
+                    .one()
+                    .node
                 )
             else:
                 raise ValueError(f"Cannot find fermi energy from {workchain}")
