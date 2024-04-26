@@ -39,11 +39,11 @@ def cmd_node_show(ctx, nodes):  # pylint: disable=unused-argument
             echo.echo(header.format("objects in repository"))
             echo.echo(f"{path}")
         elif isinstance(node, orm.RemoteStashFolderData):
-            path = f'{node.attributes["target_basepath"]}'
+            path = f'{node.base.attributes.all["target_basepath"]}'
             echo.echo(header.format("path"))
             echo.echo(f"{path}")
         elif isinstance(node, orm.SinglefileData):
-            path = f'{node._repository._get_base_folder().abspath}/{node.attributes["filename"]}'  # pylint: disable=protected-access
+            path = f'{node._repository._get_base_folder().abspath}/{node.base.attributes.all["filename"]}'  # pylint: disable=protected-access
             echo.echo(header.format("path"))
             echo.echo(f"{path}")
         elif isinstance(node, (orm.CalculationNode, orm.WorkflowNode)):
@@ -71,7 +71,7 @@ def find_calcjob(node: orm.Node, link_label: str) -> orm.CalcJobNode:
                 echo.echo_critical(f"No CalcJob for {node}?")
 
             # Get call link label
-            link_triples = node.get_outgoing(
+            link_triples = node.base.links.get_outgoing(
                 link_type=(LinkType.CALL_CALC, LinkType.CALL_WORK)
             ).link_triples
             link = list(
@@ -84,9 +84,13 @@ def find_calcjob(node: orm.Node, link_label: str) -> orm.CalcJobNode:
             link_label = link.link_label
         else:
             try:
-                called = node.get_outgoing(link_label_filter=link_label).one().node
+                called = (
+                    node.base.links.get_outgoing(link_label_filter=link_label)
+                    .one()
+                    .node
+                )
             except ValueError:
-                link_triples = node.get_outgoing(
+                link_triples = node.base.links.get_outgoing(
                     link_type=(LinkType.CALL_CALC, LinkType.CALL_WORK)
                 ).link_triples
                 valid_lables = [x.link_label for x in link_triples]
@@ -155,13 +159,13 @@ def cmd_node_inputcat(node, link_label, show_scheduler, show_remote):
                     f"===== {calcjob.process_label}<{calcjob.pk}> remote scheduler script =====",
                     bold=True,
                 )
-                file_path = calcjob.attributes["submit_script_filename"]
+                file_path = calcjob.base.attributes.all["submit_script_filename"]
             else:
                 echo.echo(
                     f"===== {calcjob.process_label}<{calcjob.pk}> remote input file =====",
                     bold=True,
                 )
-                file_path = calcjob.attributes["input_filename"]
+                file_path = calcjob.base.attributes.all["input_filename"]
 
             with NamedTemporaryFile("w+") as out_file:
                 calcjob.outputs.remote_folder.getfile(file_path, out_file.name)
@@ -187,9 +191,9 @@ def cmd_node_inputcat(node, link_label, show_scheduler, show_remote):
                     "append_text",
                     "prepend_text",
                 ):
-                    if key not in calcjob.attributes:
+                    if key not in calcjob.base.attributes.all:
                         continue
-                    data[key] = calcjob.attributes[key]
+                    data[key] = calcjob.base.attributes.all[key]
                 pprint(data)
             else:
                 echo.echo(
@@ -241,7 +245,7 @@ def cmd_node_outputcat(node, link_label, show_scheduler):
             )
             echo.echo(calcjob.get_scheduler_stderr())
         else:
-            output_filename = calcjob.attributes["output_filename"]
+            output_filename = calcjob.base.attributes.all["output_filename"]
             output_lines = calcjob.outputs.retrieved.get_object_content(output_filename)
             echo.echo(
                 f"===== {calcjob.process_label}<{calcjob.pk}> stdout =====", bold=True
@@ -495,7 +499,9 @@ def cmd_node_saveinput(ctx, workflow, path):
     if not dir_path.exists():
         dir_path.mkdir()
 
-    links = workflow.get_outgoing(link_type=(LinkType.CALL_CALC, LinkType.CALL_WORK))
+    links = workflow.base.links.get_outgoing(
+        link_type=(LinkType.CALL_CALC, LinkType.CALL_WORK)
+    )
 
     for link in links:
         link_label = link.link_label

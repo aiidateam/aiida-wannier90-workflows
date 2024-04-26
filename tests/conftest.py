@@ -196,7 +196,7 @@ def generate_upf_data(filepath_fixtures):
 
         # I need to hack the md5
         # upf.md5 = md5
-        upf.set_attribute(upf._key_md5, md5)  # pylint: disable=protected-access
+        upf.base.attributes.set(upf._key_md5, md5)  # pylint: disable=protected-access
         # UpfData.store will check md5
         # `PseudoPotentialData` is the parent class of `UpfData`, this will skip md5 check
         super(PseudoPotentialData, upf).store()
@@ -261,7 +261,7 @@ def generate_upf_data_soc(filepath_fixtures):
 
         # I need to hack the md5
         # upf.md5 = md5
-        upf.set_attribute(upf._key_md5, md5)  # pylint: disable=protected-access
+        upf.base.attributes.set(upf._key_md5, md5)  # pylint: disable=protected-access
         # UpfData.store will check md5
         # `PseudoPotentialData` is the parent class of `UpfData`, this will skip md5 check
         super(PseudoPotentialData, upf).store()
@@ -395,14 +395,14 @@ def generate_calc_job_node(fixture_localhost, filepath_fixtures):
         entry_point = format_entry_point_string("aiida.calculations", entry_point_name)
 
         node = orm.CalcJobNode(computer=computer, process_type=entry_point)
-        node.set_attribute("input_filename", "aiida.in")
-        node.set_attribute("output_filename", "aiida.out")
-        node.set_attribute("error_filename", "aiida.err")
+        node.base.attributes.set("input_filename", "aiida.in")
+        node.base.attributes.set("output_filename", "aiida.out")
+        node.base.attributes.set("error_filename", "aiida.err")
         node.set_option("resources", {"num_machines": 1, "num_mpiprocs_per_machine": 1})
         node.set_option("max_wallclock_seconds", 1800)
 
         if attributes:
-            node.set_attribute_many(attributes)
+            node.base.attributes.set_many(attributes)
 
         if filepath_folder:
             from qe_tools.exceptions import ParsingError
@@ -427,7 +427,7 @@ def generate_calc_job_node(fixture_localhost, filepath_fixtures):
 
             for link_label, input_node in flatten_inputs(inputs):
                 input_node.store()
-                node.add_incoming(
+                node.base.links.add_incoming(
                     input_node, link_type=LinkType.INPUT_CALC, link_label=link_label
                 )
 
@@ -450,13 +450,13 @@ def generate_calc_job_node(fixture_localhost, filepath_fixtures):
                 for filename in filenames:
                     retrieved.delete_object(filename)
 
-            retrieved.add_incoming(
+            retrieved.base.links.add_incoming(
                 node, link_type=LinkType.CREATE, link_label="retrieved"
             )
             retrieved.store()
 
             remote_folder = orm.RemoteData(computer=computer, remote_path="/tmp")
-            remote_folder.add_incoming(
+            remote_folder.base.links.add_incoming(
                 node, link_type=LinkType.CREATE, link_label="remote_folder"
             )
             remote_folder.store()
@@ -611,7 +611,7 @@ def generate_remote_data():
             creator.set_option(
                 "resources", {"num_machines": 1, "num_mpiprocs_per_machine": 1}
             )
-            remote.add_incoming(
+            remote.base.links.add_incoming(
                 creator, link_type=LinkType.CREATE, link_label="remote_folder"
             )
             creator.store()
@@ -790,7 +790,7 @@ def generate_workchain_pw(
 
         if pw_outputs is not None:
             for link_label, output_node in pw_outputs.items():
-                output_node.add_incoming(
+                output_node.base.links.add_incoming(
                     pw_node, link_type=LinkType.CREATE, link_label=link_label
                 )
                 output_node.store()

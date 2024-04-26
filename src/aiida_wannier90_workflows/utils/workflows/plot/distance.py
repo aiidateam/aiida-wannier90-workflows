@@ -72,7 +72,7 @@ def bands_distance_for_group(  # pylint: disable=too-many-statements,too-many-lo
             and "optimize_reference_bands" in wan_wc.inputs
         ):
             bands_wc = (
-                wan_wc.inputs.optimize_reference_bands.get_incoming(
+                wan_wc.inputs.optimize_reference_bands.base.links.get_incoming(
                     link_label_filter="band_structure"
                 )
                 .one()
@@ -121,10 +121,14 @@ def bands_distance_for_group(  # pylint: disable=too-many-statements,too-many-lo
                 bands_wannier_node = wan_wc.outputs.wannier90_optimal.interpolated_bands
             else:
                 bands_wannier_node = wan_wc.outputs.wannier90.interpolated_bands
-            if np.prod(bands_wannier_node.attributes["array|bands"]) == 0:
+            if np.prod(bands_wannier_node.base.attributes.all["array|bands"]) == 0:
                 bands_wannier_node = wan_wc.outputs.band_structure
             try:
-                last_wan = wan_wc.get_outgoing(link_label_filter="wannier90").one().node
+                last_wan = (
+                    wan_wc.base.links.get_outgoing(link_label_filter="wannier90")
+                    .one()
+                    .node
+                )
                 if "parameters" in last_wan.inputs:
                     exclude_list_dft = last_wan.inputs["parameters"]["exclude_bands"]
                 else:

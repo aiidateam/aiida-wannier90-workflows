@@ -80,10 +80,12 @@ def validate_inputs(inputs: AttributeDict, ctx=None) -> None:
             return "`auto_energy_windows` is requested but `bands_projections` or `bands` is empty"
 
         # Check bands and bands_projections are consistent
-        bands_num_kpoints, bands_num_bands = inputs["bands"].attributes["array|bands"]
+        bands_num_kpoints, bands_num_bands = inputs["bands"].base.attributes.all[
+            "array|bands"
+        ]
         projections_num_kpoints, projections_num_bands = inputs[
             "bands_projections"
-        ].attributes["array|proj_array_0"]
+        ].base.attributes.all["array|proj_array_0"]
         if bands_num_kpoints != projections_num_kpoints:
             return (
                 "`bands` and `bands_projections` have different number of kpoints: "
@@ -774,7 +776,7 @@ class Wannier90BaseWorkChain(ProtocolMixin, BaseRestartWorkChain):
         current_num_mpiprocs_per_machine = metadata["options"]["resources"].get(
             "num_mpiprocs_per_machine", 1
         )
-        # num_mpiprocs_per_machine = calculation.attributes['resources'].get('num_mpiprocs_per_machine', 1)
+        # num_mpiprocs_per_machine = calculation.base.attributes.all['resources'].get('num_mpiprocs_per_machine', 1)
 
         if current_num_mpiprocs_per_machine == 1:
             action = "Unrecoverable out-of-memory error after setting num_mpiprocs_per_machine to 1"

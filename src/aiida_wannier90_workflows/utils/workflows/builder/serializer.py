@@ -46,9 +46,9 @@ def serialize(node: orm.Node, show_pk: bool = True) -> ty.Any:
 
     # BandsData is a subclass of KpointsData, need to before KpointsData
     elif isinstance(node, orm.BandsData):
-        num_kpoints, num_bands = node.attributes["array|bands"]
+        num_kpoints, num_bands = node.base.attributes.all["array|bands"]
         res = f"nkpt={num_kpoints},nbnd={num_bands}"
-        if "labels" in node.attributes:
+        if "labels" in node.base.attributes.all:
             res += f",{serialize_kpoints(node, show_pk)}"
         elif show_pk:
             res = f"{res}<{node.pk}>"
@@ -153,14 +153,12 @@ def serialize_kpoints(kpoints: orm.KpointsData, show_pk: bool = True) -> str:
     :return: [description]
     :rtype: str
     """
-    if "labels" in kpoints.attributes:
-        res = "-".join(kpoints.attributes["labels"])
-    elif "mesh" in kpoints.attributes:
-        res = (
-            f"{kpoints.attributes['mesh']} mesh + {kpoints.attributes['offset']} offset"
-        )
+    if "labels" in kpoints.base.attributes.all:
+        res = "-".join(kpoints.base.attributes.all["labels"])
+    elif "mesh" in kpoints.base.attributes.all:
+        res = f"{kpoints.base.attributes.all['mesh']} mesh + {kpoints.base.attributes.all['offset']} offset"
     else:
-        res = f"{kpoints.attributes['array|kpoints'][0]} kpts"
+        res = f"{kpoints.base.attributes.all['array|kpoints'][0]} kpts"
 
     if show_pk:
         res = f"{res}<{kpoints.pk}>"
