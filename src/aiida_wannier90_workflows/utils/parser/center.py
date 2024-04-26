@@ -356,7 +356,7 @@ def get_last_wan_calc(
             calc = node.outputs.wannier90_optimal.output_parameters.creator
         elif node.process_class in supported_workchains:
             calc = (
-                node.get_outgoing(
+                node.base.links.get_outgoing(
                     link_type=(LinkType.CALL_CALC, LinkType.CALL_WORK),
                     link_label_filter="wannier90",
                 )

@@ -30,13 +30,13 @@ def test_scdm(
         computer=fixture_localhost, remote_path="/path/on/remote"
     )
     remote.store()
-    remote.add_incoming(
+    remote.base.links.add_incoming(
         scf_workchain, link_type=LinkType.RETURN, link_label="remote_folder"
     )
 
     params = orm.Dict({"fermi_energy": 6.0, "number_of_electrons": 8})
     params.store()
-    params.add_incoming(
+    params.base.links.add_incoming(
         scf_workchain, link_type=LinkType.RETURN, link_label="output_parameters"
     )
 
@@ -58,7 +58,7 @@ def test_scdm(
         computer=fixture_localhost, remote_path="/path/on/remote"
     )
     remote.store()
-    remote.add_incoming(
+    remote.base.links.add_incoming(
         nscf_workchain, link_type=LinkType.RETURN, link_label="remote_folder"
     )
 
@@ -83,14 +83,14 @@ def test_scdm(
     # mock projwfc outputs
     bands_data = generate_bands_data()
     bands_data.store()
-    bands_data.add_incoming(
+    bands_data.base.links.add_incoming(
         projwfc_workchain, link_type=LinkType.RETURN, link_label="bands"
     )
 
     # Set 8 orbitals for workchain.sanity_check()
     projection_data = generate_projection_data(8)
     projection_data.store()
-    projection_data.add_incoming(
+    projection_data.base.links.add_incoming(
         projwfc_workchain, link_type=LinkType.RETURN, link_label="projections"
     )
 
@@ -117,12 +117,12 @@ def test_scdm(
     )
     calcjob.set_process_state(ProcessState.FINISHED)
     calcjob.set_exit_status(0)
-    calcjob.add_incoming(
+    calcjob.base.links.add_incoming(
         workchain.inputs.structure,
         link_type=LinkType.INPUT_CALC,
         link_label="structure",
     )
-    calcjob.add_incoming(
+    calcjob.base.links.add_incoming(
         w90pp_workchain, link_type=LinkType.CALL_CALC, link_label="iteration_01"
     )
     calcjob.store()
@@ -132,7 +132,7 @@ def test_scdm(
     # mock wannier90 outputs
     nnkp_file = orm.SinglefileData(io.BytesIO(b"content"))
     nnkp_file.store()
-    nnkp_file.add_incoming(
+    nnkp_file.base.links.add_incoming(
         w90pp_workchain, link_type=LinkType.RETURN, link_label="nnkp_file"
     )
 
@@ -150,7 +150,7 @@ def test_scdm(
         computer=fixture_localhost, remote_path="/path/on/remote"
     )
     remote.store()
-    remote.add_incoming(
+    remote.base.links.add_incoming(
         pw2wan_workchain, link_type=LinkType.RETURN, link_label="remote_folder"
     )
 
@@ -173,7 +173,7 @@ def test_scdm(
         computer=fixture_localhost, remote_path="/path/on/remote"
     )
     remote.store()
-    remote.add_incoming(
+    remote.base.links.add_incoming(
         w90_workchain, link_type=LinkType.RETURN, link_label="remote_folder"
     )
 

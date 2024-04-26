@@ -4,6 +4,8 @@ import tempfile
 
 import pythtb
 
+from aiida import orm
+
 from aiida_wannier90.parsers import raw_wout_parser
 
 
@@ -55,6 +57,6 @@ def get_pythtb(wan_calculation, xyz_workaround=False):
 
 
 if __name__ == "__main__":
-    c = load_node(16515)
+    c = orm.load_node(16515)
     tb_w90 = get_pythtb(c, xyz_workaround=True)
     print(tb_w90.model())

@@ -878,7 +878,7 @@ def compute_band_distance(wkc: Wannier90SplitWorkChain) -> dict:
     cond = wkc.outputs.cond.interpolated_bands
     fermi = val.creator.inputs.parameters.get_dict()["fermi_energy"]
 
-    calc_split = wkc.get_outgoing(link_label_filter="split").one().node
+    calc_split = wkc.base.links.get_outgoing(link_label_filter="split").one().node
     num_val = calc_split.inputs.num_val.value
 
     num_bands_valcond = valcond.get_bands().shape[1]

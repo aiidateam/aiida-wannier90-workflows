@@ -58,7 +58,7 @@ def validate_inputs(  # pylint: disable=unused-argument,inconsistent-return-stat
         bands_num_kpoints, bands_num_bands = inputs["bands"].attributes["array|bands"]
         projections_num_kpoints, projections_num_bands = inputs[
             "bands_projections"
-        ].attributes["array|proj_array_0"]
+        ].base.attributes.all["array|proj_array_0"]
         if bands_num_kpoints != projections_num_kpoints:
             return (
                 "`bands` and `bands_projections` have different number of kpoints: "

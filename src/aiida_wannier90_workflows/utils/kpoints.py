@@ -220,14 +220,14 @@ def get_kpoints_from_bands(bands: orm.BandsData) -> orm.KpointsData:
     """
     kpoints = orm.KpointsData()
 
-    cell = bands.attributes["cell"]
+    cell = bands.base.attributes.all["cell"]
     kpoints.set_cell(cell)
 
-    kpoints.set_attribute_many(
+    kpoints.base.attributes.set_many(
         {
-            "pbc1": bands.attributes["pbc1"],
-            "pbc2": bands.attributes["pbc2"],
-            "pbc3": bands.attributes["pbc3"],
+            "pbc1": bands.base.attributes.all["pbc1"],
+            "pbc2": bands.base.attributes.all["pbc2"],
+            "pbc3": bands.base.attributes.all["pbc3"],
         }
     )
 
@@ -235,9 +235,9 @@ def get_kpoints_from_bands(bands: orm.BandsData) -> orm.KpointsData:
     explicit_kpoints = bands.get_kpoints()
 
     # e.g. ['GAMMA', 'X', 'U', 'K', 'GAMMA', 'L', 'W', 'X']
-    labels = bands.attributes["labels"]
+    labels = bands.base.attributes.all["labels"]
     # e.g. [0, 100, 135, 136, 242, 329, 400, 450]
-    label_numbers = bands.attributes["label_numbers"]
+    label_numbers = bands.base.attributes.all["label_numbers"]
 
     labels = list(zip(label_numbers, labels))
     kpoints.set_kpoints(kpoints=explicit_kpoints, labels=labels)

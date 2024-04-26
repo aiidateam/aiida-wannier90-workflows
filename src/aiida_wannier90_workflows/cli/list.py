@@ -4,7 +4,7 @@ import click
 from aiida import orm
 from aiida.cmdline.params import options as options_core
 from aiida.cmdline.utils import decorators, echo
-from aiida.cmdline.utils.query.calculation import CalculationQueryBuilder
+from aiida.tools.query.calculation import CalculationQueryBuilder
 
 from .root import cmd_root
 
@@ -65,8 +65,8 @@ def print_process_table(
         elif "valcond" in node.inputs:
             # Wannier90SplitWorkChain
             formula = node.inputs["valcond"].structure.get_formula()
-        elif "formula_hill" in node.extras:
-            formula = node.extras["formula_hill"]
+        elif "formula_hill" in node.base.extras.all:
+            formula = node.base.extras.all["formula_hill"]
         else:
             formula = "?"
         entry_with_structure = [pk, formula, *entry[1:]]

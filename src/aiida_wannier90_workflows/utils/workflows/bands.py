@@ -78,7 +78,7 @@ def get_structure_and_bands_kpoints(
 
     # internal PwBaseWorkChain for pw.x bands calculation
     bands_workchain = (
-        workchain.get_outgoing(
+        workchain.base.links.get_outgoing(
             node_class=PwBaseWorkChain,
             link_type=LinkType.CALL_WORK,
             link_label_filter="bands",
