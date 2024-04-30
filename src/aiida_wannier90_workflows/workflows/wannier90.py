@@ -36,8 +36,12 @@ def validate_inputs(  # pylint: disable=unused-argument,inconsistent-return-stat
     """Validate the inputs of the entire input namespace of `Wannier90WorkChain`."""
     # If no scf inputs, the nscf must have a `parent_folder`
     if "scf" not in inputs:
-        if "parent_folder" not in inputs["nscf"]["pw"]:
-            return "If skipping scf step, nscf inputs must have a `parent_folder`"
+        if "nscf" not in inputs:
+            if "parent_folder" not in inputs["pw2wannier90"]["pw2wannier90"]:
+                return "If skipping scf step, pw2wannier90 inputs must have a `parent_folder`"
+        else:
+            if "parent_folder" not in inputs["nscf"]["pw"]:
+                return "If skipping scf step, nscf inputs must have a `parent_folder`"
 
     # Cannot specify both `auto_energy_windows` and `scdm_proj`
     pw2wannier_parameters = inputs["pw2wannier90"]["pw2wannier90"][
@@ -571,8 +575,11 @@ class Wannier90WorkChain(
         """Define the current structure in the context to be the input structure."""
         self.ctx.current_structure = self.inputs.structure
 
-        if not self.should_run_scf():
+        if not self.should_run_scf() and self.should_run_nscf():
             self.ctx.current_folder = self.inputs["nscf"]["pw"]["parent_folder"]
+        elif not self.should_run_nscf():
+            self.ctx.current_folder = self.inputs["pw2wannier90"]["pw2wannier90"]["parent_folder"]
+            self.ctx.workchain_nscf = self.ctx.current_folder.creator.caller
 
     def should_run_scf(self) -> bool:
         """If the 'scf' input namespace was specified, run the scf workchain."""
@@ -683,7 +690,10 @@ class Wannier90WorkChain(
             scf_output_parameters = self.ctx.workchain_scf.outputs.output_parameters
             fermi_energy = get_fermi_energy(scf_output_parameters)
         elif "workchain_nscf" in self.ctx:
-            fermi_energy = get_fermi_energy_from_nscf(self.ctx.workchain_nscf)
+            if not "fermi_energy" in parameters: # we can provide it if the workchain_nscf was already performed before this run.
+                fermi_energy = get_fermi_energy_from_nscf(self.ctx.workchain_nscf)
+            else: 
+                fermi_energy = parameters["fermi_energy"]
         else:
             raise ValueError("Cannot retrieve Fermi energy from scf or nscf output")
         parameters["fermi_energy"] = fermi_energy
@@ -965,7 +975,10 @@ class Wannier90WorkChain(
         if "scf" in self.inputs:
             pseudos = self.inputs["scf"]["pw"]["pseudos"]
         else:
-            pseudos = self.inputs["nscf"]["pw"]["pseudos"]
+            if "workchain_nscf" in self.ctx: # in case we provide nscf as parent input (previously computed), we do not have it in self.inputs
+                pseudos = self.ctx["workchain_nscf"].inputs.pw.pseudos
+            else:
+                pseudos = self.inputs["nscf"]["pw"]["pseudos"]
         args = {
             "structure": self.ctx.current_structure,
             # The type of `self.inputs['scf']['pw']['pseudos']` is AttributesFrozendict,
