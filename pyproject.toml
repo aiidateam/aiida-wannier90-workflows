@@ -51,7 +51,7 @@ tests = [
 ]
 pre-commit = ["pre-commit", "pylint"]
 docs = [
-    "aiida-core>=1.0.0,<2.5.0",
+    "aiida-core~=2.5",
     "docutils",
     "sphinx",
     "sphinx-copybutton",
