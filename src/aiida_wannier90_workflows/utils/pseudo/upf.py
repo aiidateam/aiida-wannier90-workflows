@@ -1,4 +1,5 @@
 """Utility functions for parsing pseudo potential file."""
+
 import xml.etree.ElementTree as ET
 
 from aiida import orm

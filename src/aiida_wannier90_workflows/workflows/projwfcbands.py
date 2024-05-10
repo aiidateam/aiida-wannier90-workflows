@@ -1,4 +1,5 @@
 """WorkChain to automatically calculate QE projected band structure."""
+
 import pathlib
 import typing as ty
 

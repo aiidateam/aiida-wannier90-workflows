@@ -1,4 +1,5 @@
 """General tests for the protocol methods."""
+
 import pytest
 
 from aiida_wannier90_workflows.workflows.bands import Wannier90BandsWorkChain

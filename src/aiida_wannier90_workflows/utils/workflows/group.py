@@ -1,4 +1,5 @@
 """Functions for group of workchains."""
+
 import typing as ty
 
 from aiida import orm

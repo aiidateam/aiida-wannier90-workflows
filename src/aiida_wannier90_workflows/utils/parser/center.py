@@ -159,9 +159,9 @@ def find_wf_nearest_atom(
         # 0th: atom index
         supercell_translation_with_atoms[idx_start:idx_stop, 0] = iatom
         # 1-3th: supercell translation
-        supercell_translation_with_atoms[
-            idx_start:idx_stop, 1:
-        ] = supercell_translations
+        supercell_translation_with_atoms[idx_start:idx_stop, 1:] = (
+            supercell_translations
+        )
 
     # KD tree for to find nearest neighbours
     kdtree = cKDTree(supercell_with_atoms)

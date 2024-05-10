@@ -1,4 +1,5 @@
 """Functions for changing builder."""
+
 import typing as ty
 
 from aiida import orm

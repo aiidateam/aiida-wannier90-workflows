@@ -1,4 +1,5 @@
 """Unit tests for the :py:mod:`~aiida_quantumespresso.utils.workflows.builder` module."""
+
 import numpy as np
 import pytest
 

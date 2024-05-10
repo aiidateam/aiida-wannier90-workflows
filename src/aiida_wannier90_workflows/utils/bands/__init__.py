@@ -1,4 +1,5 @@
 """Utility functions for band structure."""
+
 import typing as ty
 
 import numpy as np

@@ -1,4 +1,5 @@
 """Tests for CLI commands."""
+
 from click import Context, Group
 
 from aiida_wannier90_workflows.cli import cmd_root

@@ -1,4 +1,5 @@
 """Tests for the `Wannier90WorkChain` class."""
+
 from aiida.engine.utils import instantiate_process
 from aiida.manage.manager import get_manager
 

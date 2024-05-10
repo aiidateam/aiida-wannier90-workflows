@@ -1,4 +1,5 @@
 """Wrapper workchain for OpenGridCalculation to automatically handle several errors."""
+
 import pathlib
 import typing as ty
 

@@ -1,4 +1,5 @@
 """Unit tests for the :py:mod:`~aiida_quantumespresso.utils.kpoints` module."""
+
 import numpy as np
 
 from aiida import orm

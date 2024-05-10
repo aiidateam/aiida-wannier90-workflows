@@ -1,4 +1,5 @@
 """Tests for the ``ProjwfcBaseWorkChain.get_builder_from_protocol`` method."""
+
 from aiida.engine import ProcessBuilder
 
 from aiida_wannier90_workflows.workflows.base.projwfc import ProjwfcBaseWorkChain

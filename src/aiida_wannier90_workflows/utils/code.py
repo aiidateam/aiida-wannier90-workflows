@@ -1,4 +1,5 @@
 """Functions for codes."""
+
 import typing as ty
 
 from aiida import orm
