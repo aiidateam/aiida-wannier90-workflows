@@ -1,4 +1,5 @@
 """Functions for structures."""
+
 import pathlib
 import typing as ty
 

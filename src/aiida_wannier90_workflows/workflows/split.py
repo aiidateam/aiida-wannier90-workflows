@@ -1,4 +1,5 @@
 """Workchain to automatically optimize dis_proj_min/max for projectability disentanglement."""
+
 import copy
 import pathlib
 import typing as ty
@@ -492,9 +493,9 @@ class Wannier90SplitWorkChain(WorkChain):  # pylint: disable=too-many-public-met
             inputs["structure"] = self.ctx["current_structure"]
 
         if self.should_run_split():
-            inputs[
-                "remote_input_folder"
-            ] = self.ctx.workchain_split.outputs.remote_folder_val
+            inputs["remote_input_folder"] = (
+                self.ctx.workchain_split.outputs.remote_folder_val
+            )
 
         if self.should_run_valcond():
             parameters = inputs["parameters"].get_dict()
@@ -573,9 +574,9 @@ class Wannier90SplitWorkChain(WorkChain):  # pylint: disable=too-many-public-met
             inputs["structure"] = self.ctx["current_structure"]
 
         if self.should_run_split():
-            inputs[
-                "remote_input_folder"
-            ] = self.ctx.workchain_split.outputs.remote_folder_cond
+            inputs["remote_input_folder"] = (
+                self.ctx.workchain_split.outputs.remote_folder_cond
+            )
 
         if self.should_run_valcond():
             parameters = inputs["parameters"].get_dict()

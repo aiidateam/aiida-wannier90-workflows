@@ -1,4 +1,5 @@
 """Tests for the ``Pw2wannier90BaseWorkChain.get_builder_from_protocol`` method."""
+
 import pytest
 
 from aiida.engine import ProcessBuilder

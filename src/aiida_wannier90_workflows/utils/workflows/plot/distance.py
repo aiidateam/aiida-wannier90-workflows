@@ -1,4 +1,5 @@
 """Functions for analyzing the band distances of WorkChain results."""
+
 import typing as ty
 
 import numpy as np

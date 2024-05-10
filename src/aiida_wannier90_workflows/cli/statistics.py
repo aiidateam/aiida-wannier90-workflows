@@ -1,4 +1,5 @@
 """Commands to manipulate groups of `Wannier90BandsWorkChain`."""
+
 import click
 
 from aiida.cmdline.params import types

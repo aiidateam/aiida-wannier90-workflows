@@ -1,4 +1,5 @@
 """Tests for the `Wannier90BaseWorkChain` class."""
+
 import pytest
 
 from aiida.common import AttributeDict

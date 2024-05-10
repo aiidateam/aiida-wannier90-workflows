@@ -1,4 +1,5 @@
 """Tests for the `Wannier90WorkChain` class."""
+
 import io
 
 from plumpy.process_states import ProcessState

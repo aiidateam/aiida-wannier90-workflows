@@ -1,4 +1,5 @@
 """Fixtures for testing bands."""
+
 import pytest
 
 # pylint: disable=redefined-outer-name,too-many-statements

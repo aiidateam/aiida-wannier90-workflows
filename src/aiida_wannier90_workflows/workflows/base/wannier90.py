@@ -1,4 +1,5 @@
 """Wrapper workchain for `Wannier90Calculation` to automatically handle several errors."""
+
 import pathlib
 import typing as ty
 

@@ -1,4 +1,5 @@
 """Wannierisation workflow using open_grid.x to bypass the nscf step."""
+
 # pylint: disable=protected-access
 import pathlib
 import typing as ty
