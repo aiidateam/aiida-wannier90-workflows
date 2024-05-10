@@ -72,8 +72,10 @@ jobs:
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:
-          # token: ${{ secrets.CODECOV_TOKEN }}
-          token: 72dba8d9-0743-4c6a-b85d-1222db169c80
+          token: ${{ secrets.CODECOV_TOKEN }}
+          # secrets and env are not accessible for PR from fork, therefore codecov
+          # would fail during tests. Now ignore failed codecov upload in PR, they
+          # will be uploaded during the test on main branch after PR merge.
           fail_ci_if_error: false
           verbose: true
           working-directory: tests

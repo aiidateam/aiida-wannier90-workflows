@@ -33,7 +33,7 @@ dependencies = [
     "aiida-core>=2.0,<3",
     "aiida-pseudo>=0.6",
     "aiida-quantumespresso>=4.4",
-    "aiida-wannier90>=2.1",
+    "aiida-wannier90>=2.2",
     "click>=8.0",
     "colorama"
 ]
@@ -49,7 +49,7 @@ tests = [
     "pytest-regressions",
     "pgtest"
 ]
-pre-commit = ["pre-commit", "pylint"]
+pre-commit = ["pre-commit", "pylint>=3"]
 docs = [
     "aiida-core~=2.5",
     "docutils",
@@ -64,7 +64,10 @@ docs = [
 ]
 dev = [
     "typer[all]",
-    "upf_tools~=0.1"
+    "upf_tools~=0.1",
+    "rich",
+    "typer",
+    "upf-tools"
 ]
 analysis = ["pandas", "tables", "scikit-learn"]
 
