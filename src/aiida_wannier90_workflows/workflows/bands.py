@@ -1,4 +1,5 @@
 """WorkChain to automatically calculate Wannier band structure."""
+
 import pathlib
 import typing as ty
 

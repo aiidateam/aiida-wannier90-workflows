@@ -1,4 +1,5 @@
 """Wrapper workchain for BaseRestartWorkChain to automatically handle several QE errors."""
+
 import re
 
 from aiida import orm
@@ -171,9 +172,9 @@ class QeBaseRestartWorkChain(BaseRestartWorkChain):
                             # This should not happen, in this case the cmdline is wrong
                             continue
                         try:
-                            cmdline[
-                                idx + 1
-                            ] = f"{int(cmdline[idx + 1]) // self._mpi_proc_reduce_factor}"
+                            cmdline[idx + 1] = (
+                                f"{int(cmdline[idx + 1]) // self._mpi_proc_reduce_factor}"
+                            )
                         except ValueError:
                             continue
                 settings["cmdline"] = cmdline

@@ -1,4 +1,5 @@
 """Commands to list instances of `Wannier90BandsWorkChain`."""
+
 import click
 
 from aiida import orm

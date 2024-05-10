@@ -1,4 +1,5 @@
 """Module with common data types."""
+
 import enum
 
 

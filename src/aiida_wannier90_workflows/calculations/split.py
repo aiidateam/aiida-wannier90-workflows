@@ -1,4 +1,5 @@
 """Calculations for gw2wannier90.py."""
+
 from aiida import orm
 from aiida.common import datastructures
 from aiida.engine import CalcJob

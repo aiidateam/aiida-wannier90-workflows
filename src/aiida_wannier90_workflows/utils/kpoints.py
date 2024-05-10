@@ -1,4 +1,5 @@
 """Functions for processing kpoints."""
+
 import typing as ty
 
 import numpy as np

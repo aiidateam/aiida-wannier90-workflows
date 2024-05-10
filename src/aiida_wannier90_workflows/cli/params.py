@@ -1,4 +1,5 @@
 """Module for the workflow parameter type."""
+
 import typing as ty
 
 import click

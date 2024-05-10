@@ -1,4 +1,5 @@
 """Utility functions for pseudo potential metadata."""
+
 import json
 import os
 import typing as ty

@@ -1,4 +1,5 @@
 """Utility functions for processing pw.x related workchains."""
+
 import typing as ty
 
 from aiida import orm

@@ -1,4 +1,5 @@
 """Tests for the ``OpenGridBaseWorkChain.get_builder_from_protocol`` method."""
+
 from aiida.engine import ProcessBuilder
 
 from aiida_wannier90_workflows.workflows.base.open_grid import OpenGridBaseWorkChain

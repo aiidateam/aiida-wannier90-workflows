@@ -1,4 +1,5 @@
 """Fixtures for testing workflows."""
+
 from pathlib import Path
 
 from plumpy import ProcessState

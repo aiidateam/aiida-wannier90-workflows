@@ -1,4 +1,5 @@
 """Base class for Wannierisation workflow."""
+
 # pylint: disable=protected-access
 import pathlib
 import typing as ty
@@ -786,9 +787,9 @@ class Wannier90WorkChain(
             if "workchain_projwfc" not in self.ctx:
                 raise ValueError("Needs to run projwfc for SCDM projection")
             base_inputs["bands"] = self.ctx.workchain_projwfc.outputs.bands
-            base_inputs[
-                "bands_projections"
-            ] = self.ctx.workchain_projwfc.outputs.projections
+            base_inputs["bands_projections"] = (
+                self.ctx.workchain_projwfc.outputs.projections
+            )
 
         inputs["parent_folder"] = self.ctx.current_folder
         inputs["nnkp_file"] = self.ctx.workchain_wannier90_pp.outputs.nnkp_file
