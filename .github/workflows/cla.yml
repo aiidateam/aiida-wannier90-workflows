@@ -47,8 +47,9 @@ jobs:
           custom-notsigned-prcomment: 'Thank you for your submission, we really appreciate it. Like many open-source projects, we ask that you accept our [Contributor License Agreement](https://github.com/aiidateam/aiida-wannier90-workflows/blob/main/.cla/version1/CLA.md) before we can merge your contribution. You can accept the CLA by just copying the sentence below and posting it as a Pull Request Comment.'
           custom-pr-sign-comment: 'I have read the CLA Document and I hereby accept the CLA'
           custom-allsigned-prcomment: |
-            All contributors have signed the CLA ✍️ ✅
+            All contributors have accepted the CLA ✅
+
             ---
-            <sub>You might need to click the button "Update" to update the pull request and rerun the GitHub actions to pass the CLA check.</sub>
+            <sub>You might need to click the "Update/Rebase branch" button to update the pull request and rerun the GitHub actions to pass the CLA check.</sub>
           #lock-pullrequest-aftermerge: false - if you don't want this bot to automatically lock the pull request after merging (default - true)
           #use-dco-flag: true - If you are using DCO instead of CLA
