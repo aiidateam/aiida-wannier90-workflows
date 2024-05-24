@@ -3,20 +3,20 @@
 > Adapted from the [Apache Software Foundation Individual Contributor License Agreement (ICLA)](https://www.apache.org/licenses/contributor-agreements.html) [version 2.2](https://www.apache.org/licenses/icla.pdf)
 
 You accept and agree to the following terms and conditions for Your
-Contributions (present and future) that you submit to the GitHub organization
-"AiiDA Team" <https://github.com/aiidateam>.
-In return, the AiiDA Team shall not use Your Contributions in a way that
-is contrary to the public benefit or inconsistent with its nonprofit
-status and bylaws in effect at the time of the Contribution.
-Except for the license granted herein to the AiiDA Team and recipients of
-software distributed by the AiiDA Team, You reserve all right, title,
-and interest in and to Your Contributions.
+Contributions (present and future) that you submit to the copyright
+holders (hereafter "HOLDERS", see the [`LICENSE.txt`](../../LICENSE.txt)
+bundled with this software). In return, the HOLDERS shall not use
+Your Contributions in a way that is contrary to the public benefit or
+inconsistent with its nonprofit status and bylaws in effect at the
+time of the Contribution. Except for the license granted herein to
+the HOLDERS and recipients of software distributed by the HOLDERS,
+You reserve all right, title, and interest in and to Your Contributions.
 
 1. Definitions.
 
     "You" (or "Your") shall mean the copyright owner or legal entity
     authorized by the copyright owner that is making this Agreement
-    with the AiiDA Team. For legal entities, the entity making a
+    with the HOLDERS. For legal entities, the entity making a
     Contribution and all other entities that control, are controlled
     by, or are under common control with that entity are considered to
     be a single Contributor. For the purposes of this definition,
@@ -26,29 +26,29 @@ and interest in and to Your Contributions.
     outstanding shares, or (iii) beneficial ownership of such entity.
     "Contribution" shall mean any original work of authorship,
     including any modifications or additions to an existing work, that
-    is intentionally submitted by You to the AiiDA Team for inclusion
+    is intentionally submitted by You to the HOLDERS for inclusion
     in, or documentation of, any of the products owned or managed by
-    the AiiDA Team (the "Work"). For the purposes of this definition,
+    the HOLDERS (the "Work"). For the purposes of this definition,
     "submitted" means any form of electronic, verbal, or written
-    communication sent to the AiiDA Team or its representatives,
+    communication sent to the HOLDERS or its representatives,
     including but not limited to communication on electronic mailing
     lists, source code control systems, and issue tracking systems that
-    are managed by, or on behalf of, the AiiDA Team for the purpose of
+    are managed by, or on behalf of, the HOLDERS for the purpose of
     discussing and improving the Work, but excluding communication that
     is conspicuously marked or otherwise designated in writing by You
     as "Not a Contribution."
 
 2. Grant of Copyright License. Subject to the terms and conditions of
-    this Agreement, You hereby grant to the AiiDA Team and to
-    recipients of software distributed by the AiiDA Team a perpetual,
+    this Agreement, You hereby grant to the HOLDERS and to
+    recipients of software distributed by the HOLDERS a perpetual,
     worldwide, non-exclusive, no-charge, royalty-free, irrevocable
     copyright license to reproduce, prepare derivative works of,
     publicly display, publicly perform, sublicense, and distribute Your
     Contributions and such derivative works.
 
 3. Grant of Patent License. Subject to the terms and conditions of
-    this Agreement, You hereby grant to the AiiDA Team and to
-    recipients of software distributed by the AiiDA Team a perpetual,
+    this Agreement, You hereby grant to the HOLDERS and to
+    recipients of software distributed by the HOLDERS a perpetual,
     worldwide, non-exclusive, no-charge, royalty-free, irrevocable
     (except as stated in this section) patent license to make, have
     made, use, offer to sell, sell, import, and otherwise transfer the
@@ -69,8 +69,8 @@ and interest in and to Your Contributions.
     that you create that includes your Contributions, you represent
     that you have received permission to make Contributions on behalf
     of that employer, that your employer has waived such rights for
-    your Contributions to the AiiDA Team, or that your employer has
-    executed a separate Corporate CLA with the AiiDA Team.
+    your Contributions to the HOLDERS, or that your employer has
+    executed a separate Corporate CLA with the HOLDERS.
 
 5. You represent that each of Your Contributions is Your original
     creation (see section 7 for submissions on behalf of others). You
@@ -90,13 +90,13 @@ and interest in and to Your Contributions.
     INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A PARTICULAR PURPOSE.
 
 7. Should You wish to submit work that is not Your original creation,
-    You may submit it to the AiiDA Team separately from any
+    You may submit it to the HOLDERS separately from any
     Contribution, identifying the complete details of its source and of
     any license or other restriction (including, but not limited to,
     related patents, trademarks, and license agreements) of which you
     are personally aware, and conspicuously marking the work as
     "Submitted on behalf of a third-party: [named here]".
 
-8. You agree to notify the AiiDA Team of any facts or circumstances of
+8. You agree to notify the HOLDERS of any facts or circumstances of
     which you become aware that would make these representations
     inaccurate in any respect.

@@ -10,16 +10,16 @@ INTRODUCTION
 
 - This license agreement sets forth the terms and conditions under which the
   Authors and their Institutions (hereafter "LICENSORS") of the program
-"AiiDA-wannier90-workflows" (hereafter "PROGRAM"), will grant you (hereafter
-"LICENSEE") a fully-paid, non-exclusive, and non-transferable license for
-academic, non-commercial purposes only (hereafter "LICENSE") to use the PROGRAM
-computer software and associated documentation furnished hereunder.
+  "AiiDA-wannier90-workflows" (hereafter "PROGRAM"), will grant you (hereafter
+  "LICENSEE") a fully-paid, non-exclusive, and non-transferable license for
+  academic, non-commercial purposes only (hereafter "LICENSE") to use the
+  PROGRAM computer software and associated documentation furnished hereunder.
 
 - LICENSEE acknowledges that the PROGRAM is a research tool still in the
   development stage, that is being supplied "as is", without any related
-services, improvements or warranties from LICENSORS and that this license is
-entered into in order to enable others to utilize the PROGRAM in their academic
-activities.
+  services, improvements or warranties from LICENSORS and that this license is
+  entered into in order to enable others to utilize the PROGRAM in their
+  academic activities.
 
 TERMS AND CONDITIONS OF THE LICENSE
 
