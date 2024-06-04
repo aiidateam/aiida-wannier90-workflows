@@ -273,6 +273,8 @@ class Wannier90OptimizeWorkChain(Wannier90BandsWorkChain):
         :return: [description]
         :rtype: ProcessBuilder
         """
+        from copy import deepcopy
+
         from aiida_wannier90_workflows.utils.workflows.bands import (
             has_overlapping_semicore,
         )
@@ -290,7 +292,7 @@ class Wannier90OptimizeWorkChain(Wannier90BandsWorkChain):
         )
 
         parent_builder = Wannier90BandsWorkChain.get_builder_from_protocol(
-            codes, structure, overrides=inputs, **kwargs
+            codes, structure, overrides=deepcopy(inputs), **kwargs
         )
 
         if reference_bands is not None:
