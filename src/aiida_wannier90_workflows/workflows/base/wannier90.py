@@ -234,6 +234,7 @@ class Wannier90BaseWorkChain(ProtocolMixin, BaseRestartWorkChain):
         protocol: str = None,
         overrides: dict = None,
         pseudo_family: str = None,
+        external_projectors: dict = None,
         electronic_type: ElectronicType = ElectronicType.METAL,
         spin_type: SpinType = SpinType.NONE,
         projection_type: WannierProjectionType = WannierProjectionType.ATOMIC_PROJECTORS_QE,
@@ -262,10 +263,13 @@ class Wannier90BaseWorkChain(ProtocolMixin, BaseRestartWorkChain):
         )
         from aiida_wannier90_workflows.utils.pseudo import (
             get_number_of_projections,
+            get_number_of_projections_ext,
             get_pseudo_and_cutoff,
             get_pseudo_orbitals,
             get_semicore_list,
+            get_semicore_list_ext,
             get_wannier_number_of_bands,
+            get_wannier_number_of_bands_ext,
         )
 
         if isinstance(code, (int, str)):
@@ -306,24 +310,47 @@ class Wannier90BaseWorkChain(ProtocolMixin, BaseRestartWorkChain):
         only_valence = electronic_type == ElectronicType.INSULATOR
         spin_polarized = spin_type == SpinType.COLLINEAR
         spin_orbit_coupling = spin_type == SpinType.SPIN_ORBIT
+        spin_non_collinear = spin_orbit_coupling or spin_type == SpinType.NON_COLLINEAR
+        # need add check for non_collinear, nproj/numbands also should * 2
+        # some check for spin_orbit_coupling should also work for non-collinear
 
         if pseudo_family is None:
             pseudo_family = meta_parameters["pseudo_family"]
         pseudos, _, _ = get_pseudo_and_cutoff(pseudo_family, structure)
 
-        num_bands = get_wannier_number_of_bands(
-            structure=structure,
-            pseudos=pseudos,
-            factor=meta_parameters["num_bands_factor"],
-            only_valence=only_valence,
-            spin_polarized=spin_polarized,
-            spin_orbit_coupling=spin_orbit_coupling,
-        )
-        num_projs = get_number_of_projections(
-            structure=structure,
-            pseudos=pseudos,
-            spin_orbit_coupling=spin_orbit_coupling,
-        )
+        if projection_type == WannierProjectionType.ATOMIC_PROJECTORS_OPENMX:
+            if external_projectors is None:
+                raise ValueError(
+                    f"Must specify `external_projectors` when using {projection_type}"
+                )
+            num_bands = get_wannier_number_of_bands_ext(
+                structure=structure,
+                pseudos=pseudos,
+                external_projectors=external_projectors,
+                factor=meta_parameters["num_bands_factor"],
+                only_valence=only_valence,
+                spin_polarized=spin_polarized,
+                spin_orbit_coupling=spin_orbit_coupling,
+            )
+            num_projs = get_number_of_projections_ext(
+                structure=structure,
+                external_projectors=external_projectors,
+                spin_orbit_coupling=spin_orbit_coupling,
+            )
+        else:
+            num_bands = get_wannier_number_of_bands(
+                structure=structure,
+                pseudos=pseudos,
+                factor=meta_parameters["num_bands_factor"],
+                only_valence=only_valence,
+                spin_polarized=spin_polarized,
+                spin_orbit_coupling=spin_orbit_coupling,
+            )
+            num_projs = get_number_of_projections(
+                structure=structure,
+                pseudos=pseudos,
+                spin_orbit_coupling=spin_orbit_coupling,
+            )
 
         if electronic_type == ElectronicType.INSULATOR:
             num_wann = num_bands
@@ -332,9 +359,14 @@ class Wannier90BaseWorkChain(ProtocolMixin, BaseRestartWorkChain):
 
         if meta_parameters["exclude_semicore"]:
             pseudo_orbitals = get_pseudo_orbitals(pseudos)
-            semicore_list = get_semicore_list(
-                structure, pseudo_orbitals, spin_orbit_coupling
-            )
+            if projection_type == WannierProjectionType.ATOMIC_PROJECTORS_OPENMX:
+                semicore_list = get_semicore_list_ext(
+                    structure, external_projectors, pseudo_orbitals, spin_non_collinear
+                )
+            else:
+                semicore_list = get_semicore_list(
+                    structure, pseudo_orbitals, spin_non_collinear
+                )
             num_excludes = len(semicore_list)
             # TODO I assume all the semicore bands are the lowest  # pylint: disable=fixme
             exclude_pswfcs = range(1, num_excludes + 1)

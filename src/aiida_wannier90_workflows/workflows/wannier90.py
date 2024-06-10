@@ -251,6 +251,7 @@ class Wannier90WorkChain(
         frozen_type: WannierFrozenType = None,
         exclude_semicore: bool = True,
         external_projectors_path: str = None,
+        external_projectors: dict = None,
         plot_wannier_functions: bool = False,
         retrieve_hamiltonian: bool = False,
         retrieve_matrices: bool = False,
@@ -307,6 +308,7 @@ class Wannier90WorkChain(
         from aiida_wannier90_workflows.utils.pseudo import (
             get_pseudo_orbitals,
             get_semicore_list,
+            get_semicore_list_ext,
         )
         from aiida_wannier90_workflows.utils.workflows.builder.projections import (
             guess_wannier_projection_types,
@@ -353,6 +355,11 @@ class Wannier90WorkChain(
                     f"Must specify `external_projectors_path` when using {projection_type}"
                 )
             type_check(external_projectors_path, str)
+            if external_projectors is None:
+                raise ValueError(
+                    f"Must specify `external_projectors` when using {projection_type}"
+                )
+            type_check(external_projectors, dict)
 
         # Adapt overrides based on input arguments
         # Note: if overrides are specified, they take precedence!
@@ -396,6 +403,10 @@ class Wannier90WorkChain(
         # spin_type to SpinType.NONE, otherwise the builder will raise an error.
         # This block should be removed once SOC is supported in PwBaseWorkChain.
         spin_orbit_coupling = spin_type == SpinType.SPIN_ORBIT
+        spin_non_collinear = (
+            spin_type == SpinType.NON_COLLINEAR
+        ) or spin_orbit_coupling
+
         if spin_type == SpinType.NON_COLLINEAR:
             overrides = recursive_merge(
                 protocol_overrides["spin_noncollinear"], overrides
@@ -430,6 +441,7 @@ class Wannier90WorkChain(
             disentanglement_type=disentanglement_type,
             frozen_type=frozen_type,
             pseudo_family=pseudo_family,
+            external_projectors=external_projectors,
         )
         # Remove workchain excluded inputs
         wannier_builder["wannier90"].pop("structure", None)
@@ -508,9 +520,14 @@ class Wannier90WorkChain(
         exclude_projectors = None
         if exclude_semicore:
             pseudo_orbitals = get_pseudo_orbitals(builder["scf"]["pw"]["pseudos"])
-            exclude_projectors = get_semicore_list(
-                structure, pseudo_orbitals, spin_orbit_coupling
-            )
+            if projection_type == WannierProjectionType.ATOMIC_PROJECTORS_OPENMX:
+                exclude_projectors = get_semicore_list_ext(
+                    structure, external_projectors, pseudo_orbitals, spin_non_collinear
+                )
+            else:
+                exclude_projectors = get_semicore_list(
+                    structure, pseudo_orbitals, spin_non_collinear
+                )
         pw2wannier90_overrides = inputs.get("pw2wannier90", {})
         pw2wannier90_builder = Pw2wannier90BaseWorkChain.get_builder_from_protocol(
             code=codes["pw2wannier90"],
@@ -982,6 +999,7 @@ class Wannier90WorkChain(
             pseudos = self.inputs["nscf"]["pw"]["pseudos"]
         else:
             check_num_projs = False
+            pseudos = None  # to avoid pylint errors
         if check_num_projs:
             args = {
                 "structure": self.ctx.current_structure,
@@ -1019,6 +1037,7 @@ class Wannier90WorkChain(
             ]
         else:
             check_num_elecs = False
+            num_elec = None  # to avoid pylint errors
         if check_num_elecs:
             number_of_electrons = get_number_of_electrons(**args)
             if number_of_electrons != num_elec:
