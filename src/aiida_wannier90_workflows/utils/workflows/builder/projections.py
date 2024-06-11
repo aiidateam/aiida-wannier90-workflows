@@ -75,7 +75,7 @@ def guess_wannier_projection_types(
                 )
         elif projection_type in [
             WannierProjectionType.ATOMIC_PROJECTORS_QE,
-            WannierProjectionType.ATOMIC_PROJECTORS_OPENMX,
+            WannierProjectionType.ATOMIC_PROJECTORS_EXTERNAL,
         ]:
             if disentanglement_type is None:
                 disentanglement_type = WannierDisentanglementType.SMV

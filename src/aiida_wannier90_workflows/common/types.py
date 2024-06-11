@@ -19,8 +19,8 @@ class WannierProjectionType(enum.Enum):
     # Atomic pseudo wavefunctions contained in the QE pseudopotentials
     ATOMIC_PROJECTORS_QE = "atomic_projectors_qe"
 
-    # Atomic orbitals from OpenMX basis set
-    ATOMIC_PROJECTORS_OPENMX = "atomic_projectors_openmx"
+    # Atomic orbitals from external source
+    ATOMIC_PROJECTORS_EXTERNAL = "atomic_projectors_external"
 
 
 class WannierDisentanglementType(enum.Enum):

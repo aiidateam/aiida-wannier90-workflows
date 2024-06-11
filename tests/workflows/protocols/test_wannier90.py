@@ -135,7 +135,7 @@ def test_projection_type(generate_builder_inputs):
     # with pytest.raises(NotImplementedError):
     #     for projection_type in [
     #         WannierProjectionType.ANALYTIC, WannierProjectionType.RANDOM,
-    #         WannierProjectionType.ATOMIC_PROJECTORS_OPENMX
+    #         WannierProjectionType.ATOMIC_PROJECTORS_EXTERNAL
     #     ]:
     #         builder = Wannier90WorkChain.get_builder_from_protocol(
     #             **generate_builder_inputs(), projection_type=projection_type, print_summary=False
