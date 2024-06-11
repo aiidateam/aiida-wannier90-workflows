@@ -349,7 +349,7 @@ class Wannier90WorkChain(
             frozen_type=frozen_type,
         )
 
-        if projection_type == WannierProjectionType.ATOMIC_PROJECTORS_OPENMX:
+        if projection_type == WannierProjectionType.ATOMIC_PROJECTORS_EXTERNAL:
             if external_projectors_path is None:
                 raise ValueError(
                     f"Must specify `external_projectors_path` when using {projection_type}"
@@ -520,7 +520,7 @@ class Wannier90WorkChain(
         exclude_projectors = None
         if exclude_semicore:
             pseudo_orbitals = get_pseudo_orbitals(builder["scf"]["pw"]["pseudos"])
-            if projection_type == WannierProjectionType.ATOMIC_PROJECTORS_OPENMX:
+            if projection_type == WannierProjectionType.ATOMIC_PROJECTORS_EXTERNAL:
                 exclude_projectors = get_semicore_list_ext(
                     structure, external_projectors, pseudo_orbitals, spin_non_collinear
                 )
