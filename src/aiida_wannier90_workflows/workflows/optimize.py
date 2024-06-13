@@ -528,7 +528,9 @@ class Wannier90OptimizeWorkChain(Wannier90BandsWorkChain):
         }
 
         # Disable the error handler which might modify dis_proj_min
-        handler_overrides = {"handle_disentanglement_not_enough_states": False}
+        handler_overrides = {
+            "handle_disentanglement_not_enough_states": {"enabled": False}
+        }
         inputs["handler_overrides"] = orm.Dict(handler_overrides)
 
         inputs = prepare_process_inputs(Wannier90BaseWorkChain, inputs)
