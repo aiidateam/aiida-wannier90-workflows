@@ -330,11 +330,13 @@ class Wannier90BaseWorkChain(ProtocolMixin, BaseRestartWorkChain):
                 factor=meta_parameters["num_bands_factor"],
                 only_valence=only_valence,
                 spin_polarized=spin_polarized,
+                spin_non_collinear=spin_non_collinear,
                 spin_orbit_coupling=spin_orbit_coupling,
             )
             num_projs = get_number_of_projections_ext(
                 structure=structure,
                 external_projectors=external_projectors,
+                spin_non_collinear=spin_non_collinear,
                 spin_orbit_coupling=spin_orbit_coupling,
             )
         else:
@@ -344,11 +346,13 @@ class Wannier90BaseWorkChain(ProtocolMixin, BaseRestartWorkChain):
                 factor=meta_parameters["num_bands_factor"],
                 only_valence=only_valence,
                 spin_polarized=spin_polarized,
+                spin_non_collinear=spin_non_collinear,
                 spin_orbit_coupling=spin_orbit_coupling,
             )
             num_projs = get_number_of_projections(
                 structure=structure,
                 pseudos=pseudos,
+                spin_non_collinear=spin_non_collinear,
                 spin_orbit_coupling=spin_orbit_coupling,
             )
 

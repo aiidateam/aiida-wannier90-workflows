@@ -995,11 +995,22 @@ class Wannier90WorkChain(
         check_num_projs = True
         if self.should_run_scf():
             pseudos = self.inputs["scf"]["pw"]["pseudos"]
+            spin_orbit_coupling = (
+                self.inputs["scf"]["pw"]["parameters"]
+                .get_dict()["SYSTEM"]
+                .get("SYSTEM", False)
+            )
         elif self.should_run_nscf():
             pseudos = self.inputs["nscf"]["pw"]["pseudos"]
+            spin_orbit_coupling = (
+                self.inputs["nscf"]["pw"]["parameters"]
+                .get_dict()["SYSTEM"]
+                .get("SYSTEM", False)
+            )
         else:
             check_num_projs = False
-            pseudos = None  # to avoid pylint errors
+            pseudos = None
+            spin_orbit_coupling = None
         if check_num_projs:
             args = {
                 "structure": self.ctx.current_structure,
@@ -1014,9 +1025,11 @@ class Wannier90WorkChain(
                 params = self.ctx.workchain_wannier90.inputs["wannier90"][
                     "parameters"
                 ].get_dict()
-                spin_orbit_coupling = params.get("spinors", False)
+                spin_non_collinear = params.get("spinors", False)
                 number_of_projections = get_number_of_projections(
-                    **args, spin_orbit_coupling=spin_orbit_coupling
+                    **args,
+                    spin_non_collinear=spin_non_collinear,
+                    spin_orbit_coupling=spin_orbit_coupling,
                 )
                 if number_of_projections != num_proj:
                     self.report(
