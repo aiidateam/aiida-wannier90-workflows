@@ -39,8 +39,7 @@ def get_relax_builder(
     )
 
     parameters = builder.base["pw"]["parameters"].get_dict()
-    if spin_type == SpinType.NON_COLLINEAR:
-        parameters["SYSTEM"]["noncolin"] = True
+
     if spin_type == SpinType.SPIN_ORBIT:
         parameters["SYSTEM"]["noncolin"] = True
         parameters["SYSTEM"]["lspinorb"] = True
@@ -80,8 +79,6 @@ def get_scf_builder(
     )
 
     parameters = builder["pw"]["parameters"].get_dict()
-    if spin_type == SpinType.NON_COLLINEAR:
-        parameters["SYSTEM"]["noncolin"] = True
     if spin_type == SpinType.SPIN_ORBIT:
         parameters["SYSTEM"]["noncolin"] = True
         parameters["SYSTEM"]["lspinorb"] = True

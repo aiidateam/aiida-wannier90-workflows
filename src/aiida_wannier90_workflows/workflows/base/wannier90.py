@@ -286,8 +286,8 @@ class Wannier90BaseWorkChain(ProtocolMixin, BaseRestartWorkChain):
         if electronic_type in [ElectronicType.AUTOMATIC]:
             raise NotImplementedError("`ElectronicType.AUTOMATIC` not implemented")
 
-        if spin_type == SpinType.COLLINEAR:
-            raise NotImplementedError("`SpinType.COLLINEAR` not implemented")
+        # if spin_type == SpinType.COLLINEAR:
+        #     raise NotImplementedError("`SpinType.COLLINEAR` not implemented")
         if spin_type == SpinType.SPIN_ORBIT and pseudo_family is None:
             raise ValueError(
                 "Need to explicitly specify `pseudo_family` for SOC calculation"
