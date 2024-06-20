@@ -330,10 +330,14 @@ class Wannier90WorkChain(
                 f"electronic type `{electronic_type}` is not supported."
             )
 
-        if spin_type not in [SpinType.NONE, SpinType.SPIN_ORBIT]:
+        if spin_type not in [
+            SpinType.NONE,
+            SpinType.SPIN_ORBIT,
+            SpinType.NON_COLLINEAR,
+        ]:
             raise NotImplementedError(f"spin type `{spin_type}` is not supported.")
 
-        if initial_magnetic_moments and spin_type != SpinType.COLLINEAR:
+        if initial_magnetic_moments and spin_type == SpinType.NONE:
             raise ValueError(
                 f"`initial_magnetic_moments` is specified but spin type `{spin_type}` is incompatible."
             )
@@ -411,10 +415,14 @@ class Wannier90WorkChain(
             overrides = recursive_merge(
                 protocol_overrides["spin_noncollinear"], overrides
             )
-            pw_spin_type = SpinType.NONE
-        elif spin_type == SpinType.SPIN_ORBIT:
+        if spin_type == SpinType.SPIN_ORBIT:
             overrides = recursive_merge(protocol_overrides["spin_orbit"], overrides)
-            pw_spin_type = SpinType.NONE
+            if (initial_magnetic_moments is not None) or any(
+                "magmom" in kind for kind in structure.base.attributes.all["kinds"]
+            ):
+                pw_spin_type = SpinType.NON_COLLINEAR
+            else:
+                pw_spin_type = SpinType.NONE
         else:
             pw_spin_type = spin_type
 
@@ -518,12 +526,16 @@ class Wannier90WorkChain(
 
         # Prepare pw2wannier90 builder
         exclude_projectors = None
+        external_projectors_list = None
         if exclude_semicore:
             pseudo_orbitals = get_pseudo_orbitals(builder["scf"]["pw"]["pseudos"])
             if projection_type == WannierProjectionType.ATOMIC_PROJECTORS_EXTERNAL:
                 exclude_projectors = get_semicore_list_ext(
                     structure, external_projectors, pseudo_orbitals, spin_non_collinear
                 )
+                external_projectors_list = {
+                    kind.name: kind.symbol for kind in structure.kinds
+                }
             else:
                 exclude_projectors = get_semicore_list(
                     structure, pseudo_orbitals, spin_non_collinear
@@ -537,6 +549,7 @@ class Wannier90WorkChain(
             projection_type=projection_type,
             exclude_projectors=exclude_projectors,
             external_projectors_path=external_projectors_path,
+            external_projectors_list=external_projectors_list,
         )
         # Remove workchain excluded inputs
         pw2wannier90_builder.pop("clean_workdir", None)

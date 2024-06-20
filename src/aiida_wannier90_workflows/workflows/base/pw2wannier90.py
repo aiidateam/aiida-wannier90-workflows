@@ -136,6 +136,7 @@ class Pw2wannier90BaseWorkChain(ProtocolMixin, QeBaseRestartWorkChain):
         projection_type: WannierProjectionType = WannierProjectionType.ATOMIC_PROJECTORS_QE,
         exclude_projectors: list = None,
         external_projectors_path: str = None,
+        external_projectors_list: dict = None,
     ) -> ProcessBuilder:
         """Return a builder prepopulated with inputs selected according to the chosen protocol.
 
@@ -186,7 +187,7 @@ class Pw2wannier90BaseWorkChain(ProtocolMixin, QeBaseRestartWorkChain):
                     raise ValueError(
                         f"Must specify `external_projectors_path` when using {projection_type}"
                     )
-                parameters["atom_proj_dir"] = external_projectors_path
+                parameters["atom_proj_dir"] = "external_projectors/"
 
         parameters = {"inputpp": parameters}
 
@@ -212,6 +213,13 @@ class Pw2wannier90BaseWorkChain(ProtocolMixin, QeBaseRestartWorkChain):
             )
         if "settings" in inputs:
             builder["settings"] = orm.Dict(inputs["settings"])
+        if projection_type == WannierProjectionType.ATOMIC_PROJECTORS_EXTERNAL:
+            builder[cls._inputs_namespace]["external_projectors_path"] = orm.RemoteData(
+                remote_path=external_projectors_path, computer=code.computer
+            )
+            builder[cls._inputs_namespace]["external_projectors_list"] = orm.Dict(
+                external_projectors_list
+            )
         builder.clean_workdir = orm.Bool(inputs["clean_workdir"])
         # pylint: enable=no-member
 
