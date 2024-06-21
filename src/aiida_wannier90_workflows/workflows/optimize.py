@@ -736,9 +736,6 @@ class Wannier90OptimizeWorkChain(Wannier90BandsWorkChain):
                     namespace="wannier90_plot",
                 )
             )
-            if "interpolated_bands" in self.outputs["wannier90_plot"]:
-                w90_bands = self.outputs["wannier90_plot"]["interpolated_bands"]
-                self.out("band_structure", w90_bands)
 
         if "optimize_reference_bands" in self.inputs:
             if self.has_run_wannier90_optimize():
@@ -746,6 +743,11 @@ class Wannier90OptimizeWorkChain(Wannier90BandsWorkChain):
             else:
                 # Even if I haven't run optimization, I still output bands distance if reference bands is present
                 optimal_workchain = self.ctx.workchain_wannier90
+
+            if "interpolated_bands" in optimal_workchain.outputs:
+                # Override the `band_strucure` from W90BandsWorkChain
+                w90_optimal_bands = optimal_workchain.outputs["interpolated_bands"]
+                self.out("band_structure", w90_optimal_bands)
             bandsdist = self._get_bands_distance(optimal_workchain)
             bandsdist = orm.Float(bandsdist)
             bandsdist.store()
