@@ -108,13 +108,13 @@ def get_pseudo_orbitals(pseudos: ty.Mapping[str, PseudoPotentialData]) -> dict:
 
 
 def get_semicore_list(
-    structure: orm.StructureData, pseudo_orbitals: dict, spin_orbit_coupling: bool
+    structure: orm.StructureData, pseudo_orbitals: dict, spin_non_collinear: bool
 ) -> list:
     """Get semicore states (a subset of pseudo wavefunctions) in the pseudopotential.
 
     :param structure: [description]
     :param pseudo_orbitals: [description]
-    :param spin_orbit_coupling: [description]
+    :param spin_non_collinear: [description]
     :return: [description]
     """
     from copy import deepcopy
@@ -134,7 +134,7 @@ def get_semicore_list(
     # }
     label2num = {"S": 1, "P": 3, "D": 5, "F": 7}
     # for spin-orbit-coupling, every orbit contains 2 electrons
-    nspin = 2 if spin_orbit_coupling else 1
+    nspin = 2 if spin_non_collinear else 1
 
     semicore_list = []  # index should start from 1
     num_pswfcs = 0
@@ -161,12 +161,55 @@ def get_semicore_list(
     return semicore_list
 
 
+def get_semicore_list_ext(
+    structure: orm.StructureData,
+    external_projectors: dict,
+    pseudo_orbitals: dict,
+    spin_non_collinear: bool,
+) -> list:
+    """Get semicore states (a subset of pseudo wavefunctions) in the external_projectors.
+
+    :param structure: [description]
+    :param external_projectors: dict of external projectors, where every external projector
+    contains the `label`, `l` and `j`(optional).
+    :param pseudo_orbitals: [description]
+    :param spin_non_collinear: [description]
+    :return: [description]
+    """
+    from copy import deepcopy
+
+    nspin = 2 if spin_non_collinear else 1
+
+    semicore_list = []  # index should start from 1
+    num_projs = 0
+
+    for site in structure.sites:
+        # Here I use deepcopy to make sure list.remove() does not interfere with the original list.
+        # site_pswfcs = deepcopy(pseudo_orbitals[site.kind_name]["pswfcs"])
+        site_semicores = deepcopy(pseudo_orbitals[site.kind_name]["semicores"])
+
+        for orb in external_projectors[site.kind_name]:
+            if "j" in orb:
+                num_orbs = round(2 * orb["j"] + 1)
+            else:
+                num_orbs = (2 * orb["l"] + 1) * nspin
+
+            if orb["label"] in site_semicores:
+                semicore_list.extend(
+                    list(range(num_projs + 1, num_projs + num_orbs + 1))
+                )
+            num_projs += num_orbs
+
+    return semicore_list
+
+
 def get_wannier_number_of_bands(
     structure,
     pseudos,
     factor=1.2,
     only_valence=False,
     spin_polarized=False,
+    spin_non_collinear: bool = False,
     spin_orbit_coupling: bool = False,
 ):
     """Estimate number of bands for a Wannier90 calculation.
@@ -178,6 +221,8 @@ def get_wannier_number_of_bands(
     :type only_valence: bool
     :param spin_polarized: magnetic calculation?
     :type spin_polarized: bool
+    :param spin_non_collinear: non-collinear or spin-orbit-coupling
+    :type spin_non_collinear: bool
     :param spin_orbit_coupling: spin orbit coupling calculation?
     :type spin_orbit_coupling: bool
     :return: number of bands for Wannier90 SCDM
@@ -194,8 +239,10 @@ def get_wannier_number_of_bands(
                 raise ValueError("Should use SOC pseudo for SOC calculation")
 
     num_electrons = get_number_of_electrons(structure, pseudos)
-    num_projections = get_number_of_projections(structure, pseudos, spin_orbit_coupling)
-    nspin = 2 if (spin_polarized or spin_orbit_coupling) else 1
+    num_projections = get_number_of_projections(
+        structure, pseudos, spin_non_collinear, spin_orbit_coupling
+    )
+    nspin = 2 if (spin_polarized or spin_non_collinear) else 1
     # TODO check nospin, spin, soc  # pylint: disable=fixme
     if only_valence:
         num_bands = int(0.5 * num_electrons * nspin)
@@ -205,7 +252,64 @@ def get_wannier_number_of_bands(
             int(0.5 * num_electrons * nspin * factor),
             int(0.5 * num_electrons * nspin + 4 * nspin),
             int(num_projections * factor),
-            int(num_projections + 4),
+            int(num_projections + 4 * nspin),
+        )
+    return num_bands
+
+
+def get_wannier_number_of_bands_ext(
+    structure,
+    pseudos,
+    external_projectors,
+    factor=1.2,
+    only_valence=False,
+    spin_polarized=False,
+    spin_non_collinear: bool = False,
+    spin_orbit_coupling: bool = False,
+):
+    """Estimate number of bands for a Wannier90 calculation.
+
+    :param structure: crystal structure
+    :param pseudos: dictionary of pseudopotentials
+    :type pseudos: dict of aiida.orm.UpfData
+    :param external_projectors: dict of external projectors
+    :type external_projectors: dict
+    :param only_valence: return only occupied number of badns
+    :type only_valence: bool
+    :param spin_polarized: magnetic calculation?
+    :type spin_polarized: bool
+    :param spin_non_collinear: non-collinear or spin-orbit-coupling
+    :type spin_non_collinear: bool
+    :param spin_orbit_coupling: spin orbit coupling calculation?
+    :type spin_orbit_coupling: bool
+    :return: number of bands for Wannier90 SCDM
+    :rtype: int
+    """
+    from .upf import get_upf_content, is_soc_pseudo
+
+    if spin_orbit_coupling:
+        composition = structure.get_composition()
+        for kind in composition:
+            upf = pseudos[kind]
+            upf_content = get_upf_content(upf)
+            if not is_soc_pseudo(upf_content):
+                raise ValueError("Should use SOC pseudo for SOC calculation")
+
+    num_electrons = get_number_of_electrons(structure, pseudos)
+    num_projections = get_number_of_projections_ext(
+        structure, external_projectors, spin_non_collinear, spin_orbit_coupling
+    )
+    nspin = 2 if (spin_polarized or spin_non_collinear) else 1
+    # TODO check nospin, spin, soc  # pylint: disable=fixme
+    if only_valence:
+        num_bands = int(0.5 * num_electrons * nspin)
+    else:
+        # nbands must > num_projections = num_wann
+        num_bands = max(
+            int(0.5 * num_electrons * nspin * factor),
+            int(0.5 * num_electrons * nspin + 4 * nspin),
+            int(num_projections * factor),
+            int(num_projections + 4 * nspin),
         )
     return num_bands
 
@@ -213,6 +317,7 @@ def get_wannier_number_of_bands(
 def get_number_of_projections(
     structure: orm.StructureData,
     pseudos: ty.Mapping[str, orm.UpfData],
+    spin_non_collinear: bool,
     spin_orbit_coupling: ty.Optional[bool] = None,
 ) -> int:
     """Get number of projections for the structure with the given pseudopotential files.
@@ -224,6 +329,8 @@ def get_number_of_projections(
     :type structure: aiida.orm.StructureData
     :param pseudos: a dictionary contains orm.UpfData of the structure
     :type pseudos: dict
+    :param spin_non_collinear: non-collinear or spin-orbit-coupling
+    :type spin_non_collinear: bool
     :return: number of projections
     :rtype: int
     """
@@ -261,14 +368,63 @@ def get_number_of_projections(
         upf = pseudos[kind]
         nprojs = get_number_of_projections_from_upf(upf)
         soc = is_soc_pseudo(get_upf_content(pseudos[kind]))
-        if spin_orbit_coupling and not soc:
-            # For SOC calculation with non-SOC pseudo, QE will generate
+        if spin_non_collinear and not soc:
+            # For magnetic calculation with non-SOC pseudo, QE will generate
             # 2 PSWFCs from each one PSWFC in the pseudo
+            # For collinear-magnetic calculation, spin up and down will calc
+            # seperately, so nprojs do not times 2
             nprojs *= 2
-        elif not spin_orbit_coupling and soc:
-            # For non-SOC calculation with SOC pseudo, QE will average
+        elif not spin_non_collinear and soc:
+            # For non-magnetic calculation with SOC pseudo, QE will average
             # the 2 PSWFCs into one
             nprojs //= 2
+        tot_nprojs += nprojs * composition[kind]
+
+    return tot_nprojs
+
+
+def get_number_of_projections_ext(
+    structure: orm.StructureData,
+    external_projectors: dict,
+    spin_non_collinear: bool,
+    spin_orbit_coupling: bool = False,
+) -> int:
+    """Get number of projections for the structure with the given projector dict.
+
+    :param structure: crystal structure
+    :type structure: aiida.orm.StructureData
+    :param projectors: a dictionary contains projector list of the structure
+    :type pseudos: dict
+    :param spin_non_collinear: non-collinear or spin-orbit-coupling
+    :type spin_non_collinear: bool
+    :return: number of projections
+    :rtype: int
+    """
+    if not isinstance(structure, orm.StructureData):
+        raise ValueError(
+            f"The type of structure is {type(structure)}, only aiida.orm.StructureData is accepted"
+        )
+    # e.g. composition = {'Ga': 1, 'As': 1}
+    composition = structure.get_composition()
+
+    # I use the first projector to detect SOCs
+    kind = list(composition.keys())[0]
+    spin_orbit_coupling_proj = "j" in external_projectors[kind][0]
+    if spin_orbit_coupling and not spin_orbit_coupling_proj:
+        raise ValueError("Use SOC spin type but non-SOC projectors.")
+    if spin_orbit_coupling_proj and not spin_orbit_coupling:
+        raise ValueError("Use SOC projectors but non-SOC spin type.")
+
+    tot_nprojs = 0
+    for kind in composition:
+        nprojs = 0
+        for orb in external_projectors[kind]:
+            if spin_orbit_coupling:
+                nprojs += round(2 * orb["j"]) + 1
+            else:
+                nprojs += 2 * orb["l"] + 1
+        if spin_non_collinear and not spin_orbit_coupling:
+            nprojs *= 2
         tot_nprojs += nprojs * composition[kind]
 
     return tot_nprojs
