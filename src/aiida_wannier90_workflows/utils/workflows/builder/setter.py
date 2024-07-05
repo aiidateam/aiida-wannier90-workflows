@@ -29,6 +29,8 @@ from aiida_wannier90_workflows.workflows.base.wannier90 import Wannier90BaseWork
 from aiida_wannier90_workflows.workflows.projwfcbands import ProjwfcBandsWorkChain
 from aiida_wannier90_workflows.workflows.wannier90 import Wannier90WorkChain
 
+from aiida_hyperqueue.scheduler import HyperQueueScheduler
+
 
 def set_parallelization(
     builder: ty.Union[ProcessBuilder, ProcessBuilderNamespace, AttributeDict],
@@ -56,6 +58,9 @@ def set_parallelization(
     default_num_machines = 1
     default_queue_name = None
     default_account = None
+    default_num_cpus = 1
+    default_memory_mb = 2048 # MB
+    default_code = None
 
     if parallelization is None:
         parallelization = {}
@@ -84,6 +89,18 @@ def set_parallelization(
         "account",
         default_account,
     )
+    num_cpus = parallelization.get(
+        "num_cpus",
+        default_num_cpus,
+    )
+    memory_mb = parallelization.get(
+        "memory_mb",
+        default_memory_mb,
+    )
+    code = builder.get(
+        "code",
+        default_code,
+    )
 
     # I need to prune the builder, otherwise e.g. initially builder.relax is
     # an empty dict but the following code will change it to non-empty,
@@ -93,13 +110,27 @@ def set_parallelization(
     else:
         pruned_builder = builder._inputs(prune=True)  # pylint: disable=protected-access
 
-    metadata = get_metadata(
-        num_mpiprocs_per_machine=num_mpiprocs_per_machine,
-        max_wallclock_seconds=max_wallclock_seconds,
-        num_machines=num_machines,
-        queue_name=queue_name,
-        account=account,
-    )
+    run_hyperqueue = False
+    if code is not None:
+        run_hyperqueue = isinstance(
+            code.computer.get_scheduler(), HyperQueueScheduler
+        )
+    if run_hyperqueue:
+        metadata = get_metadata_hq(
+            num_cpus=num_cpus,
+            max_wallclock_seconds=max_wallclock_seconds,
+            memory_mb=memory_mb,
+            queue_name=queue_name,
+            account=account,
+        )
+    else:
+        metadata = get_metadata(
+            num_mpiprocs_per_machine=num_mpiprocs_per_machine,
+            max_wallclock_seconds=max_wallclock_seconds,
+            num_machines=num_machines,
+            queue_name=queue_name,
+            account=account,
+        )
     settings = get_settings_for_kpool(npool=npool)
 
     # PwCalculation is a subclass of BasePwCpInputGenerator,
@@ -337,6 +368,64 @@ def get_metadata(
         metadata["options"]["resources"][
             "num_mpiprocs_per_machine"
         ] = num_mpiprocs_per_machine
+    if queue_name:
+        metadata["options"]["queue_name"] = queue_name
+    if queue_name:
+        metadata["options"]["account"] = account
+
+    return metadata
+
+def get_metadata_hq(
+    *,
+    num_cpus: int = None,
+    max_wallclock_seconds: int = 24*3600,
+    memory_mb: int = 2048,
+    queue_name: str = None,
+    account: str = None,
+    **_,
+) -> dict:
+    """Return metadata with the given MPI specification (HyperQueue).
+
+    Usage
+    ```
+    # Create a dict
+    parallelization = {
+        'num_cpus': 16,
+        'npool': 4,
+        'memory_mb': 2048,
+        'queue_name': 'debug',
+        'account': 'mr0',
+    }
+    # The dict can be used by
+    # set_parallelization(builder, parallelization)
+    # Or
+    metadata = get_metadata(**parallelization)
+    ```
+
+    :param num_cpus: defaults to None, meaning it is not set
+    and will the default number of CPUs in the `computer` configuration.
+    :type num_cpus: int, optional
+    :param max_wallclock_seconds: defaults to 24*3600
+    :type max_wallclock_seconds: int, optional
+    :param memory_mb: defaults to 2048 MB
+    :type memory: int, optional
+    :param queue_name: slurm queue name
+    :type queue_name: str, optional
+    :param account: slurm account
+    :type account: str, optional
+    :return: metadata dict
+    :rtype: dict
+    """
+    metadata = {
+        "options": {
+            "resources": {
+                "num_cpus": num_cpus,
+                "memory_mb": memory_mb
+            },
+            "max_wallclock_seconds": max_wallclock_seconds,
+            "withmpi": True,
+        }
+    }
     if queue_name:
         metadata["options"]["queue_name"] = queue_name
     if queue_name:
