@@ -527,15 +527,17 @@ class Wannier90WorkChain(
         # Prepare pw2wannier90 builder
         exclude_projectors = None
         external_projectors_list = None
+        
+        if projection_type == WannierProjectionType.ATOMIC_PROJECTORS_EXTERNAL:
+                external_projectors_list = {
+                    kind.name: kind.symbol for kind in structure.kinds
+                }
         if exclude_semicore:
             pseudo_orbitals = get_pseudo_orbitals(builder["scf"]["pw"]["pseudos"])
             if projection_type == WannierProjectionType.ATOMIC_PROJECTORS_EXTERNAL:
                 exclude_projectors = get_semicore_list_ext(
                     structure, external_projectors, pseudo_orbitals, spin_non_collinear
                 )
-                external_projectors_list = {
-                    kind.name: kind.symbol for kind in structure.kinds
-                }
             else:
                 exclude_projectors = get_semicore_list(
                     structure, pseudo_orbitals, spin_non_collinear
