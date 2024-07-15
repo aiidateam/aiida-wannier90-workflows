@@ -318,10 +318,13 @@ class Wannier90BaseWorkChain(ProtocolMixin, BaseRestartWorkChain):
             pseudo_family = meta_parameters["pseudo_family"]
         pseudos, _, _ = get_pseudo_and_cutoff(pseudo_family, structure)
 
-        if projection_type == WannierProjectionType.ATOMIC_PROJECTORS_EXTERNAL:
-            if external_projectors is None:
+        if external_projectors is not None:
+            if projection_type in [
+                WannierProjectionType.ATOMIC_PROJECTORS_QE,
+                WannierProjectionType.RANDOM
+            ]:
                 raise ValueError(
-                    f"Must specify `external_projectors` when using {projection_type}"
+                    f"Can not specify `external_projectors` when using {projection_type}"
                 )
             num_bands = get_wannier_number_of_bands_ext(
                 structure=structure,
@@ -339,7 +342,11 @@ class Wannier90BaseWorkChain(ProtocolMixin, BaseRestartWorkChain):
                 spin_non_collinear=spin_non_collinear,
                 spin_orbit_coupling=spin_orbit_coupling,
             )
-        else:
+        else: # external_projector is None
+            if projection_type == WannierProjectionType.ATOMIC_PROJECTORS_EXTERNAL:
+                raise ValueError(
+                    f"Must specify `external_projectors` when using {projection_type}"
+                )
             num_bands = get_wannier_number_of_bands(
                 structure=structure,
                 pseudos=pseudos,
@@ -364,6 +371,13 @@ class Wannier90BaseWorkChain(ProtocolMixin, BaseRestartWorkChain):
         if meta_parameters["exclude_semicore"]:
             pseudo_orbitals = get_pseudo_orbitals(pseudos)
             if projection_type == WannierProjectionType.ATOMIC_PROJECTORS_EXTERNAL:
+                semicore_list = get_semicore_list_ext(
+                    structure, external_projectors, pseudo_orbitals, spin_non_collinear
+                )
+            elif (
+                projection_type == WannierProjectionType.ANALYTIC
+                and external_projectors is not None
+            ):
                 semicore_list = get_semicore_list_ext(
                     structure, external_projectors, pseudo_orbitals, spin_non_collinear
                 )
@@ -398,12 +412,22 @@ class Wannier90BaseWorkChain(ProtocolMixin, BaseRestartWorkChain):
         elif projection_type == WannierProjectionType.ANALYTIC:
             pseudo_orbitals = get_pseudo_orbitals(pseudos)
             projections = []
-            for kind in structure.kinds:
-                for orb in pseudo_orbitals[kind.name]["pswfcs"]:
-                    if meta_parameters["exclude_semicore"]:
-                        if orb in pseudo_orbitals[kind.name]["semicores"]:
-                            continue
-                    projections.append(f"{kind.name}:{orb[-1].lower()}")
+            if external_projectors is None:
+                for kind in structure.kinds:
+                    for orb in pseudo_orbitals[kind.symbol]["pswfcs"]:
+                        if meta_parameters["exclude_semicore"]:
+                            if orb in pseudo_orbitals[kind.symbol]["semicores"]:
+                                continue
+                        projections.append(f"{kind.name}:{orb[-1].lower()}")
+            else: # external_projectors is not None
+                for kind in structure.kinds:
+                    for orb in external_projectors[kind.symbol]:
+                        if orb.get("j", 0.0) < orb["l"]:
+                            continue # avoid repeated counting
+                        if meta_parameters["exclude_semicore"]:
+                            if orb["label"] in pseudo_orbitals[kind.symbol]["semicores"]:
+                                continue
+                        projections.append(f"{kind.name}:{orb['label'][-1].lower()}")
             inputs[cls._inputs_namespace]["projections"] = orm.List(list=projections)
         elif projection_type == WannierProjectionType.RANDOM:
             settings = inputs[cls._inputs_namespace].get("settings", {})
