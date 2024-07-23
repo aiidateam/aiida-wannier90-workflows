@@ -1,0 +1,1449 @@
+{
+  "H": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/H.rel-pbe-kjpaw_psl.1.0.0.UPF",
+    "md5": "4679e8d4d26c05a62918bf42f027569d",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 46.0,
+    "cutoff_rho": 221.0,
+    "pswfcs": [
+      "1S"
+    ],
+    "semicores": []
+  },
+  "He": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/He.rel-pbe-kjpaw_psl.1.0.0.UPF",
+    "md5": "e6d171ebad273ea83b568856bec7d12f",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 46.0,
+    "cutoff_rho": 203.0,
+    "pswfcs": [
+      "1S"
+    ],
+    "semicores": []
+  },
+  "Li": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/Li.rel-pbe-sl-kjpaw_psl.1.0.0.UPF",
+    "md5": "4cc8f929f7ea80371a8fa2fe95f02ebe",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 50.0,
+    "cutoff_rho": 325.0,
+    "pswfcs": [
+      "1S",
+      "2S",
+      "2P"
+    ],
+    "semicores": [
+      "1S"
+    ]
+  },
+  "Be": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/Be.rel-pbe-sl-kjpaw_psl.1.0.0.UPF",
+    "md5": "ac53fb4a0199cd7d1d484162edd6c468",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 70.0,
+    "cutoff_rho": 710.0,
+    "pswfcs": [
+      "1S",
+      "2S",
+      "2P"
+    ],
+    "semicores": [
+      "1S"
+    ]
+  },
+  "B": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/B.rel-pbe-n-kjpaw_psl.1.0.0.UPF",
+    "md5": "be703e8eaad7bcb0d8b2213a74610a9b",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 43.0,
+    "cutoff_rho": 325.0,
+    "pswfcs": [
+      "2S",
+      "2P"
+    ],
+    "semicores": []
+  },
+  "C": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/C.rel-pbe-n-kjpaw_psl.1.0.0.UPF",
+    "md5": "86f588e84214d328d217845c57ca798f",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 40.0,
+    "cutoff_rho": 326.0,
+    "pswfcs": [
+      "2S",
+      "2P"
+    ],
+    "semicores": []
+  },
+  "N": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/N.rel-pbe-n-kjpaw_psl.1.0.0.UPF",
+    "md5": "1e59e7c84efd14e276c06a1bdb09d2e6",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 44.0,
+    "cutoff_rho": 320.0,
+    "pswfcs": [
+      "2S",
+      "2P"
+    ],
+    "semicores": []
+  },
+  "O": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/O.rel-pbe-n-kjpaw_psl.0.1.UPF",
+    "md5": "4765824527a245bdd2348d3ebd01553a",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 47.0,
+    "cutoff_rho": 187.0,
+    "pswfcs": [
+      "2S",
+      "2P"
+    ],
+    "semicores": []
+  },
+  "F": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/F.rel-pbe-n-kjpaw_psl.1.0.0.UPF",
+    "md5": "89d43f66814b999ceb42d535d385d5bb",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 49.0,
+    "cutoff_rho": 316.0,
+    "pswfcs": [
+      "2S",
+      "2P"
+    ],
+    "semicores": []
+  },
+  "Ne": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/Ne.rel-pbe-n-kjpaw_psl.1.0.0.UPF",
+    "md5": "2a7d24c1b31ee056085fb3b1402bbc0d",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 54.0,
+    "cutoff_rho": 264.0,
+    "pswfcs": [
+      "2S",
+      "2P"
+    ],
+    "semicores": []
+  },
+  "Na": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/Na.rel-pbe-spnl-kjpaw_psl.1.0.0.UPF",
+    "md5": "03f6f3161c5bd02f82b11e42ceb9d8ba",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 66.0,
+    "cutoff_rho": 323.0,
+    "pswfcs": [
+      "2S",
+      "3S",
+      "2P"
+    ],
+    "semicores": [
+      "2S",
+      "2P"
+    ]
+  },
+  "Mg": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/Mg.rel-pbe-spnl-kjpaw_psl.1.0.0.UPF",
+    "md5": "e30cbee05a9bcecd05024009a30e95d5",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 58.0,
+    "cutoff_rho": 385.0,
+    "pswfcs": [
+      "2S",
+      "3S",
+      "2P"
+    ],
+    "semicores": [
+      "2S",
+      "2P"
+    ]
+  },
+  "Al": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/Al.rel-pbe-nl-kjpaw_psl.1.0.0.UPF",
+    "md5": "e37b12aea4a7ee890a331ff340e9dfad",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 29.0,
+    "cutoff_rho": 121.0,
+    "pswfcs": [
+      "3S",
+      "3P"
+    ],
+    "semicores": []
+  },
+  "Si": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/Si.rel-pbe-nl-kjpaw_psl.1.0.0.UPF",
+    "md5": "f180ce37ad47529836dacf688eae3b57",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 44.0,
+    "cutoff_rho": 175.0,
+    "pswfcs": [
+      "3S",
+      "3P"
+    ],
+    "semicores": []
+  },
+  "P": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/P.rel-pbe-nl-kjpaw_psl.1.0.0.UPF",
+    "md5": "1a1f543ab0c000905370b7444cb41493",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 34.0,
+    "cutoff_rho": 138.0,
+    "pswfcs": [
+      "3S",
+      "3P"
+    ],
+    "semicores": []
+  },
+  "S": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/S.rel-pbe-nl-kjpaw_psl.1.0.0.UPF",
+    "md5": "51ca120ea99d05e8cbc8d67f1b00e84e",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 39.0,
+    "cutoff_rho": 157.0,
+    "pswfcs": [
+      "3S",
+      "3P"
+    ],
+    "semicores": []
+  },
+  "Cl": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/Cl.rel-pbe-nl-kjpaw_psl.1.0.0.UPF",
+    "md5": "ce6f1222813c8c312539cf573e0d5656",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 46.0,
+    "cutoff_rho": 182.0,
+    "pswfcs": [
+      "3S",
+      "3P"
+    ],
+    "semicores": []
+  },
+  "Ar": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/Ar.rel-pbe-nl-kjpaw_psl.1.0.0.UPF",
+    "md5": "f60e3ef40a36f10e7b756d8b2f99757b",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 46.0,
+    "cutoff_rho": 189.0,
+    "pswfcs": [
+      "3S",
+      "3P"
+    ],
+    "semicores": []
+  },
+  "K": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/K.rel-pbe-spn-kjpaw_psl.1.0.0.UPF",
+    "md5": "9777db68f4233338456772e39c0d9ba7",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 41.0,
+    "cutoff_rho": 277.0,
+    "pswfcs": [
+      "3S",
+      "4S",
+      "3P",
+      "4P"
+    ],
+    "semicores": [
+      "3S",
+      "3P"
+    ]
+  },
+  "Ca": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/Ca.rel-pbe-spn-kjpaw_psl.1.0.0.UPF",
+    "md5": "0f1cd6a6857310e2e97487a1d3fa03b1",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 45.0,
+    "cutoff_rho": 274.0,
+    "pswfcs": [
+      "3S",
+      "4S",
+      "3P",
+      "4P"
+    ],
+    "semicores": [
+      "3S",
+      "3P"
+    ]
+  },
+  "Sc": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/Sc.rel-pbe-spn-kjpaw_psl.1.0.0.UPF",
+    "md5": "53b23db25251aa82389b5d1d32173f39",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 50.0,
+    "cutoff_rho": 402.0,
+    "pswfcs": [
+      "3S",
+      "4S",
+      "3P",
+      "3D"
+    ],
+    "semicores": [
+      "3S",
+      "3P"
+    ]
+  },
+  "Ti": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/Ti.rel-pbe-spn-kjpaw_psl.1.0.0.UPF",
+    "md5": "28167b9b530f8ab18939db9c6affbfac",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 52.0,
+    "cutoff_rho": 575.0,
+    "pswfcs": [
+      "3S",
+      "4S",
+      "3P",
+      "3D"
+    ],
+    "semicores": [
+      "3S",
+      "3P"
+    ]
+  },
+  "V": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/V.rel-pbe-spnl-kjpaw_psl.1.0.0.UPF",
+    "md5": "0752229505ed0d016884a33e5fdeae7b",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 48.0,
+    "cutoff_rho": 645.0,
+    "pswfcs": [
+      "3S",
+      "4S",
+      "3P",
+      "3D"
+    ],
+    "semicores": [
+      "3S",
+      "3P"
+    ]
+  },
+  "Cr": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/Cr.rel-pbe-spn-kjpaw_psl.1.0.0.UPF",
+    "md5": "5099352f8306aa88385736889b27ce81",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 48.0,
+    "cutoff_rho": 457.0,
+    "pswfcs": [
+      "3S",
+      "4S",
+      "3P",
+      "3D"
+    ],
+    "semicores": [
+      "3S",
+      "3P"
+    ]
+  },
+  "Mn": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/Mn.rel-pbe-spn-kjpaw_psl.0.3.1.UPF",
+    "md5": "92351572830f79ea9527b690fc428943",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 46.0,
+    "cutoff_rho": 244.0,
+    "pswfcs": [
+      "3S",
+      "4S",
+      "3P",
+      "3D"
+    ],
+    "semicores": [
+      "3S",
+      "3P"
+    ]
+  },
+  "Fe": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/Fe.rel-pbe-n-kjpaw_psl.0.2.4.UPF",
+    "md5": "6304d5f6eace8ba22a00445e28435185",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 38.0,
+    "cutoff_rho": 235.0,
+    "pswfcs": [
+      "4S",
+      "4P",
+      "3D"
+    ],
+    "semicores": []
+  },
+  "Co": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/Co.rel-pbe-spn-kjpaw_psl.0.3.1.UPF",
+    "md5": "f3e75ff854317fdfd32cf3a24ccfad82",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 60.0,
+    "cutoff_rho": 450.0,
+    "pswfcs": [
+      "3S",
+      "4S",
+      "3P",
+      "3D"
+    ],
+    "semicores": [
+      "3S",
+      "3P"
+    ]
+  },
+  "Ni": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/Ni.rel-pbe-n-kjpaw_psl.0.1.UPF",
+    "md5": "5bbfca218f322a9e83d4218e96172c4e",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 41.0,
+    "cutoff_rho": 236.0,
+    "pswfcs": [
+      "4S",
+      "4P",
+      "3D"
+    ],
+    "semicores": []
+  },
+  "Cu": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/Cu.rel-pbe-dn-kjpaw_psl.1.0.0.UPF",
+    "md5": "1a8885e7529b3cf80ed4fcfa6bee4513",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 45.0,
+    "cutoff_rho": 236.0,
+    "pswfcs": [
+      "4S",
+      "4P",
+      "3D"
+    ],
+    "semicores": []
+  },
+  "Zn": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/Zn.rel-pbe-dn-kjpaw_psl.1.0.0.UPF",
+    "md5": "63c71989321a40510c716e998341ef07",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 44.0,
+    "cutoff_rho": 276.0,
+    "pswfcs": [
+      "4S",
+      "4P",
+      "3D"
+    ],
+    "semicores": []
+  },
+  "Ga": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/Ga.rel-pbe-dnl-kjpaw_psl.1.0.0.UPF",
+    "md5": "635aae567af6f9d7fd182c2edf54ec51",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 44.0,
+    "cutoff_rho": 240.0,
+    "pswfcs": [
+      "4S",
+      "4P",
+      "3D"
+    ],
+    "semicores": [
+      "3D"
+    ]
+  },
+  "Ge": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/Ge.rel-pbe-n-kjpaw_psl.1.0.0.UPF",
+    "md5": "7432cd9c0bf90ac2274445a00251d865",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 20.0,
+    "cutoff_rho": 116.0,
+    "pswfcs": [
+      "4S",
+      "4P"
+    ],
+    "semicores": []
+  },
+  "As": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/As.rel-pbe-n-kjpaw_psl.1.0.0.UPF",
+    "md5": "8cdd335866ef1bbeb2bd19fba8e74ff8",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 20.0,
+    "cutoff_rho": 103.0,
+    "pswfcs": [
+      "4S",
+      "4P"
+    ],
+    "semicores": []
+  },
+  "Se": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/Se.rel-pbe-n-kjpaw_psl.1.0.0.UPF",
+    "md5": "b8bb9285f89394864e77a6b2c4517542",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 22.0,
+    "cutoff_rho": 117.0,
+    "pswfcs": [
+      "4S",
+      "4P"
+    ],
+    "semicores": []
+  },
+  "Br": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/Br.rel-pbe-n-kjpaw_psl.1.0.0.UPF",
+    "md5": "89bae4e2361026da698466cebc91a972",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 49.0,
+    "cutoff_rho": 243.0,
+    "pswfcs": [
+      "4S",
+      "4P"
+    ],
+    "semicores": []
+  },
+  "Kr": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/Kr.rel-pbe-dn-kjpaw_psl.1.0.0.UPF",
+    "md5": "90592c3a4b88f583e4cc4561aedc3870",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 63.0,
+    "cutoff_rho": 305.0,
+    "pswfcs": [
+      "4S",
+      "4P",
+      "3D"
+    ],
+    "semicores": [
+      "3D"
+    ]
+  },
+  "Rb": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/Rb.rel-pbe-spn-kjpaw_psl.1.0.0.UPF",
+    "md5": "788c53cc0630186e1a5b7146f410c572",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 35.0,
+    "cutoff_rho": 259.0,
+    "pswfcs": [
+      "4S",
+      "5S",
+      "4P",
+      "5P"
+    ],
+    "semicores": [
+      "4S",
+      "4P"
+    ]
+  },
+  "Sr": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/Sr.rel-pbe-spn-kjpaw_psl.1.0.0.UPF",
+    "md5": "2996b9a1c8f99d0c727ed28fe5db0764",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 39.0,
+    "cutoff_rho": 263.0,
+    "pswfcs": [
+      "4S",
+      "5S",
+      "4P",
+      "5P"
+    ],
+    "semicores": [
+      "4S",
+      "4P"
+    ]
+  },
+  "Y": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/Y.rel-pbe-spn-kjpaw_psl.1.0.0.UPF",
+    "md5": "314eb18f5f4dd73805149779e462c153",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 39.0,
+    "cutoff_rho": 257.0,
+    "pswfcs": [
+      "4S",
+      "5S",
+      "4P",
+      "5P",
+      "4D"
+    ],
+    "semicores": [
+      "4S",
+      "4P"
+    ]
+  },
+  "Zr": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/Zr.rel-pbe-spn-kjpaw_psl.1.0.0.UPF",
+    "md5": "48963e52958cb442d202581ca3619c10",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 46.0,
+    "cutoff_rho": 268.0,
+    "pswfcs": [
+      "4S",
+      "5S",
+      "4P",
+      "5P",
+      "4D"
+    ],
+    "semicores": [
+      "4S",
+      "4P"
+    ]
+  },
+  "Nb": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/Nb.rel-pbe-spn-kjpaw_psl.1.0.0.UPF",
+    "md5": "83b8dd804d52d2aaec94d462bb1db868",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 48.0,
+    "cutoff_rho": 266.0,
+    "pswfcs": [
+      "4S",
+      "5S",
+      "4P",
+      "5P",
+      "4D"
+    ],
+    "semicores": [
+      "4S",
+      "4P"
+    ]
+  },
+  "Mo": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/Mo.rel-pbe-spn-kjpaw_psl.1.0.0.UPF",
+    "md5": "6f29fed902dcf1ef60939013db5c8d6e",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 49.0,
+    "cutoff_rho": 307.0,
+    "pswfcs": [
+      "4S",
+      "5S",
+      "4P",
+      "4D"
+    ],
+    "semicores": [
+      "4S",
+      "4P"
+    ]
+  },
+  "Tc": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/Tc.rel-pbe-spn-kjpaw_psl.0.3.0.UPF",
+    "md5": "23411945dc3f8e26cbb64aafe3ea1868",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 63.0,
+    "cutoff_rho": 853.0,
+    "pswfcs": [
+      "4S",
+      "5S",
+      "4P",
+      "5P",
+      "4D"
+    ],
+    "semicores": [
+      "4S",
+      "4P"
+    ]
+  },
+  "Ru": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/Ru.rel-pbe-spn-kjpaw_psl.1.0.0.UPF",
+    "md5": "5d4404e564c6b7516471dc105b64c23c",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 52.0,
+    "cutoff_rho": 368.0,
+    "pswfcs": [
+      "4S",
+      "5S",
+      "4P",
+      "4D"
+    ],
+    "semicores": [
+      "4S",
+      "4P"
+    ]
+  },
+  "Rh": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/Rh.UPF",
+    "md5": "241d26aaf374bcfaabd851d12f133a4e",
+    "pseudopotential": "NC",
+    "cutoff_wfc": 88.0,
+    "cutoff_rho": 352.0,
+    "pswfcs": [
+      "4S",
+      "4P",
+      "4D",
+      "5S"
+    ],
+    "semicores": [
+      "4S",
+      "4P"
+    ]
+  },
+  "Pd": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/Pd.rel-pbe-n-kjpaw_psl.1.0.0.UPF",
+    "md5": "2ae5d5eae1878d82e4f6f34ebd1e1d10",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 37.0,
+    "cutoff_rho": 448.0,
+    "pswfcs": [
+      "5S",
+      "5P",
+      "4D"
+    ],
+    "semicores": []
+  },
+  "Ag": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/Ag.rel-pbe-n-kjpaw_psl.1.0.0.UPF",
+    "md5": "198be39e09f31673758d5cbf79b436ae",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 45.0,
+    "cutoff_rho": 182.0,
+    "pswfcs": [
+      "5S",
+      "5P",
+      "4D"
+    ],
+    "semicores": []
+  },
+  "Cd": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/Cd.rel-pbe-dn-kjpaw_psl.0.3.1.UPF",
+    "md5": "bba5ddfe27e00e7c7da7cebbd98fecf2",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 37.0,
+    "cutoff_rho": 179.0,
+    "pswfcs": [
+      "5S",
+      "5P",
+      "4D"
+    ],
+    "semicores": []
+  },
+  "In": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/In.rel-pbe-dn-kjpaw_psl.1.0.0.UPF",
+    "md5": "3d911fc38d6f7b972e2b5d2e1b893a00",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 41.0,
+    "cutoff_rho": 217.0,
+    "pswfcs": [
+      "5S",
+      "5P",
+      "4D"
+    ],
+    "semicores": [
+      "4D"
+    ]
+  },
+  "Sn": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/Sn.rel-pbe-dn-kjpaw_psl.1.0.0.UPF",
+    "md5": "b68742be1be1e2a254144f9dc49be12b",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 47.0,
+    "cutoff_rho": 250.0,
+    "pswfcs": [
+      "5S",
+      "5P",
+      "4D"
+    ],
+    "semicores": [
+      "4D"
+    ]
+  },
+  "Sb": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/Sb.rel-pbe-n-kjpaw_psl.1.0.0.UPF",
+    "md5": "354aa8bed473c1dda02cceb8289d48fc",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 27.0,
+    "cutoff_rho": 242.0,
+    "pswfcs": [
+      "5S",
+      "5P"
+    ],
+    "semicores": []
+  },
+  "Te": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/Te.rel-pbe-n-kjpaw_psl.1.0.0.UPF",
+    "md5": "7632ba46b54062dbe2b72f3bd1fac22a",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 32.0,
+    "cutoff_rho": 157.0,
+    "pswfcs": [
+      "5S",
+      "5P"
+    ],
+    "semicores": []
+  },
+  "I": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/I.rel-pbe-n-kjpaw_psl.1.0.0.UPF",
+    "md5": "55ca3671a38fb1267222f181061fd22e",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 37.0,
+    "cutoff_rho": 154.0,
+    "pswfcs": [
+      "5S",
+      "5P"
+    ],
+    "semicores": []
+  },
+  "Xe": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/Xe.rel-pbe-dn-kjpaw_psl.1.0.0.UPF",
+    "md5": "e21dd4104886a9deb15b81f67c5f81f3",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 45.0,
+    "cutoff_rho": 212.0,
+    "pswfcs": [
+      "5S",
+      "5P",
+      "4D"
+    ],
+    "semicores": [
+      "4D"
+    ]
+  },
+  "Cs": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/Cs.UPF",
+    "md5": "0949d7fbeea01e664226101e754fa92a",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 72.0,
+    "cutoff_rho": 288.0,
+    "pswfcs": [
+      "5S",
+      "6S",
+      "5P"
+    ],
+    "semicores": [
+      "5S",
+      "5P"
+    ]
+  },
+  "Ba": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/Ba.rel-pbe-spn-kjpaw_psl.1.0.0.UPF",
+    "md5": "db538cb4dac65fd995a19a3728573278",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 38.0,
+    "cutoff_rho": 192.0,
+    "pswfcs": [
+      "5S",
+      "6S",
+      "5P"
+    ],
+    "semicores": [
+      "5S",
+      "5P"
+    ]
+  },
+  "La": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/La.rel-pbe-spfn-kjpaw_psl.1.0.0.UPF",
+    "md5": "b0a672805c09f8e6b7d82ca44cf3c6ac",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 75.0,
+    "cutoff_rho": 537.0,
+    "pswfcs": [
+      "5S",
+      "6S",
+      "5P",
+      "6P",
+      "5D",
+      "4F"
+    ],
+    "semicores": [
+      "5S",
+      "5P"
+    ]
+  },
+  "Ce": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/Ce.rel-pbe-spdn-kjpaw_psl.1.0.0.UPF",
+    "md5": "f9a9683a1d8e5a8f512ba14a9b6427b8",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 37.0,
+    "cutoff_rho": 179.0,
+    "pswfcs": [
+      "5S",
+      "6S",
+      "5P",
+      "6P",
+      "5D"
+    ],
+    "semicores": [
+      "5S",
+      "5P"
+    ]
+  },
+  "Pr": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/Pr.rel-pbe-spdn-kjpaw_psl.1.0.0.UPF",
+    "md5": "e0738d03b182ea7b5a33ac2c805f305a",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 41.0,
+    "cutoff_rho": 310.0,
+    "pswfcs": [
+      "5S",
+      "6S",
+      "5P",
+      "6P",
+      "5D"
+    ],
+    "semicores": [
+      "5S",
+      "5P"
+    ]
+  },
+  "Nd": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/Nd.rel-pbe-spdn-kjpaw_psl.1.0.0.UPF",
+    "md5": "1002183f018cc6fabcfcace037fc1085",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 38.0,
+    "cutoff_rho": 202.0,
+    "pswfcs": [
+      "5S",
+      "6S",
+      "5P",
+      "6P",
+      "5D"
+    ],
+    "semicores": [
+      "5S",
+      "5P"
+    ]
+  },
+  "Pm": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/Pm.rel-pbe-spdn-kjpaw_psl.1.0.0.UPF",
+    "md5": "8b24a9e161df59c32c16a450f452fb84",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 34.0,
+    "cutoff_rho": 198.0,
+    "pswfcs": [
+      "5S",
+      "6S",
+      "5P",
+      "6P",
+      "5D"
+    ],
+    "semicores": [
+      "5S",
+      "5P"
+    ]
+  },
+  "Sm": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/Sm.rel-pbe-spdn-kjpaw_psl.1.0.0.UPF",
+    "md5": "29c1e321d6a55a2308ee45cada5c08f7",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 34.0,
+    "cutoff_rho": 195.0,
+    "pswfcs": [
+      "5S",
+      "6S",
+      "5P",
+      "6P",
+      "5D"
+    ],
+    "semicores": [
+      "5S",
+      "5P"
+    ]
+  },
+  "Eu": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/Eu.rel-pbe-spn-kjpaw_psl.1.0.0.UPF",
+    "md5": "154b63e023ae85e7011288fa125dd987",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 34.0,
+    "cutoff_rho": 258.0,
+    "pswfcs": [
+      "5S",
+      "6S",
+      "5P",
+      "6P",
+      "5D"
+    ],
+    "semicores": [
+      "5S",
+      "5P"
+    ]
+  },
+  "Gd": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/Gd.rel-pbe-spdn-kjpaw_psl.1.0.0.UPF",
+    "md5": "1a18d381fdbb0eff8584361b2cb42af4",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 35.0,
+    "cutoff_rho": 227.0,
+    "pswfcs": [
+      "5S",
+      "6S",
+      "5P",
+      "6P",
+      "5D"
+    ],
+    "semicores": [
+      "5S",
+      "5P"
+    ]
+  },
+  "Tb": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/Tb.rel-pbe-spdn-kjpaw_psl.1.0.0.UPF",
+    "md5": "20f01744aa01e603586555127f536d59",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 37.0,
+    "cutoff_rho": 229.0,
+    "pswfcs": [
+      "5S",
+      "6S",
+      "5P",
+      "6P",
+      "5D"
+    ],
+    "semicores": [
+      "5S",
+      "5P"
+    ]
+  },
+  "Dy": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/Dy.rel-pbe-spdn-kjpaw_psl.1.0.0.UPF",
+    "md5": "b1ef6aeefb7c72c96b76d6970f5d97ad",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 38.0,
+    "cutoff_rho": 266.0,
+    "pswfcs": [
+      "5S",
+      "6S",
+      "5P",
+      "6P",
+      "5D"
+    ],
+    "semicores": [
+      "5S",
+      "5P"
+    ]
+  },
+  "Ho": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/Ho.rel-pbe-spdn-kjpaw_psl.1.0.0.UPF",
+    "md5": "9bfe963e38c4b11280412655db7a195f",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 39.0,
+    "cutoff_rho": 269.0,
+    "pswfcs": [
+      "5S",
+      "6S",
+      "5P",
+      "6P",
+      "5D"
+    ],
+    "semicores": [
+      "5S",
+      "5P"
+    ]
+  },
+  "Er": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/Er.rel-pbe-spdn-kjpaw_psl.1.0.0.UPF",
+    "md5": "3e8f5f5ac10823f34ce1fe1beef6ed03",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 41.0,
+    "cutoff_rho": 267.0,
+    "pswfcs": [
+      "5S",
+      "6S",
+      "5P",
+      "6P",
+      "5D"
+    ],
+    "semicores": [
+      "5S",
+      "5P"
+    ]
+  },
+  "Tm": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/Tm.rel-pbe-spdn-kjpaw_psl.1.0.0.UPF",
+    "md5": "3598655a7097680da28c4476c9a423a5",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 42.0,
+    "cutoff_rho": 319.0,
+    "pswfcs": [
+      "5S",
+      "6S",
+      "5P",
+      "6P",
+      "5D"
+    ],
+    "semicores": [
+      "5S",
+      "5P"
+    ]
+  },
+  "Yb": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/Yb.rel-pbe-spn-kjpaw_psl.1.0.0.UPF",
+    "md5": "c369d3f507209c0f9c54fc6cfbcd95a8",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 41.0,
+    "cutoff_rho": 283.0,
+    "pswfcs": [
+      "5S",
+      "6S",
+      "5P",
+      "6P",
+      "5D"
+    ],
+    "semicores": [
+      "5S",
+      "5P"
+    ]
+  },
+  "Lu": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/Lu.rel-pbe-spdn-kjpaw_psl.1.0.0.UPF",
+    "md5": "0e929a1d8f428358333586a1dd78bdab",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 46.0,
+    "cutoff_rho": 346.0,
+    "pswfcs": [
+      "5S",
+      "6S",
+      "5P",
+      "6P",
+      "5D"
+    ],
+    "semicores": [
+      "5S",
+      "5P"
+    ]
+  },
+  "Hf": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/Hf.rel-pbe-spn-kjpaw_psl.1.0.0.UPF",
+    "md5": "37cca0aa708685186dce52405c42c172",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 47.0,
+    "cutoff_rho": 265.0,
+    "pswfcs": [
+      "5S",
+      "6S",
+      "5P",
+      "5D"
+    ],
+    "semicores": [
+      "5S",
+      "5P"
+    ]
+  },
+  "Ta": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/Ta.rel-pbe-spn-kjpaw_psl.0.2.UPF",
+    "md5": "7565c13ea7bbac934891daf3e17c172d",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 53.0,
+    "cutoff_rho": 402.0,
+    "pswfcs": [
+      "5S",
+      "6S",
+      "5P",
+      "6P",
+      "5D"
+    ],
+    "semicores": [
+      "5S",
+      "5P"
+    ]
+  },
+  "W": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/W.rel-pbe-spn-kjpaw_psl.1.0.1.UPF",
+    "md5": "ebfb1b9ca1ba3731ffc04940a476cc64",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 55.0,
+    "cutoff_rho": 362.0,
+    "pswfcs": [
+      "5S",
+      "6S",
+      "5P",
+      "6P",
+      "5D"
+    ],
+    "semicores": [
+      "5S",
+      "5P"
+    ]
+  },
+  "Re": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/Re.rel-pbe-spn-kjpaw_psl.1.0.0.UPF",
+    "md5": "41dee8d8a6b162b8d0e10cde65d45cac",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 54.0,
+    "cutoff_rho": 290.0,
+    "pswfcs": [
+      "5S",
+      "6S",
+      "5P",
+      "5D"
+    ],
+    "semicores": [
+      "5S",
+      "5P"
+    ]
+  },
+  "Os": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/Os.rel-pbe-spn-kjpaw_psl.1.0.0.UPF",
+    "md5": "dbaf839f97fb034c4168967162fc2b14",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 54.0,
+    "cutoff_rho": 270.0,
+    "pswfcs": [
+      "5S",
+      "6S",
+      "5P",
+      "5D"
+    ],
+    "semicores": [
+      "5S",
+      "5P"
+    ]
+  },
+  "Ir": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/Ir.rel-pbe-n-kjpaw_psl.0.2.3.UPF",
+    "md5": "91b5fd3f14f95b52244e0b390ff9be1d",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 40.0,
+    "cutoff_rho": 526.0,
+    "pswfcs": [
+      "6S",
+      "6P",
+      "5D"
+    ],
+    "semicores": []
+  },
+  "Pt": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/Pt.rel-pbe-n-kjpaw_psl.1.0.0.UPF",
+    "md5": "dfc6cb845f7a8762af9f0422d8e5f4d9",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 40.0,
+    "cutoff_rho": 433.0,
+    "pswfcs": [
+      "6S",
+      "6P",
+      "5D"
+    ],
+    "semicores": []
+  },
+  "Au": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/Au.rel-pbe-n-kjpaw_psl.1.0.0.UPF",
+    "md5": "d1454ad62157cdad763f059e3d579d9b",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 42.0,
+    "cutoff_rho": 423.0,
+    "pswfcs": [
+      "6S",
+      "6P",
+      "5D"
+    ],
+    "semicores": []
+  },
+  "Hg": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/Hg.rel-pbe-n-kjpaw_psl.1.0.0.UPF",
+    "md5": "db36041a487d669a69b8a2ace2875ba8",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 43.0,
+    "cutoff_rho": 415.0,
+    "pswfcs": [
+      "6S",
+      "6P",
+      "5D"
+    ],
+    "semicores": []
+  },
+  "Tl": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/Tl.rel-pbe-dn-kjpaw_psl.1.0.0.UPF",
+    "md5": "3f1c5eea196ace68394f7f2b0404c816",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 45.0,
+    "cutoff_rho": 210.0,
+    "pswfcs": [
+      "6S",
+      "6P",
+      "5D"
+    ],
+    "semicores": [
+      "5D"
+    ]
+  },
+  "Pb": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/Pb.rel-pbe-dn-kjpaw_psl.0.2.2.UPF",
+    "md5": "aeab5316378bd7080aa8b0893a31e2a5",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 41.0,
+    "cutoff_rho": 166.0,
+    "pswfcs": [
+      "6S",
+      "6P",
+      "5D"
+    ],
+    "semicores": [
+      "5D"
+    ]
+  },
+  "Bi": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/Bi.rel-pbe-dn-kjpaw_psl.1.0.0.UPF",
+    "md5": "817aa395226a591ed54c47f3c4991d75",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 45.0,
+    "cutoff_rho": 456.0,
+    "pswfcs": [
+      "6S",
+      "6P",
+      "5D"
+    ],
+    "semicores": [
+      "5D"
+    ]
+  },
+  "Po": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/Po.rel-pbe-dn-kjpaw_psl.1.0.0.UPF",
+    "md5": "2ac1bb64633d5331edec043508eda076",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 85.0,
+    "cutoff_rho": 457.0,
+    "pswfcs": [
+      "6S",
+      "6P",
+      "5D"
+    ],
+    "semicores": [
+      "5D"
+    ]
+  },
+  "At": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/At.rel-pbe-dn-kjpaw_psl.1.0.0.UPF",
+    "md5": "e634a0add161cff24ab5dd7d2d728fa2",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 50.0,
+    "cutoff_rho": 473.0,
+    "pswfcs": [
+      "6S",
+      "6P",
+      "5D"
+    ],
+    "semicores": [
+      "5D"
+    ]
+  },
+  "Rn": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/Rn.rel-pbe-dn-kjpaw_psl.1.0.0.UPF",
+    "md5": "da92fa77897048e649326044deb2ea1f",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 50.0,
+    "cutoff_rho": 220.0,
+    "pswfcs": [
+      "6S",
+      "6P",
+      "5D"
+    ],
+    "semicores": [
+      "5D"
+    ]
+  },
+  "Fr": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/Fr.rel-pbe-spdn-kjpaw_psl.1.0.0.UPF",
+    "md5": "8d8d260d429a4db6fd0a175a98ca05c1",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 67.0,
+    "cutoff_rho": 508.0,
+    "pswfcs": [
+      "6S",
+      "7S",
+      "6P",
+      "5D"
+    ],
+    "semicores": [
+      "6S",
+      "6P",
+      "5D"
+    ]
+  },
+  "Ra": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/Ra.rel-pbe-spdn-kjpaw_psl.1.0.0.UPF",
+    "md5": "659e1bec4d62cc9b6bc1c5b66ccacacf",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 82.0,
+    "cutoff_rho": 534.0,
+    "pswfcs": [
+      "6S",
+      "7S",
+      "6P",
+      "5D"
+    ],
+    "semicores": [
+      "6S",
+      "6P",
+      "5D"
+    ]
+  },
+  "Ac": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/Ac.rel-pbe-spfn-kjpaw_psl.1.0.0.UPF",
+    "md5": "d5f4165b7a6d24a85e442c2556800a40",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 48.0,
+    "cutoff_rho": 329.0,
+    "pswfcs": [
+      "6S",
+      "7S",
+      "6P",
+      "7P",
+      "6D"
+    ],
+    "semicores": [
+      "6S",
+      "6P"
+    ]
+  },
+  "Th": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/Th.rel-pbe-spfn-kjpaw_psl.1.0.0.UPF",
+    "md5": "b9036443796ef39c1e7a5b5799c6e9e2",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 103.0,
+    "cutoff_rho": 414.0,
+    "pswfcs": [
+      "6S",
+      "7S",
+      "6P",
+      "6D",
+      "5F"
+    ],
+    "semicores": [
+      "6S",
+      "6P"
+    ]
+  },
+  "Pa": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/Pa.rel-pbe-spfn-kjpaw_psl.1.0.0.UPF",
+    "md5": "d6c9826e2b9fa6aadb20732727279a96",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 91.0,
+    "cutoff_rho": 447.0,
+    "pswfcs": [
+      "6S",
+      "7S",
+      "6P",
+      "6D",
+      "5F"
+    ],
+    "semicores": [
+      "6S",
+      "6P"
+    ]
+  },
+  "U": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/U.rel-pbe-spfn-kjpaw_psl.1.0.0.UPF",
+    "md5": "2a645cfd2985372dbdb459430013005a",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 93.0,
+    "cutoff_rho": 701.0,
+    "pswfcs": [
+      "6S",
+      "7S",
+      "6P",
+      "6D",
+      "5F"
+    ],
+    "semicores": [
+      "6S",
+      "6P"
+    ]
+  },
+  "Np": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/Np.rel-pbe-spfn-kjpaw_psl.1.0.0.UPF",
+    "md5": "85e12d9c89bc825546c69cb008b96397",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 111.0,
+    "cutoff_rho": 561.0,
+    "pswfcs": [
+      "6S",
+      "7S",
+      "6P",
+      "6D",
+      "5F"
+    ],
+    "semicores": [
+      "6S",
+      "6P"
+    ]
+  },
+  "Pu": {
+    "filename": "/home/jiang_y/Softwares/pslibrary-master/rel-pbe/PSEUDOPOTENTIALS/pslibrary_install_20231218/Pu.rel-pbe-spfn-kjpaw_psl.1.0.0.UPF",
+    "md5": "5e13d8ad820441fe78c080fb181c8852",
+    "pseudopotential": "100PAW",
+    "cutoff_wfc": 45.0,
+    "cutoff_rho": 353.0,
+    "pswfcs": [
+      "6S",
+      "7S",
+      "6P",
+      "6D",
+      "5F"
+    ],
+    "semicores": [
+      "6S",
+      "6P"
+    ]
+  }
+}
