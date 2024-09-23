@@ -118,15 +118,17 @@ class ProjwfcBandsWorkChain(PwBandsWorkChain):
         # Prepare workchain builder
         builder = cls.get_builder()
 
-        projwfc_overrides = None
-        if overrides:
-            projwfc_overrides = overrides.pop("projwfc", None)
+        protocol_inputs = cls.get_protocol_inputs(
+            protocol=protocol, overrides=overrides
+        )
+
+        projwfc_overrides = protocol_inputs.pop("projwfc", None)
 
         pwbands_builder = PwBandsWorkChain.get_builder_from_protocol(
             code=pw_code,
             structure=structure,
             protocol=protocol,
-            overrides=overrides,
+            overrides=protocol_inputs,
             **kwargs,
         )
 
