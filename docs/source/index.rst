@@ -57,6 +57,7 @@ Contents
    user_guide/index
    module_guide/index
    cli/index
+   developer_guide/index
 
 Indices and tables
 ==================

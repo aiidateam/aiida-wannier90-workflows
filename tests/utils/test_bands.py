@@ -1,4 +1,5 @@
 """Unit tests for the :py:mod:`~aiida_quantumespresso.utils.bands` module."""
+
 import numpy as np
 
 

@@ -1,4 +1,5 @@
 """Module for the workflow parameter type."""
+
 import typing as ty
 
 import click
@@ -40,15 +41,13 @@ class FilteredWorkflowParamType(types.WorkflowParamType):
                 )
 
             for entry_point_string in process_classes:
-
                 try:
                     entry_point = get_entry_point_from_string(entry_point_string)
                 except (ValueError, exceptions.EntryPointError) as exception:
                     raise ValueError(
                         f"{entry_point_string} is not a valid entry point string: {exception}"
                     ) from exception
-                else:
-                    self._process_classes.append(entry_point)
+                self._process_classes.append(entry_point)
 
     @with_dbenv()
     def convert(self, value, param, ctx):
@@ -59,7 +58,6 @@ class FilteredWorkflowParamType(types.WorkflowParamType):
         entity = super().convert(value, param, ctx)
 
         if self._process_classes:
-
             for entry_point in self._process_classes:
                 try:
                     process_class = entry_point.load()

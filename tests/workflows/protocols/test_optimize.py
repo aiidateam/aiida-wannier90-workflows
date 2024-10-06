@@ -25,19 +25,6 @@ def test_get_default_protocol():
 
 
 @pytest.mark.parametrize("structure", ("Si", "H2O", "GaAs", "BaTiO3"))
-def test_scdm(generate_builder_inputs, data_regression, serialize_builder, structure):
-    """Test ``Wannier90OptimizeWorkChain.get_builder_from_protocol`` for the default protocol."""
-
-    inputs = generate_builder_inputs(structure)
-    builder = Wannier90OptimizeWorkChain.get_builder_from_protocol(
-        **inputs, print_summary=False
-    )
-
-    assert isinstance(builder, ProcessBuilder)
-    data_regression.check(serialize_builder(builder))
-
-
-@pytest.mark.parametrize("structure", ("Si", "H2O", "GaAs", "BaTiO3"))
 def test_atomic_projectors_qe(
     generate_builder_inputs, data_regression, serialize_builder, structure
 ):
@@ -47,7 +34,24 @@ def test_atomic_projectors_qe(
     builder = Wannier90OptimizeWorkChain.get_builder_from_protocol(
         **inputs,
         projection_type=WannierProjectionType.ATOMIC_PROJECTORS_QE,
-        print_summary=False
+        print_summary=False,
+    )
+
+    assert isinstance(builder, ProcessBuilder)
+    data_regression.check(serialize_builder(builder))
+
+
+@pytest.mark.parametrize("structure", ("Si", "H2O", "GaAs", "BaTiO3"))
+def test_spin_orbit(
+    generate_builder_inputs, data_regression, serialize_builder, structure
+):
+    """Test ``Wannier90OptimizeWorkChain.get_builder_from_protocol`` for the default protocol."""
+
+    inputs = generate_builder_inputs(structure)
+    builder = Wannier90OptimizeWorkChain.get_builder_from_protocol(
+        **inputs,
+        spin_type=SpinType.SPIN_ORBIT,
+        print_summary=False,
     )
 
     assert isinstance(builder, ProcessBuilder)
@@ -60,13 +64,13 @@ def test_electronic_type(generate_builder_inputs):
         builder = Wannier90OptimizeWorkChain.get_builder_from_protocol(
             **generate_builder_inputs(),
             electronic_type=ElectronicType.AUTOMATIC,
-            print_summary=False
+            print_summary=False,
         )
 
     builder = Wannier90OptimizeWorkChain.get_builder_from_protocol(
         **generate_builder_inputs(),
         electronic_type=ElectronicType.INSULATOR,
-        print_summary=False
+        print_summary=False,
     )
     for namespace, occupations in zip((builder.scf, builder.nscf), ("fixed", "fixed")):
         parameters = namespace["pw"]["parameters"].get_dict()
@@ -77,7 +81,7 @@ def test_electronic_type(generate_builder_inputs):
     builder = Wannier90OptimizeWorkChain.get_builder_from_protocol(
         **generate_builder_inputs(),
         electronic_type=ElectronicType.METAL,
-        print_summary=False
+        print_summary=False,
     )
     for namespace, occupations in zip(
         (builder.scf, builder.nscf), ("smearing", "smearing")
@@ -104,6 +108,14 @@ def test_spin_type(generate_builder_inputs):
         assert "nspin" not in parameters["SYSTEM"]
         assert "starting_magnetization" not in parameters["SYSTEM"]
 
+    builder = Wannier90OptimizeWorkChain.get_builder_from_protocol(
+        **generate_builder_inputs(), spin_type=SpinType.SPIN_ORBIT, print_summary=False
+    )
+    for namespace in [builder.scf, builder.nscf]:
+        parameters = namespace["pw"]["parameters"].get_dict()
+        assert parameters["SYSTEM"]["lspinorb"] is True
+        assert parameters["SYSTEM"]["noncolin"] is True
+
 
 def test_projection_type(generate_builder_inputs):
     """Test ``Wannier90OptimizeWorkChain.get_builder_from_protocol`` with ``projection_type`` keyword."""
@@ -119,7 +131,7 @@ def test_projection_type(generate_builder_inputs):
     builder = Wannier90OptimizeWorkChain.get_builder_from_protocol(
         **generate_builder_inputs(),
         projection_type=WannierProjectionType.ATOMIC_PROJECTORS_QE,
-        print_summary=False
+        print_summary=False,
     )
     for namespace in [
         builder.wannier90,

@@ -1,4 +1,6 @@
 """Wannierisation workflow using open_grid.x to bypass the nscf step."""
+
+# pylint: disable=protected-access
 import pathlib
 import typing as ty
 
@@ -125,62 +127,62 @@ class Wannier90OpenGridWorkChain(Wannier90WorkChain):
         number of bands, then a nscf with symmetry and increased number of bands, followed by open_grid.x.
         :type open_grid_only_scf: bool
         """
-        from aiida_wannier90_workflows.utils.workflows.builder.submit import (
-            recursive_merge_builder,
-        )
-
+        protocol = kwargs.pop("protocol", None)
+        overrides = kwargs.pop("overrides", None)
         summary = kwargs.pop("summary", {})
         print_summary = kwargs.pop("print_summary", True)
 
         # Prepare workchain builder
-        builder = Wannier90OpenGridWorkChain.get_builder()
+        builder = cls.get_builder()
 
-        inputs = Wannier90OpenGridWorkChain.get_protocol_inputs(
-            protocol=kwargs.get("protocol", None),
-            overrides=kwargs.get("overrides", None),
+        inputs = cls.get_protocol_inputs(protocol, overrides)
+
+        parent_builder = Wannier90WorkChain.get_builder_from_protocol(
+            codes,
+            structure,
+            summary=summary,
+            print_summary=False,
+            overrides=inputs,
+            **kwargs,
         )
-        builder = recursive_merge_builder(builder, inputs)
+        builder._data = parent_builder._data
 
-        parent_builder = super().get_builder_from_protocol(
-            codes, structure, summary=summary, print_summary=False, **kwargs
-        )
-        inputs = parent_builder._inputs(prune=True)  # pylint: disable=protected-access
-        builder = recursive_merge_builder(builder, inputs)
-
-        # Adapt pw.x parameters
         if open_grid_only_scf:
-            nbnd = (
-                builder.nscf["pw"]["parameters"].get_dict()["SYSTEM"].get("nbnd", None)
-            )
-            params = builder.scf["pw"]["parameters"].get_dict()
-            if nbnd is not None:
-                params["SYSTEM"]["nbnd"] = nbnd
-            params["SYSTEM"].pop("nosym", None)
-            params["SYSTEM"].pop("noinv", None)
-            params["ELECTRONS"]["diago_full_acc"] = True
-            builder.scf["pw"]["parameters"] = orm.Dict(params)
-            builder.nscf.clear()
-        else:
-            params = builder.nscf["pw"]["parameters"].get_dict()
-            params["SYSTEM"].pop("nosym", None)
-            params["SYSTEM"].pop("noinv", None)
-            builder.nscf["pw"]["parameters"] = orm.Dict(params)
-            builder.nscf.pop("kpoints", None)
-            builder.nscf["kpoints_distance"] = builder.scf["kpoints_distance"]
-            builder.nscf["kpoints_force_parity"] = builder.scf["kpoints_force_parity"]
+            # Remove `nscf` step and adapt `scf` parameters accordingly
+            nscf_params = builder.pop("nscf")["pw"]["parameters"].get_dict()
+            nbnd = nscf_params["SYSTEM"].get("nbnd", None)
 
-        # Prepare open_grid
-        open_grid_overrides = kwargs.get("overrides", {}).get("open_grid", {})
+            scf_params = builder.scf.pw.parameters.get_dict()
+
+            if nbnd is not None:
+                scf_params["SYSTEM"]["nbnd"] = nbnd
+
+            scf_params["SYSTEM"].pop("nosym", None)
+            scf_params["SYSTEM"].pop("noinv", None)
+            scf_params["ELECTRONS"]["diago_full_acc"] = True
+            builder.scf.pw.parameters = orm.Dict(scf_params)
+        else:
+            params = builder.nscf.pw.parameters.get_dict()
+
+            params["SYSTEM"].pop("nosym", None)
+            params["SYSTEM"].pop("noinv", None)
+
+            builder.nscf.pw.parameters = orm.Dict(params)
+
+            builder.nscf.pop("kpoints", None)
+            builder.nscf.kpoints_distance = builder.scf.kpoints_distance
+            builder.nscf.kpoints_force_parity = builder.scf.kpoints_force_parity
+
+        # Prepare open_grid builder
+        open_grid_overrides = inputs.get("open_grid", {})
         open_grid_builder = OpenGridBaseWorkChain.get_builder_from_protocol(
             code=codes["open_grid"],
-            protocol=kwargs.get("protocol", None),
+            protocol=protocol,
             overrides=open_grid_overrides,
         )
         # Remove workchain excluded inputs
         open_grid_builder.pop("clean_workdir", None)
-        builder.open_grid = open_grid_builder._inputs(
-            prune=True
-        )  # pylint: disable=protected-access
+        builder.open_grid = open_grid_builder._inputs(prune=True)
 
         if print_summary:
             cls.print_summary(summary)
@@ -192,7 +194,7 @@ class Wannier90OpenGridWorkChain(Wannier90WorkChain):
         return "open_grid" in self.inputs
 
     def run_open_grid(self):
-        """Use QE open_grid.x to unfold irriducible kmesh to a full kmesh."""
+        """Use QE open_grid.x to unfold irreducible kmesh to a full kmesh."""
         inputs = AttributeDict(
             self.exposed_inputs(OpenGridBaseWorkChain, namespace="open_grid")
         )

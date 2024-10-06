@@ -1,4 +1,5 @@
 """Command line interface `aiida-wannier90-workflows`."""
+
 import click
 
 from aiida.cmdline.groups import VerdiCommandGroup

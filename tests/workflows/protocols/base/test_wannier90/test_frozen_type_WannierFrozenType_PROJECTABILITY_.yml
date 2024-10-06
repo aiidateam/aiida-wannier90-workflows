@@ -3,7 +3,7 @@ auto_energy_windows_threshold: 0.9
 clean_workdir: false
 shift_energy_windows: false
 wannier90:
-  code: test.wannier90.wannier90@localhost-test
+  code: test.wannier90.wannier90@localhost
   kpoints: 1331 kpts
   metadata:
     options:

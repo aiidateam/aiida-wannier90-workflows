@@ -1,4 +1,5 @@
 """Commands to manipulate groups of `Wannier90BandsWorkChain`."""
+
 import click
 
 from aiida.cmdline.params import types
@@ -51,7 +52,7 @@ def cmd_optimize(group):
 
         optimize_workchains = [
             _.node
-            for _ in workchain.get_outgoing(
+            for _ in workchain.base.links.get_outgoing(
                 link_type=LinkType.CALL_WORK,
                 link_label_filter="wannier90_optimize_iteration%",
             ).all()
@@ -60,7 +61,7 @@ def cmd_optimize(group):
         entry.append(num_optimization)
 
         base_workchain = (
-            workchain.get_outgoing(
+            workchain.base.links.get_outgoing(
                 link_type=LinkType.CALL_WORK, link_label_filter="wannier90"
             )
             .one()

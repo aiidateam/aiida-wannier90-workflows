@@ -1,4 +1,5 @@
 """WorkChain to automatically calculate Wannier band structure."""
+
 import pathlib
 import typing as ty
 
@@ -7,6 +8,7 @@ from aiida.engine import ProcessBuilder, if_
 from aiida.orm.nodes.data.base import to_aiida_type
 
 from .open_grid import Wannier90OpenGridWorkChain
+from .wannier90 import Wannier90WorkChain
 
 __all__ = ["validate_inputs", "Wannier90BandsWorkChain"]
 
@@ -205,32 +207,33 @@ class Wannier90BandsWorkChain(Wannier90OpenGridWorkChain):
 
         from aiida_quantumespresso.common.types import SpinType
 
-        from aiida_wannier90_workflows.utils.workflows.builder.submit import (
-            recursive_merge_builder,
-            recursive_merge_container,
-        )
+        summary = kwargs.pop("summary", {})
+        print_summary = kwargs.pop("print_summary", True)
 
-        kpt_inputs = (kpoint_path, bands_kpoints, bands_kpoints_distance)
-        if sum(_ is not None for _ in kpt_inputs) > 1:
+        if (
+            sum(
+                _ is not None
+                for _ in (kpoint_path, bands_kpoints, bands_kpoints_distance)
+            )
+            > 1
+        ):
             raise ValueError(
                 "Can only specify one of the `kpoint_path`, `bands_kpoints` and `bands_kpoints_distance`"
             )
-        del kpt_inputs
 
-        if run_open_grid and kwargs.get("electronic_type", None) == SpinType.SPIN_ORBIT:
+        inputs = cls.get_protocol_inputs(
+            protocol=kwargs.get("protocol", None),
+            overrides=kwargs.pop("overrides", None),
+        )
+
+        if run_open_grid and kwargs.get("spin_type", None) == SpinType.SPIN_ORBIT:
             raise ValueError("open_grid.x does not support spin orbit coupling")
 
-        # I will call different parent_class.get_builder_from_protocl()
         if run_open_grid:
-            # i.e. Wannier90OpenGridWorkChain
-            parent_class = super()
+            parent_class = Wannier90OpenGridWorkChain
             kwargs["open_grid_only_scf"] = open_grid_only_scf
         else:
-            # i.e. Wannier90WorkChain
-            parent_class = super(Wannier90OpenGridWorkChain, cls)
-
-        summary = kwargs.pop("summary", {})
-        print_summary = kwargs.pop("print_summary", True)
+            parent_class = Wannier90WorkChain
 
         if kpoint_path is None and bands_kpoints is None:
             # If no `kpoint_path` and `bands_kpoints` provided, the workchain will always run seekpath
@@ -256,6 +259,7 @@ class Wannier90BandsWorkChain(Wannier90OpenGridWorkChain):
                 parent_builder = parent_class.get_builder_from_protocol(
                     codes=codes,
                     structure=structure,
+                    overrides=inputs,
                     **kwargs,
                     summary=summary,
                     print_summary=False,
@@ -284,6 +288,7 @@ class Wannier90BandsWorkChain(Wannier90OpenGridWorkChain):
                 parent_builder = parent_class.get_builder_from_protocol(
                     codes=codes,
                     structure=primitive_structure,
+                    overrides=inputs,
                     **kwargs,
                     summary=summary,
                     print_summary=False,
@@ -294,28 +299,21 @@ class Wannier90BandsWorkChain(Wannier90OpenGridWorkChain):
                 parent_builder.structure = structure
         else:
             parent_builder = parent_class.get_builder_from_protocol(  # pylint: disable=too-many-function-args
-                codes, structure, **kwargs, summary=summary, print_summary=False
+                codes,
+                structure,
+                **kwargs,
+                overrides=inputs,
+                summary=summary,
+                print_summary=False,
             )
 
-        # Prepare workchain builder
-        # I need to explicitly write `Wannier90BandsWorkChain.get_builder()` instead of
-        # `cls.get_builder()`, otherwise for a subclass ,e.g. `Wannier90OptimizeWorkChain`,
-        # it will return the builder of the subclass.
-        builder = Wannier90BandsWorkChain.get_builder()
+        builder = cls.get_builder()
+        builder._data = parent_builder._data  # pylint: disable=protected-access
 
         if kpoint_path:
             builder.kpoint_path = kpoint_path
         if bands_kpoints:
             builder.bands_kpoints = bands_kpoints
-
-        protocol_inputs = Wannier90BandsWorkChain.get_protocol_inputs(
-            protocol=kwargs.get("protocol", None),
-            overrides=kwargs.get("overrides", None),
-        )
-        inputs = parent_builder._inputs(prune=True)  # pylint: disable=protected-access
-
-        inputs = recursive_merge_container(inputs, protocol_inputs)
-        builder = recursive_merge_builder(builder, inputs)
 
         if print_summary:
             cls.print_summary(summary)

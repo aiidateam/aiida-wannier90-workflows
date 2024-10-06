@@ -1,4 +1,5 @@
 """Workchain to automatically optimize dis_proj_min/max for projectability disentanglement."""
+
 import copy
 import pathlib
 import typing as ty
@@ -136,6 +137,11 @@ class Wannier90SplitWorkChain(WorkChain):  # pylint: disable=too-many-public-met
         spec.expose_outputs(
             Wannier90OptimizeWorkChain,
             namespace="valcond",
+            namespace_options={"required": False},
+        )
+        spec.expose_outputs(
+            Wannier90SplitCalculation,
+            namespace="split",
             namespace_options={"required": False},
         )
         spec.expose_outputs(
@@ -425,7 +431,14 @@ class Wannier90SplitWorkChain(WorkChain):  # pylint: disable=too-many-public-met
                     "remote_folder"
                 ]
             else:
-                parent_folder = workchain_valcond.outputs["wannier90"]["remote_folder"]
+                if workchain_valcond.inputs["optimize_disproj"]:
+                    parent_folder = workchain_valcond.outputs["wannier90_optimal"][
+                        "remote_folder"
+                    ]
+                else:
+                    parent_folder = workchain_valcond.outputs["wannier90"][
+                        "remote_folder"
+                    ]
             inputs["parent_folder"] = parent_folder
 
             if "num_val" in inputs:
@@ -480,9 +493,9 @@ class Wannier90SplitWorkChain(WorkChain):  # pylint: disable=too-many-public-met
             inputs["structure"] = self.ctx["current_structure"]
 
         if self.should_run_split():
-            inputs[
-                "remote_input_folder"
-            ] = self.ctx.workchain_split.outputs.remote_folder_val
+            inputs["remote_input_folder"] = (
+                self.ctx.workchain_split.outputs.remote_folder_val
+            )
 
         if self.should_run_valcond():
             parameters = inputs["parameters"].get_dict()
@@ -527,7 +540,7 @@ class Wannier90SplitWorkChain(WorkChain):  # pylint: disable=too-many-public-met
                 self.ctx.ref_bands,
                 workchain.outputs["interpolated_bands"],
                 is_val=True,
-                isolated=False,
+                is_ref_dft=True,
             )
             self.ctx.bandsdist_val_to_ref = bandsdist
         if self.should_run_valcond():
@@ -535,7 +548,7 @@ class Wannier90SplitWorkChain(WorkChain):  # pylint: disable=too-many-public-met
                 self.ctx.workchain_valcond.outputs.band_structure,
                 workchain.outputs["interpolated_bands"],
                 is_val=True,
-                isolated=True,
+                is_ref_dft=False,
             )
             self.ctx.bandsdist_val_to_valcond = bandsdist
 
@@ -561,9 +574,9 @@ class Wannier90SplitWorkChain(WorkChain):  # pylint: disable=too-many-public-met
             inputs["structure"] = self.ctx["current_structure"]
 
         if self.should_run_split():
-            inputs[
-                "remote_input_folder"
-            ] = self.ctx.workchain_split.outputs.remote_folder_cond
+            inputs["remote_input_folder"] = (
+                self.ctx.workchain_split.outputs.remote_folder_cond
+            )
 
         if self.should_run_valcond():
             parameters = inputs["parameters"].get_dict()
@@ -609,7 +622,7 @@ class Wannier90SplitWorkChain(WorkChain):  # pylint: disable=too-many-public-met
                 self.ctx.ref_bands,
                 workchain.outputs["interpolated_bands"],
                 is_val=False,
-                isolated=False,
+                is_ref_dft=True,
             )
             self.ctx.bandsdist_cond_to_ref = bandsdist
         if self.should_run_valcond():
@@ -617,7 +630,7 @@ class Wannier90SplitWorkChain(WorkChain):  # pylint: disable=too-many-public-met
                 self.ctx.workchain_valcond.outputs.band_structure,
                 workchain.outputs["interpolated_bands"],
                 is_val=False,
-                isolated=True,
+                is_ref_dft=False,
             )
             self.ctx.bandsdist_cond_to_valcond = bandsdist
 
@@ -729,81 +742,225 @@ class Wannier90SplitWorkChain(WorkChain):  # pylint: disable=too-many-public-met
         ref_bands: orm.BandsData,
         cmp_bands: orm.BandsData,
         is_val: bool,
-        isolated: bool,
+        is_ref_dft: bool,
     ) -> float:
-        """Get bands distance for isolated or Fermi energy + 2eV.
-
-        :param is_val: calc valence or conduction
-        :param isolated: calc Ef+2 or isolated bands
-        """
         num_semicore, num_val, fermi_energy = self._get_bands_distance_consts()
+        # self.report(
+        #     f"Computing bands distance for {ref_bands.pk} and {cmp_bands.pk}, "
+        #     f"{is_val=} {is_ref_dft=}, {num_semicore=} {num_val=} {fermi_energy=}"
+        # )
 
-        if isolated:
-            # when comparing with valcond, the semicore are already excluded
-            num_semicore = 0
-
-        bandsdist = get_bands_distance(
+        return _get_bands_distance_raw(
             ref_bands,
             cmp_bands,
-            is_val=is_val,
-            isolated=isolated,
+            is_val,
+            is_ref_dft,
             num_semicore=num_semicore,
             num_val=num_val,
             fermi_energy=fermi_energy,
         )
 
-        return bandsdist
 
-
-def get_bands_distance(
-    dft_bands: orm.BandsData,
-    wan_bands: orm.BandsData,
-    *,
+def _get_bands_distance_raw(
+    ref_bands: orm.BandsData,
+    cmp_bands: orm.BandsData,
     is_val: bool,
-    isolated: bool,  # or Ef2
+    is_ref_dft: bool,
+    *,
     num_semicore: int,
     num_val: int,
     fermi_energy: float,
-) -> float:
-    """Get bands distance for isolated group of bands."""
+) -> dict:
+    """Get bands distance for isolated or Fermi energy + 2eV.
+
+    For valence wan_bands, always compute eta_isolated: val_to_valcond, val_to_ref
+    For conduction wan_bands, compute eta_2: cond_to_ref, compute eta_isolated: cond_to_valcond
+    For valence+conduction wan_bands, compute eta_2: valcond_to_ref
+
+    :param is_val: calc valence or conduction
+    :param isolated: calc Ef+2 or isolated bands
+    :param num_semicore: number of semicore bands in the DFT calculation
+    :param num_val: number of valence bands (excluding semicores) in the DFT calculation
+    :param fermi_energy: Fermi energy of the DFT calculation
+    """
     from aiida_wannier90_workflows.utils.bands.distance import (
         bands_distance,
         bands_distance_isolated,
     )
 
-    dft_bands_arr = dft_bands.get_bands()
-    num_bands_dft = dft_bands_arr.shape[1]
+    if is_ref_dft:
+        isolated = False
+        if is_val:
+            isolated = True
+    else:
+        # when comparing with valcond, the semicore are already excluded
+        num_semicore = 0
+        isolated = True
 
-    wan_bands_arr = wan_bands.get_bands()
-    num_bands_wan = wan_bands_arr.shape[1]
+    ref_bands_arr = ref_bands.get_bands()
+    num_bands_ref = ref_bands_arr.shape[1]
+
+    cmp_bands_arr = cmp_bands.get_bands()
+    num_bands_cmp = cmp_bands_arr.shape[1]
 
     exclude_list_dft = []
     if num_semicore > 0:
         exclude_list_dft.extend(list(range(num_semicore)))
 
     if is_val:
-        exclude_list_dft.extend(list(range(num_semicore + num_val, num_bands_dft)))
+        exclude_list_dft.extend(list(range(num_semicore + num_val, num_bands_ref)))
     else:
         exclude_list_dft.extend(list(range(num_semicore, num_semicore + num_val)))
-        exclude_list_dft.extend(
-            list(range(num_semicore + num_val + num_bands_wan, num_bands_dft))
-        )
+        if not is_ref_dft:
+            # cond_to_valcond
+            exclude_list_dft.extend(
+                list(range(num_semicore + num_val + num_bands_cmp, num_bands_ref))
+            )
     # switch to 1 indexed
     if len(exclude_list_dft) > 0:
         exclude_list_dft = [_ + 1 for _ in exclude_list_dft]
 
+    print("exclude_list_dft", exclude_list_dft)
+    print("isolated", isolated)
+    print("fermi_energy", fermi_energy)
+
     if isolated:
         bandsdist = bands_distance_isolated(
-            dft_bands_arr, wan_bands_arr, exclude_list_dft
+            ref_bands.get_bands(), cmp_bands.get_bands(), exclude_list_dft
         )
         # Only return average distance, not max distance
         bandsdist = bandsdist[0]
     else:
         # Bands distance from Ef to Ef+5
-        bandsdist = bands_distance(dft_bands, wan_bands, fermi_energy, exclude_list_dft)
+        bandsdist = bands_distance(ref_bands, cmp_bands, fermi_energy, exclude_list_dft)
         # Only return average distance, not max distance
         bandsdist = bandsdist[:, 1]
         # Return Ef+2
         bandsdist = bandsdist[2]
 
     return bandsdist
+
+
+def compute_band_distance(wkc: Wannier90SplitWorkChain) -> dict:
+    """Compute band distance and max distance."""
+    from copy import deepcopy
+
+    from aiida_wannier90_workflows.utils.bands.distance import (
+        bands_distance,
+        bands_distance_isolated,
+    )
+
+    # pylint: disable=unused-variable
+
+    results = {
+        "bands_distance.cond_to_valcond": None,
+        "bands_distance.cond_to_ref": None,
+        "bands_distance.val_to_valcond": None,
+        "bands_distance.val_to_ref": None,
+        "bands_distance.valcond_to_ref": None,
+        "bands_max_distance.cond_to_valcond": None,
+        "bands_max_distance.cond_to_ref": None,
+        "bands_max_distance.val_to_valcond": None,
+        "bands_max_distance.val_to_ref": None,
+        "bands_max_distance.valcond_to_ref": None,
+    }
+
+    # valcond_bands = wkc.outputs.valcond.band_structure
+    #
+    # workaround for the bug in the output band_structure
+    # some old workchains outputs the 1st w90calc as the band_structure,
+    # this is wrong, this is not the optimal band_structure!
+    # Somehow in the future, I should remove this workaround.
+    if "wannier90_plot" in wkc.outputs.valcond:
+        valcond = wkc.outputs.valcond.wannier90_plot.interpolated_bands
+    else:
+        valcond = wkc.outputs.valcond.wannier90_optimal.interpolated_bands
+    val = wkc.outputs.val.interpolated_bands
+    cond = wkc.outputs.cond.interpolated_bands
+    fermi = val.creator.inputs.parameters.get_dict()["fermi_energy"]
+
+    calc_split = wkc.base.links.get_outgoing(link_label_filter="split").one().node
+    num_val = calc_split.inputs.num_val.value
+
+    num_bands_valcond = valcond.get_bands().shape[1]
+    exclude_list_dft = list(
+        range(num_val + 1, num_bands_valcond + 1)
+    )  # exclude conduction
+    dist = bands_distance_isolated(
+        valcond.get_bands(), val.get_bands(), exclude_list_dft=exclude_list_dft
+    )
+    bands_dist, max_dist, max_dist_2, max_dist_loc, max_dist_2_loc = dist
+    results["bands_max_distance.val_to_valcond"] = max_dist_2
+    results["bands_distance.val_to_valcond"] = bands_dist
+
+    exclude_list_dft = list(range(1, num_val + 1))  # exclude valence, idx starts from 1
+    dist = bands_distance_isolated(
+        valcond.get_bands(), cond.get_bands(), exclude_list_dft=exclude_list_dft
+    )
+    bands_dist, max_dist, max_dist_2, max_dist_loc, max_dist_2_loc = dist
+    # print(valcond, cond, exclude_list_dft, num_val, num_bands_valcond)
+    results["bands_max_distance.cond_to_valcond"] = max_dist_2
+    results["bands_distance.cond_to_valcond"] = bands_dist
+
+    ref = wkc.inputs.valcond.optimize_reference_bands
+    semicore_list = wkc.inputs.valcond.wannier90.wannier90.parameters.get_dict().get(
+        "exclude_bands", []
+    )
+    exclude_list_dft = deepcopy(semicore_list)  # exclude semicore
+    # print(ref, valcond, fermi, exclude_list_dft, semicore_list, num_val, num_bands_valcond)
+    dist = bands_distance(ref, valcond, fermi, exclude_list_dft=exclude_list_dft)
+    mu, bands_dist, max_dist, max_dist_2 = dist[2, :]
+    assert abs(mu - fermi - 2) < 1e-6
+    results["bands_max_distance.valcond_to_ref"] = max_dist_2
+    results["bands_distance.valcond_to_ref"] = bands_dist
+
+    exclude_list_dft = deepcopy(semicore_list)
+    # exclude semicore + conduction
+    exclude_list_dft.extend(
+        range(
+            len(semicore_list) + num_val + 1, len(semicore_list) + num_bands_valcond + 1
+        )
+    )
+    # print(ref, val, exclude_list_dft, semicore_list, num_val, num_bands_valcond)
+    #
+    # dist = bands_distance_isolated(ref.get_bands(), val.get_bands(), exclude_list_dft=exclude_list_dft)
+    # bands_dist, max_dist, max_dist_2, max_dist_loc, max_dist_2_loc = dist
+    #
+    dist = bands_distance(ref, val, fermi, exclude_list_dft=exclude_list_dft)
+    mu, bands_dist, max_dist, max_dist_2 = dist[2, :]
+    #
+    results["bands_max_distance.val_to_ref"] = max_dist_2
+    results["bands_distance.val_to_ref"] = bands_dist
+
+    exclude_list_dft = deepcopy(semicore_list)
+    # exclude semicore + valence
+    exclude_list_dft.extend(
+        range(len(semicore_list) + 1, len(semicore_list) + num_val + 1)
+    )
+    # print(ref, cond, exclude_list_dft, semicore_list, num_val, num_bands_valcond)
+    dist = bands_distance(ref, cond, fermi, exclude_list_dft=exclude_list_dft)
+    mu, bands_dist, max_dist, max_dist_2 = dist[2, :]
+    assert abs(mu - fermi - 2) < 1e-6
+    results["bands_max_distance.cond_to_ref"] = max_dist_2
+    results["bands_distance.cond_to_ref"] = bands_dist
+
+    exclude_list_dft = deepcopy(semicore_list)  # exclude semicore
+    # valence of valcond
+    val_valcond = valcond.get_bands()[:, :num_val]
+    dist = bands_distance_isolated(ref, val_valcond, exclude_list_dft=exclude_list_dft)
+    bands_dist, max_dist, max_dist_2, max_dist_loc, max_dist_2_loc = dist
+    results["bands_max_distance.val_valcond_to_ref"] = max_dist_2
+    results["bands_distance.val_valcond_to_ref"] = bands_dist
+
+    cond_valcond = valcond.get_bands()[:, num_val:]
+    exclude_list_dft = deepcopy(semicore_list)  # exclude semicore
+    exclude_list_dft.extend(
+        range(len(semicore_list) + 1, len(semicore_list) + num_val + 1)
+    )
+    dist = bands_distance(ref, cond_valcond, fermi, exclude_list_dft=exclude_list_dft)
+    mu, bands_dist, max_dist, max_dist_2 = dist[2, :]
+    assert abs(mu - fermi - 2) < 1e-6
+    results["bands_max_distance.cond_valcond_to_ref"] = max_dist_2
+    results["bands_distance.cond_valcond_to_ref"] = bands_dist
+
+    return results

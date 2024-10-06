@@ -1,4 +1,5 @@
 """Wrapper workchain for ProjwfcCalculation to automatically handle several errors."""
+
 import pathlib
 import typing as ty
 
@@ -38,7 +39,7 @@ class ProjwfcBaseWorkChain(ProtocolMixin, QeBaseRestartWorkChain):
         code: ty.Union[orm.Code, str, int],
         *,
         protocol: str = None,
-        overrides: dict = None
+        overrides: dict = None,
     ) -> ProcessBuilder:
         """Return a builder prepopulated with inputs selected according to the chosen protocol.
 

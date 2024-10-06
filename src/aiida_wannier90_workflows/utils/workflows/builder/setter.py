@@ -1,4 +1,5 @@
 """Functions for changing builder."""
+
 import typing as ty
 
 from aiida import orm
@@ -179,7 +180,6 @@ def set_parallelization(
             )
 
     elif process_class == PwBandsWorkChain:
-
         if "relax" in pruned_builder:
             set_parallelization(
                 builder["relax"],
@@ -202,7 +202,6 @@ def set_parallelization(
             )
 
     elif process_class == ProjwfcBandsWorkChain:
-
         if "relax" in pruned_builder:
             set_parallelization(
                 builder["relax"],
@@ -232,7 +231,6 @@ def set_parallelization(
             )
 
     elif process_class == Wannier90BandsWorkChain:
-
         if "scf" in pruned_builder:
             set_parallelization(
                 builder["scf"],
@@ -456,7 +454,8 @@ def set_kpoints(
         set_kpoints(builder["wannier90"], kpoints, process_class=Wannier90BaseWorkChain)
 
         kpoints_explicit = builder["wannier90"]["wannier90"]["kpoints"]
-        set_kpoints(builder["scf"], kpoints, process_class=PwBaseWorkChain)
+        if "scf" in builder:
+            set_kpoints(builder["scf"], kpoints, process_class=PwBaseWorkChain)
         set_kpoints(builder["nscf"], kpoints_explicit, process_class=PwBaseWorkChain)
 
     elif process_class == PwCalculation:

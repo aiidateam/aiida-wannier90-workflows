@@ -1,4 +1,6 @@
 """Base class for Wannierisation workflow."""
+
+# pylint: disable=protected-access
 import pathlib
 import typing as ty
 
@@ -8,10 +10,12 @@ from aiida.common.lang import type_check
 from aiida.engine.processes import ProcessBuilder, ToContext, WorkChain, if_
 from aiida.orm.nodes.data.base import to_aiida_type
 
-from aiida_quantumespresso.calculations.pw import PwCalculation
 from aiida_quantumespresso.common.types import ElectronicType, SpinType
 from aiida_quantumespresso.utils.mapping import prepare_process_inputs
-from aiida_quantumespresso.workflows.protocols.utils import ProtocolMixin
+from aiida_quantumespresso.workflows.protocols.utils import (
+    ProtocolMixin,
+    recursive_merge,
+)
 from aiida_quantumespresso.workflows.pw.base import PwBaseWorkChain
 
 from aiida_wannier90_workflows.common.types import (
@@ -33,7 +37,7 @@ def validate_inputs(  # pylint: disable=unused-argument,inconsistent-return-stat
     """Validate the inputs of the entire input namespace of `Wannier90WorkChain`."""
     # If no scf inputs, the nscf must have a `parent_folder`
     if "scf" not in inputs:
-        if "parent_folder" not in inputs["nscf"]["pw"]:
+        if "nscf" in inputs and "parent_folder" not in inputs["nscf"]["pw"]:
             return "If skipping scf step, nscf inputs must have a `parent_folder`"
 
     # Cannot specify both `auto_energy_windows` and `scdm_proj`
@@ -99,14 +103,13 @@ class Wannier90WorkChain(
         spec.expose_inputs(
             PwBaseWorkChain,
             namespace="nscf",
-            exclude=("clean_workdir", "pw.structure"),
+            exclude=("clean_workdir", "pw.structure", "pw.parent_folder"),
             namespace_options={
                 "required": False,
                 "populate_defaults": False,
                 "help": "Inputs for the `PwBaseWorkChain` for the NSCF calculation.",
             },
         )
-        spec.inputs["nscf"]["pw"].validator = PwCalculation.validate_inputs_base
         spec.expose_inputs(
             ProjwfcBaseWorkChain,
             namespace="projwfc",
@@ -240,7 +243,7 @@ class Wannier90WorkChain(
 
     @classmethod
     def get_protocol_overrides(cls) -> dict:
-        """Return the ``pathlib.Path`` to the ``.yaml`` file that defines the protocols."""
+        """Get the ``overrides`` for various input arguments of the ``get_builder_from_protocol()`` method."""
         from importlib_resources import files
         import yaml
 
@@ -324,17 +327,10 @@ class Wannier90WorkChain(
             get_pseudo_orbitals,
             get_semicore_list,
         )
-        from aiida_wannier90_workflows.utils.workflows.builder.generator import (
-            get_nscf_builder,
-            get_scf_builder,
-        )
         from aiida_wannier90_workflows.utils.workflows.builder.projections import (
             guess_wannier_projection_types,
         )
-        from aiida_wannier90_workflows.utils.workflows.builder.submit import (
-            check_codes,
-            recursive_merge_builder,
-        )
+        from aiida_wannier90_workflows.utils.workflows.builder.submit import check_codes
 
         # Check function arguments
         codes = check_codes(codes)
@@ -377,33 +373,68 @@ class Wannier90WorkChain(
                 )
             type_check(external_projectors_path, str)
 
-        if pseudo_family is None:
-            if spin_type == SpinType.SPIN_ORBIT:
-                # I use pseudo-dojo for SOC
-                pseudo_family = "PseudoDojo/0.4/PBE/FR/standard/upf"
-            else:
-                pseudo_family = Wannier90BaseWorkChain.get_protocol_inputs(
-                    protocol=protocol
-                )["meta_parameters"]["pseudo_family"]
+        # Adapt overrides based on input arguments
+        # Note: if overrides are specified, they take precedence!
+        protocol_overrides = cls.get_protocol_overrides()
 
-        # Prepare workchain builder
-        # I need to use explicitly `Wannier90WorkChain.get_protocol_inputs()` instead of
-        # `cls.get_protocol_inputs()`, because for a subclass of Wannier90WorkChain,
-        # `cls.get_protocol_inputs()` will call the `get_protocol_inputs` of that subclass,
-        # which might be different from this base class.
-        builder = Wannier90WorkChain.get_builder()
-        inputs = Wannier90WorkChain.get_protocol_inputs(protocol, overrides)
-        builder = recursive_merge_builder(builder, inputs)
-
-        builder["structure"] = structure
-
-        if not overrides:
+        # If recursive_merge get an arg = None, the arg.copy() will raise an error.
+        # When overrides is not given (default value None), it should be set to an empty dict.
+        if overrides is None:
             overrides = {}
 
-        # Prepare wannier90
-        wannier_overrides = overrides.get("wannier90", {})
+        if plot_wannier_functions:
+            overrides = recursive_merge(
+                protocol_overrides["plot_wannier_functions"], overrides
+            )
+
+        if retrieve_hamiltonian:
+            overrides = recursive_merge(
+                protocol_overrides["retrieve_hamiltonian"], overrides
+            )
+
+        if retrieve_matrices:
+            overrides = recursive_merge(
+                protocol_overrides["retrieve_matrices"], overrides
+            )
+
+        if pseudo_family is None:
+            if spin_type == SpinType.SPIN_ORBIT:
+                # Use fully relativistic PseudoDojo for SOC
+                pseudo_family = "PseudoDojo/0.4/PBE/FR/standard/upf"
+            else:
+                # Use the one used in Wannier90BaseWorkChain
+                pseudo_family = (
+                    pseudo_family
+                    or Wannier90BaseWorkChain.get_protocol_inputs(protocol=protocol)[
+                        "meta_parameters"
+                    ]["pseudo_family"]
+                )
+
+        # As PwBaseWorkChain.get_builder_from_protocol() does not support SOC, we have to pass the
+        # desired parameters through the overrides. In this case we need to set the `pw.x`
+        # spin_type to SpinType.NONE, otherwise the builder will raise an error.
+        # This block should be removed once SOC is supported in PwBaseWorkChain.
+        spin_orbit_coupling = spin_type == SpinType.SPIN_ORBIT
+        if spin_type == SpinType.NON_COLLINEAR:
+            overrides = recursive_merge(
+                protocol_overrides["spin_noncollinear"], overrides
+            )
+            pw_spin_type = SpinType.NONE
+        elif spin_type == SpinType.SPIN_ORBIT:
+            overrides = recursive_merge(protocol_overrides["spin_orbit"], overrides)
+            pw_spin_type = SpinType.NONE
+        else:
+            pw_spin_type = spin_type
+
+        inputs = cls.get_protocol_inputs(protocol=protocol, overrides=overrides)
+
+        builder = cls.get_builder()
+        builder.structure = structure
+        builder.clean_workdir = orm.Bool(inputs.get("clean_workdir"))
+
+        # Prepare wannier90 builder
+        wannier_overrides = inputs.get("wannier90", {})
         wannier_overrides.setdefault("meta_parameters", {})
-        wannier_overrides["meta_parameters"].setdefault("pseudo_family", pseudo_family)
         wannier_overrides["meta_parameters"].setdefault(
             "exclude_semicore", exclude_semicore
         )
@@ -422,67 +453,60 @@ class Wannier90WorkChain(
         # Remove workchain excluded inputs
         wannier_builder["wannier90"].pop("structure", None)
         wannier_builder.pop("clean_workdir", None)
-        builder[
-            "wannier90"
-        ] = wannier_builder._inputs(  # pylint: disable=protected-access
-            prune=True
-        )
+        builder.wannier90 = wannier_builder._inputs(prune=True)
 
-        kpoints_distance = Wannier90BaseWorkChain.get_protocol_inputs(
-            protocol=protocol, overrides=wannier_overrides
-        )["meta_parameters"]["kpoints_distance"]
-
-        # Prepare scf
-        scf_overrides = overrides.get("scf", {})
-        scf_builder = get_scf_builder(
+        # Prepare SCF builder
+        scf_overrides = inputs.get("scf", {})
+        scf_overrides["pseudo_family"] = pseudo_family
+        scf_builder = PwBaseWorkChain.get_builder_from_protocol(
             code=codes["pw"],
             structure=structure,
-            kpoints_distance=kpoints_distance,
-            pseudo_family=pseudo_family,
-            electronic_type=electronic_type,
-            spin_type=spin_type,
+            protocol=protocol,
             overrides=scf_overrides,
             # Setting initial_magnetic_moments to scf is sufficient
             initial_magnetic_moments=initial_magnetic_moments, 
+            electronic_type=electronic_type,
+            spin_type=pw_spin_type,
         )
         # Remove workchain excluded inputs
         scf_builder["pw"].pop("structure", None)
         scf_builder.pop("clean_workdir", None)
-        builder["scf"] = scf_builder._inputs(  # pylint: disable=protected-access
-            prune=True
-        )
+        builder.scf = scf_builder._inputs(prune=True)
 
-        # Prepare nscf
+        # Prepare NSCF builder
+        nscf_overrides = inputs.get("nscf", {})
+        nscf_overrides["pseudo_family"] = pseudo_family
+
         num_bands = wannier_builder["wannier90"]["parameters"]["num_bands"]
         exclude_bands = (
             wannier_builder["wannier90"]["parameters"]
             .get_dict()
             .get("exclude_bands", [])
         )
-        nbnd = num_bands + len(exclude_bands)
-        # Use explicit list of kpoints generated by wannier builder.
-        # Since the QE auto generated kpoints might be different from wannier90, here we explicitly
-        # generate a list of kpoint coordinates to avoid discrepencies.
-        kpoints = wannier_builder["wannier90"]["kpoints"]
-        nscf_overrides = overrides.get("nscf", {})
-        nscf_builder = get_nscf_builder(
+        nscf_overrides["pw"]["parameters"]["SYSTEM"]["nbnd"] = num_bands + len(
+            exclude_bands
+        )
+
+        nscf_builder = PwBaseWorkChain.get_builder_from_protocol(
             code=codes["pw"],
             structure=structure,
-            nbnd=nbnd,
-            kpoints=kpoints,
-            pseudo_family=pseudo_family,
-            electronic_type=electronic_type,
-            spin_type=spin_type,
+            protocol=protocol,
             overrides=nscf_overrides,
+            electronic_type=electronic_type,
+            spin_type=pw_spin_type,
         )
+        # Use explicit list of kpoints generated by wannier builder.
+        # Since the QE auto generated kpoints might be different from wannier90, here we explicitly
+        # generate a list of kpoint coordinates to avoid discrepancies.
+        nscf_builder.pop("kpoints_distance", None)
+        nscf_builder.kpoints = wannier_builder["wannier90"]["kpoints"]
+
         # Remove workchain excluded inputs
         nscf_builder["pw"].pop("structure", None)
         nscf_builder.pop("clean_workdir", None)
-        builder["nscf"] = nscf_builder._inputs(  # pylint: disable=protected-access
-            prune=True
-        )
+        builder.nscf = nscf_builder._inputs(prune=True)
 
-        # Prepare projwfc
+        # Prepare projwfc builder
         if projection_type == WannierProjectionType.SCDM:
             run_projwfc = True
         else:
@@ -493,24 +517,22 @@ class Wannier90WorkChain(
             else:
                 run_projwfc = False
         if run_projwfc:
-            projwfc_overrides = overrides.get("projwfc", {})
+            projwfc_overrides = inputs.get("projwfc", {})
             projwfc_builder = ProjwfcBaseWorkChain.get_builder_from_protocol(
                 code=codes["projwfc"], protocol=protocol, overrides=projwfc_overrides
             )
             # Remove workchain excluded inputs
             projwfc_builder.pop("clean_workdir", None)
-            builder[
-                "projwfc"
-            ] = projwfc_builder._inputs(  # pylint: disable=protected-access
-                prune=True
-            )
+            builder.projwfc = projwfc_builder._inputs(prune=True)
 
-        # Prepare pw2wannier90
+        # Prepare pw2wannier90 builder
         exclude_projectors = None
         if exclude_semicore:
             pseudo_orbitals = get_pseudo_orbitals(builder["scf"]["pw"]["pseudos"])
-            exclude_projectors = get_semicore_list(structure, pseudo_orbitals)
-        pw2wannier90_overrides = overrides.get("projwfc", {})
+            exclude_projectors = get_semicore_list(
+                structure, pseudo_orbitals, spin_orbit_coupling
+            )
+        pw2wannier90_overrides = inputs.get("pw2wannier90", {})
         pw2wannier90_builder = Pw2wannier90BaseWorkChain.get_builder_from_protocol(
             code=codes["pw2wannier90"],
             protocol=protocol,
@@ -522,26 +544,7 @@ class Wannier90WorkChain(
         )
         # Remove workchain excluded inputs
         pw2wannier90_builder.pop("clean_workdir", None)
-        builder[
-            "pw2wannier90"
-        ] = pw2wannier90_builder._inputs(  # pylint: disable=protected-access
-            prune=True
-        )
-
-        # Apply several overrides
-        protocol_overrides = Wannier90WorkChain.get_protocol_overrides()
-        if plot_wannier_functions:
-            builder = recursive_merge_builder(
-                builder, protocol_overrides["plot_wannier_functions"]
-            )
-        if retrieve_hamiltonian:
-            builder = recursive_merge_builder(
-                builder, protocol_overrides["retrieve_hamiltonian"]
-            )
-        if retrieve_matrices:
-            builder = recursive_merge_builder(
-                builder, protocol_overrides["retrieve_matrices"]
-            )
+        builder.pw2wannier90 = pw2wannier90_builder._inputs(prune=True)
 
         # A dictionary containing key info of Wannierisation and will be printed when the function returns.
         if summary is None:
@@ -591,7 +594,16 @@ class Wannier90WorkChain(
         self.ctx.current_structure = self.inputs.structure
 
         if not self.should_run_scf():
-            self.ctx.current_folder = self.inputs["nscf"]["pw"]["parent_folder"]
+            if self.should_run_nscf():
+                self.ctx.current_folder = self.inputs["nscf"]["pw"]["parent_folder"]
+            elif self.should_run_projwfc():
+                self.ctx.current_folder = self.inputs["projwfc"]["projwfc"][
+                    "parent_folder"
+                ]
+            else:
+                self.ctx.current_folder = self.inputs["pw2wannier90"]["pw2wannier90"][
+                    "parent_folder"
+                ]
 
         self.ctx.run_spin = False
         if self.inputs["scf"]["pw"]["parameters"]["SYSTEM"].get("nspin",-1) == 2:
@@ -736,7 +748,10 @@ class Wannier90WorkChain(
         elif "workchain_nscf" in self.ctx:
             fermi_energy = get_fermi_energy_from_nscf(self.ctx.workchain_nscf)
         else:
-            raise ValueError("Cannot retrieve Fermi energy from scf or nscf output")
+            if "fermi_energy" in parameters:
+                fermi_energy = parameters["fermi_energy"]
+            else:
+                raise ValueError("Cannot retrieve Fermi energy from scf or nscf output")
         parameters["fermi_energy"] = fermi_energy
 
         inputs.parameters = orm.Dict(parameters)
@@ -840,10 +855,10 @@ class Wannier90WorkChain(
                 raise ValueError("Needs to run projwfc for SCDM projection")
             base_inputs["bands"] = getattr(self.ctx.workchain_projwfc.outputs,'bands'+spin_suffix)
             # self.ctx.workchain_projwfc.outputs.bands
-            base_inputs[
-                "bands_projections"
-            ] = getattr(self.ctx.workchain_projwfc.outputs,'projections'+spin_suffix)
+            base_inputs["bands_projections"] = (
+                getattr(self.ctx.workchain_projwfc.outputs,'projections'+spin_suffix)
             # self.ctx.workchain_projwfc.outputs.projections
+            )
 
         parameters["inputpp"] = inputpp
         inputs["parameters"] = orm.Dict(dict=parameters)
@@ -1059,49 +1074,58 @@ class Wannier90WorkChain(
             return
 
         # 1. the calculated number of projections is consistent with QE projwfc.x
-        if "scf" in self.inputs:
+        check_num_projs = True
+        if self.should_run_scf():
             pseudos = self.inputs["scf"]["pw"]["pseudos"]
-        else:
+        elif self.should_run_nscf():
             pseudos = self.inputs["nscf"]["pw"]["pseudos"]
-        args = {
-            "structure": self.ctx.current_structure,
-            # The type of `self.inputs['scf']['pw']['pseudos']` is AttributesFrozendict,
-            # we need to convert it to dict, otherwise get_number_of_projections will fail.
-            "pseudos": dict(pseudos),
-        }
-        if "workchain_projwfc" in self.ctx:
-            spin_suffix=getattr(self.ctx,"spin_suffix", "")
+        else:
+            check_num_projs = False
+        if check_num_projs:
+            args = {
+                "structure": self.ctx.current_structure,
+                # The type of `self.inputs['scf']['pw']['pseudos']` is AttributesFrozendict,
+                # we need to convert it to dict, otherwise get_number_of_projections will fail.
+                "pseudos": dict(pseudos),
+            }
+            if "workchain_projwfc" in self.ctx:
+                spin_suffix=getattr(self.ctx,"spin_suffix", "")
             num_proj = len(
-                self.ctx.workchain_projwfc.outputs["projections"+spin_suffix].get_orbitals()
-            )
-            params = self.ctx.workchain_wannier90.inputs["wannier90"][
-                "parameters"
-            ].get_dict()
-            spin_orbit_coupling = params.get("spinors", False)
-            number_of_projections = get_number_of_projections(
-                **args, spin_orbit_coupling=spin_orbit_coupling
-            )
-            if number_of_projections != num_proj:
-                self.report(
-                    f"number of projections {number_of_projections} != projwfc.x output {num_proj}"
+                    self.ctx.workchain_projwfc.outputs["projections"+spin_suffix].get_orbitals()
                 )
-                return self.exit_codes.ERROR_SANITY_CHECK_FAILED
+                params = self.ctx.workchain_wannier90.inputs["wannier90"][
+                    "parameters"
+                ].get_dict()
+                spin_orbit_coupling = params.get("spinors", False)
+                number_of_projections = get_number_of_projections(
+                    **args, spin_orbit_coupling=spin_orbit_coupling
+                )
+                if number_of_projections != num_proj:
+                    self.report(
+                        f"number of projections {number_of_projections} != projwfc.x output {num_proj}"
+                    )
+                    return self.exit_codes.ERROR_SANITY_CHECK_FAILED
 
         # 2. the number of electrons is consistent with QE output
+        # only check num electrons when we already know pseudos in the check num projectors step
+        check_num_elecs = check_num_projs
         if "workchain_scf" in self.ctx:
             num_elec = self.ctx.workchain_scf.outputs["output_parameters"][
                 "number_of_electrons"
             ]
-        else:
+        elif "workchain_nscf" in self.ctx:
             num_elec = self.ctx.workchain_nscf.outputs["output_parameters"][
                 "number_of_electrons"
             ]
-        number_of_electrons = get_number_of_electrons(**args)
-        if number_of_electrons != num_elec:
-            self.report(
-                f"number of electrons {number_of_electrons} != QE output {num_elec}"
-            )
-            return self.exit_codes.ERROR_SANITY_CHECK_FAILED
+        else:
+            check_num_elecs = False
+        if check_num_elecs:
+            number_of_electrons = get_number_of_electrons(**args)
+            if number_of_electrons != num_elec:
+                self.report(
+                    f"number of electrons {number_of_electrons} != QE output {num_elec}"
+                )
+                return self.exit_codes.ERROR_SANITY_CHECK_FAILED
 
     def on_terminated(self):
         """Clean the working directories of all child calculations if `clean_workdir=True` in the inputs."""

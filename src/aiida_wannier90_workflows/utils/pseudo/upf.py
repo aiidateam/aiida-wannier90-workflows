@@ -1,4 +1,5 @@
 """Utility functions for parsing pseudo potential file."""
+
 import xml.etree.ElementTree as ET
 
 from aiida import orm
@@ -152,8 +153,8 @@ def get_upf_content(upf: orm.UpfData) -> str:
         raise ValueError(
             f"The type of upf is {type(upf)}, only aiida.orm.UpfData is accepted"
         )
-    upf_name = upf.list_object_names()[0]
-    upf_content = upf.get_object_content(upf_name)
+    upf_name = upf.base.repository.list_object_names()[0]
+    upf_content = upf.base.repository.get_object_content(upf_name)
     return upf_content
 
 

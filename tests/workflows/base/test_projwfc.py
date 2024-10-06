@@ -1,4 +1,5 @@
 """Tests for the `ProjwfcBaseWorkChain` class."""
+
 import pytest
 
 from aiida.common import AttributeDict

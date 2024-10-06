@@ -60,11 +60,8 @@ def generate_supercell(
     """Generate a supercell for finding nearest neighbours.
 
     :param cell: each row is a lattice vector
-    :type cell: np.array
     :param size: number of repetitions = 2*size + 1, defaults to 2
-    :type size: int, optional
     :return: supercell and the translation index
-    :rtype: list[np.array, np.array]
     """
     # Generate a supercell (2D: square, 3D: cube).
     # If the angles between lattice vectors are small, a 3*3*3 supercell is not enough
@@ -162,9 +159,9 @@ def find_wf_nearest_atom(
         # 0th: atom index
         supercell_translation_with_atoms[idx_start:idx_stop, 0] = iatom
         # 1-3th: supercell translation
-        supercell_translation_with_atoms[
-            idx_start:idx_stop, 1:
-        ] = supercell_translations
+        supercell_translation_with_atoms[idx_start:idx_stop, 1:] = (
+            supercell_translations
+        )
 
     # KD tree for to find nearest neighbours
     kdtree = cKDTree(supercell_with_atoms)
@@ -221,9 +218,7 @@ def get_wigner_seitz(cell: np.array, search_size: int = 2) -> np.array:
     """Get Wigner-Seitz cell.
 
     :param cell: each row is a lattice vector.
-    :type cell: np.array
     :return: Wigner-Seitz cell
-    :rtype: np.array
     """
     import itertools
 
@@ -361,7 +356,7 @@ def get_last_wan_calc(
             calc = node.outputs.wannier90_optimal.output_parameters.creator
         elif node.process_class in supported_workchains:
             calc = (
-                node.get_outgoing(
+                node.base.links.get_outgoing(
                     link_type=(LinkType.CALL_CALC, LinkType.CALL_WORK),
                     link_label_filter="wannier90",
                 )

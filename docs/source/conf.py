@@ -11,16 +11,9 @@
 # serve to show the default.
 import time
 
-# ensure plugins are loaded
-from reentry import manager
+from aiida.manage.configuration import Profile, load_profile
 
-manager.scan()
-
-# Load the dummy profile even if we are running locally, this way the documentation will succeed even if the current
-# default profile of the AiiDA installation does not use a Django backend.
-from aiida.manage.configuration import load_documentation_profile
-
-load_documentation_profile()
+load_profile(Profile("docs", {"process_control": {}, "storage": {}}))
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -57,9 +50,10 @@ extensions = [
 
 # Setting the intersphinx mapping to other readthedocs
 intersphinx_mapping = {
-    "python": ("https://docs.python.org/", None),
-    "python": ("https://docs.python.org/", None),
-    "aiida": ("https://aiida.readthedocs.io/projects/aiida-core/en/latest", None),
+    "python": ("https://docs.python.org/3/", None),
+    "numpy": ("https://numpy.org/doc/stable/", None),
+    "aiida": ("https://aiida.readthedocs.io/projects/aiida-core/en/latest/", None),
+    "aiida_pseudo": ("https://aiida-pseudo.readthedocs.io/en/latest/", None),
 }
 
 # Settings for the `sphinx_copybutton` extension
@@ -69,8 +63,6 @@ copybutton_prompt_text = (
 )
 copybutton_prompt_is_regexp = True
 
-nitpick_ignore = [("py:obj", "module")]
-
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
 
@@ -79,7 +71,7 @@ templates_path = ["_templates"]
 #
 # This is also used if you do content translation via gettext catalogs.
 # Usually you set "language" from the command line for these cases.
-language = None
+language = "en"
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
@@ -101,7 +93,6 @@ html_theme_options = {
     "use_fullscreen_button": False,
     "path_to_docs": "docs",
     "use_edit_page_button": True,
-    "extra_navbar": '<p>Made possible by the support of <a href="http://nccr-marvel.ch/" target="_blank"> NCCR MARVEL</a>, <a href="http://www.max-centre.eu/" target="_blank"> MaX CoE</a> and the <a href="https://www.materialscloud.org/swissuniversities" target="_blank"> swissuniversities P-5 project</a>.</p>',
 }
 html_domain_indices = True
 html_logo = "_static/logo.png"
@@ -193,6 +184,10 @@ latex_elements = {
 # Warnings to ignore when using the -n (nitpicky) option
 # We should ignore any python built-in exception, for instance
 nitpick_ignore = [
+    ("py:obj", "module"),
+    ("py:class", "numpy.array"),
+    ("py:class", "np.array"),
+    ("py:class", "ty.Tuple"),
     ("py:exc", "ArithmeticError"),
     ("py:exc", "AssertionError"),
     ("py:exc", "AttributeError"),

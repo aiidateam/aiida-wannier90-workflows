@@ -1,4 +1,5 @@
 """Wrapper workchain for `Wannier90Calculation` to automatically handle several errors."""
+
 import pathlib
 import typing as ty
 
@@ -80,10 +81,12 @@ def validate_inputs(inputs: AttributeDict, ctx=None) -> None:
             return "`auto_energy_windows` is requested but `bands_projections` or `bands` is empty"
 
         # Check bands and bands_projections are consistent
-        bands_num_kpoints, bands_num_bands = inputs["bands"].attributes["array|bands"]
+        bands_num_kpoints, bands_num_bands = inputs["bands"].base.attributes.all[
+            "array|bands"
+        ]
         projections_num_kpoints, projections_num_bands = inputs[
             "bands_projections"
-        ].attributes["array|proj_array_0"]
+        ].base.attributes.all["array|proj_array_0"]
         if bands_num_kpoints != projections_num_kpoints:
             return (
                 "`bands` and `bands_projections` have different number of kpoints: "
@@ -171,6 +174,12 @@ class Wannier90BaseWorkChain(ProtocolMixin, BaseRestartWorkChain):
             valid_type=orm.ProjectionData,
             required=False,
             help="Projectability of bands to auto set `dis_froz_max`.",
+        )
+        spec.input(
+            "guiding_centres_projections",
+            valid_type=(orm.OrbitalData, orm.Dict, orm.List),
+            required=False,
+            help="Projections block for `guiding_centres = True`.",
         )
         spec.input(
             "settings",
@@ -324,7 +333,9 @@ class Wannier90BaseWorkChain(ProtocolMixin, BaseRestartWorkChain):
 
         if meta_parameters["exclude_semicore"]:
             pseudo_orbitals = get_pseudo_orbitals(pseudos)
-            semicore_list = get_semicore_list(structure, pseudo_orbitals)
+            semicore_list = get_semicore_list(
+                structure, pseudo_orbitals, spin_orbit_coupling
+            )
             num_excludes = len(semicore_list)
             # TODO I assume all the semicore bands are the lowest  # pylint: disable=fixme
             exclude_pswfcs = range(1, num_excludes + 1)
@@ -551,6 +562,22 @@ class Wannier90BaseWorkChain(ProtocolMixin, BaseRestartWorkChain):
             dis_froz_max = min(max_froz_energy, parameters["dis_froz_max"])
             parameters["dis_froz_max"] = dis_froz_max
 
+        # quick and hacky way to enable guiding_centres while still using
+        # auto_projections = True in the nnkp step
+        # - in nnkp generation step, we ignore guiding_centres totally, and
+        #   use whatever user provided in inputs, can be analytic projections or
+        #   auto_projections
+        # - in Wannierization step, we check if guiding_centres_projections is
+        #   provided or not: if yes, pop auto_projections from parameters and
+        #   set guiding_centres = True, and set projections from guiding_centres_projections;
+        #   if not, we change nothing.
+        w90_settings = self.inputs.wannier90.get("settings", orm.Dict()).get_dict()
+        postproc_setup = w90_settings.get("postproc_setup", False)
+        if not postproc_setup and "guiding_centres_projections" in self.inputs:
+            parameters.pop("auto_projections", None)
+            parameters["guiding_centres"] = True
+            inputs.projections = self.inputs.guiding_centres_projections
+
         inputs.parameters = orm.Dict(parameters)
 
         if "remote_input_folder" in inputs and "settings" in self.inputs:
@@ -751,7 +778,7 @@ class Wannier90BaseWorkChain(ProtocolMixin, BaseRestartWorkChain):
         current_num_mpiprocs_per_machine = metadata["options"]["resources"].get(
             "num_mpiprocs_per_machine", 1
         )
-        # num_mpiprocs_per_machine = calculation.attributes['resources'].get('num_mpiprocs_per_machine', 1)
+        # num_mpiprocs_per_machine = calculation.base.attributes.all['resources'].get('num_mpiprocs_per_machine', 1)
 
         if current_num_mpiprocs_per_machine == 1:
             action = "Unrecoverable out-of-memory error after setting num_mpiprocs_per_machine to 1"

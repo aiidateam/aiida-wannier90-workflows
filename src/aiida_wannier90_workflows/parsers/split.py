@@ -2,6 +2,7 @@
 
 Register parsers via the "aiida.parsers" entry point in setup.json.
 """
+
 import typing as ty
 
 from aiida import orm

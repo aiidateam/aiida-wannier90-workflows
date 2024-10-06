@@ -1,4 +1,5 @@
 """Functions to guess Wannier90 projections."""
+
 import typing as ty
 
 from aiida_quantumespresso.common.types import ElectronicType

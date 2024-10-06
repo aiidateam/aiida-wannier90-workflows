@@ -1,4 +1,5 @@
 """Fixtures for testing bands."""
+
 import pytest
 
 # pylint: disable=redefined-outer-name,too-many-statements
@@ -23,7 +24,7 @@ def load_bands(filepath_fixtures):
         # aiida-core does not support importing BandsData
         # bands_data.importfile(fname)
 
-        with open(fname) as handle:
+        with open(fname, encoding="utf-8") as handle:
             data = json.load(handle)
 
         data = np.hstack([_["values"] for _ in data["paths"]]).T

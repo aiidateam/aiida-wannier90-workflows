@@ -1,4 +1,5 @@
 """Utility functions for pseudo potential family."""
+
 import typing as ty
 
 from aiida import orm
@@ -17,13 +18,10 @@ def get_pseudo_and_cutoff(
     """Get pseudo potential and cutoffs of a given pseudo family and structure.
 
     :param pseudo_family: [description]
-    :type pseudo_family: str
     :param structure: [description]
-    :type structure: orm.StructureData
     :raises ValueError: [description]
     :raises ValueError: [description]
     :return: [description]
-    :rtype: ty.Tuple[ty.Mapping[str, PseudoPotentialData], float, float]
     """
     try:
         pseudo_set = (PseudoDojoFamily, SsspFamily, CutoffsPseudoPotentialFamily)
@@ -52,11 +50,17 @@ def get_pseudo_and_cutoff(
 
 
 def get_pseudo_orbitals(pseudos: ty.Mapping[str, PseudoPotentialData]) -> dict:
-    """Get the pseudo wavefunctions contained in the pseudopotential.
+    """Get the pseudo wave functions contained in the pseudo potential.
 
     Currently only support the following pseudopotentials installed by `aiida-pseudo`:
-        1. SSSP/1.1/PBE/efficiency
-        2. SSSP/1.1/PBEsol/efficiency
+        * SSSP/1.1/PBE/efficiency
+        * SSSP/1.1/PBEsol/efficiency
+        * PseudoDojo/0.4/LDA/SR/standard/upf
+        * PseudoDojo/0.4/LDA/SR/stringent/upf
+        * PseudoDojo/0.4/PBE/SR/standard/upf
+        * PseudoDojo/0.4/PBE/SR/stringent/upf
+        * PseudoDojo/0.5/PBE/SR/standard/upf
+        * PseudoDojo/0.5/PBE/SR/stringent/upf
     """
     from .data import load_pseudo_metadata
 
@@ -67,13 +71,32 @@ def get_pseudo_orbitals(pseudos: ty.Mapping[str, PseudoPotentialData]) -> dict:
         load_pseudo_metadata("semicore/PseudoDojo_0.4_PBE_SR_standard_upf.json")
     )
     pseudo_data.append(
+        load_pseudo_metadata("semicore/PseudoDojo_0.4_PBE_SR_stringent_upf.json")
+    )
+    pseudo_data.append(
+        load_pseudo_metadata("semicore/PseudoDojo_0.5_PBE_SR_standard_upf.json")
+    )
+    pseudo_data.append(
+        load_pseudo_metadata("semicore/PseudoDojo_0.5_PBE_SR_stringent_upf.json")
+    )
+    pseudo_data.append(
         load_pseudo_metadata("semicore/PseudoDojo_0.4_LDA_SR_standard_upf.json")
     )
+    pseudo_data.append(
+        load_pseudo_metadata("semicore/PseudoDojo_0.4_LDA_SR_stringent_upf.json")
+    )
+    pseudo_data.append(
+        load_pseudo_metadata("semicore/PseudoDojo_0.4_PBE_FR_standard_upf.json")
+    )
+    pseudo_data.append(
+        load_pseudo_metadata("semicore/PseudoDojo_0.4_PBEsol_FR_standard_upf.json")
+    )
+    pseudo_data.append(load_pseudo_metadata("semicore/pslibrary_paw_relpbe_1.0.0.json"))
 
     pseudo_orbitals = {}
     for element in pseudos:
         for data in pseudo_data:
-            if data[element]["md5"] == pseudos[element].md5:
+            if data.get(element, {}).get("md5", "") == pseudos[element].md5:
                 pseudo_orbitals[element] = data[element]
                 break
         else:
@@ -83,15 +106,15 @@ def get_pseudo_orbitals(pseudos: ty.Mapping[str, PseudoPotentialData]) -> dict:
     return pseudo_orbitals
 
 
-def get_semicore_list(structure: orm.StructureData, pseudo_orbitals: dict) -> list:
+def get_semicore_list(
+    structure: orm.StructureData, pseudo_orbitals: dict, spin_orbit_coupling: bool
+) -> list:
     """Get semicore states (a subset of pseudo wavefunctions) in the pseudopotential.
 
     :param structure: [description]
-    :type structure: orm.StructureData
     :param pseudo_orbitals: [description]
-    :type pseudo_orbitals: dict
+    :param spin_orbit_coupling: [description]
     :return: [description]
-    :rtype: list
     """
     from copy import deepcopy
 
@@ -109,6 +132,8 @@ def get_semicore_list(structure: orm.StructureData, pseudo_orbitals: dict) -> li
     #     "semicores": ["5S", "5P"]
     # }
     label2num = {"S": 1, "P": 3, "D": 5, "F": 7}
+    # for spin-orbit-coupling, every orbit contains 2 electrons
+    nspin = 2 if spin_orbit_coupling else 1
 
     semicore_list = []  # index should start from 1
     num_pswfcs = 0
@@ -119,7 +144,7 @@ def get_semicore_list(structure: orm.StructureData, pseudo_orbitals: dict) -> li
         site_semicores = deepcopy(pseudo_orbitals[site.kind_name]["semicores"])
 
         for orb in site_pswfcs:
-            num_orbs = label2num[orb[-1]]
+            num_orbs = label2num[orb[-1]] * nspin
             if orb in site_semicores:
                 site_semicores.remove(orb)
                 semicore_list.extend(
@@ -146,7 +171,6 @@ def get_wannier_number_of_bands(
     """Estimate number of bands for a Wannier90 calculation.
 
     :param structure: crystal structure
-    :type structure: aiida.orm.StructureData
     :param pseudos: dictionary of pseudopotentials
     :type pseudos: dict of aiida.orm.UpfData
     :param only_valence: return only occupied number of badns
@@ -172,7 +196,7 @@ def get_wannier_number_of_bands(
 
     num_electrons = get_number_of_electrons(structure, pseudos)
     num_projections = get_number_of_projections(structure, pseudos, spin_orbit_coupling)
-    nspin = 2 if spin_polarized else 1
+    nspin = 2 if (spin_polarized or spin_orbit_coupling) else 1
     # TODO check nospin, spin, soc  # pylint: disable=fixme
     if only_valence:
         num_bands = int(0.5 * num_electrons * nspin)
