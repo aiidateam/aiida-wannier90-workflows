@@ -6,6 +6,7 @@ from aiida.common.exceptions import NotExistent
 # from ase.io import read as aseread
 from pymatgen.core import Structure
 from aiida_wannier90_workflows.workflows import Wannier90BandsWorkChain
+from aiida_quantumespresso.common.types import SpinType
 import numpy as np
 
 # Please modify these according to your machine
@@ -21,10 +22,10 @@ def check_codes():
     # will raise NotExistent error
     try:
         codes = dict(
-            pw_code=orm.load_code(str_pw),
-            pw2wannier90_code=orm.load_code(str_pw2wan),
-            projwfc_code=orm.load_code(str_projwfc),
-            wannier90_code=orm.load_code(str_wan),
+            pw=orm.load_code(str_pw),
+            pw2wannier90=orm.load_code(str_pw2wan),
+            projwfc=orm.load_code(str_projwfc),
+            wannier90=orm.load_code(str_wan),
         )
     except NotExistent as e:
         print(e)
@@ -46,8 +47,8 @@ def parse_arugments():
     parser.add_argument(
         '-p',
         "--protocol",
-        help="available protocols are 'theos-ht-1.0' and 'testing'",
-        default="testing"
+        help="available protocols are 'moderate', 'precise', and 'fast'",
+        default="fast"
     )
     parser.add_argument(
         '-m',
@@ -73,6 +74,11 @@ def parse_arugments():
         '-r',
         "--retrieve-hamiltonian",
         help="Retrieve Wannier Hamiltonian after the workflow finished",
+        action="store_true"
+    )
+    parser.add_argument(
+        "--soi",
+        help="Consider Spin-Orbit Interaction",
         action="store_true"
     )
     args = parser.parse_args()
@@ -168,7 +174,7 @@ def print_help(workchain, structure):
 
 def submit_workchain(
     cif_file, protocol, only_valence, do_disentanglement, do_mlwf,
-    retrieve_hamiltonian, group_name
+    retrieve_hamiltonian, group_name, soi
 ):
     codes = check_codes()
 
@@ -201,21 +207,34 @@ def submit_workchain(
             )
         )
 
-    wannier90_workchain_parameters = {
-        "code": {
-            'pw': codes['pw_code'],
-            'pw2wannier90': codes['pw2wannier90_code'],
-            'projwfc': codes['projwfc_code'],
-            'wannier90': codes['wannier90_code']
-        },
-        "protocol": orm.Dict(dict={'name': protocol}),
-        "structure": structure,
-        "controls": controls
-    }
+    spintype = SpinType.NONE
+    if soi:
+        spintype = SpinType.SPIN_ORBIT
 
-    workchain = submit(
-        Wannier90BandsWorkChain, **wannier90_workchain_parameters
+    # wannier90_workchain_parameters = {
+    #     "code": {
+    #         'pw': codes['pw_code'],
+    #         'pw2wannier90': codes['pw2wannier90_code'],
+    #         'projwfc': codes['projwfc_code'],
+    #         'wannier90': codes['wannier90_code']
+    #     },
+    #     "protocol": orm.Dict(dict={'name': protocol}),
+    #     "structure": structure,
+    #     "controls": controls,
+    #     "spin_type": spintype
+    # }
+    # workchain = submit(
+    #     Wannier90BandsWorkChain, **wannier90_workchain_parameters
+    # )
+    builder = Wannier90BandsWorkChain.get_builder_from_protocol(
+        codes,
+        structure,
+        protocol=protocol,
+        retrieve_hamiltonian=retrieve_hamiltonian,
+        # controls=controls,
+        spin_type=spintype
     )
+    workchain = submit(builder)
 
     add_to_group(workchain, group_name)
     print_help(workchain, structure)
@@ -227,5 +246,5 @@ if __name__ == "__main__":
 
     submit_workchain(
         args.cif, args.protocol, args.only_valence, args.do_disentanglement,
-        args.do_mlwf, args.retrieve_hamiltonian, group_name
+        args.do_mlwf, args.retrieve_hamiltonian, group_name, args.soi
     )

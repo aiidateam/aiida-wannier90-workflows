@@ -436,6 +436,9 @@ class Wannier90WorkChain(
         elif spin_type == SpinType.SPIN_ORBIT:
             overrides = recursive_merge(protocol_overrides["spin_orbit"], overrides)
             pw_spin_type = SpinType.NONE
+        elif spin_type == SpinType.COLLINEAR:
+            overrides = recursive_merge(protocol_overrides["spin_collinear"], overrides)
+            pw_spin_type = SpinType.NONE
         else:
             pw_spin_type = spin_type
 
@@ -471,31 +474,19 @@ class Wannier90WorkChain(
         # Prepare SCF builder
         scf_overrides = inputs.get("scf", {})
         scf_overrides["pseudo_family"] = pseudo_family
-        if spin_type is SpinType.COLLINEAR:
-            scf_builder = PwBaseWorkChain.get_builder_from_protocol(
-                code=codes["pw"],
-                structure=structure,
-                protocol=protocol,
-                overrides=scf_overrides,
-                # Setting initial_magnetic_moments to scf is sufficient
-                initial_magnetic_moments=initial_magnetic_moments, 
-                electronic_type=electronic_type,
-                spin_type=pw_spin_type,
+        scf_builder = PwBaseWorkChain.get_builder_from_protocol(
+            code=codes["pw"],
+            structure=structure,
+            protocol=protocol,
+            overrides=scf_overrides,
+            electronic_type=electronic_type,
+            spin_type=pw_spin_type,
+        )
+        if initial_magnetic_moments:
+            # For non-collinear magnetism
+            scf_builder["pw"]["parameters"]["SYSTEM"].update(
+                initial_magnetic_moments
             )
-        else:
-            scf_builder = PwBaseWorkChain.get_builder_from_protocol(
-                code=codes["pw"],
-                structure=structure,
-                protocol=protocol,
-                overrides=scf_overrides,
-                electronic_type=electronic_type,
-                spin_type=pw_spin_type,
-            )
-            if initial_magnetic_moments:
-                # For non-collinear magnetism
-                scf_builder["pw"]["parameters"]["SYSTEM"].update(
-                    initial_magnetic_moments
-                )
         # Remove workchain excluded inputs
         scf_builder["pw"].pop("structure", None)
         scf_builder.pop("clean_workdir", None)
