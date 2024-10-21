@@ -21,10 +21,10 @@ def check_codes():
     # will raise NotExistent error
     try:
         codes = dict(
-            pw_code=orm.Code.get_from_string(str_pw),
-            pw2wannier90_code=orm.Code.get_from_string(str_pw2wan),
-            projwfc_code=orm.Code.get_from_string(str_projwfc),
-            wannier90_code=orm.Code.get_from_string(str_wan),
+            pw_code=orm.load_code(str_pw),
+            pw2wannier90_code=orm.load_code(str_pw2wan),
+            projwfc_code=orm.load_code(str_projwfc),
+            wannier90_code=orm.load_code(str_wan),
         )
     except NotExistent as e:
         print(e)
@@ -41,7 +41,7 @@ def parse_arugments():
         "A script to run the AiiDA workflows to automatically compute the MLWF using the SCDM method and the automated protocol described in the Vitale et al. paper"
     )
     parser.add_argument(
-        "xsf", metavar="cif_fileNAME", help="path to an input XSF file"
+        "cif", metavar="cif_fileNAME", help="path to an input structure file (CIF, MCIF, XSF,...)"
     )
     parser.add_argument(
         '-p',
@@ -91,7 +91,7 @@ def get_initial_moment(magmoms, threshold=1e-6):
     init_mom={}
     for i, mom in enumerate(magmoms):
         num=str(i+1)
-        m = np.linalg.norm(mom,ord=2)
+        m = np.linalg.norm(mom[:3],ord=2)
         if m > threshold:
             mtheta=np.arccos(mom[2]/m)
             mphi=np.arctan2(mom[1],mom[0])
@@ -226,6 +226,6 @@ if __name__ == "__main__":
     args = parse_arugments()
 
     submit_workchain(
-        args.xsf, args.protocol, args.only_valence, args.do_disentanglement,
+        args.cif, args.protocol, args.only_valence, args.do_disentanglement,
         args.do_mlwf, args.retrieve_hamiltonian, group_name
     )
