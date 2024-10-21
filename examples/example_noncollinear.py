@@ -37,7 +37,11 @@ def submit(
         codes,
         structure,
         protocol="fast",
-        initial_magnetic_moments={"Fe":[1.5,0,1.5]},
+        initial_magnetic_moments={
+            "starting_magnetization(1)":3.0,
+            "angle1(1)": 90.0,
+            "angle2(1)": 90.0
+        },
         # pseudo_family="pslibrary/1.0.0/rel-pbe/kjpaw",
         spin_type=SpinType.NON_COLLINEAR,
         # exclude_semicore=False,
@@ -76,7 +80,7 @@ if __name__ == "__main__":
 
     from aiida.orm import load_code
     structure=read_structure("./input_files/bcc_Fe.cif")
-    codes=["qe-pw","qe-pw2wannier90","wannier90","qe-projwfc"]
+    codes=["qe-pw@localhost","qe-pw2wannier90@localhost","wannier90@localhost","qe-projwfc@localhost"]
     submit(codes, structure,run=True)
     # Run like this:
     # ./example_02.py input_files/GaAs.xsf -X qe-pw@localhost qe-pw2wannier90@localhost wannier90@localhost qe-projwfc@localhost -r

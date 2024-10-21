@@ -293,6 +293,12 @@ class Wannier90WorkChain(
         each kind to a desired value for a spin polarized calculation.
         Note that for ``spin_type == SpinType.COLLINEAR`` an initial guess for the magnetic moment
         is automatically set in case this argument is not provided.
+        Otherwise, please provide the dictionary of moments per sites like 
+            {
+                starting_magnetization(1): 2.0,
+                angle1(1): 0.0,
+                angle2(1): 90.0, ...
+            }
         :param projection_type: indicate the Wannier initial projection type of the system
         through ``WannierProjectionType`` instance.
         Default to SCDM.
@@ -350,6 +356,13 @@ class Wannier90WorkChain(
         # if spin_type not in [SpinType.NONE, SpinType.SPIN_ORBIT]:
         #     raise NotImplementedError(f"spin type `{spin_type}` is not supported.")
 
+        if structure.base.extras.get('magmom', None) is not None:
+            initial_magnetic_moments = structure.base.extras.get('magmom')
+            if spin_type != SpinType.SPIN_ORBIT:
+                if structure.base.extras.get('collinear', False):
+                    spin_type = SpinType.COLLINEAR
+                else:
+                    spin_type = SpinType.NON_COLLINEAR
         if initial_magnetic_moments and spin_type == SpinType.NONE:
             raise ValueError(
                 f"`initial_magnetic_moments` is specified but spin type `{spin_type}` is incompatible."
@@ -458,16 +471,31 @@ class Wannier90WorkChain(
         # Prepare SCF builder
         scf_overrides = inputs.get("scf", {})
         scf_overrides["pseudo_family"] = pseudo_family
-        scf_builder = PwBaseWorkChain.get_builder_from_protocol(
-            code=codes["pw"],
-            structure=structure,
-            protocol=protocol,
-            overrides=scf_overrides,
-            # Setting initial_magnetic_moments to scf is sufficient
-            initial_magnetic_moments=initial_magnetic_moments, 
-            electronic_type=electronic_type,
-            spin_type=pw_spin_type,
-        )
+        if spin_type is SpinType.COLLINEAR:
+            scf_builder = PwBaseWorkChain.get_builder_from_protocol(
+                code=codes["pw"],
+                structure=structure,
+                protocol=protocol,
+                overrides=scf_overrides,
+                # Setting initial_magnetic_moments to scf is sufficient
+                initial_magnetic_moments=initial_magnetic_moments, 
+                electronic_type=electronic_type,
+                spin_type=pw_spin_type,
+            )
+        else:
+            scf_builder = PwBaseWorkChain.get_builder_from_protocol(
+                code=codes["pw"],
+                structure=structure,
+                protocol=protocol,
+                overrides=scf_overrides,
+                electronic_type=electronic_type,
+                spin_type=pw_spin_type,
+            )
+            if initial_magnetic_moments:
+                # For non-collinear magnetism
+                scf_builder["pw"]["parameters"]["SYSTEM"].update(
+                    initial_magnetic_moments
+                )
         # Remove workchain excluded inputs
         scf_builder["pw"].pop("structure", None)
         scf_builder.pop("clean_workdir", None)
@@ -1090,7 +1118,7 @@ class Wannier90WorkChain(
             }
             if "workchain_projwfc" in self.ctx:
                 spin_suffix=getattr(self.ctx,"spin_suffix", "")
-            num_proj = len(
+                num_proj = len(
                     self.ctx.workchain_projwfc.outputs["projections"+spin_suffix].get_orbitals()
                 )
                 params = self.ctx.workchain_wannier90.inputs["wannier90"][

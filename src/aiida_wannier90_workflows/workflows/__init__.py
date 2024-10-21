@@ -9,6 +9,7 @@ from .open_grid import Wannier90OpenGridWorkChain
 from .optimize import Wannier90OptimizeWorkChain
 from .projwfcbands import ProjwfcBandsWorkChain
 from .wannier90 import Wannier90WorkChain
+from .hamiltonian import Wannier90HamiltonianWorkChain
 
 __all__ = (
     "Wannier90BaseWorkChain",

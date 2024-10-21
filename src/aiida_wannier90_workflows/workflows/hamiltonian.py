@@ -4,7 +4,7 @@ from aiida.engine import WorkChain, ToContext, if_
 from aiida.plugins import WorkflowFactory
 from aiida_quantumespresso.utils.protocols.pw import ProtocolManager
 # from ..tools.pseudopotential import get_pseudos_from_dict
-from .wannier import Wannier90WorkChain
+from .wannier90 import Wannier90WorkChain
 
 import collections.abc
 def deepupdate(d, u):

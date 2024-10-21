@@ -3,14 +3,16 @@ import argparse
 from aiida import orm
 from aiida.engine import submit
 from aiida.common.exceptions import NotExistent
-from ase.io import read as aseread
+# from ase.io import read as aseread
+from pymatgen.core import Structure
 from aiida_wannier90_workflows.workflows import Wannier90BandsWorkChain
+import numpy as np
 
 # Please modify these according to your machine
-str_pw = 'qe-pw@local'
-str_pw2wan = 'qe-pw2wannier90@local'
-str_projwfc = 'qe-projwfc@local'
-str_wan = 'wannier90@local'
+str_pw = 'qe-pw-7.1@magpu'
+str_pw2wan = 'qe-pw2wannier90@magpu'
+str_projwfc = 'qe-projwfc@magpu'
+str_wan = 'wannier90@magpu'
 
 group_name = 'scdm_workflow'
 
@@ -39,7 +41,7 @@ def parse_arugments():
         "A script to run the AiiDA workflows to automatically compute the MLWF using the SCDM method and the automated protocol described in the Vitale et al. paper"
     )
     parser.add_argument(
-        "xsf", metavar="XSF_FILENAME", help="path to an input XSF file"
+        "xsf", metavar="cif_fileNAME", help="path to an input XSF file"
     )
     parser.add_argument(
         '-p',
@@ -76,9 +78,40 @@ def parse_arugments():
     args = parser.parse_args()
     return args
 
+def get_initial_moment(magmoms, threshold=1e-6):
+    """
+    Return a dictionary with the magnetic moments in the QuantumEspresso format
+    """
+    # Check collinearity
+    collinear = True
+    for mom in magmoms:
+        if mom[0] > threshold or mom[1] > threshold:
+            collinear = False
+            break
+    init_mom={}
+    for i, mom in enumerate(magmoms):
+        num=str(i+1)
+        m = np.linalg.norm(mom,ord=2)
+        if m > threshold:
+            mtheta=np.arccos(mom[2]/m)
+            mphi=np.arctan2(mom[1],mom[0])
+        else:
+            mtheta=0
+            mphi=0
+        
+        init_mom[f'starting_magnetization({num})'] = m
+        if not collinear:
+            init_mom[f'angle1({num})'] = mtheta
+            init_mom[f'angle2({num})'] = mphi
+    return init_mom, collinear
 
-def read_structure(xsf_file):
-    structure = orm.StructureData(ase=aseread(xsf_file))
+def read_structure(cif_file):
+    pmg=Structure.from_file(cif_file)
+    structure = orm.StructureData(pymatgen=pmg)
+    if pmg.site_properties.get('magmom',None) is not None:
+        init_mom, collinear = get_initial_moment(pmg.site_properties['magmom'])
+        structure.base.extras.set('magmom',init_mom)
+        structure.base.extras.set('collinear',collinear)
     structure.store()
     print(
         'Structure {} read and stored with pk {}.'.format(
@@ -134,7 +167,7 @@ def print_help(workchain, structure):
 
 
 def submit_workchain(
-    xsf_file, protocol, only_valence, do_disentanglement, do_mlwf,
+    cif_file, protocol, only_valence, do_disentanglement, do_mlwf,
     retrieve_hamiltonian, group_name
 ):
     codes = check_codes()
@@ -143,10 +176,10 @@ def submit_workchain(
         group_name, only_valence, do_disentanglement, do_mlwf
     )
 
-    if isinstance(xsf_file, orm.StructureData):
-        structure = xsf_file
+    if isinstance(cif_file, orm.StructureData):
+        structure = cif_file
     else:
-        structure = read_structure(xsf_file)
+        structure = read_structure(cif_file)
 
     controls = {
         'retrieve_hamiltonian': orm.Bool(retrieve_hamiltonian),

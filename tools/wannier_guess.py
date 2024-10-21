@@ -1,4 +1,5 @@
 from aiida.orm import StructureData
+from xml.etree import ElementTree as ET
 # def guess_projection(pmg_structure, policy='light'):
 #     if policy.lower() == 'light':
 #         wtb_proj=javis_projection()
@@ -17,6 +18,20 @@ from aiida.orm import StructureData
 
 #     ntot=sum([wtb_numwan[str(elem)] for elem in pmg_structure.species])
 #     return ntot
+
+def extract_valence_projection(upfdata):
+    tree=ET.fromstring(upfdata.get_content())
+    valence=[]
+    for child in tree.find("PP_FULL_WFC"):
+        if not child.tag.startswith("PP_PSWFC"):
+            continue
+        orbital=child.attrib["label"]
+        valence.append(orbital.lower())
+    return valence
+    
+
+
+    
 
 def guess_projection(structure:StructureData, policy='light'):
     if policy.lower() == 'light':
