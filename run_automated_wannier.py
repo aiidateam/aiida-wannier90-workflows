@@ -8,12 +8,15 @@ from pymatgen.core import Structure
 from aiida_wannier90_workflows.workflows import Wannier90BandsWorkChain
 from aiida_quantumespresso.common.types import SpinType
 import numpy as np
+import warnings
+
+warnings.filterwarnings("ignore")
 
 # Please modify these according to your machine
-str_pw = 'qe-pw-7.1@magpu'
-str_pw2wan = 'qe-pw2wannier90@magpu'
-str_projwfc = 'qe-projwfc@magpu'
-str_wan = 'wannier90@magpu'
+str_pw = 'qe-pw@localhost'
+str_pw2wan = 'qe-pw2wannier90@localhost'
+str_projwfc = 'qe-projwfc@localhost'
+str_wan = 'wannier90@localhost'
 
 group_name = 'scdm_workflow'
 
