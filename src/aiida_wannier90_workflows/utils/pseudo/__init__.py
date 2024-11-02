@@ -204,6 +204,43 @@ def get_semicore_list_ext(
 
     return semicore_list
 
+def get_frozen_list_ext(
+    structure: orm.StructureData,
+    external_projectors: dict,
+    spin_non_collinear: bool,
+) -> list:
+    """Get frozen states (a subset of pseudo wavefunctions) in the external_projectors.
+
+    :param structure: [description]
+    :param external_projectors: dict of external projectors, where every external projector
+    contains the `label`, `l` and `j`(optional).
+    :param pseudo_orbitals: [description]
+    :param spin_non_collinear: [description]
+    :return: [description]
+    """
+    from copy import deepcopy
+
+    nspin = 2 if spin_non_collinear else 1
+
+    frozen_list = []  # index should start from 1
+    num_projs = 0
+
+    for site in structure.sites:
+        for orb in external_projectors[structure.get_kind(site.kind_name).symbol]:
+            if "j" in orb:
+                num_orbs = round(2 * orb["j"] + 1)
+            else:
+                num_orbs = (2 * orb["l"] + 1) * nspin
+
+            alfa = orb.get("alfa", "UPF") # if not defined, it is better to Lowdin all projectors
+            if alfa == "UPF":
+                frozen_list.extend(
+                    list(range(num_projs + 1, num_projs + num_orbs + 1))
+                )
+            num_projs += num_orbs
+
+    return frozen_list
+
 
 def get_wannier_number_of_bands(
     structure,

@@ -309,6 +309,7 @@ class Wannier90WorkChain(
             get_pseudo_orbitals,
             get_semicore_list,
             get_semicore_list_ext,
+            get_frozen_list_ext,
         )
         from aiida_wannier90_workflows.utils.workflows.builder.projections import (
             guess_wannier_projection_types,
@@ -527,11 +528,17 @@ class Wannier90WorkChain(
         # Prepare pw2wannier90 builder
         exclude_projectors = None
         external_projectors_list = None
+        external_projectors_froz = None
         
         if projection_type == WannierProjectionType.ATOMIC_PROJECTORS_EXTERNAL:
                 external_projectors_list = {
                     kind.name: kind.symbol for kind in structure.kinds
                 }
+                external_projectors_froz = get_frozen_list_ext(
+                    structure=structure,
+                    external_projectors=external_projectors,
+                    spin_non_collinear=spin_non_collinear,
+                )
         if exclude_semicore:
             pseudo_orbitals = get_pseudo_orbitals(builder["scf"]["pw"]["pseudos"])
             if projection_type == WannierProjectionType.ATOMIC_PROJECTORS_EXTERNAL:
@@ -552,6 +559,7 @@ class Wannier90WorkChain(
             exclude_projectors=exclude_projectors,
             external_projectors_path=external_projectors_path,
             external_projectors_list=external_projectors_list,
+            external_projectors_froz=external_projectors_froz,
         )
         # Remove workchain excluded inputs
         pw2wannier90_builder.pop("clean_workdir", None)
