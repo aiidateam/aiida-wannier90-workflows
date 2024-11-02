@@ -137,6 +137,7 @@ class Pw2wannier90BaseWorkChain(ProtocolMixin, QeBaseRestartWorkChain):
         exclude_projectors: list = None,
         external_projectors_path: str = None,
         external_projectors_list: dict = None,
+        external_projectors_froz: list = None,
     ) -> ProcessBuilder:
         """Return a builder prepopulated with inputs selected according to the chosen protocol.
 
@@ -188,6 +189,8 @@ class Pw2wannier90BaseWorkChain(ProtocolMixin, QeBaseRestartWorkChain):
                         f"Must specify `external_projectors_path` when using {projection_type}"
                     )
                 parameters["atom_proj_dir"] = "external_projectors/"
+                if external_projectors_froz is not None and len(external_projectors_froz) > 0:
+                    parameters["atom_proj_frozen"] = list(external_projectors_froz)
 
         parameters = {"inputpp": parameters}
 
