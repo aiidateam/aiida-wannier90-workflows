@@ -175,12 +175,12 @@ class Pw2wannier90BaseWorkChain(ProtocolMixin, QeBaseRestartWorkChain):
                 # scdm_mu, scdm_sigma will be set at runtime
         elif projection_type in [
             WannierProjectionType.ATOMIC_PROJECTORS_QE,
-            WannierProjectionType.ATOMIC_PROJECTORS_OPENMX,
+            WannierProjectionType.ATOMIC_PROJECTORS_EXTERNAL,
         ]:
             parameters["atom_proj"] = True
             if exclude_projectors is not None and len(exclude_projectors) > 0:
                 parameters["atom_proj_exclude"] = list(exclude_projectors)
-            if projection_type == WannierProjectionType.ATOMIC_PROJECTORS_OPENMX:
+            if projection_type == WannierProjectionType.ATOMIC_PROJECTORS_EXTERNAL:
                 parameters["atom_proj_ext"] = True
                 if external_projectors_path is None:
                     raise ValueError(
