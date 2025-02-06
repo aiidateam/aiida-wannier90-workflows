@@ -26,6 +26,7 @@ from aiida_wannier90_workflows.workflows.base.pw2wannier90 import (
     Pw2wannier90BaseWorkChain,
 )
 from aiida_wannier90_workflows.workflows.base.wannier90 import Wannier90BaseWorkChain
+from aiida_wannier90_workflows.workflows.optimize import Wannier90OptimizeWorkChain
 from aiida_wannier90_workflows.workflows.projwfcbands import ProjwfcBandsWorkChain
 from aiida_wannier90_workflows.workflows.wannier90 import Wannier90WorkChain
 
@@ -41,6 +42,7 @@ def set_parallelization(
         Wannier90Calculation,
         Wannier90BaseWorkChain,
         Wannier90BandsWorkChain,
+        Wannier90OptimizeWorkChain,
         CalcJob,
     ] = Wannier90BandsWorkChain,
 ) -> None:
@@ -230,7 +232,7 @@ def set_parallelization(
                 process_class=ProjwfcBaseWorkChain,
             )
 
-    elif process_class == Wannier90BandsWorkChain:
+    elif process_class in [Wannier90BandsWorkChain, Wannier90OptimizeWorkChain]:
         if "scf" in pruned_builder:
             set_parallelization(
                 builder["scf"],
