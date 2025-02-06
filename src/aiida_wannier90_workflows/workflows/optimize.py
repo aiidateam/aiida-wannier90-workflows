@@ -131,7 +131,7 @@ class Wannier90OptimizeWorkChain(Wannier90BandsWorkChain):
             default=lambda: orm.List(list=list(np.linspace(0.99, 0.85, 15))),
             serializer=to_aiida_type,
             help=(
-                "The range to iterate dis_proj_min. `None` means disabling projectability disentanglement."
+                "The range to iterate dis_proj_max. `None` means disabling projectability disentanglement."
             ),
         )
         spec.input(
@@ -140,7 +140,7 @@ class Wannier90OptimizeWorkChain(Wannier90BandsWorkChain):
             default=lambda: orm.List(list=list(np.linspace(0.01, 0.02, 2))),
             serializer=to_aiida_type,
             help=(
-                "The range to iterate dis_proj_max. `None` means disabling projectability disentanglement."
+                "The range to iterate dis_proj_min. `None` means disabling projectability disentanglement."
             ),
         )
         spec.input(
