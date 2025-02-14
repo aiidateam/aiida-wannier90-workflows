@@ -94,14 +94,16 @@ def get_pseudo_orbitals(pseudos: ty.Mapping[str, PseudoPotentialData]) -> dict:
     pseudo_data.append(load_pseudo_metadata("semicore/pslibrary_paw_relpbe_1.0.0.json"))
 
     pseudo_orbitals = {}
-    for element in pseudos:
+    # pseudos dictionary will contain kinds as keys, which may change
+    # e.g. when including Hubbard corrections 'Mn'->'Mn3d'
+    for kind in pseudos:
         for data in pseudo_data:
-            if data.get(element, {}).get("md5", "") == pseudos[element].md5:
-                pseudo_orbitals[element] = data[element]
+            if data.get(pseudos[kind].element, {}).get("md5", "") == pseudos[kind].md5:
+                pseudo_orbitals[kind] = data[pseudos[kind].element]
                 break
         else:
             raise ValueError(
-                f"Cannot find pseudopotential {element} with md5 {pseudos[element].md5}"
+                f"Cannot find pseudopotential {kind} with md5 {pseudos[kind].md5}"
             )
 
     return pseudo_orbitals
@@ -161,7 +163,7 @@ def get_semicore_list(
     return semicore_list
 
 
-def get_wannier_number_of_bands(
+def get_wannier_number_of_bands(  # pylint: disable=too-many-positional-arguments
     structure,
     pseudos,
     factor=1.2,
@@ -248,19 +250,16 @@ def get_number_of_projections(
                 "only <str, aiida.orm.UpfData> type is accepted"
             )
 
-    # e.g. composition = {'Ga': 1, 'As': 1}
-    composition = structure.get_composition()
-
     if spin_orbit_coupling is None:
         # I use the first pseudo to detect SOCs
-        kind = list(composition.keys())[0]
+        kind = structure.get_kind_names()[0]
         spin_orbit_coupling = is_soc_pseudo(get_upf_content(pseudos[kind]))
 
     tot_nprojs = 0
-    for kind in composition:
-        upf = pseudos[kind]
+    for site in structure.sites:
+        upf = pseudos[site.kind_name]
         nprojs = get_number_of_projections_from_upf(upf)
-        soc = is_soc_pseudo(get_upf_content(pseudos[kind]))
+        soc = is_soc_pseudo(get_upf_content(pseudos[site.kind_name]))
         if spin_orbit_coupling and not soc:
             # For SOC calculation with non-SOC pseudo, QE will generate
             # 2 PSWFCs from each one PSWFC in the pseudo
@@ -269,7 +268,7 @@ def get_number_of_projections(
             # For non-SOC calculation with SOC pseudo, QE will average
             # the 2 PSWFCs into one
             nprojs //= 2
-        tot_nprojs += nprojs * composition[kind]
+        tot_nprojs += nprojs
 
     return tot_nprojs
 
@@ -311,10 +310,9 @@ def get_projections(
             )
 
     projections = []
-    # e.g. composition = {'Ga': 1, 'As': 1}
-    composition = structure.get_composition()
-    for kind in composition:
-        upf = pseudos[kind]
+
+    for kind_name in structure.get_kind_names():
+        upf = pseudos[kind_name]
         projs = get_projections_from_upf(upf)
         projections.extend(projs)
     return projections
@@ -357,11 +355,10 @@ def get_number_of_electrons(
             )
 
     tot_nelecs = 0
-    # e.g. composition = {'Ga': 1, 'As': 1}
-    composition = structure.get_composition()
-    for kind in composition:
-        upf = pseudos[kind]
+
+    for site in structure.sites:
+        upf = pseudos[site.kind_name]
         nelecs = get_number_of_electrons_from_upf(upf)
-        tot_nelecs += nelecs * composition[kind]
+        tot_nelecs += nelecs
 
     return tot_nelecs
