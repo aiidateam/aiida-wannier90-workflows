@@ -30,6 +30,14 @@ retrieve_matrices:
                     - '*.amn'
                     - '*.mmn'
                     - '*.spn'
+compute_fermi_surface:
+    wannier90:
+        wannier90:
+            parameters:
+                fermi_surface_plot: True
+            settings:
+                additional_retrieve_list:
+                    - '*.bxsf'
 spin_noncollinear:
     scf:
         pw:
