@@ -163,9 +163,6 @@ def get_semicore_list(
     return semicore_list
 
 
-<<<<<<< HEAD
-def get_wannier_number_of_bands(  # pylint: disable=too-many-positional-arguments
-=======
 def get_semicore_list_ext(
     structure: orm.StructureData,
     external_projectors: dict,
@@ -246,7 +243,6 @@ def get_frozen_list_ext(
 
 
 def get_wannier_number_of_bands(
->>>>>>> f9258a0 (Add functions for external_projectors)
     structure,
     pseudos,
     factor=1.2,
