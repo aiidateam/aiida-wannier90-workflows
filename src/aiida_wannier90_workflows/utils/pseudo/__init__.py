@@ -611,7 +611,7 @@ def get_number_of_electrons(
     for kind in composition:
         upf = reduced_pseudos[kind]
         nelecs = get_number_of_electrons_from_upf(upf)
-        tot_nelecs += nelecs
+        tot_nelecs += nelecs  * composition[kind]
 
     return tot_nelecs
 
