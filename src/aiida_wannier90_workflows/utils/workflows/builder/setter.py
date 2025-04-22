@@ -2,6 +2,8 @@
 
 import typing as ty
 
+from aiida_hyperqueue.scheduler import HyperQueueScheduler
+
 from aiida import orm
 from aiida.common import AttributeDict
 from aiida.engine import CalcJob, ProcessBuilder, ProcessBuilderNamespace
@@ -29,8 +31,6 @@ from aiida_wannier90_workflows.workflows.base.wannier90 import Wannier90BaseWork
 from aiida_wannier90_workflows.workflows.optimize import Wannier90OptimizeWorkChain
 from aiida_wannier90_workflows.workflows.projwfcbands import ProjwfcBandsWorkChain
 from aiida_wannier90_workflows.workflows.wannier90 import Wannier90WorkChain
-
-from aiida_hyperqueue.scheduler import HyperQueueScheduler
 
 
 def set_parallelization(
@@ -61,7 +61,7 @@ def set_parallelization(
     default_queue_name = None
     default_account = None
     default_num_cpus = 1
-    default_memory_mb = 2048 # MB
+    default_memory_mb = 2048  # MB
     default_code = None
 
     if parallelization is None:
@@ -114,9 +114,7 @@ def set_parallelization(
 
     run_hyperqueue = False
     if code is not None:
-        run_hyperqueue = isinstance(
-            code.computer.get_scheduler(), HyperQueueScheduler
-        )
+        run_hyperqueue = isinstance(code.computer.get_scheduler(), HyperQueueScheduler)
     if run_hyperqueue:
         metadata = get_metadata_hq(
             num_cpus=num_cpus,
@@ -377,10 +375,11 @@ def get_metadata(
 
     return metadata
 
+
 def get_metadata_hq(
     *,
     num_cpus: int = None,
-    max_wallclock_seconds: int = 24*3600,
+    max_wallclock_seconds: int = 24 * 3600,
     memory_mb: int = 2048,
     queue_name: str = None,
     account: str = None,
@@ -420,10 +419,7 @@ def get_metadata_hq(
     """
     metadata = {
         "options": {
-            "resources": {
-                "num_cpus": num_cpus,
-                "memory_mb": memory_mb
-            },
+            "resources": {"num_cpus": num_cpus, "memory_mb": memory_mb},
             "max_wallclock_seconds": max_wallclock_seconds,
             "withmpi": True,
         }

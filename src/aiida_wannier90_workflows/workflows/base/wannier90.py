@@ -321,7 +321,7 @@ class Wannier90BaseWorkChain(ProtocolMixin, BaseRestartWorkChain):
         if external_projectors is not None:
             if projection_type in [
                 WannierProjectionType.ATOMIC_PROJECTORS_QE,
-                WannierProjectionType.RANDOM
+                WannierProjectionType.RANDOM,
             ]:
                 raise ValueError(
                     f"Can not specify `external_projectors` when using {projection_type}"
@@ -342,7 +342,7 @@ class Wannier90BaseWorkChain(ProtocolMixin, BaseRestartWorkChain):
                 spin_non_collinear=spin_non_collinear,
                 spin_orbit_coupling=spin_orbit_coupling,
             )
-        else: # external_projector is None
+        else:  # external_projector is None
             if projection_type == WannierProjectionType.ATOMIC_PROJECTORS_EXTERNAL:
                 raise ValueError(
                     f"Must specify `external_projectors` when using {projection_type}"
@@ -419,13 +419,16 @@ class Wannier90BaseWorkChain(ProtocolMixin, BaseRestartWorkChain):
                             if orb in pseudo_orbitals[kind.symbol]["semicores"]:
                                 continue
                         projections.append(f"{kind.name}:{orb[-1].lower()}")
-            else: # external_projectors is not None
+            else:  # external_projectors is not None
                 for kind in structure.kinds:
                     for orb in external_projectors[kind.symbol]:
-                        if orb.get("j", 0.0) < orb["l"]:
-                            continue # avoid repeated counting
+                        if spin_orbit_coupling and orb.get("j", 0.0) < orb["l"]:
+                            continue  # avoid repeated counting
                         if meta_parameters["exclude_semicore"]:
-                            if orb["label"] in pseudo_orbitals[kind.symbol]["semicores"]:
+                            if (
+                                orb["label"].upper()
+                                in pseudo_orbitals[kind.symbol]["semicores"]
+                            ):
                                 continue
                         projections.append(f"{kind.name}:{orb['label'][-1].lower()}")
             inputs[cls._inputs_namespace]["projections"] = orm.List(list=projections)

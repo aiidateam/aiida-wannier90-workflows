@@ -196,13 +196,14 @@ def get_semicore_list_ext(
             else:
                 num_orbs = (2 * orb["l"] + 1) * nspin
 
-            if orb["label"] in site_semicores:
+            if orb["label"].upper() in site_semicores:
                 semicore_list.extend(
                     list(range(num_projs + 1, num_projs + num_orbs + 1))
                 )
             num_projs += num_orbs
 
     return semicore_list
+
 
 def get_frozen_list_ext(
     structure: orm.StructureData,
@@ -218,7 +219,6 @@ def get_frozen_list_ext(
     :param spin_non_collinear: [description]
     :return: [description]
     """
-    from copy import deepcopy
 
     nspin = 2 if spin_non_collinear else 1
 
@@ -232,17 +232,17 @@ def get_frozen_list_ext(
             else:
                 num_orbs = (2 * orb["l"] + 1) * nspin
 
-            alfa = orb.get("alfa", "UPF") # if not defined, it is better to Lowdin all projectors
+            alfa = orb.get(
+                "alfa", "UPF"
+            )  # if not defined, it is better to Lowdin all projectors
             if alfa == "UPF":
-                frozen_list.extend(
-                    list(range(num_projs + 1, num_projs + num_orbs + 1))
-                )
+                frozen_list.extend(list(range(num_projs + 1, num_projs + num_orbs + 1)))
             num_projs += num_orbs
 
     return frozen_list
 
 
-def get_wannier_number_of_bands(
+def get_wannier_number_of_bands(  # pylint: disable=too-many-positional-arguments
     structure,
     pseudos,
     factor=1.2,
@@ -297,7 +297,7 @@ def get_wannier_number_of_bands(
     return num_bands
 
 
-def get_wannier_number_of_bands_ext(
+def get_wannier_number_of_bands_ext(  # pylint: disable=too-many-positional-arguments
     structure,
     pseudos,
     external_projectors,
@@ -574,14 +574,12 @@ def reduce_pseudos(
     This function will reduce pseudos to
     {'Fe': <UpfData>}
     """
-    
+
     reduced_pseudos = {}
     if structure is not None:
         for kind in structure.kinds:
             if kind.name not in pseudos:
-                raise ValueError(
-                    f"{kind.name} do not match the pesudos.\n", pseudos
-                )
+                raise ValueError(f"{kind.name} do not match the pesudos.\n", pseudos)
             if kind.symbol not in reduced_pseudos:
                 reduced_pseudos[kind.symbol] = pseudos[kind.name]
             else:
