@@ -5,19 +5,13 @@ import os
 from pathlib import Path
 import re
 
+from fit_hydrogenics import fit_ortho_projectors, fit_rsq_projector, r_hydrogenic
+from projectors import newProjector, newProjectors
+from upfdict import newUPFDict
+
 from aiida import load_profile, orm
 
 import aiida_wannier90_workflows
-from aiida_wannier90_workflows.utils.projectors.fit_hydrogenics import (
-    fit_ortho_projectors,
-    fit_rsq_projector,
-    r_hydrogenic,
-)
-from aiida_wannier90_workflows.utils.projectors.projectors import (
-    newProjector,
-    newProjectors,
-)
-from aiida_wannier90_workflows.utils.projectors.upfdict import newUPFDict
 
 aww_path = Path(aiida_wannier90_workflows.__file__).parent.resolve()
 
@@ -29,7 +23,7 @@ def main():
     projectors = {}
     # Generate a list of required atomic orbitals
     with open(
-        aww_path / "utils/projectors/required_orbitals.json", encoding="utf-8"
+        aww_path / "../../dev/projectors/required_orbitals.json", encoding="utf-8"
     ) as fp:
         required_orbital_list = json.load(fp)
     ###-> Choose the pseudo family (aiida-pseudo family) <-###
@@ -71,7 +65,9 @@ def main():
             spin_orbit = True
         # Add additional projectors
         # Create a directory to store projectors
-        os.makedirs(aww_path / "utils/projectors/external_projector/", exist_ok=True)
+        os.makedirs(
+            aww_path / "../../dev/projectors/external_projector/", exist_ok=True
+        )
         for addit_orb in pswfc[element]["additional"]:
             print(addit_orb)
             l = str2l[addit_orb[1]]
@@ -142,7 +138,9 @@ def main():
                         newProjector(x, y, l, label=addit_orb, alfa=alfa)
                     )
 
-        proj.to_file(aww_path / f"utils/projectors/external_projector/{element}.dat")
+        proj.to_file(
+            aww_path / f"../../dev/projectors/external_projector/{element}.dat"
+        )
         for projector in proj:
             if spin_orbit:
                 proj_ele.append(
@@ -159,7 +157,7 @@ def main():
                 )
         projectors[element] = proj_ele
         with open(
-            aww_path / "utils/projectors/external_projector/projectors.json",
+            aww_path / "../../dev/projectors/external_projector/projectors.json",
             "w",
             encoding="utf-8",
         ) as fp:

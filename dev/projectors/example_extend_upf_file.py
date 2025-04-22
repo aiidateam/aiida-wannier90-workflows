@@ -4,16 +4,9 @@ import os
 from pathlib import Path
 import re
 
-from aiida_wannier90_workflows.utils.projectors.fit_hydrogenics import (
-    fit_ortho_projectors,
-    fit_rsq_projector,
-    r_hydrogenic,
-)
-from aiida_wannier90_workflows.utils.projectors.projectors import (
-    newProjector,
-    newProjectors,
-)
-from aiida_wannier90_workflows.utils.projectors.upfdict import newUPFDict
+from fit_hydrogenics import fit_ortho_projectors, fit_rsq_projector, r_hydrogenic
+from projectors import newProjector, newProjectors
+from upfdict import newUPFDict
 
 current_path = Path(__file__).parent.resolve()
 
@@ -21,7 +14,7 @@ current_path = Path(__file__).parent.resolve()
 def main():
     """Extend a existed aiida-pseudo pseudo family."""
     ###-> Choose the UPF file <-###
-    upffile = Path(current_path / "Co.upf")
+    upffile = Path(current_path / "examples/Co.upf")
     upfdict = newUPFDict.from_upf(upffile)
     try:
         element = upfdict["header"]["element"]
@@ -115,7 +108,7 @@ def main():
                 proj.add_projector(newProjector(x, y, l, label=orb, alfa=alfa))
 
     # Output .dat file
-    proj.to_file(current_path / f"{element}.dat")
+    proj.to_file(current_path / f"examples/{element}.dat")
 
 
 if __name__ == "__main__":
