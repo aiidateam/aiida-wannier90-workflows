@@ -555,7 +555,7 @@ def get_number_of_electrons(
     for site in structure.sites:
         upf = pseudos[site.kind_name]
         nelecs = get_number_of_electrons_from_upf(upf)
-        tot_nelecs += nelecs  * composition[kind]
+        tot_nelecs += nelecs
 
     return tot_nelecs
 
