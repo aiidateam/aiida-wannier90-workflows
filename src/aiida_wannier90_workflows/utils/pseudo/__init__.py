@@ -95,15 +95,16 @@ def get_pseudo_orbitals(pseudos: ty.Mapping[str, PseudoPotentialData]) -> dict:
     pseudo_data.append(load_pseudo_metadata("semicore/pseudo_mix_20231224.json"))
 
     pseudo_orbitals = {}
-    for element in pseudos:
-        symbol = pseudos[element].element
+    # pseudos dictionary will contain kinds as keys, which may change
+    # e.g. when including Hubbard corrections 'Mn'->'Mn3d'
+    for kind in pseudos:
         for data in pseudo_data:
-            if data.get(symbol, {}).get("md5", "") == pseudos[element].md5:
-                pseudo_orbitals[element] = data[symbol]
+            if data.get(pseudos[kind].element, {}).get("md5", "") == pseudos[kind].md5:
+                pseudo_orbitals[kind] = data[pseudos[kind].element]
                 break
         else:
             raise ValueError(
-                f"Cannot find pseudopotential {symbol} with md5 {pseudos[element].md5}"
+                f"Cannot find pseudopotential {kind} with md5 {pseudos[kind].md5}"
             )
 
     return pseudo_orbitals
@@ -242,7 +243,8 @@ def get_frozen_list_ext(
     return frozen_list
 
 
-def get_wannier_number_of_bands(
+
+def get_wannier_number_of_bands(  # pylint: disable=too-many-positional-arguments
     structure,
     pseudos,
     factor=1.2,
@@ -402,15 +404,16 @@ def get_number_of_projections(
     reduced_pseudos = reduce_pseudos(pseudos, structure)
     if spin_orbit_coupling is None:
         # I use the first pseudo to detect SOCs
-        kind = list(composition.keys())[0]
-        spin_orbit_coupling = is_soc_pseudo(get_upf_content(reduced_pseudos[kind]))
+        kind = structure.get_kind_names()[0]
+        spin_orbit_coupling = is_soc_pseudo(get_upf_content(pseudos[kind]))
 
     tot_nprojs = 0
-    for kind in composition:
-        upf = reduced_pseudos[kind]
+    for site in structure.sites:
+        upf = pseudos[site.kind_name]
         nprojs = get_number_of_projections_from_upf(upf)
-        if spin_non_collinear and not spin_orbit_coupling:
-            # For magnetic calculation with non-SOC pseudo, QE will generate
+        soc = is_soc_pseudo(get_upf_content(pseudos[site.kind_name]))
+        if spin_orbit_coupling and not soc:
+            # For SOC calculation with non-SOC pseudo, QE will generate
             # 2 PSWFCs from each one PSWFC in the pseudo
             # For collinear-magnetic calculation, spin up and down will calc
             # seperately, so nprojs do not times 2
@@ -419,6 +422,53 @@ def get_number_of_projections(
             # For non-magnetic calculation with SOC pseudo, QE will average
             # the 2 PSWFCs into one
             nprojs //= 2
+        tot_nprojs += nprojs 
+
+    return tot_nprojs
+
+
+def get_number_of_projections_ext(
+    structure: orm.StructureData,
+    external_projectors: dict,
+    spin_non_collinear: bool,
+    spin_orbit_coupling: bool = False,
+) -> int:
+    """Get number of projections for the structure with the given projector dict.
+
+    :param structure: crystal structure
+    :type structure: aiida.orm.StructureData
+    :param projectors: a dictionary contains projector list of the structure
+    :type pseudos: dict
+    :param spin_non_collinear: non-collinear or spin-orbit-coupling
+    :type spin_non_collinear: bool
+    :return: number of projections
+    :rtype: int
+    """
+    if not isinstance(structure, orm.StructureData):
+        raise ValueError(
+            f"The type of structure is {type(structure)}, only aiida.orm.StructureData is accepted"
+        )
+    # e.g. composition = {'Ga': 1, 'As': 1}
+    composition = structure.get_composition()
+
+    # I use the first projector to detect SOCs
+    kind = list(composition.keys())[0]
+    spin_orbit_coupling_proj = "j" in external_projectors[kind][0]
+    if spin_orbit_coupling and not spin_orbit_coupling_proj:
+        raise ValueError("Use SOC spin type but non-SOC projectors.")
+    if spin_orbit_coupling_proj and not spin_orbit_coupling:
+        raise ValueError("Use SOC projectors but non-SOC spin type.")
+
+    tot_nprojs = 0
+    for kind in composition:
+        nprojs = 0
+        for orb in external_projectors[kind]:
+            if spin_orbit_coupling:
+                nprojs += round(2 * orb["j"]) + 1
+            else:
+                nprojs += 2 * orb["l"] + 1
+        if spin_non_collinear and not spin_orbit_coupling:
+            nprojs *= 2
         tot_nprojs += nprojs * composition[kind]
 
     return tot_nprojs
@@ -561,7 +611,7 @@ def get_number_of_electrons(
     for kind in composition:
         upf = reduced_pseudos[kind]
         nelecs = get_number_of_electrons_from_upf(upf)
-        tot_nelecs += nelecs * composition[kind]
+        tot_nelecs += nelecs
 
     return tot_nelecs
 
