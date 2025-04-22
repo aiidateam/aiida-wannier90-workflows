@@ -83,18 +83,18 @@ def main():
                     ][0]
                 )
                 pao = newProjectors.from_pao(pao_file, n, l)[0]
-                alfa = fit_rsq_projector(pao, n)
-                print(pao_file, ":", element, n, l, alfa)
+                alpha = fit_rsq_projector(pao, n)
+                print(pao_file, ":", element, n, l, alpha)
                 x = proj[0].x
                 r = proj[0].r
-                y = r_hydrogenic(r, l, n, alfa)
+                y = r_hydrogenic(r, l, n, alpha)
                 if spin_orbit:
                     proj.add_projector_soc(
-                        newProjector(x, y, l, label=addit_orb, alfa=alfa)
+                        newProjector(x, y, l, label=addit_orb, alpha=alpha)
                     )
                 else:
                     proj.add_projector(
-                        newProjector(x, y, l, label=addit_orb, alfa=alfa)
+                        newProjector(x, y, l, label=addit_orb, alpha=alpha)
                     )
             else:
                 if not spin_orbit:
@@ -122,20 +122,22 @@ def main():
                 print("fit from pao ortho")
                 if spin_orbit:
                     for ref_ in ref:
-                        alfa = fit_ortho_projectors(ref_, n)
+                        alpha = fit_ortho_projectors(ref_, n)
                         x = proj[0].x
                         r = proj[0].r
-                        y = r_hydrogenic(r, l, n, alfa)
+                        y = r_hydrogenic(r, l, n, alpha)
                         proj.add_projector(
-                            newProjector(x, y, l, j=ref_.j, label=addit_orb, alfa=alfa)
+                            newProjector(
+                                x, y, l, j=ref_.j, label=addit_orb, alpha=alpha
+                            )
                         )
                 else:
-                    alfa = fit_ortho_projectors(ref, n)
+                    alpha = fit_ortho_projectors(ref, n)
                     x = proj[0].x
                     r = proj[0].r
-                    y = r_hydrogenic(r, l, n, alfa)
+                    y = r_hydrogenic(r, l, n, alpha)
                     proj.add_projector(
-                        newProjector(x, y, l, label=addit_orb, alfa=alfa)
+                        newProjector(x, y, l, label=addit_orb, alpha=alpha)
                     )
 
         proj.to_file(
@@ -148,12 +150,16 @@ def main():
                         "label": projector.label,
                         "l": projector.l,
                         "j": projector.j,
-                        "alfa": projector.alfa,
+                        "alpha": projector.alpha,
                     }
                 )
             else:
                 proj_ele.append(
-                    {"label": projector.label, "l": projector.l, "alfa": projector.alfa}
+                    {
+                        "label": projector.label,
+                        "l": projector.l,
+                        "alpha": projector.alpha,
+                    }
                 )
         projectors[element] = proj_ele
         with open(

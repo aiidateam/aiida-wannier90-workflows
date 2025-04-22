@@ -19,7 +19,7 @@ class newProjector(Projector):
     _j: float = field(init=False, repr=False)
     label: str = field(init=True, default=None)
     _label: str = field(init=False, repr=False)
-    alfa: str = field(init=True, default="UPF")
+    alpha: str = field(init=True, default="UPF")
 
     @property
     def j(self):
@@ -195,7 +195,7 @@ class newProjectors(Projectors):
                         l=projector.l,
                         j=projector.l + 0.5,
                         label=projector.label,
-                        alfa=projector.alfa,
+                        alpha=projector.alpha,
                     )
                 ]
             else:
@@ -205,7 +205,7 @@ class newProjectors(Projectors):
                     l=projector.l,
                     j=projector.l - 0.5,
                     label=projector.label,
-                    alfa=projector.alfa,
+                    alpha=projector.alpha,
                 )
                 projector_plus = newProjector(
                     x=projector.x,
@@ -213,7 +213,7 @@ class newProjectors(Projectors):
                     l=projector.l,
                     j=projector.l + 0.5,
                     label=projector.label,
-                    alfa=projector.alfa,
+                    alpha=projector.alpha,
                 )
                 self += [projector_minus, projector_plus]
         else:

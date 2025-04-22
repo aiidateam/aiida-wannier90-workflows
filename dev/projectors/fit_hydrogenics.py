@@ -5,21 +5,21 @@ from scipy.optimize import curve_fit
 from upf_tools.projectors import Projector
 
 
-def hydrogenic(r: np.ndarray, l: int, n: int, alfa: float) -> np.ndarray:
+def hydrogenic(r: np.ndarray, l: int, n: int, alpha: float) -> np.ndarray:
     """Get Hydrogenic radial functions.
 
     :param r: Array of rmesh
     :param n: Num of semicore shells
     :param l: Angular momentum of orbials
-    :param alfa: Shape parameter of orbitals
+    :param alpha: Shape parameter of orbitals
     :return: hydrogenic radial function
     """
     if l == 0:
-        result = s(r, n, alfa)
+        result = s(r, n, alpha)
     elif l == 1:
-        result = p(r, n, alfa)
+        result = p(r, n, alpha)
     elif l == 2:
-        result = d(r, n, alfa)
+        result = d(r, n, alpha)
     else:
         raise ValueError(
             "Only support s, p and d orbitals. The l should be either 0 or 1 or 2"
@@ -28,34 +28,34 @@ def hydrogenic(r: np.ndarray, l: int, n: int, alfa: float) -> np.ndarray:
     return result
 
 
-def r_hydrogenic(r: np.ndarray, l: int, n: int, alfa: float) -> np.ndarray:
+def r_hydrogenic(r: np.ndarray, l: int, n: int, alpha: float) -> np.ndarray:
     """Return r * hydrogenic radial function.
 
     integral(r_hyd * r_hyd dr) = 1
     :param r: Array of rmesh
     :param n: Num of semicore shells
     :param l: Angular momentum of orbials
-    :param alfa: Shape parameter of orbitals
+    :param alpha: Shape parameter of orbitals
     :return: hydrogenic radial function
     """
-    return r * hydrogenic(r, l, n, alfa)
+    return r * hydrogenic(r, l, n, alpha)
 
 
-def rsquare_hydrogenic(r: np.ndarray, l: int, n: int, alfa: float) -> np.ndarray:
+def rsquare_hydrogenic(r: np.ndarray, l: int, n: int, alpha: float) -> np.ndarray:
     """Return r^2 * hydrogenic radial function."""
 
     # The pw2wan in fact Fourier transform the r^2 * hydrogenic
-    return r**2 * hydrogenic(r, l, n, alfa)
+    return r**2 * hydrogenic(r, l, n, alpha)
 
 
-def s(r: np.ndarray, n: int, alfa: float) -> np.ndarray:
+def s(r: np.ndarray, n: int, alpha: float) -> np.ndarray:
     """Hydrogenic radial function for s orbitals."""
 
     if n == 0:
-        result = 2 * alfa ** (3 / 2) * np.exp(-alfa * r)
+        result = 2 * alpha ** (3 / 2) * np.exp(-alpha * r)
     elif n == 1:
         result = (
-            1 / np.sqrt(8) * alfa ** (3 / 2) * (2 - alfa * r) * np.exp(-alfa * r / 2)
+            1 / np.sqrt(8) * alpha ** (3 / 2) * (2 - alpha * r) * np.exp(-alpha * r / 2)
         )
     else:
         raise ValueError("only support n = 0 or 1 for s orbitals")
@@ -63,19 +63,19 @@ def s(r: np.ndarray, n: int, alfa: float) -> np.ndarray:
     return result
 
 
-def p(r: np.ndarray, n: int, alfa: float) -> np.ndarray:
+def p(r: np.ndarray, n: int, alpha: float) -> np.ndarray:
     """Hydrogenic radial function for p orbitals."""
 
     if n == 0:
-        result = 1 / np.sqrt(24) * alfa ** (3 / 2) * alfa * r * np.exp(-alfa * r / 2)
+        result = 1 / np.sqrt(24) * alpha ** (3 / 2) * alpha * r * np.exp(-alpha * r / 2)
     elif n == 1:
         result = (
             4
             / 81
             / np.sqrt(6)
-            * alfa ** (3 / 2)
-            * (6 * alfa * r - alfa**2 * r**2)
-            * np.exp(-alfa * r / 3)
+            * alpha ** (3 / 2)
+            * (6 * alpha * r - alpha**2 * r**2)
+            * np.exp(-alpha * r / 3)
         )
     else:
         raise ValueError("Only support n = 0 or 1 for p orbitals")
@@ -83,7 +83,7 @@ def p(r: np.ndarray, n: int, alfa: float) -> np.ndarray:
     return result
 
 
-def d(r: np.ndarray, n: int, alfa: float) -> np.ndarray:
+def d(r: np.ndarray, n: int, alpha: float) -> np.ndarray:
     """Hydrogenic radial function for d orbitals."""
 
     if n == 0:
@@ -91,9 +91,9 @@ def d(r: np.ndarray, n: int, alfa: float) -> np.ndarray:
             4
             / 81
             / np.sqrt(30)
-            * alfa ** (3 / 2)
-            * (alfa * r) ** 2
-            * np.exp(-alfa * r / 3)
+            * alpha ** (3 / 2)
+            * (alpha * r) ** 2
+            * np.exp(-alpha * r / 3)
         )
     else:
         raise ValueError("Only support n = 1 for d orbitals")
@@ -106,15 +106,15 @@ def fit_rsq_projector(proj: Projector, n: int) -> float:
 
     :param proj: The given Projector contains r, l and radial function.
     :param n: Num of semicore shells.
-    :return: alfa that fits the given projectors best.
+    :return: alpha that fits the given projectors best.
     """
 
     r = proj.r
     y = proj.y
     l = proj.l
     # y = norm_upf(r, y)
-    rsquare_radial_func = lambda r, alfa: rsquare_hydrogenic(
-        r, l, n, alfa
+    rsquare_radial_func = lambda r, alpha: rsquare_hydrogenic(
+        r, l, n, alpha
     )  # pylint:disable=unnecessary-lambda-assignment
     try:
         pos_popt, pos_pcov = curve_fit(rsquare_radial_func, r, r**2 * y, p0=[3.0])[0:2]
@@ -141,7 +141,7 @@ def fit_upf_projector(proj: Projector, n: int) -> float:
 
     :param proj: The given Projector contains r, l and radial function.
     :param n: Num of semicore shells.
-    :return: alfa that fits the given projectors best.
+    :return: alpha that fits the given projectors best.
     """
 
     r = proj.r
@@ -156,8 +156,8 @@ def fit_upf_projector(proj: Projector, n: int) -> float:
             r = r[:idx]
             break
 
-    r_radial_func = lambda r, alfa: r_hydrogenic(
-        r, l, n, alfa
+    r_radial_func = lambda r, alpha: r_hydrogenic(
+        r, l, n, alpha
     )  # pylint:disable=unnecessary-lambda-assignment
     try:
         pos_popt, pos_pcov = curve_fit(r_radial_func, r, y, p0=[3.0])[0:2]
@@ -184,18 +184,20 @@ def fit_projector(proj: Projector, n: int) -> float:
 
     :param proj: The given Projector contains r, l and radial function
     :param n: Num of semicore shells.
-    :return: alfa that fits the given projectors best.
+    :return: alpha that fits the given projectors best.
     """
 
     r = proj.r
     y = proj.y
     l = proj.l
-    alfa_bounds = [0.0, np.inf]
-    radial_func = lambda r, alfa: hydrogenic(
-        r, l, n, alfa
+    alpha_bounds = [0.0, np.inf]
+    radial_func = lambda r, alpha: hydrogenic(
+        r, l, n, alpha
     )  # pylint:disable=unnecessary-lambda-assignment
-    pos_popt, pos_pcov = curve_fit(radial_func, r, y, p0=[5.0], bounds=alfa_bounds)[0:2]
-    neg_popt, neg_pcov = curve_fit(radial_func, r, -y, p0=[5.0], bounds=alfa_bounds)[
+    pos_popt, pos_pcov = curve_fit(radial_func, r, y, p0=[5.0], bounds=alpha_bounds)[
+        0:2
+    ]
+    neg_popt, neg_pcov = curve_fit(radial_func, r, -y, p0=[5.0], bounds=alpha_bounds)[
         0:2
     ]
 
@@ -212,7 +214,7 @@ def fit_ortho_projectors(proj: Projector, n: int) -> float:
 
     :param proj: The given Projector contains r, l and radial function
     :param n: Num of semicore shells.
-    :return: alfa that fits the given projectors best.
+    :return: alpha that fits the given projectors best.
     """
     # import matplotlib.pyplot as plt
 
@@ -222,28 +224,28 @@ def fit_ortho_projectors(proj: Projector, n: int) -> float:
     dr = np.zeros_like(r)
     dr[1:] = r[1:] - r[:-1]
     dr[0] = r[0] - 0.0
-    alpha = []
+    alpha_list = []
     overlap = []
-    radial_func = lambda r, alfa: hydrogenic(
-        r, l, n, alfa
+    radial_func = lambda r, alpha: hydrogenic(
+        r, l, n, alpha
     )  # pylint:disable=unnecessary-lambda-assignment
-    for alfa in np.linspace(1.0, 10.0, 90, endpoint=False):
-        alpha.append(alfa)
+    for alpha in np.linspace(1.0, 10.0, 90, endpoint=False):
+        alpha_list.append(alpha)
         ovlp = np.sum(  # 4*pi* radial1 * radial2 * r^2 *dr
-            4 * np.pi * y * radial_func(r, alfa) * r * dr
+            4 * np.pi * y * radial_func(r, alpha) * r * dr
         )
         overlap.append(ovlp)
 
-    alpha = np.array(alpha)
+    alpha_list = np.array(alpha_list)
     ortho_loc = np.where(np.abs(overlap) == np.min(np.abs(overlap)))[0][0]
-    alfa = alpha[ortho_loc]
+    alpha = alpha_list[ortho_loc]
     # fig = plt.figure()
     # ax = fig.add_subplot(1, 1, 1)
     # ax.plot(alpha, overlap)
-    # print(label, label[1], alfa)
-    # ax.set_title(f"{element}: {label[1]} overlap, alfa={alfa}")
+    # print(label, label[1], alpha)
+    # ax.set_title(f"{element}: {label[1]} overlap, alpha={alpha}")
     # fig.savefig(f"{element}_{label[1]}.png")
-    return alfa
+    return alpha
 
 
 def norm_upf(r, y):
