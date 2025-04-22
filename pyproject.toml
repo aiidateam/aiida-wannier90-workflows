@@ -92,6 +92,9 @@ analysis = ["pandas", "tables", "scikit-learn"]
 "wannier90_workflows.projwfcbands" = "aiida_wannier90_workflows.workflows.projwfcbands:ProjwfcBandsWorkChain"
 "wannier90_workflows.split" = "aiida_wannier90_workflows.workflows.split:Wannier90SplitWorkChain"
 
+[project.entry-points."aiida.data"]
+"wannier90_workflows.magnetStructureData" = "aiida_wannier90_worflows.data.structure:magnetStructureData"
+
 [tool.flit.module]
 name = "aiida_wannier90_workflows"
 
