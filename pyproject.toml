@@ -93,7 +93,7 @@ analysis = ["pandas", "tables", "scikit-learn"]
 "wannier90_workflows.split" = "aiida_wannier90_workflows.workflows.split:Wannier90SplitWorkChain"
 
 [project.entry-points."aiida.data"]
-"wannier90_workflows.MagneticStructureData" = "aiida_wannier90_worflows.data.structure:MagneticStructureData"
+"wannier90_workflows.MagneticStructureData" = "aiida_wannier90_workflows.data.structure:MagneticStructureData"
 
 [tool.flit.module]
 name = "aiida_wannier90_workflows"
