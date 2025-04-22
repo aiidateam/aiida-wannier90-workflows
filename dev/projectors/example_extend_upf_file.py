@@ -30,7 +30,7 @@ def main():
     ###-> Set additional orbitals we need <-###
     additional_orbitals = ["4p"]
 
-    # Use fit_projector to get fine alfa, and add additional Projector
+    # Use fit_projector to get fine alpha, and add additional Projector
     str2l = {"s": 0, "p": 1, "d": 2, "f": 3}
     ###-> Set OpenMX location <-###
     pao_path = Path("/Users/yuhao/Softwares/openmx3.9/DFT_DATA19/PAO/")
@@ -57,15 +57,15 @@ def main():
                 ][0]
             )
             pao = newProjectors.from_pao(pao_file, n, l)[0]
-            alfa = fit_rsq_projector(pao, n)
-            print(pao_file, ":", element, n, l, alfa)
+            alpha = fit_rsq_projector(pao, n)
+            print(pao_file, ":", element, n, l, alpha)
             x = proj[0].x
             r = proj[0].r
-            y = r_hydrogenic(r, l, n, alfa)
+            y = r_hydrogenic(r, l, n, alpha)
             if spin_orbit:
-                proj.add_projector_soc(newProjector(x, y, l, label=orb, alfa=alfa))
+                proj.add_projector_soc(newProjector(x, y, l, label=orb, alpha=alpha))
             else:
-                proj.add_projector(newProjector(x, y, l, label=orb, alfa=alfa))
+                proj.add_projector(newProjector(x, y, l, label=orb, alpha=alpha))
         else:
             if not spin_orbit:
                 ref = None
@@ -93,19 +93,19 @@ def main():
             if spin_orbit:
                 for ref_ in ref:
                     print(n)
-                    alfa = fit_ortho_projectors(ref_, n)
+                    alpha = fit_ortho_projectors(ref_, n)
                     x = proj[0].x
                     r = proj[0].r
-                    y = r_hydrogenic(r, l, n, alfa)
+                    y = r_hydrogenic(r, l, n, alpha)
                     proj.add_projector(
-                        newProjector(x, y, l, j=ref_.j, label=orb, alfa=alfa)
+                        newProjector(x, y, l, j=ref_.j, label=orb, alpha=alpha)
                     )
             else:
-                alfa = fit_ortho_projectors(ref, n)
+                alpha = fit_ortho_projectors(ref, n)
                 x = proj[0].x
                 r = proj[0].r
-                y = r_hydrogenic(r, l, n, alfa)
-                proj.add_projector(newProjector(x, y, l, label=orb, alfa=alfa))
+                y = r_hydrogenic(r, l, n, alpha)
+                proj.add_projector(newProjector(x, y, l, label=orb, alpha=alpha))
 
     # Output .dat file
     proj.to_file(current_path / f"examples/{element}.dat")

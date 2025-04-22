@@ -232,10 +232,10 @@ def get_frozen_list_ext(
             else:
                 num_orbs = (2 * orb["l"] + 1) * nspin
 
-            alfa = orb.get(
-                "alfa", "UPF"
+            alpha = orb.get(
+                "alpha", "UPF"
             )  # if not defined, it is better to Lowdin all projectors
-            if alfa == "UPF":
+            if alpha == "UPF":
                 frozen_list.extend(list(range(num_projs + 1, num_projs + num_orbs + 1)))
             num_projs += num_orbs
 
