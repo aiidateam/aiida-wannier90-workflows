@@ -1,22 +1,26 @@
-from upf_tools import UPFDict
-from aiida_wannier90_workflows.utils.projectors.projectors import newProjector, newProjectors
+"""Override of upf_tools.UPFDict."""
+
+import warnings
 
 import numpy as np
-import warnings
+from upf_tools import UPFDict
+
+from aiida_wannier90_workflows.utils.projectors.projectors import (
+    newProjector,
+    newProjectors,
+)
+
 
 class newUPFDict(UPFDict):
     """UPFDict for spin orbit coupling cases."""
 
     def to_dat(self) -> str:
-        """"Override to_dat to fit soc.
-        
+        """Override to_dat to fit soc.
+
         Generate a ``.dat`` file from a :class:`UPFDict` object.
-
         These files contain projectors that ``wannier90.x`` can read.
-
-        :raises ValueError: The pseudopotential does not contain the pseudo-wavefunctions necessary to generate
-            a ``.dat`` file
-
+        :raises ValueError: The pseudopotential does not contain the pseudo-wavefunctions
+        necessary to generate a ``.dat`` file
         :returns: the contents of a ``.dat`` file
         """
         # Fetch the r-mesh
@@ -29,7 +33,9 @@ class newUPFDict(UPFDict):
 
         # Extract the pseudo wavefunctions, sorted by l and n
         if "chi" not in self["pswfc"]:
-            raise ValueError("This pseudopotential does not contain any pseudo-wavefunctions")
+            raise ValueError(
+                "This pseudopotential does not contain any pseudo-wavefunctions"
+            )
         soc = self.has_so()
         # If soc: add j info to self
         if soc:
@@ -40,10 +46,14 @@ class newUPFDict(UPFDict):
                     wfclist = [wfclist]
                 for i, wfc in enumerate(wfclist):
                     if self["pswfc"]["chi"][i]["index"] != wfc["index"]:
-                        raise ValueError("`PP_CHI/index` and `PP_RELWFC/index` do not match")
+                        raise ValueError(
+                            "`PP_CHI/index` and `PP_RELWFC/index` do not match"
+                        )
                     self["pswfc"]["chi"][i]["j"] = wfc["jchi"]
         if soc:
-            chis = sorted(self["pswfc"]["chi"], key=lambda chi: (chi["l"], chi["j"], chi["n"]))
+            chis = sorted(
+                self["pswfc"]["chi"], key=lambda chi: (chi["l"], chi["j"], chi["n"])
+            )
         else:
             chis = sorted(self["pswfc"]["chi"], key=lambda chi: (chi["l"], chi["n"]))
         data = np.transpose([chi["content"] for chi in chis])
@@ -57,11 +67,12 @@ class newUPFDict(UPFDict):
         ]
 
         return "\n".join(dat)
-    
+
     def to_projectors(self) -> newProjectors:
         """Generate newProjectors instance from upfDict.
-        
-        What's different: newProjector add support for soc and record labels of projectors"""
+
+        What's different: newProjector add support for soc and record labels of projectors
+        """
         # Fetch the r-mesh
         rmesh = self["mesh"]["r"]
 
@@ -72,7 +83,9 @@ class newUPFDict(UPFDict):
 
         # Extract the pseudo wavefunctions, sorted by l and n
         if "chi" not in self["pswfc"]:
-            raise ValueError("This pseudopotential does not contain any pseudo-wavefunctions")
+            raise ValueError(
+                "This pseudopotential does not contain any pseudo-wavefunctions"
+            )
         soc = self.has_so()
         # If soc: add j info to self
         if soc:
@@ -83,17 +96,27 @@ class newUPFDict(UPFDict):
                     wfclist = [wfclist]
                 for i, wfc in enumerate(wfclist):
                     if self["pswfc"]["chi"][i]["index"] != wfc["index"]:
-                        raise ValueError("`PP_CHI/index` and `PP_RELWFC/index` do not match")
+                        raise ValueError(
+                            "`PP_CHI/index` and `PP_RELWFC/index` do not match"
+                        )
                     self["pswfc"]["chi"][i]["j"] = wfc["jchi"]
         if soc:
-            chis = sorted(self["pswfc"]["chi"], key=lambda chi: (chi["l"], chi["j"], chi["n"]))
+            chis = sorted(
+                self["pswfc"]["chi"], key=lambda chi: (chi["l"], chi["j"], chi["n"])
+            )
         else:
             chis = sorted(self["pswfc"]["chi"], key=lambda chi: (chi["l"], chi["n"]))
         # data = np.transpose([chi["content"] for chi in chis])
 
         if soc:
             projector = [
-                newProjector(xmesh, chi["content"], int(chi["l"]), float(chi["j"]), label=chi["label"])
+                newProjector(
+                    xmesh,
+                    chi["content"],
+                    l=int(chi["l"]),
+                    j=float(chi["j"]),
+                    label=chi["label"],
+                )
                 for chi in chis
             ]
         else:
@@ -104,8 +127,6 @@ class newUPFDict(UPFDict):
 
         return newProjectors(projector)
 
-
-    
     def has_so(self) -> bool:
         """Check if the system has spin orbit coupling."""
 
@@ -113,10 +134,11 @@ class newUPFDict(UPFDict):
             has_so = self["header"]["has_so"]
         except KeyError:
             has_so = False
-            warnings.warn("Can not find `have_so` in `PP_HEADER`,"
-                          "assume the system as non soc")
+            warnings.warn(
+                "Can not find `have_so` in `PP_HEADER`, assume the system as non soc"
+            )
         else:
             if isinstance(has_so, str):
                 has_so = has_so[0].lower() == "t"
-            
+
         return has_so

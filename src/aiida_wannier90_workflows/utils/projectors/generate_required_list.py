@@ -1,6 +1,10 @@
+"""Generate a json file list the required orbitals."""
+
 import json
 
+
 def main():
+    """Generate a json file list the required orbitals."""
     required_orbitals = {}
     for element in "H He".split(" "):
         required_orbitals[element] = ["1s"]
@@ -32,7 +36,7 @@ def main():
     for element in "Tl Pb Bi Po At Rn".split(" "):
         required_orbitals[element] = ["6s", "6p"]
 
-    with open("./required_orbitals.json", "w") as fout:
+    with open("./required_orbitals.json", "w", encoding="utf-8") as fout:
         json.dump(required_orbitals, fout, indent=2)
 
 

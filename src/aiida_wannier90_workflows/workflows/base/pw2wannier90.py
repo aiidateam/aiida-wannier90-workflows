@@ -189,7 +189,10 @@ class Pw2wannier90BaseWorkChain(ProtocolMixin, QeBaseRestartWorkChain):
                         f"Must specify `external_projectors_path` when using {projection_type}"
                     )
                 parameters["atom_proj_dir"] = "external_projectors/"
-                if external_projectors_froz is not None and len(external_projectors_froz) > 0:
+                if (
+                    external_projectors_froz is not None
+                    and len(external_projectors_froz) > 0
+                ):
                     parameters["atom_proj_frozen"] = list(external_projectors_froz)
 
         parameters = {"inputpp": parameters}
