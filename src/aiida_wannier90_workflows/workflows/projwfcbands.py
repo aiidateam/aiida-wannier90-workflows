@@ -107,7 +107,6 @@ class ProjwfcBandsWorkChain(PwBandsWorkChain):
         """
         from aiida_wannier90_workflows.utils.workflows.builder.submit import (
             recursive_merge_builder,
-            recursive_merge_container,
         )
 
         type_check(pw_code, (str, int, orm.Code))
@@ -123,39 +122,26 @@ class ProjwfcBandsWorkChain(PwBandsWorkChain):
             protocol=protocol, overrides=overrides
         )
 
-        projwfc_overrides = None
-        if overrides:
-            projwfc_overrides = overrides.pop("projwfc", None)
+        projwfc_overrides = protocol_inputs.pop("projwfc", None)
 
         pwbands_builder = PwBandsWorkChain.get_builder_from_protocol(
             code=pw_code,
             structure=structure,
             protocol=protocol,
-            overrides=overrides,
+            overrides=protocol_inputs,
             **kwargs,
         )
 
         # By default do not run relax
         pwbands_builder.pop("relax", None)
-        inputs = pwbands_builder._inputs(prune=True)  # pylint: disable=protected-access
 
         projwfc_builder = ProjwfcBaseWorkChain.get_builder_from_protocol(
             projwfc_code, protocol=protocol, overrides=projwfc_overrides
         )
+        projwfc_builder.pop("clean_workdir", None)
 
-        inputs["projwfc"] = projwfc_builder._inputs(  # pylint: disable=protected-access
-            prune=True
-        )
-        inputs["projwfc"].pop("clean_workdir", None)
-
-        # Need to convert `clean_workdir` to `orm.Bool`
-        if "clean_workdir" in protocol_inputs:
-            protocol_inputs["clean_workdir"] = orm.Bool(
-                protocol_inputs["clean_workdir"]
-            )
-
-        inputs = recursive_merge_container(inputs, protocol_inputs)
-        builder = recursive_merge_builder(builder, inputs)
+        builder.projwfc = projwfc_builder
+        builder = recursive_merge_builder(builder, pwbands_builder)
 
         return builder
 

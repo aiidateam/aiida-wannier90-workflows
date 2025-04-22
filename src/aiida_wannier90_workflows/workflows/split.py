@@ -396,7 +396,12 @@ class Wannier90SplitWorkChain(WorkChain):  # pylint: disable=too-many-public-met
         fermi_energy = get_workchain_fermi_energy(workchain)
         self.ctx.fermi_energy = fermi_energy
 
-        bands: orm.BandsData = workchain.outputs.band_structure
+        # Prioritize reference bands, since Wannier-interpolated bands might have
+        # interpolation error
+        if self.ctx.ref_bands is None:
+            bands: orm.BandsData = workchain.outputs.band_structure
+        else:
+            bands: orm.BandsData = self.ctx.ref_bands
         bands_arr = bands.get_bands()
         try:
             homo, lumo = get_homo_lumo(bands_arr, fermi_energy)
@@ -408,7 +413,7 @@ class Wannier90SplitWorkChain(WorkChain):  # pylint: disable=too-many-public-met
         if band_gap < gap_threshold:
             self.report(f"{homo=}, {lumo=}, {band_gap=}, seems metal?")
 
-        num_wann = bands.creator.inputs.parameters.get_dict()["num_wann"]
+        num_wann = workchain.inputs.wannier90.wannier90.parameters["num_wann"]
         num_val = np.count_nonzero(np.all(bands_arr <= fermi_energy, axis=0))
         self.ctx.num_val = num_val
         self.ctx.num_cond = num_wann - num_val
