@@ -27,7 +27,7 @@ pw:
       mixing_beta: 0.4
       startingpot: file
     SYSTEM:
-      degauss: 0.01
+      degauss: 0.02
       ecutrho: 240.0
       ecutwfc: 30.0
       nbnd: 16
