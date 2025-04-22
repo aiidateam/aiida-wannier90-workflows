@@ -3,12 +3,8 @@
 import warnings
 
 import numpy as np
+from projectors import newProjector, newProjectors
 from upf_tools import UPFDict
-
-from aiida_wannier90_workflows.utils.projectors.projectors import (
-    newProjector,
-    newProjectors,
-)
 
 
 class newUPFDict(UPFDict):
