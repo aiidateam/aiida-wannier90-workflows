@@ -1021,14 +1021,14 @@ class Wannier90WorkChain(
             spin_orbit_coupling = (
                 self.inputs["scf"]["pw"]["parameters"]
                 .get_dict()["SYSTEM"]
-                .get("SYSTEM", False)
+                .get("lspinorb", False)
             )
         elif self.should_run_nscf():
             pseudos = self.inputs["nscf"]["pw"]["pseudos"]
             spin_orbit_coupling = (
                 self.inputs["nscf"]["pw"]["parameters"]
                 .get_dict()["SYSTEM"]
-                .get("SYSTEM", False)
+                .get("lspinorb", False)
             )
         else:
             check_num_projs = False
