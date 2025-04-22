@@ -7,7 +7,7 @@ import numpy as np
 from aiida.orm.nodes.data.structure import Kind as oldKind
 from aiida.orm.nodes.data.structure import Site, StructureData
 
-__all__ = ("magnetStructureData", "Kind", "Site")
+__all__ = ("MagneticStructureData", "Kind", "Site")
 
 _MASS_THRESHOLD = 1.0e-3
 # Threshold to check if the magmom(or diff of magmom) is zero or not
@@ -37,7 +37,7 @@ def get_unique_magmoms(sites: list) -> dict:
     return unique_magmoms
 
 
-class magnetStructureData(StructureData):
+class MagneticStructureData(StructureData):
     """Override aiida.orm.StructureData.
 
     Enable to generate StructureData that give atoms with different magnetic moment
