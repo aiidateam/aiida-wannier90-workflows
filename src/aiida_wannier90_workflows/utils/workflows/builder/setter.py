@@ -2,8 +2,6 @@
 
 import typing as ty
 
-from aiida_hyperqueue.scheduler import HyperQueueScheduler
-
 from aiida import orm
 from aiida.common import AttributeDict
 from aiida.engine import CalcJob, ProcessBuilder, ProcessBuilderNamespace
@@ -31,6 +29,13 @@ from aiida_wannier90_workflows.workflows.base.wannier90 import Wannier90BaseWork
 from aiida_wannier90_workflows.workflows.optimize import Wannier90OptimizeWorkChain
 from aiida_wannier90_workflows.workflows.projwfcbands import ProjwfcBandsWorkChain
 from aiida_wannier90_workflows.workflows.wannier90 import Wannier90WorkChain
+
+try:
+    from aiida_hyperqueue.scheduler import HyperQueueScheduler
+
+    aiida_hq_installed = True
+except ModuleNotFoundError:
+    aiida_hq_installed = False
 
 
 def set_parallelization(
@@ -60,9 +65,14 @@ def set_parallelization(
     default_num_machines = 1
     default_queue_name = None
     default_account = None
-    default_num_cpus = 1
-    default_memory_mb = 2048  # MB
     default_code = None
+    if aiida_hq_installed:
+        # Default value setting only for AiiDA-HyperQueue
+        default_num_cpus = 1
+        # If do not set num_cpus, It will get num_mpiprocs_per_machine as num_cpus.
+        # As the num_mpiprocs_per_machine can be None and num_cpus must be int,
+        # we have to set an int to num_cpus.
+        default_memory_mb = None  # Use all availble the memory on the worke
 
     if parallelization is None:
         parallelization = {}
@@ -91,18 +101,19 @@ def set_parallelization(
         "account",
         default_account,
     )
-    num_cpus = parallelization.get(
-        "num_cpus",
-        default_num_cpus,
-    )
-    memory_mb = parallelization.get(
-        "memory_mb",
-        default_memory_mb,
-    )
     code = builder.get(
         "code",
         default_code,
     )
+    if aiida_hq_installed:
+        num_cpus = parallelization.get(
+            "num_cpus",
+            default_num_cpus,
+        )
+        memory_mb = parallelization.get(
+            "memory_mb",
+            default_memory_mb,
+        )
 
     # I need to prune the builder, otherwise e.g. initially builder.relax is
     # an empty dict but the following code will change it to non-empty,
@@ -115,14 +126,20 @@ def set_parallelization(
     run_hyperqueue = False
     if code is not None:
         run_hyperqueue = isinstance(code.computer.get_scheduler(), HyperQueueScheduler)
+
     if run_hyperqueue:
-        metadata = get_metadata_hq(
-            num_cpus=num_cpus,
-            max_wallclock_seconds=max_wallclock_seconds,
-            memory_mb=memory_mb,
-            queue_name=queue_name,
-            account=account,
-        )
+        if aiida_hq_installed:
+            metadata = get_metadata_hq(
+                num_cpus=num_cpus,
+                max_wallclock_seconds=max_wallclock_seconds,
+                memory_mb=memory_mb,
+                queue_name=queue_name,
+                account=account,
+            )
+        else:  # aiida-hyperqueue not installed
+            raise ModuleNotFoundError(
+                "Must install aiida-hyperqueue using AiiDA with hyperqueue"
+            )
     else:
         metadata = get_metadata(
             num_mpiprocs_per_machine=num_mpiprocs_per_machine,
