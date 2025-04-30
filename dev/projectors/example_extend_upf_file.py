@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """Extend a existed aiida-pseudo pseudo family."""
 
 import os
@@ -9,6 +10,8 @@ from projectors import newProjector, newProjectors
 from upfdict import newUPFDict
 
 current_path = Path(__file__).parent.resolve()
+###-> Set OpenMX location <-###
+pao_path = current_path / "openmx3.9/DFT_DATA19/PAO/"
 
 
 def main():
@@ -32,8 +35,6 @@ def main():
 
     # Use fit_projector to get fine alpha, and add additional Projector
     str2l = {"s": 0, "p": 1, "d": 2, "f": 3}
-    ###-> Set OpenMX location <-###
-    pao_path = Path("/Users/yuhao/Softwares/openmx3.9/DFT_DATA19/PAO/")
 
     try:
         proj[0].j
@@ -98,7 +99,9 @@ def main():
                     r = proj[0].r
                     y = r_hydrogenic(r, l, n, alpha)
                     proj.add_projector(
-                        newProjector(x, y, l, j=ref_.j, label=orb, alpha=alpha)
+                        newProjector(  # pylint: disable=unexpected-keyword-arg
+                            x, y, l, j=ref_.j, label=orb, alpha=alpha
+                        )
                     )
             else:
                 alpha = fit_ortho_projectors(ref, n)
