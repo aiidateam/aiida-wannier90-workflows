@@ -1,9 +1,11 @@
+#!/usr/bin/env python
 """Extend a existed aiida-pseudo pseudo family."""
 
 import json
 import os
 from pathlib import Path
 import re
+import sys
 
 from fit_hydrogenics import fit_ortho_projectors, fit_rsq_projector, r_hydrogenic
 from projectors import newProjector, newProjectors
@@ -11,9 +13,17 @@ from upfdict import newUPFDict
 
 from aiida import load_profile, orm
 
-import aiida_wannier90_workflows
+root_dir = Path(__file__).absolute().parent.resolve()
 
-aww_path = Path(aiida_wannier90_workflows.__file__).parent.resolve()
+### -> Set OpenMX location <- ###
+pao_path = root_dir / "openmx3.9/DFT_DATA19/PAO/"
+if not pao_path.exists():
+    print(
+        "Please download the OpenMX package at "
+        "https://www.openmx-square.org/openmx3.9.tar.gz"
+        " and extract it to the same directory as this script."
+    )
+    sys.exit(1)
 
 
 def main():
@@ -22,16 +32,17 @@ def main():
     load_profile()
     projectors = {}
     # Generate a list of required atomic orbitals
-    with open(
-        aww_path / "../../dev/projectors/required_orbitals.json", encoding="utf-8"
-    ) as fp:
+    with open(root_dir / "required_orbitals.json", encoding="utf-8") as fp:
         required_orbital_list = json.load(fp)
     ###-> Choose the pseudo family (aiida-pseudo family) <-###
-    upfs = orm.load_group("PseudoDojo/0.4/PBE/FR/standard/upf")
+    pseudo_group = "PseudoDojo/0.4/PBE/FR/standard/upf"
+    upfs = orm.load_group(pseudo_group)
+    pseudo_group_dir = pseudo_group.replace("/", "_")
     with open(
-        aww_path / "utils/pseudo/data/semicore/"
+        root_dir / "../../src/aiida_wannier90_workflows/utils/pseudo/data/semicore" /
         ###-> Choose the semicore list of the selected package <-###
-        "PseudoDojo_0.4_PBE_FR_standard_upf.json",
+        # "PseudoDojo_0.4_PBE_FR_standard_upf.json",
+        (pseudo_group_dir + ".json"),
         encoding="utf-8",
     ) as fin:
         pswfc = json.load(fin)
@@ -46,8 +57,6 @@ def main():
     # pswfc["Ba"].update({"additional": ["5d", "6p"]})
 
     str2l = {"s": 0, "p": 1, "d": 2, "f": 3}
-    ### -> Set OpenMX location <- ###
-    pao_path = Path("/Users/yuhao/Softwares/openmx3.9/DFT_DATA19/PAO/")
     for upf in upfs.nodes:  # pylint: disable=too-many-nested-blocks
         element = upf.element
         if element not in required_orbital_list:
@@ -67,9 +76,7 @@ def main():
             spin_orbit = True
         # Add additional projectors
         # Create a directory to store projectors
-        os.makedirs(
-            aww_path / "../../dev/projectors/external_projector/", exist_ok=True
-        )
+        os.makedirs(root_dir / "external_projector" / pseudo_group_dir, exist_ok=True)
         for addit_orb in pswfc[element]["additional"]:
             print(addit_orb)
             l = str2l[addit_orb[1]]
@@ -129,7 +136,7 @@ def main():
                         r = proj[0].r
                         y = r_hydrogenic(r, l, n, alpha)
                         proj.add_projector(
-                            newProjector(
+                            newProjector(  # pylint: disable=unexpected-keyword-arg
                                 x, y, l, j=ref_.j, label=addit_orb, alpha=alpha
                             )
                         )
@@ -143,7 +150,7 @@ def main():
                     )
 
         proj.to_file(
-            aww_path / f"../../dev/projectors/external_projector/{element}.dat"
+            root_dir / "external_projector" / pseudo_group_dir / f"{element}.dat"
         )
         for projector in proj:
             if spin_orbit:
@@ -165,11 +172,11 @@ def main():
                 )
         projectors[element] = proj_ele
         with open(
-            aww_path / "../../dev/projectors/external_projector/projectors.json",
+            root_dir / "external_projector" / pseudo_group_dir / "projectors.json",
             "w",
             encoding="utf-8",
         ) as fp:
-            # Output .dat file
+            # Output json file
             json.dump(projectors, fp, indent=2)
 
 
