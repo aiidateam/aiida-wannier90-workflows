@@ -50,6 +50,8 @@ def main():
     pao_path = Path("/Users/yuhao/Softwares/openmx3.9/DFT_DATA19/PAO/")
     for upf in upfs.nodes:  # pylint: disable=too-many-nested-blocks
         element = upf.element
+        if element not in required_orbital_list:
+            continue
         print(element)
 
         proj_ele = []
