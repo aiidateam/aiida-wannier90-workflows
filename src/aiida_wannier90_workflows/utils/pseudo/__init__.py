@@ -448,9 +448,9 @@ def get_number_of_projections_ext(
     kind = list(composition.keys())[0]
     spin_orbit_coupling_proj = "j" in external_projectors[kind][0]
     if spin_orbit_coupling and not spin_orbit_coupling_proj:
-        raise ValueError("Use SOC spin type but non-SOC projectors.")
+        raise ValueError("SOC spin type is specified, however spin-unpolarized projectors are being used.")
     if spin_orbit_coupling_proj and not spin_orbit_coupling:
-        raise ValueError("Use SOC projectors but non-SOC spin type.")
+        raise ValueError("spin-unpolarized spin type is specified, however SOC projectors are being used")
 
     tot_nprojs = 0
     for kind in composition:
