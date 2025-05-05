@@ -1,0 +1,31 @@
+{
+  "As": [
+    {
+      "label": "4s",
+      "l": 0,
+      "alpha": "UPF"
+    },
+    {
+      "label": "4p",
+      "l": 1,
+      "alpha": "UPF"
+    }
+  ],
+  "Ga": [
+    {
+      "label": "4s",
+      "l": 0,
+      "alpha": "UPF"
+    },
+    {
+      "label": "4p",
+      "l": 1,
+      "alpha": "UPF"
+    },
+    {
+      "label": "3d",
+      "l": 2,
+      "alpha": "UPF"
+    }
+  ]
+}

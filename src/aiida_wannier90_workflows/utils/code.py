@@ -43,7 +43,7 @@ def identify_codes(
         if not isinstance(code, orm.Code):
             code = orm.load_code(code)
 
-        plugin_name = code.get_input_plugin_name()
+        plugin_name = code.default_calc_job_plugin
 
         # For simplicity I just use the last part,
         # e.g., wannier90.wannier90 -> wannier90
