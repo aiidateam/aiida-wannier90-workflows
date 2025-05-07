@@ -4,6 +4,7 @@
 Usage: ./example_07.py
 """
 import json
+import os
 
 import click
 
@@ -31,8 +32,6 @@ def submit(  # pylint: disable=too-many-positional-arguments
     run: bool = False,
 ):
     """Submit a ``Wannier90BandsWorkChain`` to calculate Wannier bands."""
-    codes = identify_codes(codes)
-    check_codes(codes)
 
     builder = Wannier90BandsWorkChain.get_builder_from_protocol(
         codes,
@@ -57,13 +56,64 @@ def submit(  # pylint: disable=too-many-positional-arguments
         submit_and_add_group(builder, group)
 
 
+def projectors_exists_check(computer, external_projectors_path):
+    """Check whether external_projectors_path is valid on <computer>.
+
+    An additional check that external_projectors_path exists on compute node <computer>.
+    If exists, get projectors information and return.
+    When running HT calculations, we recommend locate the projectors on the <computer>,
+    but keep an addition ``projectors.json`` locally to facilitate workflow extracting information.
+    """
+    local_compute = computer.transport_type == "core.local"
+    if local_compute:
+        external_projectors_path = os.path.abspath(external_projectors_path)
+    remote_path = orm.RemoteData(
+        computer=computer, remote_path=external_projectors_path
+    )
+    # Check if external_projectors_path exist on computer.
+    try:
+        list_projectors = remote_path.listdir()
+    except OSError as exc:
+        raise OSError(
+            f"{remote_path.get_remote_path()} is not a valid directory "
+            f"on computer<{computer.label}>"
+        ) from exc
+
+    if not "projectors.json" in list_projectors:
+        if not local_compute:
+            transport_errormessage = (
+                f" and transport the projectors to computer<{computer.label}>"
+            )
+        else:
+            transport_errormessage = ""
+        raise FileNotFoundError(
+            f"Can not find projectors.json in ``{external_projectors_path}``. "
+            "Try to regenerate the external projector files referring to the script "
+            "``aiida-wannier90-workflows/dev/projectors/example_extend_aiida_pseudo.py``"
+            + transport_errormessage
+        )
+    # Parse ``projectors.json``, if the file exists on remote computer, transport it to local as tmp file.
+    if not local_compute:
+        tmp_json_path = os.path.abspath("./tmp_projectors.json")
+        remote_path.getfile("./projectors.json", tmp_json_path)
+        with open(tmp_json_path, encoding="utf-8") as fp:
+            external_projectors = json.load(fp)
+        os.remove(tmp_json_path)
+    else:
+        with open(
+            external_projectors_path + "/projectors.json", encoding="utf-8"
+        ) as fp:
+            external_projectors = json.load(fp)
+    return external_projectors, external_projectors_path
+
+
 @click.command()
 @cmdline.utils.decorators.with_dbenv()
 @cmdline.params.options.CODES()
 @cmdline.params.options.GROUP(help="The group to add the submitted workchain.")
 @click.argument("filename", type=click.Path(exists=True))
 @click.argument("pseudo_family", type=str)
-@click.argument("external_projectors_path", type=click.Path(exists=True))
+@click.argument("external_projectors_path")
 @RUN()
 def cli(
     filename, codes, pseudo_family, external_projectors_path, group, run
@@ -72,21 +122,19 @@ def cli(
 
     FILENAME: a crystal structure file, e.g., ``input_files/GaAs.xsf``.
     PSEUDO_FAMILY: label of pseudo family, e.g., ``SSSP/1.1/PBE/efficiency``.
-    EXTERNAL_PROJECTORS_PATH: the path to the directory which includes the external projectors.
+    EXTERNAL_PROJECTORS_PATH: the path to the directory on computing node which includes the external projectors.
     e.g., ``input_files/external_projectors/``
     """
     struct = read_structure(filename, store=True)
-    try:
-        with open(
-            external_projectors_path + "/projectors.json", encoding="utf-8"
-        ) as fp:
-            external_projectors = json.load(fp)
-    except FileNotFoundError as exc:
-        raise FileNotFoundError(
-            f"Can not find projectors.json in ``{external_projectors_path}``. "
-            "Try to regenerate the external projector files referring to the script "
-            "``aiida-wannier90-workflows/dev/projectors/example_extend_aiida_pseudo.py``"
-        ) from exc
+
+    codes = identify_codes(codes)
+    check_codes(codes)
+    computer = codes["pw2wannier90"].computer
+
+    external_projectors, external_projectors_path = projectors_exists_check(
+        computer, external_projectors_path
+    )
+
     submit(
         codes,
         struct,
