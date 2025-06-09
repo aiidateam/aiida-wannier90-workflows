@@ -30,7 +30,12 @@ def get_relax_builder(
     # PwBaseWorkChain.get_builder_from_protocol() does not support SOC, I have to
     # pretend that I am doing an non-SOC calculation and add SOC parameters later.
     if spin_type == SpinType.SPIN_ORBIT:
-        kwargs["spin_type"] = SpinType.NONE
+        try:
+            kwargs["structure"].has_magmom()
+        except AttributeError:
+            kwargs["spin_type"] = SpinType.NONE
+        else:
+            kwargs["spin_type"] = SpinType.NON_COLLINEAR
         if pseudo_family is None:
             raise ValueError("`pseudo_family` must be explicitly set for SOC")
 
@@ -70,7 +75,12 @@ def get_scf_builder(
     # PwBaseWorkChain.get_builder_from_protocol() does not support SOC, I have to
     # pretend that I am doing an non-SOC calculation and add SOC parameters later.
     if spin_type == SpinType.SPIN_ORBIT:
-        kwargs["spin_type"] = SpinType.NONE
+        try:
+            kwargs["structure"].has_magmom()
+        except AttributeError:
+            kwargs["spin_type"] = SpinType.NONE
+        else:
+            kwargs["spin_type"] = SpinType.NON_COLLINEAR
         if pseudo_family is None:
             raise ValueError("`pseudo_family` must be explicitly set for SOC")
 
