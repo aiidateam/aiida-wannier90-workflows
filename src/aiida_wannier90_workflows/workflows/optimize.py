@@ -99,6 +99,7 @@ class Wannier90OptimizeWorkChain(Wannier90BandsWorkChain):
         "write_hkmn",
         "write_hvmn",
         "write_hdmn",
+        "fermi_surface_plot",
     )
 
     @classmethod

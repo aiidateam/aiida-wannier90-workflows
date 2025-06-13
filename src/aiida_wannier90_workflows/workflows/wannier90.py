@@ -255,6 +255,8 @@ class Wannier90WorkChain(
         plot_wannier_functions: bool = False,
         retrieve_hamiltonian: bool = False,
         retrieve_matrices: bool = False,
+        compute_fermi_surface: bool = False,
+        fermi_surface_kpoint_distance: float = 0.04,
         print_summary: bool = True,
         summary: dict = None,
     ) -> ProcessBuilder:
@@ -296,6 +298,8 @@ class Wannier90WorkChain(
         :param plot_wannier_functions: if True plot Wannier functions as xsf files.
         :param retrieve_hamiltonian: if True retrieve Wannier Hamiltonian.
         :param retrieve_matrices: if True retrieve amn/mmn/eig/chk/spin files.
+        :param compute_fermi_surface: if True compute the Fermi surface.
+        :param fermi_surface_kpoint_distance: the distance between kpoints for the Fermi surface calculation.
         :param print_summary: if True print a summary of key input parameters
         :param summary: A dict containing key input parameters and can be printed out
         when the `get_builder_from_protocol` returns, to let user have a quick check of the
@@ -389,6 +393,28 @@ class Wannier90WorkChain(
             overrides = recursive_merge(
                 protocol_overrides["retrieve_matrices"], overrides
             )
+
+        if compute_fermi_surface:
+            overrides = recursive_merge(
+                protocol_overrides["compute_fermi_surface"], overrides
+            )
+            if (
+                fermi_surface_kpoint_distance is not None
+                and "fermi_surface_num_points"
+                not in overrides["wannier90"]["wannier90"]["parameters"]
+            ):
+                from aiida_wannier90_workflows.utils.kpoints import (
+                    create_kpoints_from_distance,
+                )
+
+                kpoints = create_kpoints_from_distance(
+                    structure=structure,
+                    distance=fermi_surface_kpoint_distance,
+                )
+
+                overrides["wannier90"]["wannier90"]["parameters"][
+                    "fermi_surface_num_points"
+                ] = " ".join(map(str, kpoints.get_kpoints_mesh()[0]))
 
         if pseudo_family is None:
             if spin_type == SpinType.SPIN_ORBIT:
@@ -1039,7 +1065,9 @@ class Wannier90WorkChain(
                 "structure": self.ctx.current_structure,
                 # The type of `self.inputs['scf']['pw']['pseudos']` is AttributesFrozendict,
                 # we need to convert it to dict, otherwise get_number_of_projections will fail.
-                "pseudos": dict(pseudos),
+                "pseudos": dict(
+                    pseudos  # pylint: disable=possibly-used-before-assignment
+                ),
             }
             if "workchain_projwfc" in self.ctx:
                 num_proj = len(
@@ -1076,7 +1104,10 @@ class Wannier90WorkChain(
             num_elec = None  # to avoid pylint errors
         if check_num_elecs:
             number_of_electrons = get_number_of_electrons(**args)
-            if number_of_electrons != num_elec:
+            if (
+                number_of_electrons
+                != num_elec  # pylint: disable=possibly-used-before-assignment
+            ):
                 self.report(
                     f"number of electrons {number_of_electrons} != QE output {num_elec}"
                 )
