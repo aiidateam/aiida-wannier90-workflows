@@ -124,7 +124,7 @@ def set_parallelization(
         pruned_builder = builder._inputs(prune=True)  # pylint: disable=protected-access
 
     run_hyperqueue = False
-    if code is not None:
+    if code is not None and aiida_hq_installed:
         run_hyperqueue = isinstance(code.computer.get_scheduler(), HyperQueueScheduler)
 
     if run_hyperqueue:
