@@ -188,7 +188,7 @@ class Pw2wannier90BaseWorkChain(ProtocolMixin, QeBaseRestartWorkChain):
                     raise ValueError(
                         f"Must specify `external_projectors_path` when using {projection_type}"
                     )
-                parameters["atom_proj_dir"] = "external_projectors/"
+                parameters["atom_proj_dir"] = external_projectors_path
                 if (
                     external_projectors_froz is not None
                     and len(external_projectors_froz) > 0
