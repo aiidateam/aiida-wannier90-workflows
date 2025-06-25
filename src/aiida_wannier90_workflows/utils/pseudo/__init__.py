@@ -439,7 +439,8 @@ def get_number_of_projections_ext(
         )
 
     # I use the first projector to detect SOCs
-    kind = structure.get_kind_names()[0]
+    kind_name = structure.get_kind_names()[0]
+    kind = structure.get_kind(kind_name).symbol
     spin_orbit_coupling_proj = "j" in external_projectors[kind][0]
     if spin_orbit_coupling and not spin_orbit_coupling_proj:
         raise ValueError(

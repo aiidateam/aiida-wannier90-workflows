@@ -80,7 +80,7 @@ def main():
         for addit_orb in pswfc[element]["additional"]:
             print(addit_orb)
             l = str2l[addit_orb[1]]
-            n = len([_ for _ in pswfc[element]["pswfcs"] if addit_orb[1] in _])
+            n = len([_ for _ in pswfc[element]["pswfcs"] if addit_orb[1].upper() in _])
             if n == 0:
                 # no inner shell found, can only find orbitals from third-party PAO library
                 pao_file = (
