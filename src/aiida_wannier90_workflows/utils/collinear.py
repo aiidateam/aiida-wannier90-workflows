@@ -1,4 +1,5 @@
 """Functions for processing spin-separated calculations."""
+
 import pathlib
 import time
 import typing as ty
@@ -106,9 +107,11 @@ def read_amn_and_output(
         output_seedname=output_seedname,
     )
 
-    with open(up_amn, encoding="utf-8") as up, open(
-        dn_amn, encoding="utf-8"
-    ) as dn, open(output_amn, "w", encoding="utf-8") as out:
+    with (
+        open(up_amn, encoding="utf-8") as up,
+        open(dn_amn, encoding="utf-8") as dn,
+        open(output_amn, "w", encoding="utf-8") as out,
+    ):
         # Throw away the Header and write local time to out
         up.readline()
         dn.readline()
@@ -206,9 +209,11 @@ def read_mmn_and_output(
     #       num_bands * num_bands matrix
     #   ) * nn_tot for same kpt
     # ) * num_kpts
-    with open(up_mmn, encoding="utf-8") as up, open(
-        dn_mmn, encoding="utf-8"
-    ) as dn, open(output_mmn, "w", encoding="utf-8") as out:
+    with (
+        open(up_mmn, encoding="utf-8") as up,
+        open(dn_mmn, encoding="utf-8") as dn,
+        open(output_mmn, "w", encoding="utf-8") as out,
+    ):
         # Throw away the Header and write local time to out
         up.readline()
         dn.readline()
