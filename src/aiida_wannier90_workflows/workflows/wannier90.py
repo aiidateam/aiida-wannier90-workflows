@@ -1342,12 +1342,22 @@ class Wannier90WorkChain(
                 .get_dict()["SYSTEM"]
                 .get("lspinorb", False)
             )
+            spin_non_collinear = (
+                self.inputs["scf"]["pw"]["parameters"]
+                .get_dict()["SYSTEM"]
+                .get("noncolin", False)
+            )
         elif self.should_run_nscf():
             pseudos = self.inputs["nscf"]["pw"]["pseudos"]
             spin_orbit_coupling = (
                 self.inputs["nscf"]["pw"]["parameters"]
                 .get_dict()["SYSTEM"]
                 .get("lspinorb", False)
+            )
+            spin_non_collinear = (
+                self.inputs["scf"]["pw"]["parameters"]
+                .get_dict()["SYSTEM"]
+                .get("noncolin", False)
             )
         else:
             check_num_projs = False
@@ -1371,7 +1381,7 @@ class Wannier90WorkChain(
             ].get_dict()
             spin_orbit_coupling = params.get("spinors", False)
             number_of_projections = get_number_of_projections(
-                **args, spin_orbit_coupling=spin_orbit_coupling
+                **args, spin_non_collinear=spin_non_collinear, spin_orbit_coupling=spin_orbit_coupling
             )
             if number_of_projections != num_proj:
                 self.report(
@@ -1508,7 +1518,6 @@ class Wannier90WorkChain(
 
         # 2. the number of electrons is consistent with QE output
         # only check num electrons when we already know pseudos in the check num projectors step
-        check_num_elecs = check_num_projs
         if "workchain_scf" in self.ctx:
             num_elec = self.ctx.workchain_scf.outputs["output_parameters"][
                 "number_of_electrons"
