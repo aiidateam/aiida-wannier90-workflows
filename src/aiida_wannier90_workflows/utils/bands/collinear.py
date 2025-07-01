@@ -1,4 +1,5 @@
 """Functions for spin collinear bands claculations."""
+
 import numpy as np
 
 from aiida import orm

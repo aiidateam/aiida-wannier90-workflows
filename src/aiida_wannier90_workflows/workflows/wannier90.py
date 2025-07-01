@@ -384,7 +384,7 @@ class Wannier90WorkChain(
             SpinType.NONE,
             SpinType.SPIN_ORBIT,
             SpinType.NON_COLLINEAR,
-            SpinType.COLLINEAR
+            SpinType.COLLINEAR,
         ]:
             raise NotImplementedError(f"spin type `{spin_type}` is not supported.")
 
@@ -970,19 +970,19 @@ class Wannier90WorkChain(
 
             if spin is None:
                 base_inputs["bands"] = self.ctx.workchain_projwfc.outputs.bands
-                base_inputs[
-                    "bands_projections"
-                ] = self.ctx.workchain_projwfc.outputs.projections
+                base_inputs["bands_projections"] = (
+                    self.ctx.workchain_projwfc.outputs.projections
+                )
             elif spin == "up":
                 base_inputs["bands"] = self.ctx.workchain_projwfc.outputs.bands_up
-                base_inputs[
-                    "bands_projections"
-                ] = self.ctx.workchain_projwfc.outputs.projections_up
+                base_inputs["bands_projections"] = (
+                    self.ctx.workchain_projwfc.outputs.projections_up
+                )
             elif spin == "down":
                 base_inputs["bands"] = self.ctx.workchain_projwfc.outputs.bands_down
-                base_inputs[
-                    "bands_projections"
-                ] = self.ctx.workchain_projwfc.outputs.projections_down
+                base_inputs["bands_projections"] = (
+                    self.ctx.workchain_projwfc.outputs.projections_down
+                )
             else:
                 raise ValueError(f"Not supported spin component {spin}")
 
@@ -1493,18 +1493,18 @@ class Wannier90WorkChain(
                     return self.exit_codes.ERROR_SANITY_CHECK_FAILED
 
             if "workchain_wannier90" in self.ctx and not self.ctx.spin_collinear:
-                    params = self.ctx.workchain_wannier90.inputs["wannier90"][
-                        "parameters"
-                    ].get_dict()
-                    spin_orbit_coupling = params.get("spinors", False)
-                    number_of_projections = get_number_of_projections(
-                        **args, spin_orbit_coupling=spin_orbit_coupling
+                params = self.ctx.workchain_wannier90.inputs["wannier90"][
+                    "parameters"
+                ].get_dict()
+                spin_orbit_coupling = params.get("spinors", False)
+                number_of_projections = get_number_of_projections(
+                    **args, spin_orbit_coupling=spin_orbit_coupling
+                )
+                if number_of_projections != num_proj:
+                    self.report(
+                        f"number of projections {number_of_projections} != projwfc.x output {num_proj}"
                     )
-                    if number_of_projections != num_proj:
-                        self.report(
-                            f"number of projections {number_of_projections} != projwfc.x output {num_proj}"
-                        )
-                        return self.exit_codes.ERROR_SANITY_CHECK_FAILED
+                    return self.exit_codes.ERROR_SANITY_CHECK_FAILED
 
         # 2. the number of electrons is consistent with QE output
         # only check num electrons when we already know pseudos in the check num projectors step
