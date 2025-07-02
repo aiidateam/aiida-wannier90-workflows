@@ -14,8 +14,8 @@ def get_last_calcjob(workchain: orm.WorkChainNode) -> orm.CalcJobNode:
     if len(calcs) == 0:
         return None
 
-    # Sort by PK to get latest calcjob
-    calcs.sort(key=lambda _: _.pk)
+    # Sort by schedular_job_id to get latest calcjob
+    calcs.sort(key=lambda _: int(_.get_job_id()))
     last_calcjob = calcs[-1]
 
     return last_calcjob
