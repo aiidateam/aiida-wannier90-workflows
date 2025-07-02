@@ -112,7 +112,7 @@ def test_spin_type(generate_builder_inputs):
     #         builder = Wannier90WorkChain.get_builder_from_protocol(
     #             **generate_builder_inputs(), spin_type=spin_type, print_summary=False
     #         )
-    # TODO: add examples
+    # TODO: add tests for collinear and noncollinears
 
     builder = Wannier90WorkChain.get_builder_from_protocol(
         **generate_builder_inputs(), spin_type=SpinType.NONE, print_summary=False
