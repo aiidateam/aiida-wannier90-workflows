@@ -39,6 +39,9 @@ def validate_inputs(  # pylint: disable=unused-argument,inconsistent-return-stat
     if "scf" not in inputs:
         if "nscf" in inputs and "parent_folder" not in inputs["nscf"]["pw"]:
             return "If skipping scf step, nscf inputs must have a `parent_folder`"
+        elif "nscf" not in inputs:
+            if "parent_folder" not in inputs["pw2wannier90"]["pw2wannier90"]:
+                return "If skipping scf step, pw2wannier90 inputs must have a `parent_folder`"
 
     # Cannot specify both `auto_energy_windows` and `scdm_proj`
     pw2wannier_parameters = inputs["pw2wannier90"]["pw2wannier90"][
@@ -645,10 +648,12 @@ class Wannier90WorkChain(
                 self.ctx.current_folder = self.inputs["projwfc"]["projwfc"][
                     "parent_folder"
                 ]
+                self.ctx.workchain_nscf = self.ctx.current_folder.creator.caller
             else:
                 self.ctx.current_folder = self.inputs["pw2wannier90"]["pw2wannier90"][
                     "parent_folder"
                 ]
+                self.ctx.workchain_nscf = self.ctx.current_folder.creator.caller
 
     def should_run_scf(self) -> bool:
         """If the 'scf' input namespace was specified, run the scf workchain."""
@@ -759,7 +764,10 @@ class Wannier90WorkChain(
             scf_output_parameters = self.ctx.workchain_scf.outputs.output_parameters
             fermi_energy = get_fermi_energy(scf_output_parameters)
         elif "workchain_nscf" in self.ctx:
-            fermi_energy = get_fermi_energy_from_nscf(self.ctx.workchain_nscf)
+            if "fermi_energy" not in parameters: # we can provide it if the workchain_nscf was already performed before this run.
+                fermi_energy = get_fermi_energy_from_nscf(self.ctx.workchain_nscf)
+            else: 
+                fermi_energy = parameters["fermi_energy"]
         else:
             if "fermi_energy" in parameters:
                 fermi_energy = parameters["fermi_energy"]
@@ -1060,6 +1068,12 @@ class Wannier90WorkChain(
             check_num_projs = False
             pseudos = None
             spin_orbit_coupling = None
+
+        if "workchain_nscf" in self.ctx: # in case we provide nscf as parent input (previously computed), we do not have it in self.inputs
+                pseudos = self.ctx["workchain_nscf"].inputs.pw.pseudos
+        else:
+            pseudos = self.inputs["nscf"]["pw"]["pseudos"]
+
         if check_num_projs:
             args = {
                 "structure": self.ctx.current_structure,
