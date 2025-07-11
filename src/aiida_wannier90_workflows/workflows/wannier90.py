@@ -697,9 +697,19 @@ class Wannier90WorkChain(
                 self.ctx.current_folder = self.inputs["pw2wannier90"]["pw2wannier90"][
                     "parent_folder"
                 ]
-            self.ctx.spin_collinear = (
-                self.inputs["nscf"]["pw"]["parameters"]["SYSTEM"].get("nspin", 1) == 2
-            )
+            # determine if we should use collinear spin.
+            if self.should_run_nscf():
+                self.ctx.spin_collinear = (
+                    self.inputs["nscf"]["pw"]["parameters"]["SYSTEM"].get("nspin", 1)
+                    == 2
+                )
+            else:
+                self.ctx.spin_collinear = False
+                self.report(
+                    "Warning: "
+                    "currently can not determine whether the workflow uses collinear spin, "
+                    "because it skips scf and nscf steps."
+                )
         else:
             self.ctx.spin_collinear = (
                 self.inputs["scf"]["pw"]["parameters"]["SYSTEM"].get("nspin", 1) == 2
