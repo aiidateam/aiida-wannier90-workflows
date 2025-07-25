@@ -19,7 +19,11 @@ load_profile()
 
 
 def generate_semicore_dict(pseudo: UpfData, semicore_threshold=-1.8) -> dict:
-    """Generate the semicore dict for a given pseudo potential."""
+    """Generate the semicore dict for a given pseudo potential.
+
+    Fails if there is no `pseudo_energy` in the UPF file.
+    In this case, use the `generate_semicore_dict_from_orbitals` function instead.
+    """
     upf = UPFDict.from_str(pseudo.get_content())
     filename = pseudo.filename
     md5_hash = hashlib.md5(pseudo.get_content().encode()).hexdigest()
@@ -55,6 +59,7 @@ def generate_semicore_dict_from_orbitals(pseudo: UpfData) -> dict:
     """Generate the semicore dict based on the orbitals in the pseudo.
 
     Take into account the element's position in the periodic table.
+    More robust way to determine semicores, works also for UPF version 1.
     """
     from ase.data import atomic_numbers
 
