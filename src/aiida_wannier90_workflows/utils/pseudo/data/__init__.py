@@ -37,6 +37,9 @@ class PSHandler(xml.sax.ContentHandler):
     This script can generate cutoff energy/rho, pswfcs and semicores for
     FULLY RELATIVISTIC pseudopotentials (rel-*).
     Use SSSP or Pesudo-dojo for scalar/non relativistic pseudos.
+    Warning: this script does not work for UPF version 1!
+    For version 1, use the `generate_semicore_dict_from_orbitals` function in
+    `aiida_wannier90_workflows/dev/semicore/pseudos.py` instead.
     """
 
     def __init__(self) -> None:
@@ -104,6 +107,10 @@ class PSHandler(xml.sax.ContentHandler):
                     ll = 1
                 if orbtype == "F":
                     ll = 2
+                else:
+                    raise ValueError(
+                        f"Unknown orbital type: {orbtype} in {orb} for element {self.znum}"
+                    )
                 self.pswfcs_shell.append(nn + ll)
 
     def endElement(self, name):
