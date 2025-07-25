@@ -1123,6 +1123,10 @@ class Wannier90WorkChain(
             elif self.ctx.current_spin == "down":
                 last_calc = get_last_calcjob(self.ctx.workchain_wannier90_pp_down)
                 inputs["remote_input_folder"] = self.ctx.current_folder_down
+            else:
+                raise ValueError(
+                    f"Unsupported spin component {self.ctx.current_spin}. Expected 'up' or 'down'."
+                )
         else:
             last_calc = get_last_calcjob(self.ctx.workchain_wannier90_pp)
             inputs["remote_input_folder"] = self.ctx.current_folder
@@ -1369,7 +1373,7 @@ class Wannier90WorkChain(
                 .get("lspinorb", False)
             )
             spin_non_collinear = (
-                self.inputs["scf"]["pw"]["parameters"]
+                self.inputs["nscf"]["pw"]["parameters"]
                 .get_dict()["SYSTEM"]
                 .get("noncolin", False)
             )
