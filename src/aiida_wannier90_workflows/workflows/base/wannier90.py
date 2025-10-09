@@ -414,20 +414,20 @@ class Wannier90BaseWorkChain(ProtocolMixin, BaseRestartWorkChain):
             projections = []
             if external_projectors is None:
                 for kind in structure.kinds:
-                    for orb in pseudo_orbitals[kind.symbol]["pswfcs"]:
+                    for orb in pseudo_orbitals[kind.name]["pswfcs"]:
                         if meta_parameters["exclude_semicore"]:
-                            if orb in pseudo_orbitals[kind.symbol]["semicores"]:
+                            if orb in pseudo_orbitals[kind.name]["semicores"]:
                                 continue
                         projections.append(f"{kind.name}:{orb[-1].lower()}")
             else:  # external_projectors is not None
                 for kind in structure.kinds:
-                    for orb in external_projectors[kind.symbol]:
+                    for orb in external_projectors[kind.name]:
                         if spin_orbit_coupling and orb.get("j", 0.0) < orb["l"]:
                             continue  # avoid repeated counting
                         if meta_parameters["exclude_semicore"]:
                             if (
                                 orb["label"].upper()
-                                in pseudo_orbitals[kind.symbol]["semicores"]
+                                in pseudo_orbitals[kind.name]["semicores"]
                             ):
                                 continue
                         projections.append(f"{kind.name}:{orb['label'][-1].lower()}")
