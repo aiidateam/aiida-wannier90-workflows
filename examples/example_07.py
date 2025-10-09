@@ -121,7 +121,7 @@ def cli(
     """Run a ``Wannier90BandsWorkChain`` with external projectors.
 
     FILENAME: a crystal structure file, e.g., ``input_files/GaAs.xsf``.
-    PSEUDO_FAMILY: label of pseudo family, e.g., ``SSSP/1.1/PBE/efficiency``.
+    PSEUDO_FAMILY: label of pseudo family, e.g., ``SSSP/1.3/PBEsol/efficiency``.
     EXTERNAL_PROJECTORS_PATH: the path to the directory on computing node which includes the external projectors.
     e.g., ``input_files/external_projectors/``
     """

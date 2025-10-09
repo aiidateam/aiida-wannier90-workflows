@@ -118,26 +118,56 @@ def bands_distance_for_group(  # pylint: disable=too-many-statements,too-many-lo
             # so the outputs.band_structure might be empty.
             # Here if the band is empty, I try to use another output BandsData,
             # in principle they should be the same.
+            # When spin_tyep == SpinType.COLLINEAR, the interpolated_bands from
+            # sub-workchain are not same as band_structure in outputs,
+            # so here needs an error
             if wan_wc.process_class == Wannier90OptimizeWorkChain:
                 bands_wannier_node = wan_wc.outputs.wannier90_optimal.interpolated_bands
             else:
-                bands_wannier_node = wan_wc.outputs.wannier90.interpolated_bands
-            if np.prod(bands_wannier_node.base.attributes.all["array|bands"]) == 0:
                 bands_wannier_node = wan_wc.outputs.band_structure
-            try:
-                last_wan = (
-                    wan_wc.base.links.get_outgoing(link_label_filter="wannier90")
-                    .one()
-                    .node
-                )
-                if "parameters" in last_wan.inputs:
-                    exclude_list_dft = last_wan.inputs["parameters"]["exclude_bands"]
-                else:
-                    exclude_list_dft = last_wan.inputs["wannier90"]["parameters"][
-                        "exclude_bands"
-                    ]
-            except KeyError:
-                exclude_list_dft = []
+            if (
+                wan_wc.inputs.nscf.pw.parameters.get_dict()["SYSTEM"].get("nspin", 1)
+                == 2
+            ):
+                if np.prod(bands_wannier_node.base.attributes.all["array|bands"]) == 0:
+                    raise ValueError(
+                        f"BandsData<{bands_wannier_node.pk}> in {bands_wc.process_class}<{bands_wc.pk}> are enmpy"
+                    )
+                try:
+                    last_wan = (
+                        wan_wc.base.links.get_outgoing(link_label_filter="wannier90_up")
+                        .one()
+                        .node
+                    )
+                    if "parameters" in last_wan.inputs:
+                        exclude_list_dft = last_wan.inputs["parameters"][
+                            "exclude_bands"
+                        ]
+                    else:
+                        exclude_list_dft = last_wan.inputs["wannier90"]["parameters"][
+                            "exclude_bands"
+                        ]
+                except KeyError:
+                    exclude_list_dft = []
+            else:
+                if np.prod(bands_wannier_node.base.attributes.all["array|bands"]) == 0:
+                    bands_wannier_node = wan_wc.outputs.wannier90.interpolated_bands
+                try:
+                    last_wan = (
+                        wan_wc.base.links.get_outgoing(link_label_filter="wannier90")
+                        .one()
+                        .node
+                    )
+                    if "parameters" in last_wan.inputs:
+                        exclude_list_dft = last_wan.inputs["parameters"][
+                            "exclude_bands"
+                        ]
+                    else:
+                        exclude_list_dft = last_wan.inputs["wannier90"]["parameters"][
+                            "exclude_bands"
+                        ]
+                except KeyError:
+                    exclude_list_dft = []
 
         print(bands_wc.pk, wan_wc.pk)
         dist = bands_distance(

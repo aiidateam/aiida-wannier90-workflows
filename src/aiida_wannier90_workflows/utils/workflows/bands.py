@@ -107,6 +107,12 @@ def has_overlapping_semicore(pw_bands: orm.BandsData, exclude_bands: ty.List) ->
 
     # return array n_kpts x n_bands
     bands = pw_bands.get_bands()
+    if len(bands.shape) == 3:  # spin collinear
+        # For causual calculation, bands.shape = (num_kpts, num_bands).
+        # For spin collinear calculation, bands.shape = (2, num_kpts, num_bands).
+        # I move axis for spin_collinear bands to (num_kpts, num_bands, 2)
+        # to avoid too much change in this function.
+        bands = np.moveaxis(bands, [1, 2], [0, 1])
 
     if exclude_bands is None or len(exclude_bands) == 0:
         return False

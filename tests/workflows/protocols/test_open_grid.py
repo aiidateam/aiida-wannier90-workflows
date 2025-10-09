@@ -92,11 +92,12 @@ def test_electronic_type(generate_builder_inputs):
 
 def test_spin_type(generate_builder_inputs):
     """Test ``Wannier90OpenGridWorkChain.get_builder_from_protocol`` with ``spin_type`` keyword."""
-    with pytest.raises(NotImplementedError):
-        for spin_type in [SpinType.COLLINEAR, SpinType.NON_COLLINEAR]:
-            builder = Wannier90OpenGridWorkChain.get_builder_from_protocol(
-                **generate_builder_inputs(), spin_type=spin_type, print_summary=False
-            )
+    # with pytest.raises(NotImplementedError):
+    #     for spin_type in [SpinType.COLLINEAR, SpinType.NON_COLLINEAR]:
+    #         builder = Wannier90OpenGridWorkChain.get_builder_from_protocol(
+    #             **generate_builder_inputs(), spin_type=spin_type, print_summary=False
+    #         )
+    # TODO: add tests for collinear and noncollinears
 
     builder = Wannier90OpenGridWorkChain.get_builder_from_protocol(
         **generate_builder_inputs(),

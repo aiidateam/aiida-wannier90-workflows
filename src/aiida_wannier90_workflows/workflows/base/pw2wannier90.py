@@ -56,7 +56,9 @@ def validate_inputs(  # pylint: disable=unused-argument,inconsistent-return-stat
             return "`scdm_proj` is True but `bands_projections` or `bands` is empty"
 
         # Check `bands` and `bands_projections` are consistent
-        bands_num_kpoints, bands_num_bands = inputs["bands"].attributes["array|bands"]
+        bands_num_kpoints, bands_num_bands = inputs["bands"].base.attributes.all[
+            "array|bands"
+        ]
         projections_num_kpoints, projections_num_bands = inputs[
             "bands_projections"
         ].base.attributes.all["array|proj_array_0"]
