@@ -36,6 +36,8 @@ def validate_inputs(inputs, ctx=None):  # pylint: disable=unused-argument
     if optimize_disproj:
         if all(_ not in parameters for _ in ("dis_proj_min", "dis_proj_max")):
             return "Trying to optimize dis_proj_min/max but no dis_proj_min/max in wannier90 parameters?"
+        if "`optimize_reference_bands`" not in inputs:
+            return "Trying to optimize dis_proj_min/max but no `optimize_reference_bands` provided for checking bands distance?"
 
     if "optimize_reference_bands" in inputs and not optimize_disproj:
         warnings.warn(
