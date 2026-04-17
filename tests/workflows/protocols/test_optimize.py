@@ -24,6 +24,17 @@ def test_get_default_protocol():
     assert Wannier90OptimizeWorkChain.get_default_protocol() == "moderate"
 
 
+def test_fast_protocol_optimize_disproj_disabled(generate_builder_inputs):
+    """Test ``protocol='fast'`` sets ``optimize_disproj`` to ``False``."""
+    builder = Wannier90OptimizeWorkChain.get_builder_from_protocol(
+        **generate_builder_inputs(),
+        protocol="fast",
+        print_summary=False,
+    )
+
+    assert builder.optimize_disproj.value is False
+
+
 @pytest.mark.parametrize("structure", ("Si", "H2O", "GaAs", "BaTiO3"))
 def test_atomic_projectors_qe(
     generate_builder_inputs, data_regression, serialize_builder, structure

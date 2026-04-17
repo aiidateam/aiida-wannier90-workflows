@@ -1,5 +1,6 @@
 default_inputs:
     clean_workdir: False
+    optimize_disproj: True
 default_protocol: moderate
 protocols:
     moderate:
@@ -8,3 +9,4 @@ protocols:
         description: 'Protocol to perform the computation at high precision at higher computational cost.'
     fast:
         description: 'Protocol to perform the computation at low precision at minimal computational cost for testing purposes.'
+        optimize_disproj: False
