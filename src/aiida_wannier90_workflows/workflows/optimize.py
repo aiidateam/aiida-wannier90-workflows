@@ -342,9 +342,12 @@ class Wannier90OptimizeWorkChain(
         builder = cls.get_builder()
         builder._data = parent_builder._data  # pylint: disable=protected-access
 
+        # Preserve optimize-specific protocol inputs which are not part of
+        # the parent builder namespace and therefore are not copied above.
+        builder.optimize_disproj = inputs.get("optimize_disproj", True)
+
         # Inputs for optimizing dis_proj_min/max
         if reference_bands:
-            builder.optimize_disproj = True
             builder.optimize_reference_bands = reference_bands
             builder.optimize_bands_distance_threshold = bands_distance_threshold
 

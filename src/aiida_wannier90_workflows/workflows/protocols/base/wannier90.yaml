@@ -46,7 +46,7 @@ protocols:
             conv_tol_per_atom: 1.e-5
             dis_conv_tol_per_atom: 1.e-5
             num_bands_factor: 1.2
-            kpoints_distance: 0.5
+            kpoints_distance: 0.4
         wannier90:
             parameters:
                 conv_window: 1
