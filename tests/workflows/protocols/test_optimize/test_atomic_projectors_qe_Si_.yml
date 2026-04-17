@@ -37,6 +37,7 @@ nscf:
         smearing: cold
     pseudos:
       Si: Si.pbe-n-rrkjus_psl.1.0.0.UPF
+optimize_disproj: true
 pw2wannier90:
   pw2wannier90:
     code: test.quantumespresso.pw2wannier90@localhost

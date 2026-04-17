@@ -39,6 +39,7 @@ nscf:
         smearing: cold
     pseudos:
       Si: Si.upf
+optimize_disproj: true
 pw2wannier90:
   pw2wannier90:
     code: test.quantumespresso.pw2wannier90@localhost

@@ -38,6 +38,7 @@ nscf:
     pseudos:
       As: As.pbe-n-rrkjus_psl.0.2.UPF
       Ga: Ga.pbe-dn-kjpaw_psl.1.0.0.UPF
+optimize_disproj: true
 pw2wannier90:
   pw2wannier90:
     code: test.quantumespresso.pw2wannier90@localhost
