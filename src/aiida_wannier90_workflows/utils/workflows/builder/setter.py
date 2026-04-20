@@ -382,9 +382,9 @@ def get_metadata(
         }
     }
     if num_mpiprocs_per_machine:
-        metadata["options"]["resources"][
-            "num_mpiprocs_per_machine"
-        ] = num_mpiprocs_per_machine
+        metadata["options"]["resources"]["num_mpiprocs_per_machine"] = (
+            num_mpiprocs_per_machine
+        )
     if queue_name:
         metadata["options"]["queue_name"] = queue_name
     if queue_name:
@@ -434,9 +434,12 @@ def get_metadata_hq(
     :return: metadata dict
     :rtype: dict
     """
+    resources = {"num_cpus": num_cpus}
+    if memory_mb:
+        resources["memory_mb"] = memory_mb
     metadata = {
         "options": {
-            "resources": {"num_cpus": num_cpus, "memory_mb": memory_mb},
+            "resources": resources,
             "max_wallclock_seconds": max_wallclock_seconds,
             "withmpi": True,
         }
@@ -463,7 +466,7 @@ def get_settings_for_kpool(npool: int):
 
 
 def guess_process_class_from_builder(
-    builder: ty.Union[ProcessBuilder, ProcessBuilderNamespace]
+    builder: ty.Union[ProcessBuilder, ProcessBuilderNamespace],
 ) -> orm.ProcessNode:
     """Try to guess the process class of the ``builder``.
 
