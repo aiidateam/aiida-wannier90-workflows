@@ -387,7 +387,7 @@ def get_metadata(
         )
     if queue_name:
         metadata["options"]["queue_name"] = queue_name
-    if queue_name:
+    if account:
         metadata["options"]["account"] = account
 
     return metadata
