@@ -27,6 +27,10 @@ nscf:
         mixing_beta: 0.4
         startingpot: file
       SYSTEM:
+        angle1:
+          Si: 0.0
+        angle2:
+          Si: 0.0
         degauss: 0.02
         ecutrho: 300.0
         ecutwfc: 40.0
@@ -35,8 +39,11 @@ nscf:
         noinv: true
         noncolin: true
         nosym: true
+        nspin: 4
         occupations: smearing
         smearing: cold
+        starting_magnetization:
+          Si: 0.1
     pseudos:
       Si: Si.upf
 optimize_disproj: true
@@ -77,14 +84,21 @@ scf:
         electron_maxstep: 80
         mixing_beta: 0.4
       SYSTEM:
+        angle1:
+          Si: 0.0
+        angle2:
+          Si: 0.0
         degauss: 0.02
         ecutrho: 300.0
         ecutwfc: 40.0
         lspinorb: true
         noncolin: true
         nosym: false
+        nspin: 4
         occupations: smearing
         smearing: cold
+        starting_magnetization:
+          Si: 0.1
     pseudos:
       Si: Si.upf
 structure: Si2

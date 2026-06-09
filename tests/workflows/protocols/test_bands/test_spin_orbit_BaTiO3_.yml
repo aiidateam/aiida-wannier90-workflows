@@ -27,6 +27,14 @@ nscf:
         mixing_beta: 0.4
         startingpot: file
       SYSTEM:
+        angle1:
+          Ba: 0.0
+          O: 0.0
+          Ti: 0.0
+        angle2:
+          Ba: 0.0
+          O: 0.0
+          Ti: 0.0
         degauss: 0.02
         ecutrho: 300.0
         ecutwfc: 40.0
@@ -35,8 +43,13 @@ nscf:
         noinv: true
         noncolin: true
         nosym: true
+        nspin: 4
         occupations: smearing
         smearing: cold
+        starting_magnetization:
+          Ba: 0.1
+          O: 0.1
+          Ti: 0.4166666666666667
     pseudos:
       Ba: Ba.upf
       O: O.upf
@@ -91,14 +104,27 @@ scf:
         electron_maxstep: 80
         mixing_beta: 0.4
       SYSTEM:
+        angle1:
+          Ba: 0.0
+          O: 0.0
+          Ti: 0.0
+        angle2:
+          Ba: 0.0
+          O: 0.0
+          Ti: 0.0
         degauss: 0.02
         ecutrho: 300.0
         ecutwfc: 40.0
         lspinorb: true
         noncolin: true
         nosym: false
+        nspin: 4
         occupations: smearing
         smearing: cold
+        starting_magnetization:
+          Ba: 0.1
+          O: 0.1
+          Ti: 0.4166666666666667
     pseudos:
       Ba: Ba.upf
       O: O.upf
