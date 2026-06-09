@@ -27,6 +27,12 @@ nscf:
         mixing_beta: 0.4
         startingpot: file
       SYSTEM:
+        angle1:
+          As: 0.0
+          Ga: 0.0
+        angle2:
+          As: 0.0
+          Ga: 0.0
         degauss: 0.02
         ecutrho: 300.0
         ecutwfc: 40.0
@@ -35,8 +41,12 @@ nscf:
         noinv: true
         noncolin: true
         nosym: true
+        nspin: 4
         occupations: smearing
         smearing: cold
+        starting_magnetization:
+          As: 0.1
+          Ga: 0.1
     pseudos:
       As: As.upf
       Ga: Ga.upf
@@ -90,14 +100,24 @@ scf:
         electron_maxstep: 80
         mixing_beta: 0.4
       SYSTEM:
+        angle1:
+          As: 0.0
+          Ga: 0.0
+        angle2:
+          As: 0.0
+          Ga: 0.0
         degauss: 0.02
         ecutrho: 300.0
         ecutwfc: 40.0
         lspinorb: true
         noncolin: true
         nosym: false
+        nspin: 4
         occupations: smearing
         smearing: cold
+        starting_magnetization:
+          As: 0.1
+          Ga: 0.1
     pseudos:
       As: As.upf
       Ga: Ga.upf
