@@ -478,29 +478,15 @@ class Wannier90WorkChain(
                     ]["pseudo_family"]
                 )
 
-        # As PwBaseWorkChain.get_builder_from_protocol() does not support SOC, we have to pass the
-        # desired parameters through the overrides. In this case we need to set the `pw.x`
-        # spin_type to SpinType.NONE, otherwise the builder will raise an error.
-        # This block should be removed once SOC is supported in PwBaseWorkChain.
+        # PwBaseWorkChain.get_builder_from_protocol handles SOC/non-collinear natively
+        # (sets noncolin/nspin/lspinorb and seeds starting_magnetization), so pass
+        # spin_type straight through. SOC is magnetically initialized by default.
         spin_orbit_coupling = spin_type == SpinType.SPIN_ORBIT
         spin_non_collinear = (
             spin_type == SpinType.NON_COLLINEAR
         ) or spin_orbit_coupling
 
-        if spin_type == SpinType.NON_COLLINEAR:
-            overrides = recursive_merge(
-                protocol_overrides["spin_noncollinear"], overrides
-            )
-        if spin_type == SpinType.SPIN_ORBIT:
-            overrides = recursive_merge(protocol_overrides["spin_orbit"], overrides)
-            if (initial_magnetic_moments is not None) or any(
-                "magmom" in kind for kind in structure.base.attributes.all["kinds"]
-            ):
-                pw_spin_type = SpinType.NON_COLLINEAR
-            else:
-                pw_spin_type = SpinType.NONE
-        else:
-            pw_spin_type = spin_type
+        pw_spin_type = spin_type
 
         inputs = cls.get_protocol_inputs(protocol=protocol, overrides=overrides)
 
