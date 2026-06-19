@@ -142,7 +142,7 @@ def generate_inputs_pw2wannier90_base(
 
         inputs = {
             "code": fixture_code("quantumespresso.pw2wannier90"),
-            "parameters": orm.Dict({"inputpp": {}}),
+            "parameters": orm.Dict({"INPUTPP": {}}),
             "nnkp_file": orm.SinglefileData(file=nnkp_filepath).store(),
             "parent_folder": generate_remote_data(
                 fixture_localhost,
@@ -305,7 +305,7 @@ def generate_inputs_wannier90(generate_inputs_pw, fixture_code):
             "metadata": {"options": get_default_options()},
         }
         pw2wan_params = {
-            "inputpp": {
+            "INPUTPP": {
                 "scdm_proj": True,
                 "scdm_entanglement": "erfc",
             }

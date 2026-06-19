@@ -61,7 +61,7 @@ pw2wannier90:
           num_machines: 1
         withmpi: true
     parameters:
-      inputpp:
+      INPUTPP:
         scdm_entanglement: erfc
         scdm_proj: true
 scf:
