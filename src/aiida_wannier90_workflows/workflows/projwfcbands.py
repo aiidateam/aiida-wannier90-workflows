@@ -136,8 +136,11 @@ class ProjwfcBandsWorkChain(PwBandsWorkChain):
         pwbands_builder.pop("relax", None)
 
         projwfc_builder = ProjwfcBaseWorkChain.get_builder_from_protocol(
-            projwfc_code, protocol=protocol, overrides=projwfc_overrides
+            projwfc_code,
+            protocol=protocol,
+            overrides=projwfc_overrides,
         )
+        projwfc_builder["projwfc"]["metadata"]["options"] = kwargs.get("options", {})
         projwfc_builder.pop("clean_workdir", None)
 
         builder.projwfc = projwfc_builder

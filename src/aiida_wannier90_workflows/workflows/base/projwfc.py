@@ -5,7 +5,7 @@ import typing as ty
 
 from aiida import orm
 from aiida.common.lang import type_check
-from aiida.engine import process_handler
+from aiida.engine import ProcessHandlerReport, process_handler
 from aiida.engine.processes.builder import ProcessBuilder
 
 from aiida_quantumespresso.calculations.projwfc import ProjwfcCalculation
@@ -96,6 +96,35 @@ class ProjwfcBaseWorkChain(ProtocolMixin, QeBaseRestartWorkChain):
             _process_class.exit_codes.ERROR_OUTPUT_STDOUT_INCOMPLETE
         ]  # pylint: disable=no-member
     )
-    def handle_output_stdout_incomplete(self, calculation):
-        """Overide parent function."""
-        return super().handle_output_stdout_incomplete(calculation)
+    def handle_output_stdout_incomplete(self, calculation) -> ProcessHandlerReport:
+
+        pd_line = "Use pencil decomposition (-pd .true.)"
+        scheduler_stderr = calculation.get_scheduler_stderr()
+
+        if pd_line not in scheduler_stderr:
+            return super().handle_output_stdout_incomplete(calculation)
+
+        settings_dict = self.ctx.inputs.pop("settings", {})
+        cmdline_params = settings_dict.get("cmdline", [])
+
+        # If pencil decomposition is already enabled, treat as unrecoverable.
+        if "-pd" in cmdline_params:
+            action = (
+                "Unrecoverable incomplete stdout error: pencil decomposition "
+                "(-pd .true.) already enabled"
+            )
+            self.report_error_handled(calculation, action)
+            return ProcessHandlerReport(
+                True, self.exit_codes.ERROR_OUTPUT_STDOUT_INCOMPLETE
+            )
+
+        cmdline_params.extend(["-pd", ".true."])
+        settings_dict["cmdline"] = cmdline_params
+        self.ctx.inputs["settings"] = settings_dict
+
+        action = (
+            "Enabled pencil decomposition (-pd .true.) after incomplete stdout error"
+        )
+        self.report_error_handled(calculation, action)
+
+        return ProcessHandlerReport(True)
