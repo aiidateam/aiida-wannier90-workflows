@@ -1,6 +1,7 @@
 """Utility functions for pseudo potential family."""
 
 import typing as ty
+import warnings
 
 from aiida import orm
 from aiida.common import exceptions
@@ -10,6 +11,27 @@ PseudoPotentialData = DataFactory("pseudo")
 SsspFamily = GroupFactory("pseudo.family.sssp")
 PseudoDojoFamily = GroupFactory("pseudo.family.pseudo_dojo")
 CutoffsPseudoPotentialFamily = GroupFactory("pseudo.family.cutoffs")
+
+
+# Two-class split only because requires-python is 3.9: merge into a single
+# TypedDict with NotRequired[...] fields once python >= 3.11.
+class _PseudoOrbitalsTableMeta(ty.TypedDict, total=False):
+    """Optional provenance metadata carried by the bundled semicore tables."""
+
+    filename: str
+    md5: str
+
+
+class PseudoOrbitals(_PseudoOrbitalsTableMeta):
+    """Valence-orbital description of one pseudopotential.
+
+    * ``pswfcs`` — labels of the pseudo wave functions, e.g. ``["3S", "3P"]``.
+    * ``semicores`` — the subset of ``pswfcs`` to treat as semicore states
+      (excluded from the Wannier manifold when ``exclude_semicore`` is on).
+    """
+
+    pswfcs: ty.List[str]
+    semicores: ty.List[str]
 
 
 def get_pseudo_and_cutoff(
@@ -49,24 +71,41 @@ def get_pseudo_and_cutoff(
     return pseudos, cutoff_wfc, cutoff_rho
 
 
-def get_pseudo_orbitals(pseudos: ty.Mapping[str, PseudoPotentialData]) -> dict:
-    """Get the pseudo wave functions contained in the pseudo potential.
+def get_pseudo_orbitals(
+    pseudos: ty.Mapping[str, PseudoPotentialData],
+    overrides: ty.Optional[ty.Mapping[str, PseudoOrbitals]] = None,
+) -> ty.Dict[str, PseudoOrbitals]:
+    """Get the valence orbitals (pseudo wave functions) of each pseudopotential.
 
-    Currently only support the following pseudopotentials installed by `aiida-pseudo`:
-        * SSSP/1.3/PBE/efficiency
-        * SSSP/1.3/PBEsol/efficiency
-        * SSSP/1.1/PBE/efficiency
-        * SSSP/1.1/PBEsol/efficiency
-        * PseudoDojo/0.4/LDA/SR/standard/upf
-        * PseudoDojo/0.4/LDA/SR/stringent/upf
-        * PseudoDojo/0.4/PBE/SR/standard/upf
-        * PseudoDojo/0.4/PBE/SR/stringent/upf
-        * PseudoDojo/0.5/PBE/SR/standard/upf
-        * PseudoDojo/0.5/PBE/SR/stringent/upf
-        * PseudoDojo/0.4/PBE/FR/standard/upf
-        * Pslibrary/1.0.0/relPBE/PAW
-            ** Pslibrary should be installed manually.
-            ** Please follow `src/aiida_wannier90_workflows/utils/pseudo/data/__init__.py`
+    Resolution proceeds in three tiers, per kind:
+
+    1. an entry in ``overrides``, when given;
+    2. the bundled semicore tables (matched by md5), which carry curated
+       ``semicores`` lists for the following families installed by
+       ``aiida-pseudo``:
+
+       * SSSP/1.3/PBE/efficiency
+       * SSSP/1.3/PBEsol/efficiency
+       * SSSP/1.1/PBE/efficiency
+       * SSSP/1.1/PBEsol/efficiency
+       * PseudoDojo/0.4/LDA/SR/standard/upf
+       * PseudoDojo/0.4/LDA/SR/stringent/upf
+       * PseudoDojo/0.4/PBE/SR/standard/upf
+       * PseudoDojo/0.4/PBE/SR/stringent/upf
+       * PseudoDojo/0.5/PBE/SR/standard/upf
+       * PseudoDojo/0.5/PBE/SR/stringent/upf
+       * PseudoDojo/0.4/PBE/FR/standard/upf
+       * Pslibrary/1.0.0/relPBE/PAW
+
+    3. inference from the pseudo's ``z_valence`` via aufbau filling, with an
+       empty ``semicores`` list (nothing is auto-excluded) and a warning.
+
+    A ``ValueError`` is raised only when none of the tiers can resolve a
+    pseudopotential; its message explains what to pass via ``overrides``.
+
+    :param overrides: optional per-kind :class:`PseudoOrbitals` entries that
+        take precedence over the bundled tables, e.g. ``{"Ti": {"pswfcs":
+        ["3S", "3P", "4S", "3D"], "semicores": ["3S", "3P"]}}``.
     """
     from .data import load_pseudo_metadata
 
@@ -105,16 +144,108 @@ def get_pseudo_orbitals(pseudos: ty.Mapping[str, PseudoPotentialData]) -> dict:
     # pseudos dictionary will contain kinds as keys, which may change
     # e.g. when including Hubbard corrections 'Mn'->'Mn3d'
     for kind in pseudos:
+        if overrides is not None and kind in overrides:
+            pseudo_orbitals[kind] = overrides[kind]
+            continue
         for data in pseudo_data:
             if data.get(pseudos[kind].element, {}).get("md5", "") == pseudos[kind].md5:
                 pseudo_orbitals[kind] = data[pseudos[kind].element]
                 break
         else:
-            raise ValueError(
-                f"Cannot find pseudopotential {kind} with md5 {pseudos[kind].md5}"
+            inferred = _infer_pseudo_orbitals(pseudos[kind])
+            if inferred is None:
+                raise ValueError(
+                    f"Cannot find pseudopotential {kind} with md5 {pseudos[kind].md5}, "
+                    "and its valence orbitals could not be inferred. Provide the entry "
+                    "explicitly via the `overrides` argument, e.g. "
+                    '{"' + str(kind) + '": {"pswfcs": ["3S", "3P"], "semicores": []}}.'
+                )
+            warnings.warn(
+                f"Pseudopotential {kind} (md5 {pseudos[kind].md5}) is not in the bundled "
+                "semicore tables; its valence orbitals were inferred from z_valence "
+                f"({inferred['pswfcs']}) and no semicore states will be excluded. Pass "
+                "`overrides` to specify them explicitly."
             )
+            pseudo_orbitals[kind] = inferred
 
     return pseudo_orbitals
+
+
+# Aufbau filling order and per-l occupancies, used to infer the valence
+# orbitals of pseudopotentials that are not covered by the bundled tables.
+_AUFBAU_ORDER = [
+    (1, "S"), (2, "S"), (2, "P"), (3, "S"), (3, "P"), (4, "S"), (3, "D"),
+    (4, "P"), (5, "S"), (4, "D"), (5, "P"), (6, "S"), (4, "F"), (5, "D"),
+    (6, "P"), (7, "S"), (5, "F"), (6, "D"), (7, "P"),
+]
+_L_OCCUPANCY = {"S": 2, "P": 6, "D": 10, "F": 14}
+_L_INDEX = {"S": 0, "P": 1, "D": 2, "F": 3}
+
+
+def _infer_pseudo_orbitals(pseudo: PseudoPotentialData) -> ty.Optional[PseudoOrbitals]:
+    """Infer a ``get_pseudo_orbitals`` entry from the pseudo's ``z_valence``.
+
+    Walks the aufbau filling of the neutral atom from the outermost shell
+    inward until the pseudo's valence electrons are accounted for; the shells
+    collected on the way are the valence orbitals (semicore-in-valence
+    included, e.g. Ti with z_valence 12 yields 3S 3P 4S 3D). ``semicores``
+    is left empty: which shells to auto-exclude is a curated judgement, so
+    nothing is excluded for inferred entries. When the UPF file exposes its
+    atomic wave functions, their angular-momentum counts are cross-checked
+    against the inference and a mismatch downgrades the result to ``None``.
+
+    Returns ``None`` when the inference is not possible (no ``z_valence``,
+    unknown element, or a failed cross-check).
+    """
+    from aiida.common.constants import elements as _aiida_elements
+
+    z_valence = getattr(pseudo, "z_valence", None)
+    if z_valence is None:
+        return None
+    symbol_to_z = {data["symbol"]: z for z, data in _aiida_elements.items()}
+    z_atom = symbol_to_z.get(pseudo.element)
+    if z_atom is None:
+        return None
+
+    filled = []
+    remaining = z_atom
+    for shell_n, shell_l in _AUFBAU_ORDER:
+        if remaining <= 0:
+            break
+        occupancy = min(_L_OCCUPANCY[shell_l], remaining)
+        filled.append((shell_n, shell_l, occupancy))
+        remaining -= occupancy
+    pswfcs = []
+    accounted = 0
+    for shell_n, shell_l, occupancy in reversed(filled):
+        pswfcs.append(f"{shell_n}{shell_l}")
+        accounted += occupancy
+        if accounted >= round(z_valence):
+            break
+    pswfcs.reverse()
+
+    # Cross-check against the UPF's own atomic wave functions when readable
+    # (their labels are not exposed, but the angular momenta are).
+    try:
+        from upf_to_json import upf_to_json
+
+        upf = upf_to_json(pseudo.get_content(), pseudo.filename)["pseudo_potential"]
+        upf_l_values = sorted(
+            wfc["angular_momentum"] for wfc in upf["atomic_wave_functions"]
+        )
+    except Exception:  # pylint: disable=broad-except
+        upf_l_values = None
+    if upf_l_values:
+        inferred_l_values = sorted(_L_INDEX[label[-1]] for label in pswfcs)
+        if inferred_l_values != upf_l_values:
+            return None
+
+    return PseudoOrbitals(
+        filename=f"{pseudo.element}.upf",
+        md5=pseudo.md5,
+        pswfcs=pswfcs,
+        semicores=[],
+    )
 
 
 def get_semicore_list(
