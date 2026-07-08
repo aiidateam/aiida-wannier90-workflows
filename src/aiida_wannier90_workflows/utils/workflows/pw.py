@@ -28,7 +28,7 @@ def get_fermi_energy(output_parameters: orm.Dict) -> ty.Optional[float]:
 
 def get_fermi_energy_from_nscf(
     calc_nscf: ty.Union[PwBaseWorkChain, PwCalculation]
-) -> float:
+) -> ty.Optional[float]:
     """Parse nscf output to get the scf Fermi energy.
 
     :param calc_nscf: a nscf PwBaseWorkChain or PwCalculation
@@ -68,5 +68,12 @@ def get_fermi_energy_from_nscf(
         if match:
             fermi_energy = float(match.group(1))
             break
+
+    if fermi_energy is None:
+        # Newer QE versions no longer print the "(compare with: ... computed
+        # in scf)" companion line in nscf runs; fall back to the Fermi energy
+        # the parser extracted from the nscf output itself.
+        output_parameters = calc_nscf.outputs.output_parameters.get_dict()
+        fermi_energy = output_parameters.get("fermi_energy")
 
     return fermi_energy

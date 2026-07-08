@@ -820,6 +820,13 @@ class Wannier90WorkChain(
                 fermi_energy = parameters["fermi_energy"]
             else:
                 raise ValueError("Cannot retrieve Fermi energy from scf or nscf output")
+        if fermi_energy is None:
+            # Fail loudly here rather than passing None through to the .win
+            # writer, which rejects it with an opaque "Invalid value" error.
+            raise ValueError(
+                f"Fermi energy resolved to None (nscf {self.ctx.get('workchain_nscf', 'N/A')}): "
+                "neither the stdout marker nor the parsed output_parameters provided a value."
+            )
         parameters["fermi_energy"] = fermi_energy
 
         inputs.parameters = orm.Dict(parameters)
