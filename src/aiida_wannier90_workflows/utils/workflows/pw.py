@@ -75,5 +75,13 @@ def get_fermi_energy_from_nscf(
         # the parser extracted from the nscf output itself.
         output_parameters = calc_nscf.outputs.output_parameters.get_dict()
         fermi_energy = output_parameters.get("fermi_energy")
+        if fermi_energy is None:
+            # Spin-polarised runs with a constrained total magnetization
+            # report one Fermi level per channel; take the highest (the
+            # electron chemical potential across both channels).
+            up = output_parameters.get("fermi_energy_up")
+            down = output_parameters.get("fermi_energy_down")
+            if up is not None and down is not None:
+                fermi_energy = max(up, down)
 
     return fermi_energy
