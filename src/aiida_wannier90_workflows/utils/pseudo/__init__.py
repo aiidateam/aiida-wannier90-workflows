@@ -230,9 +230,24 @@ def _infer_pseudo_orbitals(pseudo: PseudoPotentialData) -> ty.Optional[PseudoOrb
         from upf_to_json import upf_to_json
 
         upf = upf_to_json(pseudo.get_content(), pseudo.filename)["pseudo_potential"]
-        upf_l_values = sorted(
-            wfc["angular_momentum"] for wfc in upf["atomic_wave_functions"]
-        )
+        wfcs = upf["atomic_wave_functions"]
+        if wfcs and all(
+            wfc.get("total_angular_momentum") is not None for wfc in wfcs
+        ):
+            # Fully-relativistic pseudos list one wavefunction per j channel
+            # (l > 0 shells split into j = l +/- 1/2): collapse the split so
+            # the counts compare against the per-shell inference.
+            import math
+            from collections import Counter
+
+            counts = Counter(wfc["angular_momentum"] for wfc in wfcs)
+            upf_l_values = sorted(
+                l
+                for l, count in counts.items()
+                for _ in range(count if l == 0 else math.ceil(count / 2))
+            )
+        else:
+            upf_l_values = sorted(wfc["angular_momentum"] for wfc in wfcs)
     except Exception:  # pylint: disable=broad-except
         upf_l_values = None
     if upf_l_values:
