@@ -1,11 +1,14 @@
 """Utility functions for pseudo potential family."""
 
+import math
 import typing as ty
 import warnings
+from collections import Counter
 
 from aiida import orm
 from aiida.common import exceptions
 from aiida.plugins import DataFactory, GroupFactory
+from upf_tools import UPFDict
 
 PseudoPotentialData = DataFactory("pseudo")
 SsspFamily = GroupFactory("pseudo.family.sssp")
@@ -162,8 +165,9 @@ def get_pseudo_orbitals(
                 )
             warnings.warn(
                 f"Pseudopotential {kind} (md5 {pseudos[kind].md5}) is not in the bundled "
-                "semicore tables; its valence orbitals were inferred from z_valence "
-                f"({inferred['pswfcs']}) and no semicore states will be excluded. Pass "
+                "semicore tables; its valence orbitals were inferred from z_valence and "
+                "validated against the UPF's atomic wave functions "
+                f"({inferred['pswfcs']}), and no semicore states will be excluded. Pass "
                 "`overrides` to specify them explicitly."
             )
             pseudo_orbitals[kind] = inferred
@@ -224,36 +228,42 @@ def _infer_pseudo_orbitals(pseudo: PseudoPotentialData) -> ty.Optional[PseudoOrb
             break
     pswfcs.reverse()
 
-    # Cross-check against the UPF's own atomic wave functions when readable
-    # (their labels are not exposed, but the angular momenta are).
+    # Cross-check against the UPF's own atomic wave functions (their labels
+    # are not exposed, but the angular momenta are). The aufbau inference
+    # above is only trustworthy where it can be validated -- in particular it
+    # is wrong for f-block and heavy elements, where the reverse-Madelung walk
+    # mistakes deep-core f shells for valence -- so a UPF whose angular momenta
+    # cannot be read back (unparseable content, no atomic wave functions,
+    # unexpected structure) is treated as unresolvable: return None so
+    # get_pseudo_orbitals raises and asks for an explicit `overrides` entry,
+    # rather than returning an unvalidated guess.
     try:
-        from upf_to_json import upf_to_json
-
-        upf = upf_to_json(pseudo.get_content(), pseudo.filename)["pseudo_potential"]
-        wfcs = upf["atomic_wave_functions"]
-        if wfcs and all(
-            wfc.get("total_angular_momentum") is not None for wfc in wfcs
-        ):
+        upf = UPFDict.from_str(pseudo.get_content())
+        chi = upf["pswfc"]["chi"]
+        if not chi:
+            return None
+        chi_l_values = [entry["l"] for entry in chi]
+        if upf["header"]["has_so"]:
             # Fully-relativistic pseudos list one wavefunction per j channel
             # (l > 0 shells split into j = l +/- 1/2): collapse the split so
             # the counts compare against the per-shell inference.
-            import math
-            from collections import Counter
-
-            counts = Counter(wfc["angular_momentum"] for wfc in wfcs)
+            counts = Counter(chi_l_values)
             upf_l_values = sorted(
                 l
                 for l, count in counts.items()
                 for _ in range(count if l == 0 else math.ceil(count / 2))
             )
         else:
-            upf_l_values = sorted(wfc["angular_momentum"] for wfc in wfcs)
-    except Exception:  # pylint: disable=broad-except
-        upf_l_values = None
-    if upf_l_values:
-        inferred_l_values = sorted(_L_INDEX[label[-1]] for label in pswfcs)
-        if inferred_l_values != upf_l_values:
-            return None
+            upf_l_values = sorted(chi_l_values)
+    except (KeyError, TypeError, ValueError, IndexError, AttributeError, SyntaxError):
+        # xml.etree ParseError subclasses SyntaxError; a missing PP_PSWFC or
+        # PP_HEADER section surfaces as KeyError once parsed; unparseable
+        # content yields a dict without the expected keys.
+        return None
+
+    inferred_l_values = sorted(_L_INDEX[label[-1]] for label in pswfcs)
+    if inferred_l_values != upf_l_values:
+        return None
 
     return PseudoOrbitals(
         filename=f"{pseudo.element}.upf",
