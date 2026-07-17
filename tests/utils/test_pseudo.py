@@ -17,8 +17,9 @@ def _upf_content(
         ``(n, l, j)`` triples with one entry per j channel.
     :param labels: optional per-entry override of the ``label`` attribute, to
         exercise reconstruction from ``n``/``l`` when the label is unusable.
-    :param occupations: optional per-entry occupation values (default 1.0
-        each), to exercise the occupation/z_valence sanity check.
+    :param occupations: optional per-entry occupation values (by default the
+        ``z_valence`` electrons are spread evenly so the sum agrees), to
+        exercise the occupation/z_valence sanity check.
     :param n_attrs: optional per-entry override of the emitted ``n`` attribute
         (defaults to the label's ``n``), to exercise UPFs whose ``n`` attribute
         is the pseudo (node-based) principal number rather than the atomic one.
@@ -29,20 +30,22 @@ def _upf_content(
     for index, entry in enumerate(chi, start=1):
         n, l = entry[0], entry[1]
         label = f"{n}{letters[l]}" if labels is None else labels[index - 1]
-        occupation = 1.0 if occupations is None else occupations[index - 1]
+        occupation = (
+            float(z_valence) / len(chi)
+            if occupations is None
+            else occupations[index - 1]
+        )
         n_attr = n if n_attrs is None else n_attrs[index - 1]
         label_attr = "" if label is None else f'label="{label}" '
         chi_blocks.append(
             f'<PP_CHI.{index} l="{l}" n="{n_attr}" occupation="{occupation}" '
-            f'{label_attr}> 0.0 0.0 0.0 </PP_CHI.{index}>'
+            f"{label_attr}> 0.0 0.0 0.0 </PP_CHI.{index}>"
         )
         if has_so:
             j = entry[2]
-            relwfc_blocks.append(
-                f'<PP_RELWFC.{index} jchi="{j}" lchi="{l}" nn="{n}"/>'
-            )
+            relwfc_blocks.append(f'<PP_RELWFC.{index} jchi="{j}" lchi="{l}" nn="{n}"/>')
     spin_orb = (
-        f'<PP_SPIN_ORB>\n{chr(10).join(relwfc_blocks)}\n</PP_SPIN_ORB>\n'
+        f"<PP_SPIN_ORB>\n{chr(10).join(relwfc_blocks)}\n</PP_SPIN_ORB>\n"
         if has_so
         else ""
     )
@@ -54,11 +57,11 @@ def _upf_content(
         f'is_paw="false" has_so="{has_so_str}" l_max="3" l_max_rho="0"/>\n'
         '<PP_MESH><PP_R size="3"> 0 0.1 0.2 </PP_R></PP_MESH>\n'
         '<PP_LOCAL size="3"> 0 0 0 </PP_LOCAL>\n'
-        '<PP_NONLOCAL><PP_DIJ> 0 </PP_DIJ></PP_NONLOCAL>\n'
-        f'<PP_PSWFC>\n{chr(10).join(chi_blocks)}\n</PP_PSWFC>\n'
-        f'{spin_orb}'
+        "<PP_NONLOCAL><PP_DIJ> 0 </PP_DIJ></PP_NONLOCAL>\n"
+        f"<PP_PSWFC>\n{chr(10).join(chi_blocks)}\n</PP_PSWFC>\n"
+        f"{spin_orb}"
         '<PP_RHOATOM size="3"> 0 0 0 </PP_RHOATOM>\n'
-        '</UPF>\n'
+        "</UPF>\n"
     )
 
 
@@ -140,8 +143,11 @@ def test_derive_pseudo_orbitals_label_wins_over_node_based_n():
     # Au.pz-rrkjus_aewfc-like: labels 6P/5D/6S with node-based n attributes
     # 2/3/1. Reading the n attribute would give the nonsense ['2P','3D','1S'].
     content = _upf_content(
-        "Au", 11, [(6, 1), (5, 2), (6, 0)],
-        occupations=[0.0, 10.0, 1.0], n_attrs=[2, 3, 1],
+        "Au",
+        11,
+        [(6, 1), (5, 2), (6, 0)],
+        occupations=[0.0, 10.0, 1.0],
+        n_attrs=[2, 3, 1],
     )
     entry = _derive_pseudo_orbitals_from_upf(FakePseudo("Au", 11, content))
     assert entry is not None
@@ -157,7 +163,7 @@ def test_derive_pseudo_orbitals_no_pswfc_returns_none():
         '<PP_HEADER element="Si" z_valence="4" number_of_proj="0" '
         'number_of_wfc="0" mesh_size="3" has_so="false"/>\n'
         '<PP_MESH><PP_R size="3"> 0 0.1 0.2 </PP_R></PP_MESH>\n'
-        '</UPF>\n'
+        "</UPF>\n"
     )
     assert _derive_pseudo_orbitals_from_upf(FakePseudo("Si", 4, content)) is None
 
@@ -167,29 +173,37 @@ def test_derive_pseudo_orbitals_unparseable_returns_none():
     not fail open)."""
     from aiida_wannier90_workflows.utils.pseudo import _derive_pseudo_orbitals_from_upf
 
-    assert _derive_pseudo_orbitals_from_upf(FakePseudo("Au", 19, "not a upf file")) is None
+    assert (
+        _derive_pseudo_orbitals_from_upf(FakePseudo("Au", 19, "not a upf file")) is None
+    )
 
 
-def test_derive_pseudo_orbitals_warns_on_occupation_mismatch():
-    """A gross disagreement between the summed PP_CHI occupations and z_valence
-    warns, but the labels are still returned (labels are the ground truth)."""
+def test_derive_pseudo_orbitals_fails_closed_on_occupation_mismatch():
+    """A disagreement between the summed PP_CHI occupations and z_valence can
+    mean a valence orbital is missing from PP_PSWFC, so the derivation warns
+    and fails closed rather than returning a possibly-incomplete set."""
     from aiida_wannier90_workflows.utils.pseudo import _derive_pseudo_orbitals_from_upf
 
-    # Occupations sum to 2.0 but z_valence claims 12: well past the tolerance.
+    # Occupations sum to 10.0 but z_valence claims 12 -- e.g. a semicore 3S
+    # missing from PP_PSWFC.
     content = _upf_content(
-        "Ti", 12, [(3, 0), (3, 1), (3, 2), (4, 0)], occupations=[0.5, 0.5, 0.5, 0.5]
+        "Ti", 12, [(3, 1), (3, 2), (4, 0)], occupations=[6.0, 2.0, 2.0]
     )
     with pytest.warns(UserWarning, match="disagrees with"):
-        entry = _derive_pseudo_orbitals_from_upf(FakePseudo("Ti", 12, content))
-    assert entry["pswfcs"] == ["3S", "3P", "3D", "4S"]
+        assert _derive_pseudo_orbitals_from_upf(FakePseudo("Ti", 12, content)) is None
 
 
 def test_get_pseudo_orbitals_overrides_win():
     """An explicit override bypasses tables and UPF derivation."""
-    from aiida_wannier90_workflows.utils.pseudo import PseudoOrbitals, get_pseudo_orbitals
+    from aiida_wannier90_workflows.utils.pseudo import (
+        PseudoOrbitals,
+        get_pseudo_orbitals,
+    )
 
     override = PseudoOrbitals(pswfcs=["3S", "3P", "4S", "3D"], semicores=["3S", "3P"])
-    result = get_pseudo_orbitals({"Ti": FakePseudo("Ti", 12)}, overrides={"Ti": override})
+    result = get_pseudo_orbitals(
+        {"Ti": FakePseudo("Ti", 12)}, overrides={"Ti": override}
+    )
     assert result["Ti"]["semicores"] == ["3S", "3P"]
 
 

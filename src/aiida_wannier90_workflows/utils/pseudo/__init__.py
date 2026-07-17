@@ -4,10 +4,11 @@ import re
 import typing as ty
 import warnings
 
+from upf_tools import UPFDict
+
 from aiida import orm
 from aiida.common import exceptions
 from aiida.plugins import DataFactory, GroupFactory
-from upf_tools import UPFDict
 
 PseudoPotentialData = DataFactory("pseudo")
 SsspFamily = GroupFactory("pseudo.family.sssp")
@@ -233,9 +234,10 @@ def _derive_pseudo_orbitals_from_upf(
     ``pw2wannier90.x``/``projwfc.x`` emit the projections.
 
     Returns ``None`` -- so ``get_pseudo_orbitals`` fails closed and asks for an
-    explicit ``overrides`` entry -- when the ``PP_PSWFC`` block cannot be read:
-    unparseable content, no atomic wave functions, or an entry whose (n, l)
-    cannot be recovered.
+    explicit ``overrides`` entry -- when the ``PP_PSWFC`` block cannot be read
+    (unparseable content, no atomic wave functions, or an entry whose (n, l)
+    cannot be recovered) or when the wave function occupations do not sum to
+    ``z_valence``, which can indicate a missing valence orbital.
     """
     try:
         upf = UPFDict.from_str(pseudo.get_content())
@@ -261,7 +263,8 @@ def _derive_pseudo_orbitals_from_upf(
     # preserving first-appearance order.
     pswfcs = list(dict.fromkeys(labels))
 
-    _warn_if_occupations_disagree(pseudo, chi)
+    if _occupations_disagree(pseudo, chi):
+        return None
 
     return PseudoOrbitals(
         filename=getattr(pseudo, "filename", f"{pseudo.element}.upf"),
@@ -271,20 +274,21 @@ def _derive_pseudo_orbitals_from_upf(
     )
 
 
-def _warn_if_occupations_disagree(
+def _occupations_disagree(
     pseudo: PseudoPotentialData, chi: ty.Sequence[ty.Mapping]
-) -> None:
-    """Warn when the ``PP_CHI`` occupations do not sum to roughly ``z_valence``.
+) -> bool:
+    """Return True when the ``PP_CHI`` occupations do not sum to ``z_valence``.
 
-    The atomic wave function occupations should account for the pseudo's
-    valence electrons; a wild disagreement means the wave functions were
-    misread or the pseudo is unusual. This is a soft sanity net -- the labels
-    remain the ground truth, so a mismatch warns rather than rejecting the
-    derived orbitals. The check is skipped when either quantity is unavailable.
+    The atomic wave function occupations must account for the pseudo's valence
+    electrons; a disagreement can mean a valence orbital is missing from
+    ``PP_PSWFC``, in which case the derived labels would be silently
+    incomplete. The derivation therefore fails closed on any disagreement
+    beyond numerical noise. The check is skipped when either quantity is
+    unavailable.
     """
     z_valence = getattr(pseudo, "z_valence", None)
     if z_valence is None:
-        return
+        return False
     try:
         occupations = [
             float(entry["occupation"])
@@ -293,20 +297,20 @@ def _warn_if_occupations_disagree(
         ]
         z_valence = float(z_valence)
     except (KeyError, TypeError, ValueError):
-        return
+        return False
     if not occupations:
-        return
+        return False
     occ_sum = sum(occupations)
-    # Tolerance grows with z_valence so an ionised reference configuration (a
-    # few electrons short) does not trip the warning, while a gross misread
-    # (e.g. half the shells dropped) still does.
-    if abs(occ_sum - z_valence) > max(1.0, 0.2 * z_valence):
+    if abs(occ_sum - z_valence) > 1.0e-3:
         warnings.warn(
             f"Pseudopotential {pseudo.element} (md5 {pseudo.md5}): its atomic "
             f"wave function occupations sum to {occ_sum:g}, which disagrees with "
-            f"its z_valence {z_valence:g}. The valence orbitals were still read "
-            "from the pseudopotential file; double-check them."
+            f"its z_valence {z_valence:g}, so a valence orbital may be missing "
+            "from PP_PSWFC. Refusing the derived orbitals; provide an explicit "
+            "`overrides` entry instead."
         )
+        return True
+    return False
 
 
 def get_semicore_list(
