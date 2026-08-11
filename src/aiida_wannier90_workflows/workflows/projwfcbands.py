@@ -25,7 +25,7 @@ def validate_inputs(  # pylint: disable=unused-argument,inconsistent-return-stat
     )
 
     # Call parent validator
-    result = parent_validate_inputs(inputs)
+    result = parent_validate_inputs(inputs, ctx)
     if result is not None:
         return result
 
