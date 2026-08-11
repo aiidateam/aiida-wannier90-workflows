@@ -177,3 +177,140 @@ def test_force_parity(generate_builder_inputs, data_regression, serialize_builde
 
     assert isinstance(builder, ProcessBuilder)
     data_regression.check(serialize_builder(builder))
+
+
+def test_parent_folders_mutually_exclusive(
+    generate_builder_inputs, generate_remote_data, fixture_localhost
+):
+    """Test passing both parent folders is rejected."""
+    remote = generate_remote_data(fixture_localhost, "/tmp", "quantumespresso.pw")
+
+    with pytest.raises(ValueError, match=r"mutually exclusive"):
+        Wannier90WorkChain.get_builder_from_protocol(
+            **generate_builder_inputs(),
+            scf_parent_folder=remote,
+            nscf_parent_folder=remote,
+            print_summary=False,
+        )
+
+
+def test_pw_code_required_by_default(generate_builder_inputs):
+    """Test the `pw` code stays required when the scf/nscf namespaces are populated."""
+    inputs = generate_builder_inputs()
+    inputs["codes"].pop("pw")
+
+    with pytest.raises(ValueError, match=r"does not contain the required key: pw"):
+        Wannier90WorkChain.get_builder_from_protocol(**inputs, print_summary=False)
+
+
+def test_scf_parent_folder(
+    generate_builder_inputs, generate_remote_data, fixture_localhost
+):
+    """Test an scf parent folder drops the scf namespace but keeps the nscf one."""
+    remote = generate_remote_data(fixture_localhost, "/tmp", "quantumespresso.pw")
+
+    builder = Wannier90WorkChain.get_builder_from_protocol(
+        **generate_builder_inputs(),
+        scf_parent_folder=remote,
+        print_summary=False,
+    )
+
+    inputs = builder._inputs(prune=True)  # pylint: disable=protected-access
+    assert "scf" not in inputs
+    assert "nscf" in inputs
+    assert inputs["nscf"]["pw"]["parent_folder"] is remote
+
+    # The nscf still runs pw.x, so the `pw` code remains required.
+    codes = generate_builder_inputs()
+    codes["codes"].pop("pw")
+    with pytest.raises(ValueError, match=r"does not contain the required key: pw"):
+        Wannier90WorkChain.get_builder_from_protocol(
+            **codes, scf_parent_folder=remote, print_summary=False
+        )
+
+
+def test_scf_parent_folder_validates(
+    generate_builder_inputs, generate_remote_data, fixture_localhost
+):
+    """Test the workchain accepts an scf-less builder without further wiring."""
+    remote = generate_remote_data(fixture_localhost, "/tmp", "quantumespresso.pw")
+
+    builder = Wannier90WorkChain.get_builder_from_protocol(
+        **generate_builder_inputs(),
+        scf_parent_folder=remote,
+        print_summary=False,
+    )
+
+    assert (
+        Wannier90WorkChain.spec().inputs.validate(
+            builder._inputs(prune=True)  # pylint: disable=protected-access
+        )
+        is None
+    )
+
+
+def test_nscf_parent_folder(
+    generate_builder_inputs, generate_remote_data, fixture_localhost
+):
+    """Test an nscf parent folder drops both pw namespaces and the `pw` code."""
+    remote = generate_remote_data(fixture_localhost, "/tmp", "quantumespresso.pw")
+
+    inputs = generate_builder_inputs()
+    inputs["codes"].pop("pw")
+
+    builder = Wannier90WorkChain.get_builder_from_protocol(
+        **inputs,
+        nscf_parent_folder=remote,
+        exclude_semicore=False,
+        print_summary=False,
+    )
+
+    assert isinstance(builder, ProcessBuilder)
+
+    pruned = builder._inputs(prune=True)  # pylint: disable=protected-access
+    assert "scf" not in pruned
+    assert "nscf" not in pruned
+    assert "wannier90" in pruned
+    assert pruned["pw2wannier90"]["pw2wannier90"]["parent_folder"] is remote
+
+
+def test_nscf_parent_folder_validates(
+    generate_builder_inputs, generate_remote_data, fixture_localhost
+):
+    """Test the workchain accepts the builder as returned, with no post-assembly wiring."""
+    remote = generate_remote_data(fixture_localhost, "/tmp", "quantumespresso.pw")
+
+    inputs = generate_builder_inputs()
+    inputs["codes"].pop("pw")
+
+    builder = Wannier90WorkChain.get_builder_from_protocol(
+        **inputs,
+        nscf_parent_folder=remote,
+        exclude_semicore=False,
+        print_summary=False,
+    )
+
+    assert (
+        Wannier90WorkChain.spec().inputs.validate(
+            builder._inputs(prune=True)  # pylint: disable=protected-access
+        )
+        is None
+    )
+
+
+def test_nscf_parent_folder_semicore(
+    generate_builder_inputs, generate_remote_data, fixture_localhost
+):
+    """Test the semicore states cannot be resolved without a pw namespace to read pseudos from."""
+    remote = generate_remote_data(fixture_localhost, "/tmp", "quantumespresso.pw")
+
+    inputs = generate_builder_inputs()
+    inputs["codes"].pop("pw")
+
+    with pytest.raises(ValueError, match=r"Cannot determine the semicore states"):
+        Wannier90WorkChain.get_builder_from_protocol(
+            **inputs,
+            nscf_parent_folder=remote,
+            exclude_semicore=True,
+            print_summary=False,
+        )

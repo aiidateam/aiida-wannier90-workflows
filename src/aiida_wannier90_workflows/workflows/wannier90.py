@@ -305,6 +305,8 @@ class Wannier90WorkChain(
         retrieve_matrices: bool = False,
         compute_fermi_surface: bool = False,
         fermi_surface_kpoint_distance: float = 0.04,
+        scf_parent_folder: orm.RemoteData = None,
+        nscf_parent_folder: orm.RemoteData = None,
         print_summary: bool = True,
         summary: dict = None,
     ) -> ProcessBuilder:
@@ -348,6 +350,14 @@ class Wannier90WorkChain(
         :param retrieve_matrices: if True retrieve amn/mmn/eig/chk/spin files.
         :param compute_fermi_surface: if True compute the Fermi surface.
         :param fermi_surface_kpoint_distance: the distance between kpoints for the Fermi surface calculation.
+        :param scf_parent_folder: the remote folder of an scf run performed elsewhere. The
+        scf namespace is left unpopulated and the folder is set as the nscf `parent_folder`,
+        so the returned builder starts at the nscf step.
+        :param nscf_parent_folder: the remote folder of an nscf run performed elsewhere. Both
+        the scf and nscf namespaces are left unpopulated and the folder is set as the
+        pw2wannier90 `parent_folder`, so the returned builder starts at the wannier90 step.
+        No pw.x calculation remains, so `pw` may then be omitted from `codes`.
+        Mutually exclusive with `scf_parent_folder`.
         :param print_summary: if True print a summary of key input parameters
         :param summary: A dict containing key input parameters and can be printed out
         when the `get_builder_from_protocol` returns, to let user have a quick check of the
@@ -369,7 +379,22 @@ class Wannier90WorkChain(
         from aiida_wannier90_workflows.utils.workflows.builder.submit import check_codes
 
         # Check function arguments
-        codes = check_codes(codes)
+        if scf_parent_folder is not None and nscf_parent_folder is not None:
+            raise ValueError(
+                "`scf_parent_folder` and `nscf_parent_folder` are mutually exclusive: "
+                "pass `nscf_parent_folder` to start from the wannier90 step, or "
+                "`scf_parent_folder` to start from the nscf step."
+            )
+        # An nscf parent removes both pw steps; an scf parent removes only the scf one.
+        # Reusing an scf parent while skipping the nscf is not offered: wannierisation
+        # needs the nscf wavefunctions on the wannier90 k-mesh.
+        run_scf = scf_parent_folder is None and nscf_parent_folder is None
+        run_nscf = nscf_parent_folder is None
+
+        required_codes = ["pw2wannier90", "wannier90"]
+        if run_scf or run_nscf:
+            required_codes.insert(0, "pw")
+        codes = check_codes(codes, required_codes=required_codes)
         type_check(electronic_type, ElectronicType)
         type_check(spin_type, SpinType)
         type_check(projection_type, WannierProjectionType)
@@ -533,55 +558,61 @@ class Wannier90WorkChain(
         builder.wannier90 = wannier_builder._inputs(prune=True)
 
         # Prepare SCF builder
-        scf_overrides = inputs.get("scf", {})
-        scf_overrides["pseudo_family"] = pseudo_family
-        scf_builder = PwBaseWorkChain.get_builder_from_protocol(
-            code=codes["pw"],
-            structure=structure,
-            protocol=protocol,
-            overrides=scf_overrides,
-            electronic_type=electronic_type,
-            spin_type=pw_spin_type,
-            initial_magnetic_moments=initial_magnetic_moments,
-        )
-        # Remove workchain excluded inputs
-        scf_builder["pw"].pop("structure", None)
-        scf_builder.pop("clean_workdir", None)
-        builder.scf = scf_builder._inputs(prune=True)
+        if run_scf:
+            scf_overrides = inputs.get("scf", {})
+            scf_overrides["pseudo_family"] = pseudo_family
+            scf_builder = PwBaseWorkChain.get_builder_from_protocol(
+                code=codes["pw"],
+                structure=structure,
+                protocol=protocol,
+                overrides=scf_overrides,
+                electronic_type=electronic_type,
+                spin_type=pw_spin_type,
+                initial_magnetic_moments=initial_magnetic_moments,
+            )
+            # Remove workchain excluded inputs
+            scf_builder["pw"].pop("structure", None)
+            scf_builder.pop("clean_workdir", None)
+            builder.scf = scf_builder._inputs(prune=True)
 
         # Prepare NSCF builder
-        nscf_overrides = inputs.get("nscf", {})
-        nscf_overrides["pseudo_family"] = pseudo_family
+        if run_nscf:
+            nscf_overrides = inputs.get("nscf", {})
+            nscf_overrides["pseudo_family"] = pseudo_family
 
-        num_bands = wannier_builder["wannier90"]["parameters"]["num_bands"]
-        exclude_bands = (
-            wannier_builder["wannier90"]["parameters"]
-            .get_dict()
-            .get("exclude_bands", [])
-        )
-        nscf_overrides["pw"]["parameters"]["SYSTEM"]["nbnd"] = num_bands + len(
-            exclude_bands
-        )
+            num_bands = wannier_builder["wannier90"]["parameters"]["num_bands"]
+            exclude_bands = (
+                wannier_builder["wannier90"]["parameters"]
+                .get_dict()
+                .get("exclude_bands", [])
+            )
+            nscf_overrides["pw"]["parameters"]["SYSTEM"]["nbnd"] = num_bands + len(
+                exclude_bands
+            )
 
-        nscf_builder = PwBaseWorkChain.get_builder_from_protocol(
-            code=codes["pw"],
-            structure=structure,
-            protocol=protocol,
-            overrides=nscf_overrides,
-            electronic_type=electronic_type,
-            spin_type=pw_spin_type,
-            initial_magnetic_moments=initial_magnetic_moments,
-        )
-        # Use explicit list of kpoints generated by wannier builder.
-        # Since the QE auto generated kpoints might be different from wannier90, here we explicitly
-        # generate a list of kpoint coordinates to avoid discrepancies.
-        nscf_builder.pop("kpoints_distance", None)
-        nscf_builder.kpoints = wannier_builder["wannier90"]["kpoints"]
+            nscf_builder = PwBaseWorkChain.get_builder_from_protocol(
+                code=codes["pw"],
+                structure=structure,
+                protocol=protocol,
+                overrides=nscf_overrides,
+                electronic_type=electronic_type,
+                spin_type=pw_spin_type,
+                initial_magnetic_moments=initial_magnetic_moments,
+            )
+            # Use explicit list of kpoints generated by wannier builder.
+            # Since the QE auto generated kpoints might be different from wannier90, here we explicitly
+            # generate a list of kpoint coordinates to avoid discrepancies.
+            nscf_builder.pop("kpoints_distance", None)
+            nscf_builder.kpoints = wannier_builder["wannier90"]["kpoints"]
 
-        # Remove workchain excluded inputs
-        nscf_builder["pw"].pop("structure", None)
-        nscf_builder.pop("clean_workdir", None)
-        builder.nscf = nscf_builder._inputs(prune=True)
+            # Remove workchain excluded inputs
+            nscf_builder["pw"].pop("structure", None)
+            nscf_builder.pop("clean_workdir", None)
+            builder.nscf = nscf_builder._inputs(prune=True)
+            if scf_parent_folder is not None:
+                # ``setup`` takes this as the starting charge density when it finds no
+                # scf namespace, and ``run_nscf`` passes it on to the nscf calculation.
+                builder.nscf["pw"]["parent_folder"] = scf_parent_folder
 
         # Prepare projwfc builder
         if projection_type == WannierProjectionType.SCDM:
@@ -617,7 +648,19 @@ class Wannier90WorkChain(
                 spin_non_collinear=spin_non_collinear,
             )
         if exclude_semicore:
-            pseudo_orbitals = get_pseudo_orbitals(builder["scf"]["pw"]["pseudos"])
+            # The semicore states are read off the pseudopotentials, which reach the
+            # builder only through a pw namespace.
+            if run_scf:
+                pseudos = builder["scf"]["pw"]["pseudos"]
+            elif run_nscf:
+                pseudos = builder["nscf"]["pw"]["pseudos"]
+            else:
+                raise ValueError(
+                    "Cannot determine the semicore states when `nscf_parent_folder` "
+                    "leaves no pw namespace: pass `exclude_semicore=False` and set "
+                    "`exclude_bands` in the `wannier90` overrides instead."
+                )
+            pseudo_orbitals = get_pseudo_orbitals(pseudos)
             if projection_type == WannierProjectionType.ATOMIC_PROJECTORS_EXTERNAL:
                 exclude_projectors = get_semicore_list_ext(
                     structure, external_projectors, pseudo_orbitals, spin_non_collinear
@@ -641,6 +684,10 @@ class Wannier90WorkChain(
         # Remove workchain excluded inputs
         pw2wannier90_builder.pop("clean_workdir", None)
         builder.pw2wannier90 = pw2wannier90_builder._inputs(prune=True)
+        if nscf_parent_folder is not None:
+            # ``setup`` takes this as the starting folder when it finds neither pw
+            # namespace, and ``run_pw2wannier90`` passes it on to the calculation.
+            builder.pw2wannier90["pw2wannier90"]["parent_folder"] = nscf_parent_folder
 
         # A dictionary containing key info of Wannierisation and will be printed when the function returns.
         if summary is None:
