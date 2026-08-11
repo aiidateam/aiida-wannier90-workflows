@@ -298,19 +298,58 @@ def test_nscf_parent_folder_validates(
     )
 
 
+def _atom_proj_exclude(builder):
+    """Return the pw2wannier90 `atom_proj_exclude`, whatever case the namelist key has."""
+    parameters = builder.pw2wannier90.pw2wannier90.parameters.get_dict()
+    namelist = {key.lower(): value for key, value in parameters.items()}["inputpp"]
+    return namelist["atom_proj_exclude"]
+
+
+@pytest.mark.parametrize("structure", ("BaTiO3", "GaAs"))
 def test_nscf_parent_folder_semicore(
+    generate_builder_inputs, generate_remote_data, fixture_localhost, structure
+):
+    """Test the semicore states are the same whether or not a pw namespace is assembled."""
+    remote = generate_remote_data(fixture_localhost, "/tmp", "quantumespresso.pw")
+    # Atomic projectors carry the semicore list into the pw2wannier90 parameters,
+    # where SCDM would not expose it.
+    kwargs = {
+        "projection_type": WannierProjectionType.ATOMIC_PROJECTORS_QE,
+        "print_summary": False,
+    }
+
+    default = Wannier90WorkChain.get_builder_from_protocol(
+        **generate_builder_inputs(structure), **kwargs
+    )
+
+    inputs = generate_builder_inputs(structure)
+    inputs["codes"].pop("pw")
+    reused = Wannier90WorkChain.get_builder_from_protocol(
+        **inputs, nscf_parent_folder=remote, **kwargs
+    )
+
+    excluded = _atom_proj_exclude(default)
+    # The structures are chosen to have semicore states, so this is not a
+    # comparison of two empty lists.
+    assert excluded
+    assert _atom_proj_exclude(reused) == excluded
+
+
+def test_nscf_parent_folder_semicore_unknown_family(
     generate_builder_inputs, generate_remote_data, fixture_localhost
 ):
-    """Test the semicore states cannot be resolved without a pw namespace to read pseudos from."""
+    """Test an unresolvable pseudopotential family is reported when no pw namespace holds one."""
     remote = generate_remote_data(fixture_localhost, "/tmp", "quantumespresso.pw")
-
     inputs = generate_builder_inputs()
     inputs["codes"].pop("pw")
 
-    with pytest.raises(ValueError, match=r"Cannot determine the semicore states"):
+    with pytest.raises(
+        ValueError, match=r"pseudo family `NoSuchFamily/9.9` is not installed"
+    ):
         Wannier90WorkChain.get_builder_from_protocol(
             **inputs,
             nscf_parent_folder=remote,
+            pseudo_family="NoSuchFamily/9.9",
             exclude_semicore=True,
             print_summary=False,
         )

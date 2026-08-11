@@ -369,6 +369,7 @@ class Wannier90WorkChain(
         """
         from aiida_wannier90_workflows.utils.pseudo import (
             get_frozen_list_ext,
+            get_pseudo_and_cutoff,
             get_pseudo_orbitals,
             get_semicore_list,
             get_semicore_list_ext,
@@ -648,18 +649,15 @@ class Wannier90WorkChain(
                 spin_non_collinear=spin_non_collinear,
             )
         if exclude_semicore:
-            # The semicore states are read off the pseudopotentials, which reach the
-            # builder only through a pw namespace.
+            # The semicore states are read off the pseudopotentials. Take them from a pw
+            # namespace when one was assembled; otherwise ``pseudo_family``, resolved
+            # above, and the structure determine them on their own.
             if run_scf:
                 pseudos = builder["scf"]["pw"]["pseudos"]
             elif run_nscf:
                 pseudos = builder["nscf"]["pw"]["pseudos"]
             else:
-                raise ValueError(
-                    "Cannot determine the semicore states when `nscf_parent_folder` "
-                    "leaves no pw namespace: pass `exclude_semicore=False` and set "
-                    "`exclude_bands` in the `wannier90` overrides instead."
-                )
+                pseudos, _, _ = get_pseudo_and_cutoff(pseudo_family, structure)
             pseudo_orbitals = get_pseudo_orbitals(pseudos)
             if projection_type == WannierProjectionType.ATOMIC_PROJECTORS_EXTERNAL:
                 exclude_projectors = get_semicore_list_ext(
