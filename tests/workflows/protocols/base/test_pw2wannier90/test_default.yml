@@ -8,5 +8,5 @@ pw2wannier90:
         num_machines: 1
       withmpi: true
   parameters:
-    inputpp:
+    INPUTPP:
       atom_proj: true
