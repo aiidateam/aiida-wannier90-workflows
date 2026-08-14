@@ -156,6 +156,34 @@ def test_frozen_type(
     data_regression.check(serialize_builder(builder))
 
 
+@pytest.mark.parametrize(
+    "frozen_type",
+    (
+        WannierFrozenType.PROJECTABILITY,
+        WannierFrozenType.FIXED_PLUS_PROJECTABILITY,
+    ),
+)
+def test_frozen_type_projectability_enables_dis_froz_proj(
+    fixture_code, generate_structure, frozen_type
+):
+    """Test that the projectability frozen types switch on ``dis_froz_proj``.
+
+    wannier90 ignores ``dis_proj_min``/``dis_proj_max`` unless ``dis_froz_proj``
+    is true.
+    """
+    code = fixture_code("wannier90.wannier90")
+    structure = generate_structure("Si")
+
+    builder = Wannier90BaseWorkChain.get_builder_from_protocol(
+        code, structure=structure, frozen_type=frozen_type
+    )
+
+    parameters = builder["wannier90"]["parameters"].get_dict()
+    assert parameters["dis_froz_proj"] is True
+    assert "dis_proj_min" in parameters
+    assert "dis_proj_max" in parameters
+
+
 def test_parameter_overrides(
     fixture_code, generate_structure, data_regression, serialize_builder
 ):
