@@ -156,6 +156,40 @@ def test_frozen_type(
     data_regression.check(serialize_builder(builder))
 
 
+def test_only_valence(fixture_code, generate_structure):
+    """Test that ``only_valence`` overrides the inference from ``electronic_type``."""
+    code = fixture_code("wannier90.wannier90")
+    structure = generate_structure("Si")
+
+    def parameters(**kwargs):
+        builder = Wannier90BaseWorkChain.get_builder_from_protocol(
+            code, structure=structure, **kwargs
+        )
+        return builder["wannier90"]["parameters"].get_dict()
+
+    # Si has 8 valence electrons, hence 4 occupied bands
+    num_valence_bands = 4
+
+    inferred_metal = parameters(electronic_type=ElectronicType.METAL)
+    assert inferred_metal["num_bands"] > num_valence_bands
+    assert inferred_metal["num_wann"] != inferred_metal["num_bands"]
+
+    inferred_insulator = parameters(electronic_type=ElectronicType.INSULATOR)
+    assert inferred_insulator["num_bands"] == num_valence_bands
+    assert inferred_insulator["num_wann"] == num_valence_bands
+
+    # An explicit value wins over the inference, in both directions
+    forced_valence = parameters(electronic_type=ElectronicType.METAL, only_valence=True)
+    assert forced_valence["num_bands"] == num_valence_bands
+    assert forced_valence["num_wann"] == num_valence_bands
+
+    forced_conduction = parameters(
+        electronic_type=ElectronicType.INSULATOR, only_valence=False
+    )
+    assert forced_conduction["num_bands"] == inferred_metal["num_bands"]
+    assert forced_conduction["num_wann"] == inferred_metal["num_wann"]
+
+
 def test_parameter_overrides(
     fixture_code, generate_structure, data_regression, serialize_builder
 ):

@@ -305,6 +305,7 @@ class Wannier90WorkChain(
         retrieve_matrices: bool = False,
         compute_fermi_surface: bool = False,
         fermi_surface_kpoint_distance: float = 0.04,
+        only_valence: ty.Optional[bool] = None,
         print_summary: bool = True,
         summary: dict = None,
     ) -> ProcessBuilder:
@@ -348,6 +349,9 @@ class Wannier90WorkChain(
         :param retrieve_matrices: if True retrieve amn/mmn/eig/chk/spin files.
         :param compute_fermi_surface: if True compute the Fermi surface.
         :param fermi_surface_kpoint_distance: the distance between kpoints for the Fermi surface calculation.
+        :param only_valence: Wannierize the valence manifold alone, so that ``num_bands``
+        counts occupied states only and ``num_wann == num_bands``. Default to None,
+        meaning ``electronic_type == ElectronicType.INSULATOR``.
         :param print_summary: if True print a summary of key input parameters
         :param summary: A dict containing key input parameters and can be printed out
         when the `get_builder_from_protocol` returns, to let user have a quick check of the
@@ -526,6 +530,7 @@ class Wannier90WorkChain(
             frozen_type=frozen_type,
             pseudo_family=pseudo_family,
             external_projectors=external_projectors,
+            only_valence=only_valence,
         )
         # Remove workchain excluded inputs
         wannier_builder["wannier90"].pop("structure", None)
