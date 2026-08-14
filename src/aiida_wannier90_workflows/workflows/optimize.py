@@ -85,7 +85,9 @@ def validate_inputs(inputs, ctx=None):  # pylint: disable=unused-argument
 
 
 # pylint: disable=too-many-lines
-class Wannier90OptimizeWorkChain(Wannier90BandsWorkChain):  # pylint: disable=too-many-public-methods
+class Wannier90OptimizeWorkChain(
+    Wannier90BandsWorkChain
+):  # pylint: disable=too-many-public-methods
     """Workchain to optimize dis_proj_min/max for projectability disentanglement."""
 
     # The following keys are for wannier90.x plotting, i.e. they can be restarted from

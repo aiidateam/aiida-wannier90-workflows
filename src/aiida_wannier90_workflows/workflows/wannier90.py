@@ -829,9 +829,11 @@ class Wannier90WorkChain(
             scf_output_parameters = self.ctx.workchain_scf.outputs.output_parameters
             fermi_energy = get_fermi_energy(scf_output_parameters)
         elif "workchain_nscf" in self.ctx:
-            if "fermi_energy" not in parameters: # we can provide it if the workchain_nscf was already performed before this run.
+            if (
+                "fermi_energy" not in parameters
+            ):  # we can provide it if the workchain_nscf was already performed before this run.
                 fermi_energy = get_fermi_energy_from_nscf(self.ctx.workchain_nscf)
-            else: 
+            else:
                 fermi_energy = parameters["fermi_energy"]
         else:
             if "fermi_energy" in parameters:
@@ -1392,7 +1394,9 @@ class Wannier90WorkChain(
             spin_non_collinear = None
             spin_orbit_coupling = None
 
-        if "workchain_nscf" in self.ctx: # in case we provide nscf as parent input (previously computed), we do not have it in self.inputs
+        if (
+            "workchain_nscf" in self.ctx
+        ):  # in case we provide nscf as parent input (previously computed), we do not have it in self.inputs
             pseudos = self.ctx["workchain_nscf"].inputs.pw.pseudos
         else:
             pseudos = self.inputs["nscf"]["pw"]["pseudos"]
