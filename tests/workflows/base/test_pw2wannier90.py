@@ -32,12 +32,12 @@ def test_prepare_inputs(
     from aiida.orm import Dict
 
     inputs = generate_inputs_pw2wannier90_base()
-    parameters = inputs["parameters"].get_dict()["inputpp"]
+    parameters = inputs["parameters"].get_dict()["INPUTPP"]
 
     # Test SCDM fitting is working
     parameters["scdm_proj"] = True
     parameters["scdm_entanglement"] = "erfc"
-    inputs["parameters"] = Dict({"inputpp": parameters})
+    inputs["parameters"] = Dict({"INPUTPP": parameters})
 
     inputs = {"pw2wannier90": inputs}
     inputs["bands"] = generate_bands_data()
@@ -48,7 +48,7 @@ def test_prepare_inputs(
 
     assert isinstance(inputs, AttributeDict)
 
-    parameters = inputs["parameters"].get_dict()["inputpp"]
+    parameters = inputs["parameters"].get_dict()["INPUTPP"]
     assert "scdm_mu" in parameters, parameters
     assert "scdm_sigma" in parameters, parameters
     assert abs(parameters["scdm_mu"] - 6.023033662603666) < 1e-5, parameters

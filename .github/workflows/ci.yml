@@ -26,14 +26,14 @@ jobs:
         run: pip install -e .[pre-commit,tests,analysis,dev]
 
       - name: Run pre-commit
-        run: pre-commit run || ( git status --short; git diff; exit 1 )
+        run: pre-commit run --all-files || ( git status --short; git diff; exit 1 )
 
   tests:
     runs-on: ubuntu-latest
 
     strategy:
       matrix:
-        python-version: ["3.9", "3.10", "3.11", "3.12"]
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
 
     services:
       postgres:
@@ -85,7 +85,7 @@ jobs:
 
     strategy:
       matrix:
-        python-version: ["3.9"]
+        python-version: ["3.10"]
 
     steps:
       - name: Checkout code

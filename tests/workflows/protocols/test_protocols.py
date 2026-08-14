@@ -25,7 +25,7 @@ from aiida_wannier90_workflows.workflows.wannier90 import Wannier90WorkChain
         {"projwfc": {"projwfc": {"metadata": {"options": {"account": "infinite"}}}}},
         {
             "pw2wannier90": {
-                "pw2wannier90": {"parameters": {"inputpp": {"scdm_proj": False}}}
+                "pw2wannier90": {"parameters": {"INPUTPP": {"scdm_proj": False}}}
             }
         },
         {"wannier90": {"auto_energy_windows_threshold": 0.01}},
