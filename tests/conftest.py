@@ -93,7 +93,7 @@ def pseudos(aiida_profile, generate_upf_data, generate_upf_data_soc):
     SsspFamily = GroupFactory("pseudo.family.sssp")
 
     stringency = "standard"
-    label = "SSSP/1.1/PBE/efficiency"
+    label = "SSSP/1.3/PBEsol/efficiency"
     sssp = SsspFamily(label=label)
     sssp.store()
 
@@ -273,16 +273,16 @@ def generate_upf_data_soc(filepath_fixtures):
 
 @pytest.fixture(scope="session")
 def get_sssp_upf():
-    """Returen a SSSP pseudo with a given element name."""
+    """Return a SSSP pseudo with a given element name."""
 
     def _get_sssp_upf(element):
-        """Returen SSSP pseudo."""
+        """Return SSSP pseudo."""
         from aiida.orm import QueryBuilder
         from aiida.plugins import GroupFactory
 
         SsspFamily = GroupFactory("pseudo.family.sssp")
 
-        label = "SSSP/1.1/PBE/efficiency"
+        label = "SSSP/1.3/PBEsol/efficiency"
         pseudo_family = (
             QueryBuilder().append(SsspFamily, filters={"label": label}).one()[0]
         )
@@ -354,7 +354,7 @@ def generate_calc_job_node(fixture_localhost, filepath_fixtures):
                 flat_inputs.append((prefix + key, value))
         return flat_inputs
 
-    def _generate_calc_job_node(
+    def _generate_calc_job_node(  # pylint: disable=too-many-positional-arguments
         entry_point_name="base",
         computer=None,
         test_name=None,

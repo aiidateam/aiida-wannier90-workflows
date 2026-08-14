@@ -39,13 +39,16 @@ def validate_inputs(  # pylint: disable=unused-argument,inconsistent-return-stat
     if "scf" not in inputs:
         if "nscf" in inputs and "parent_folder" not in inputs["nscf"]["pw"]:
             return "If skipping scf step, nscf inputs must have a `parent_folder`"
+        elif "nscf" not in inputs:
+            if "parent_folder" not in inputs["pw2wannier90"]["pw2wannier90"]:
+                return "If skipping scf step, pw2wannier90 inputs must have a `parent_folder`"
 
     # Cannot specify both `auto_energy_windows` and `scdm_proj`
     pw2wannier_parameters = inputs["pw2wannier90"]["pw2wannier90"][
         "parameters"
     ].get_dict()
     auto_energy_windows = inputs["wannier90"].get("auto_energy_windows", False)
-    scdm_proj = pw2wannier_parameters["inputpp"].get("scdm_proj", False)
+    scdm_proj = pw2wannier_parameters["INPUTPP"].get("scdm_proj", False)
     if auto_energy_windows and scdm_proj:
         return "`auto_energy_windows` is incompatible with SCDM"
 
@@ -693,13 +696,25 @@ class Wannier90WorkChain(
                 self.ctx.current_folder = self.inputs["projwfc"]["projwfc"][
                     "parent_folder"
                 ]
+                self.ctx.workchain_nscf = self.ctx.current_folder.creator.caller
             else:
                 self.ctx.current_folder = self.inputs["pw2wannier90"]["pw2wannier90"][
                     "parent_folder"
                 ]
-            self.ctx.spin_collinear = (
-                self.inputs["nscf"]["pw"]["parameters"]["SYSTEM"].get("nspin", 1) == 2
-            )
+                self.ctx.workchain_nscf = self.ctx.current_folder.creator.caller
+            # determine if we should use collinear spin.
+            if self.should_run_nscf():
+                self.ctx.spin_collinear = (
+                    self.inputs["nscf"]["pw"]["parameters"]["SYSTEM"].get("nspin", 1)
+                    == 2
+                )
+            else:
+                self.ctx.spin_collinear = False
+                self.report(
+                    "Warning: "
+                    "currently can not determine whether the workflow uses collinear spin, "
+                    "because it skips scf and nscf steps."
+                )
         else:
             self.ctx.spin_collinear = (
                 self.inputs["scf"]["pw"]["parameters"]["SYSTEM"].get("nspin", 1) == 2
@@ -813,18 +828,25 @@ class Wannier90WorkChain(
         if "workchain_scf" in self.ctx:
             fermi_source = self.ctx.workchain_scf
             fermi_energy = get_fermi_energy(fermi_source.outputs.output_parameters)
-        elif "workchain_nscf" in self.ctx:
+        elif "workchain_nscf" in self.ctx and "fermi_energy" not in parameters:
             fermi_source = self.ctx.workchain_nscf
             fermi_energy = get_fermi_energy_from_nscf(fermi_source)
-        else:
+        elif "fermi_energy" in parameters:
+            # Given by the caller, which is the only source when the scf and nscf
+            # ran before this workchain.
             fermi_source = None
-            if "fermi_energy" in parameters:
-                fermi_energy = parameters["fermi_energy"]
-            else:
-                raise ValueError("Cannot retrieve Fermi energy from scf or nscf output")
+            fermi_energy = parameters["fermi_energy"]
+        else:
+            raise ValueError("Cannot retrieve Fermi energy from scf or nscf output")
         if fermi_energy is None:
             # Fail loudly here rather than passing None through to the .win
             # writer, which rejects it with an opaque "Invalid value" error.
+            if fermi_source is None:
+                raise ValueError(
+                    "The `fermi_energy` in the wannier90 parameters is None. Set it "
+                    "to a number in eV, or drop it to read it from the scf or nscf "
+                    "output."
+                )
             raise ValueError(
                 f"Could not read a Fermi energy from {fermi_source}. Its "
                 "`output_parameters` must contain `fermi_energy` (or both "
@@ -956,7 +978,7 @@ class Wannier90WorkChain(
             self.exposed_inputs(Pw2wannier90BaseWorkChain, namespace="pw2wannier90")
         )
         inputs = base_inputs["pw2wannier90"]
-        parameters = inputs.parameters.get_dict().get("inputpp", {})
+        parameters = inputs.parameters.get_dict().get("INPUTPP", {})
 
         scdm_proj = parameters.get("scdm_proj", False)
         scdm_entanglement = parameters.get("scdm_entanglement", None)
@@ -1037,7 +1059,7 @@ class Wannier90WorkChain(
 
         inputs = prepare_process_inputs(Pw2wannier90BaseWorkChain, inputs)
         parameters = inputs["pw2wannier90"]["parameters"].get_dict()
-        parameters["inputpp"].update({"spin_component": "up"})
+        parameters["INPUTPP"].update({"spin_component": "up"})
         inputs["pw2wannier90"]["parameters"] = orm.Dict(parameters)
         running = self.submit(Pw2wannier90BaseWorkChain, **inputs)
         self.report(f"launching {running.process_label}<{running.pk}>")
@@ -1052,7 +1074,7 @@ class Wannier90WorkChain(
 
         inputs = prepare_process_inputs(Pw2wannier90BaseWorkChain, inputs)
         parameters = inputs["pw2wannier90"]["parameters"].get_dict()
-        parameters["inputpp"].update({"spin_component": "down"})
+        parameters["INPUTPP"].update({"spin_component": "down"})
         inputs["pw2wannier90"]["parameters"] = orm.Dict(parameters)
         running = self.submit(Pw2wannier90BaseWorkChain, **inputs)
         self.report(f"launching {running.process_label}<{running.pk}>")
@@ -1124,6 +1146,10 @@ class Wannier90WorkChain(
             elif self.ctx.current_spin == "down":
                 last_calc = get_last_calcjob(self.ctx.workchain_wannier90_pp_down)
                 inputs["remote_input_folder"] = self.ctx.current_folder_down
+            else:
+                raise ValueError(
+                    f"Unsupported spin component {self.ctx.current_spin}. Expected 'up' or 'down'."
+                )
         else:
             last_calc = get_last_calcjob(self.ctx.workchain_wannier90_pp)
             inputs["remote_input_folder"] = self.ctx.current_folder
@@ -1338,14 +1364,18 @@ class Wannier90WorkChain(
         # If using external atomic projectors, disable sanity check
         p2w_params = self.ctx.workchain_pw2wannier90.inputs["pw2wannier90"][
             "parameters"
-        ].get_dict()["inputpp"]
+        ].get_dict()["INPUTPP"]
         atom_proj = p2w_params.get("atom_proj", False)
         atom_proj_ext = p2w_params.get("atom_proj_ext", False)
         if atom_proj and atom_proj_ext:
             return
 
-        # 1. the calculated number of projections is consistent with QE projwfc.x
-        check_num_projs = True
+        # Determine whether to check number of projections or electrons
+        check_num_projs = False
+        check_num_elec = True
+        # check projections only if have calculated projwfc.x
+        if self.should_run_projwfc():
+            check_num_projs = True
         if self.should_run_scf():
             pseudos = self.inputs["scf"]["pw"]["pseudos"]
             spin_orbit_coupling = (
@@ -1366,14 +1396,25 @@ class Wannier90WorkChain(
                 .get("lspinorb", False)
             )
             spin_non_collinear = (
-                self.inputs["scf"]["pw"]["parameters"]
+                self.inputs["nscf"]["pw"]["parameters"]
                 .get_dict()["SYSTEM"]
                 .get("noncolin", False)
             )
         else:
             check_num_projs = False
+            check_num_elec = False
             pseudos = None
+            spin_non_collinear = None
             spin_orbit_coupling = None
+
+        if (
+            "workchain_nscf" in self.ctx
+        ):  # in case we provide nscf as parent input (previously computed), we do not have it in self.inputs
+            pseudos = self.ctx["workchain_nscf"].inputs.pw.pseudos
+        else:
+            pseudos = self.inputs["nscf"]["pw"]["pseudos"]
+
+        # 1. the calculated number of projections is consistent with QE projwfc.x
         if check_num_projs:
             args = {
                 "structure": self.ctx.current_structure,
@@ -1383,16 +1424,13 @@ class Wannier90WorkChain(
                     pseudos  # pylint: disable=possibly-used-before-assignment
                 ),
             }
-            if "workchain_projwfc" in self.ctx:
-                num_proj = len(
-                    self.ctx.workchain_projwfc.outputs["projections"].get_orbitals()
-                )
-            params = self.ctx.workchain_wannier90.inputs["wannier90"][
-                "parameters"
-            ].get_dict()
-            spin_orbit_coupling = params.get("spinors", False)
+            num_proj = len(
+                self.ctx.workchain_projwfc.outputs["projections"].get_orbitals()
+            )
             number_of_projections = get_number_of_projections(
-                **args, spin_non_collinear=spin_non_collinear, spin_orbit_coupling=spin_orbit_coupling
+                **args,
+                spin_non_collinear=spin_non_collinear,
+                spin_orbit_coupling=spin_orbit_coupling,
             )
             if number_of_projections != num_proj:
                 self.report(
@@ -1401,20 +1439,29 @@ class Wannier90WorkChain(
                 return self.exit_codes.ERROR_SANITY_CHECK_FAILED
 
         # 2. the number of electrons is consistent with QE output
-        if "workchain_scf" in self.ctx:
-            num_elec = self.ctx.workchain_scf.outputs["output_parameters"][
-                "number_of_electrons"
-            ]
-        else:
-            num_elec = self.ctx.workchain_nscf.outputs["output_parameters"][
-                "number_of_electrons"
-            ]
-        number_of_electrons = get_number_of_electrons(**args)
-        if number_of_electrons != num_elec:
-            self.report(
-                f"number of electrons {number_of_electrons} != QE output {num_elec}"
-            )
-            return self.exit_codes.ERROR_SANITY_CHECK_FAILED
+        if check_num_elec:
+            args = {
+                "structure": self.ctx.current_structure,
+                # The type of `self.inputs['scf']['pw']['pseudos']` is AttributesFrozendict,
+                # we need to convert it to dict, otherwise get_number_of_projections will fail.
+                "pseudos": dict(
+                    pseudos  # pylint: disable=possibly-used-before-assignment
+                ),
+            }
+            if "workchain_scf" in self.ctx:
+                num_elec = self.ctx.workchain_scf.outputs["output_parameters"][
+                    "number_of_electrons"
+                ]
+            else:
+                num_elec = self.ctx.workchain_nscf.outputs["output_parameters"][
+                    "number_of_electrons"
+                ]
+            number_of_electrons = get_number_of_electrons(**args)
+            if number_of_electrons != num_elec:
+                self.report(
+                    f"number of electrons {number_of_electrons} != QE output {num_elec}"
+                )
+                return self.exit_codes.ERROR_SANITY_CHECK_FAILED
 
     # pylint: disable=inconsistent-return-statements,too-many-return-statements
     def sanity_check_spin_collinear(
@@ -1439,7 +1486,7 @@ class Wannier90WorkChain(
         if "workchain_pw2wannier90_up" in self.ctx:
             p2w_params_up = self.ctx.workchain_pw2wannier90_up.inputs["pw2wannier90"][
                 "parameters"
-            ].get_dict()["inputpp"]
+            ].get_dict()["INPUTPP"]
             atom_proj = p2w_params_up.get("atom_proj", False)
             atom_proj_ext = p2w_params_up.get("atom_proj_ext", False)
             if atom_proj and atom_proj_ext:
@@ -1447,88 +1494,57 @@ class Wannier90WorkChain(
         if "workchain_pw2wannier90_down" in self.ctx:
             p2w_params_down = self.ctx.workchain_pw2wannier90_down.inputs[
                 "pw2wannier90"
-            ]["parameters"].get_dict()["inputpp"]
+            ]["parameters"].get_dict()["INPUTPP"]
             atom_proj = p2w_params_down.get("atom_proj", False)
             atom_proj_ext = p2w_params_down.get("atom_proj_ext", False)
             if atom_proj and atom_proj_ext:
                 return
 
         # 1. the calculated number of projections is consistent with QE projwfc.x
+        check_num_projs = False
+        if self.should_run_projwfc():
+            check_num_projs = True
         if "scf" in self.inputs:
             pseudos = self.inputs["scf"]["pw"]["pseudos"]
-        else:
+        elif "nscf" in self.inputs:
             pseudos = self.inputs["nscf"]["pw"]["pseudos"]
-        args = {
-            "structure": self.ctx.current_structure,
-            # The type of `self.inputs['scf']['pw']['pseudos']` is AttributesFrozendict,
-            # we need to convert it to dict, otherwise get_number_of_projections will fail.
-            "pseudos": dict(pseudos),
-        }
-        if "workchain_projwfc" in self.ctx:
-            if self.ctx.spin_collinear:
-                num_proj_up = len(
-                    self.ctx.workchain_projwfc.outputs["projections_up"].get_orbitals()
+        else:
+            pseudos = None
+            check_num_projs = False
+        if check_num_projs:
+            args = {
+                "structure": self.ctx.current_structure,
+                # The type of `self.inputs['scf']['pw']['pseudos']` is AttributesFrozendict,
+                # we need to convert it to dict, otherwise get_number_of_projections will fail.
+                "pseudos": dict(pseudos),
+            }
+            num_proj_up = len(
+                self.ctx.workchain_projwfc.outputs["projections_up"].get_orbitals()
+            )
+            num_proj_down = len(
+                self.ctx.workchain_projwfc.outputs["projections_down"].get_orbitals()
+            )
+            if num_proj_up != num_proj_down:
+                self.report(
+                    "number of projections in projwfc.x output "
+                    + f"for spin up {num_proj_up} != spin down {num_proj_down}"
                 )
-                num_proj_down = len(
-                    self.ctx.workchain_projwfc.outputs[
-                        "projections_down"
-                    ].get_orbitals()
-                )
-                if num_proj_up != num_proj_down:
-                    self.report(
-                        "number of projections in projwfc.x output "
-                        + f"for spin up {num_proj_up} != spin down {num_proj_down}"
-                    )
-                    return self.exit_codes.ERROR_SANITY_CHECK_FAILED
+                return self.exit_codes.ERROR_SANITY_CHECK_FAILED
 
-                num_proj = num_proj_up
-            else:
-                num_proj = self.ctx.workchain_projwfc.outputs[
-                    "projections"
-                ].get_orbitals()
-            if "workchain_wannier90_up" in self.ctx:
-                params = self.ctx.workchain_wannier90_up.inputs["wannier90"][
-                    "parameters"
-                ].get_dict()
-                spin_orbit_coupling = params.get("spinors", False)
-                number_of_projections = get_number_of_projections(
-                    **args, spin_orbit_coupling=spin_orbit_coupling
-                )
-                if number_of_projections != num_proj:
-                    self.report(
-                        f"number of projections {number_of_projections} != projwfc.x output {num_proj}"
-                    )
-                    return self.exit_codes.ERROR_SANITY_CHECK_FAILED
-            if "workchain_wannier90_down" in self.ctx:
-                params = self.ctx.workchain_wannier90_down.inputs["wannier90"][
-                    "parameters"
-                ].get_dict()
-                spin_orbit_coupling = params.get("spinors", False)
-                number_of_projections = get_number_of_projections(
-                    **args, spin_orbit_coupling=spin_orbit_coupling
-                )
-                if number_of_projections != num_proj:
-                    self.report(
-                        f"number of projections {number_of_projections} != projwfc.x output {num_proj}"
-                    )
-                    return self.exit_codes.ERROR_SANITY_CHECK_FAILED
+            num_proj = num_proj_up
 
-            if "workchain_wannier90" in self.ctx and not self.ctx.spin_collinear:
-                params = self.ctx.workchain_wannier90.inputs["wannier90"][
-                    "parameters"
-                ].get_dict()
-                spin_orbit_coupling = params.get("spinors", False)
-                number_of_projections = get_number_of_projections(
-                    **args, spin_orbit_coupling=spin_orbit_coupling
+            number_of_projections = get_number_of_projections(
+                **args, spin_non_collinear=False, spin_orbit_coupling=False
+            )
+            if number_of_projections != num_proj:
+                self.report(
+                    f"number of projections {number_of_projections} != projwfc.x output {num_proj}"
                 )
-                if number_of_projections != num_proj:
-                    self.report(
-                        f"number of projections {number_of_projections} != projwfc.x output {num_proj}"
-                    )
-                    return self.exit_codes.ERROR_SANITY_CHECK_FAILED
+                return self.exit_codes.ERROR_SANITY_CHECK_FAILED
 
         # 2. the number of electrons is consistent with QE output
         # only check num electrons when we already know pseudos in the check num projectors step
+        check_num_elec = check_num_projs
         if "workchain_scf" in self.ctx:
             num_elec = self.ctx.workchain_scf.outputs["output_parameters"][
                 "number_of_electrons"
@@ -1538,9 +1554,9 @@ class Wannier90WorkChain(
                 "number_of_electrons"
             ]
         else:
-            check_num_elecs = False
+            check_num_elec = False
             num_elec = None  # to avoid pylint errors
-        if check_num_elecs:
+        if check_num_elec:
             number_of_electrons = get_number_of_electrons(**args)
             if (
                 number_of_electrons

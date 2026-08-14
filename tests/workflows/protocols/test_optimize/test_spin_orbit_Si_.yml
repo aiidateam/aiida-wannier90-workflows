@@ -39,6 +39,7 @@ nscf:
         smearing: cold
     pseudos:
       Si: Si.upf
+optimize_disproj: true
 pw2wannier90:
   pw2wannier90:
     code: test.quantumespresso.pw2wannier90@localhost
@@ -49,7 +50,7 @@ pw2wannier90:
           num_machines: 1
         withmpi: true
     parameters:
-      inputpp:
+      INPUTPP:
         atom_proj: true
 scf:
   kpoints_distance: 0.2

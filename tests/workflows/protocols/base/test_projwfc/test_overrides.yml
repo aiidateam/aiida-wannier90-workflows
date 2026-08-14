@@ -9,4 +9,4 @@ projwfc:
       withmpi: false
   parameters:
     PROJWFC:
-      DeltaE: 0.2
+      deltae: 0.2
