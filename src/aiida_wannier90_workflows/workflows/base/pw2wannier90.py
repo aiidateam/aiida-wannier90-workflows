@@ -38,7 +38,7 @@ def validate_inputs(  # pylint: disable=unused-argument,inconsistent-return-stat
         return result
 
     calc_inputs = AttributeDict(inputs[Pw2wannier90BaseWorkChain._inputs_namespace])
-    calc_parameters = calc_inputs["parameters"].get_dict().get("inputpp", {})
+    calc_parameters = calc_inputs["parameters"].get_dict().get("INPUTPP", {})
 
     scdm_proj = calc_parameters.get("scdm_proj", False)
     scdm_entanglement = calc_parameters.get("scdm_entanglement", "isolated")
@@ -165,7 +165,7 @@ class Pw2wannier90BaseWorkChain(ProtocolMixin, QeBaseRestartWorkChain):
 
         # Update the parameters based on the protocol inputs
         inputs = cls.get_protocol_inputs(protocol, overrides)
-        parameters = inputs[cls._inputs_namespace]["parameters"]["inputpp"]
+        parameters = inputs[cls._inputs_namespace]["parameters"]["INPUTPP"]
         metadata = inputs[cls._inputs_namespace]["metadata"]
 
         # Set projection
@@ -197,7 +197,7 @@ class Pw2wannier90BaseWorkChain(ProtocolMixin, QeBaseRestartWorkChain):
                 ):
                     parameters["atom_proj_frozen"] = list(external_projectors_froz)
 
-        parameters = {"inputpp": parameters}
+        parameters = {"INPUTPP": parameters}
 
         # If overrides are provided, they take precedence over default protocol
         if overrides:
@@ -253,7 +253,7 @@ class Pw2wannier90BaseWorkChain(ProtocolMixin, QeBaseRestartWorkChain):
         inputs = AttributeDict(
             self.exposed_inputs(Pw2wannier90Calculation, self._inputs_namespace)
         )
-        parameters = inputs["parameters"].get_dict().get("inputpp", {})
+        parameters = inputs["parameters"].get_dict().get("INPUTPP", {})
 
         scdm_proj = parameters.get("scdm_proj", False)
         scdm_entanglement = parameters.get("scdm_entanglement", None)
@@ -290,7 +290,7 @@ class Pw2wannier90BaseWorkChain(ProtocolMixin, QeBaseRestartWorkChain):
                 parameters["scdm_mu"] = mu_new
             if "scdm_sigma" not in parameters:
                 parameters["scdm_sigma"] = sigma_new
-            inputs["parameters"] = orm.Dict({"inputpp": parameters})
+            inputs["parameters"] = orm.Dict({"INPUTPP": parameters})
 
         return inputs
 
