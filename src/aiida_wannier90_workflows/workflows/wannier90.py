@@ -811,11 +811,13 @@ class Wannier90WorkChain(
 
         # Add Fermi energy
         if "workchain_scf" in self.ctx:
-            scf_output_parameters = self.ctx.workchain_scf.outputs.output_parameters
-            fermi_energy = get_fermi_energy(scf_output_parameters)
+            fermi_source = self.ctx.workchain_scf
+            fermi_energy = get_fermi_energy(fermi_source.outputs.output_parameters)
         elif "workchain_nscf" in self.ctx:
-            fermi_energy = get_fermi_energy_from_nscf(self.ctx.workchain_nscf)
+            fermi_source = self.ctx.workchain_nscf
+            fermi_energy = get_fermi_energy_from_nscf(fermi_source)
         else:
+            fermi_source = None
             if "fermi_energy" in parameters:
                 fermi_energy = parameters["fermi_energy"]
             else:
@@ -824,8 +826,10 @@ class Wannier90WorkChain(
             # Fail loudly here rather than passing None through to the .win
             # writer, which rejects it with an opaque "Invalid value" error.
             raise ValueError(
-                f"Fermi energy resolved to None (nscf {self.ctx.get('workchain_nscf', 'N/A')}): "
-                "neither the stdout marker nor the parsed output_parameters provided a value."
+                f"Could not read a Fermi energy from {fermi_source}. Its "
+                "`output_parameters` must contain `fermi_energy` (or both "
+                "`fermi_energy_up` and `fermi_energy_down`), together with "
+                "`fermi_energy_units` set to `eV`."
             )
         parameters["fermi_energy"] = fermi_energy
 

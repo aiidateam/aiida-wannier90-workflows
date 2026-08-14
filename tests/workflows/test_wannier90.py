@@ -35,7 +35,11 @@ def test_scdm(
         scf_workchain, link_type=LinkType.RETURN, link_label="remote_folder"
     )
 
-    params = orm.Dict({"fermi_energy": 6.0, "number_of_electrons": 8})
+    # The pw.x parser always stores `fermi_energy_units` alongside
+    # `fermi_energy`; `get_fermi_energy` reads a value only when it does.
+    params = orm.Dict(
+        {"fermi_energy": 6.0, "fermi_energy_units": "eV", "number_of_electrons": 8}
+    )
     params.store()
     params.base.links.add_incoming(
         scf_workchain, link_type=LinkType.RETURN, link_label="output_parameters"
@@ -107,6 +111,9 @@ def test_scdm(
 
     # mock run wannier90 pp
     w90pp_workchain = workchain.run_wannier90_pp()["workchain_wannier90_pp"]
+
+    # The scf Fermi energy reaches the wannier90 parameters
+    assert w90pp_workchain.inputs.wannier90.parameters["fermi_energy"] == 6.0
 
     # The wannier90 step will use `get_last_calcjob` to retrieve input parameters of the calcjob
     entry_point_calc_job = "wannier90.wannier90"
