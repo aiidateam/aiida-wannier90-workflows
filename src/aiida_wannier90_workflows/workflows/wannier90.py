@@ -1209,21 +1209,17 @@ class Wannier90WorkChain(
         """Verify that the `Wannier90BaseWorkChain` for the wannier90 run successfully finished."""
         if not self.ctx.spin_collinear:
             workchain = self.ctx.workchain_wannier90
-            self.ctx.current_folder = self.ctx.workchain_wannier90.outputs.remote_folder
             if not workchain.is_finished_ok:
                 self.report(
                     f"{workchain.process_label} failed with exit status {workchain.exit_status}"
                 )
                 return self.exit_codes.ERROR_SUB_PROCESS_FAILED_WANNIER90
+            self.ctx.current_folder = workchain.outputs.remote_folder
         else:
             workchain = [
                 self.ctx.workchain_wannier90_up,
                 self.ctx.workchain_wannier90_down,
             ]
-            self.ctx.current_folder_up, self.ctx.current_folder_down = (
-                self.ctx.workchain_wannier90_up.outputs.remote_folder,
-                self.ctx.workchain_wannier90_down.outputs.remote_folder,
-            )
             self.ctx.workchain_wannier90 = workchain
 
             for workchain_spin in workchain:
@@ -1232,6 +1228,13 @@ class Wannier90WorkChain(
                         f"{workchain_spin.process_label} failed with exit status {workchain_spin.exit_status}"
                     )
                     return self.exit_codes.ERROR_SUB_PROCESS_FAILED_WANNIER90
+
+            self.ctx.current_folder_up = (
+                self.ctx.workchain_wannier90_up.outputs.remote_folder
+            )
+            self.ctx.current_folder_down = (
+                self.ctx.workchain_wannier90_down.outputs.remote_folder
+            )
 
     def results(self):  # pylint: disable=inconsistent-return-statements
         """Attach the desired output nodes directly as outputs of the workchain."""
