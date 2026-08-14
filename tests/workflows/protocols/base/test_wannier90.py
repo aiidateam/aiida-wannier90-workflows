@@ -210,3 +210,35 @@ def test_metadata_overrides(
     )
 
     data_regression.check(serialize_builder(builder))
+
+
+def test_fully_relativistic_pseudos(fixture_code, generate_structure):
+    """Test ``Wannier90BaseWorkChain.get_builder_from_protocol`` with a fully relativistic family.
+
+    pw.x averages the j = l +/- 1/2 channels of such a pseudo unless the
+    calculation has `lspinorb`, so outside ``SpinType.SPIN_ORBIT`` the manifold
+    is the scalar-relativistic one.
+    """
+    code = fixture_code("wannier90.wannier90")
+    structure = generate_structure("Si")
+
+    def build(pseudo_family, spin_type):
+        builder = Wannier90BaseWorkChain.get_builder_from_protocol(
+            code,
+            structure=structure,
+            pseudo_family=pseudo_family,
+            spin_type=spin_type,
+        )
+        parameters = builder["wannier90"]["parameters"]
+        return parameters["num_wann"], parameters["num_bands"]
+
+    fully_relativistic = "PseudoDojo/0.4/PBE/FR/standard/upf"
+    scalar_relativistic = "SSSP/1.3/PBEsol/efficiency"
+
+    # Two silicon atoms, each with a 3S and a 3P channel.
+    assert build(fully_relativistic, SpinType.NONE) == (8, 16)
+    assert build(fully_relativistic, SpinType.NONE) == build(
+        scalar_relativistic, SpinType.NONE
+    )
+    # `lspinorb` keeps the channels apart, hence twice as many projections.
+    assert build(fully_relativistic, SpinType.SPIN_ORBIT) == (16, 32)

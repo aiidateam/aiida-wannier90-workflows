@@ -376,6 +376,13 @@ def get_number_of_projections(
     :type pseudos: dict
     :param spin_non_collinear: non-collinear or spin-orbit-coupling
     :type spin_non_collinear: bool
+    :param spin_orbit_coupling: whether the calculation has `lspinorb`, which
+        is the only case in which pw.x keeps the j = l +/- 1/2 channels of a
+        fully relativistic pseudo apart. `None` infers it from
+        `spin_non_collinear`, since `lspinorb` needs a non-collinear
+        calculation. Whether a pseudo is fully relativistic is read from the
+        pseudo itself, not from this flag.
+    :type spin_orbit_coupling: bool, optional
     :return: number of projections
     :rtype: int
     """
@@ -401,24 +408,31 @@ def get_number_of_projections(
             )
 
     if spin_orbit_coupling is None:
-        # I use the first pseudo to detect SOCs
-        kind = structure.get_kind_names()[0]
-        spin_orbit_coupling = is_soc_pseudo(get_upf_content(pseudos[kind]))
+        # `lspinorb` is only available to a non-collinear calculation
+        spin_orbit_coupling = spin_non_collinear
+
+    is_soc = {
+        kind: is_soc_pseudo(get_upf_content(upf)) for kind, upf in pseudos.items()
+    }
 
     tot_nprojs = 0
     for site in structure.sites:
         upf = pseudos[site.kind_name]
-        nprojs = get_number_of_projections_from_upf(upf)
-        if spin_non_collinear and not spin_orbit_coupling:
-            # For magnetic calculation with non-SOC pseudo, QE will generate
-            # 2 PSWFCs from each one PSWFC in the pseudo
-            # For collinear-magnetic calculation, spin up and down will calc
-            # seperately, so nprojs do not times 2
-            nprojs *= 2
-        elif not spin_non_collinear and spin_orbit_coupling:
-            # For non-magnetic calculation with SOC pseudo, QE will average
-            # the 2 PSWFCs into one
-            nprojs //= 2
+        if spin_orbit_coupling and is_soc[site.kind_name]:
+            # The j = l +/- 1/2 channels stay apart, each contributing 2j + 1
+            # spinor states, see q-e/upflib/upf_ions.f90:n_atom_wfc
+            nprojs = get_number_of_projections_from_upf(upf)
+        else:
+            # Without `lspinorb` pw.x averages the j = l +/- 1/2 channels of a
+            # fully relativistic pseudo back into one scalar-relativistic
+            # channel, see q-e/PW/src/average_pp.f90, so both kinds of pseudo
+            # contribute 2l + 1 states per shell
+            nprojs = get_number_of_projections_from_upf(upf, average_soc=True)
+            if spin_non_collinear:
+                # A non-collinear calculation makes two spinor states out of
+                # each of them. A collinear one calculates spin up and down
+                # separately, so nprojs is not doubled
+                nprojs *= 2
         tot_nprojs += nprojs
 
     return tot_nprojs

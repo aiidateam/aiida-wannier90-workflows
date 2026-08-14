@@ -428,7 +428,7 @@ def get_projections_from_upf(upf: orm.UpfData):
     return wannier_projections
 
 
-def parse_number_of_pswfc(upf_content: str) -> int:
+def parse_number_of_pswfc(upf_content: str, average_soc: bool = False) -> int:
     """Get the number of orbitals in the UPF file.
 
     This is also the number of orbitals used for projections in projwfc.x.
@@ -438,6 +438,13 @@ def parse_number_of_pswfc(upf_content: str) -> int:
 
     :param upf_content: the content of the UPF file
     :type upf_content: str
+    :param average_soc: for a fully relativistic pseudo, count the j = l - 1/2
+        and j = l + 1/2 channels of each shell as the single scalar-relativistic
+        channel they are averaged into, i.e. 2l + 1 states per shell. This is
+        what pw.x does whenever `lspinorb` is false, see
+        q-e/PW/src/average_pp.f90. Has no effect on a scalar-relativistic
+        pseudo.
+    :type average_soc: bool
     :return: number of PSWFC
     :rtype: int
     """
@@ -447,6 +454,17 @@ def parse_number_of_pswfc(upf_content: str) -> int:
         pswfc = parse_pswfc_nosoc(upf_content)
         for wfc in pswfc:
             l = wfc["l"]
+            num_projections += 2 * l + 1
+    elif average_soc:
+        pswfc = parse_pswfc_soc(upf_content)
+        # `average_pp` drops the j = l + 1/2 channel of every l > 0 shell and
+        # replaces the j = l - 1/2 one by the average of the pair; the l = 0
+        # channels, whose only j is 1/2, are kept as they are.
+        for wfc in pswfc:
+            l = wfc["l"]
+            j = wfc["j"]
+            if l != 0 and abs(j - l - 0.5) < 1e-6:
+                continue
             num_projections += 2 * l + 1
     else:
         pswfc = parse_pswfc_soc(upf_content)
@@ -463,13 +481,18 @@ def parse_number_of_pswfc(upf_content: str) -> int:
     return num_projections
 
 
-def get_number_of_projections_from_upf(upf: orm.UpfData) -> int:
+def get_number_of_projections_from_upf(
+    upf: orm.UpfData, average_soc: bool = False
+) -> int:
     """Aiida wrapper for `parse_number_of_pswfc`.
 
     :param upf: the UPF file
     :type upf: aiida.orm.UpfData
+    :param average_soc: count the averaged scalar-relativistic channels of a
+        fully relativistic pseudo, see `parse_number_of_pswfc`
+    :type average_soc: bool
     :return: number of projections in the UPF file
     :rtype: int
     """
     upf_content = get_upf_content(upf)
-    return parse_number_of_pswfc(upf_content)
+    return parse_number_of_pswfc(upf_content, average_soc=average_soc)
