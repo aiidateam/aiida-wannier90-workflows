@@ -266,8 +266,8 @@ class Wannier90SplitWorkChain(WorkChain):  # pylint: disable=too-many-public-met
         parameters = valcond_inputs["pw2wannier90"]["pw2wannier90"][
             "parameters"
         ].get_dict()
-        parameters["inputpp"]["wvfn_formatted"] = True
-        parameters["inputpp"]["spn_formatted"] = True
+        parameters["INPUTPP"]["wvfn_formatted"] = True
+        parameters["INPUTPP"]["spn_formatted"] = True
         valcond_inputs["pw2wannier90"]["pw2wannier90"]["parameters"] = orm.Dict(
             dict=parameters
         )
