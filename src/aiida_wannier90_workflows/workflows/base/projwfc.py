@@ -97,7 +97,7 @@ class ProjwfcBaseWorkChain(ProtocolMixin, QeBaseRestartWorkChain):
         ]  # pylint: disable=no-member
     )
     def handle_output_stdout_incomplete(self, calculation) -> ProcessHandlerReport:
-
+        """Retry with pencil decomposition enabled, or defer to the parent handler."""
         pd_line = "Use pencil decomposition (-pd .true.)"
         scheduler_stderr = calculation.get_scheduler_stderr()
 
