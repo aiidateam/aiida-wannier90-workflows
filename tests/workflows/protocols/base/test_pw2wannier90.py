@@ -38,7 +38,7 @@ def test_overrides(fixture_code, data_regression, serialize_builder):
     """Test ``Pw2wannier90BaseWorkChain.get_builder_from_protocol`` for the ``overrides`` input."""
     code = fixture_code("quantumespresso.pw2wannier90")
 
-    overrides = {"pw2wannier90": {"parameters": {"inputpp": {"fake_input": "fake"}}}}
+    overrides = {"pw2wannier90": {"parameters": {"INPUTPP": {"fake_input": "fake"}}}}
     builder = Pw2wannier90BaseWorkChain.get_builder_from_protocol(
         code=code, overrides=overrides
     )
@@ -61,7 +61,7 @@ def test_electronic_type(fixture_code, electronic_type):
         projection_type=WannierProjectionType.SCDM,
     )
 
-    parameters = builder["pw2wannier90"]["parameters"].get_dict()["inputpp"]
+    parameters = builder["pw2wannier90"]["parameters"].get_dict()["INPUTPP"]
     assert parameters["scdm_entanglement"] == electronic_type[1]
 
 
@@ -80,7 +80,7 @@ def test_projection_type(fixture_code, projection_type):
         code=code, projection_type=projection_type[0]
     )
 
-    parameters = builder["pw2wannier90"]["parameters"].get_dict()["inputpp"]
+    parameters = builder["pw2wannier90"]["parameters"].get_dict()["INPUTPP"]
     assert projection_type[1] in parameters
     assert parameters[projection_type[1]]
 
@@ -96,5 +96,5 @@ def test_exclude_projectors(fixture_code):
         exclude_projectors=exclude_projectors,
     )
 
-    parameters = builder["pw2wannier90"]["parameters"].get_dict()["inputpp"]
+    parameters = builder["pw2wannier90"]["parameters"].get_dict()["INPUTPP"]
     assert parameters["atom_proj_exclude"] == exclude_projectors
