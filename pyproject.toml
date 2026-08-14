@@ -22,6 +22,8 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Natural Language :: English",
     "Topic :: Scientific/Engineering :: Physics",
     "Intended Audience :: Science/Research"
@@ -205,7 +207,7 @@ envlist = py310
 [testenv]
 usedevelop=True
 
-[testenv:py{310,311,312}]
+[testenv:py{310,311,312,313,314}]
 description = Run the test suite against a python version
 extras = testing
 commands = pytest {posargs}
