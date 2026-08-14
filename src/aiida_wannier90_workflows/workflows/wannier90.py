@@ -48,7 +48,7 @@ def validate_inputs(  # pylint: disable=unused-argument,inconsistent-return-stat
         "parameters"
     ].get_dict()
     auto_energy_windows = inputs["wannier90"].get("auto_energy_windows", False)
-    scdm_proj = pw2wannier_parameters["inputpp"].get("scdm_proj", False)
+    scdm_proj = pw2wannier_parameters["INPUTPP"].get("scdm_proj", False)
     if auto_energy_windows and scdm_proj:
         return "`auto_energy_windows` is incompatible with SCDM"
 
@@ -829,9 +829,11 @@ class Wannier90WorkChain(
             scf_output_parameters = self.ctx.workchain_scf.outputs.output_parameters
             fermi_energy = get_fermi_energy(scf_output_parameters)
         elif "workchain_nscf" in self.ctx:
-            if "fermi_energy" not in parameters: # we can provide it if the workchain_nscf was already performed before this run.
+            if (
+                "fermi_energy" not in parameters
+            ):  # we can provide it if the workchain_nscf was already performed before this run.
                 fermi_energy = get_fermi_energy_from_nscf(self.ctx.workchain_nscf)
-            else: 
+            else:
                 fermi_energy = parameters["fermi_energy"]
         else:
             if "fermi_energy" in parameters:
@@ -963,7 +965,7 @@ class Wannier90WorkChain(
             self.exposed_inputs(Pw2wannier90BaseWorkChain, namespace="pw2wannier90")
         )
         inputs = base_inputs["pw2wannier90"]
-        parameters = inputs.parameters.get_dict().get("inputpp", {})
+        parameters = inputs.parameters.get_dict().get("INPUTPP", {})
 
         scdm_proj = parameters.get("scdm_proj", False)
         scdm_entanglement = parameters.get("scdm_entanglement", None)
@@ -1044,7 +1046,7 @@ class Wannier90WorkChain(
 
         inputs = prepare_process_inputs(Pw2wannier90BaseWorkChain, inputs)
         parameters = inputs["pw2wannier90"]["parameters"].get_dict()
-        parameters["inputpp"].update({"spin_component": "up"})
+        parameters["INPUTPP"].update({"spin_component": "up"})
         inputs["pw2wannier90"]["parameters"] = orm.Dict(parameters)
         running = self.submit(Pw2wannier90BaseWorkChain, **inputs)
         self.report(f"launching {running.process_label}<{running.pk}>")
@@ -1059,7 +1061,7 @@ class Wannier90WorkChain(
 
         inputs = prepare_process_inputs(Pw2wannier90BaseWorkChain, inputs)
         parameters = inputs["pw2wannier90"]["parameters"].get_dict()
-        parameters["inputpp"].update({"spin_component": "down"})
+        parameters["INPUTPP"].update({"spin_component": "down"})
         inputs["pw2wannier90"]["parameters"] = orm.Dict(parameters)
         running = self.submit(Pw2wannier90BaseWorkChain, **inputs)
         self.report(f"launching {running.process_label}<{running.pk}>")
@@ -1353,7 +1355,7 @@ class Wannier90WorkChain(
         # If using external atomic projectors, disable sanity check
         p2w_params = self.ctx.workchain_pw2wannier90.inputs["pw2wannier90"][
             "parameters"
-        ].get_dict()["inputpp"]
+        ].get_dict()["INPUTPP"]
         atom_proj = p2w_params.get("atom_proj", False)
         atom_proj_ext = p2w_params.get("atom_proj_ext", False)
         if atom_proj and atom_proj_ext:
@@ -1396,7 +1398,9 @@ class Wannier90WorkChain(
             spin_non_collinear = None
             spin_orbit_coupling = None
 
-        if "workchain_nscf" in self.ctx: # in case we provide nscf as parent input (previously computed), we do not have it in self.inputs
+        if (
+            "workchain_nscf" in self.ctx
+        ):  # in case we provide nscf as parent input (previously computed), we do not have it in self.inputs
             pseudos = self.ctx["workchain_nscf"].inputs.pw.pseudos
         else:
             pseudos = self.inputs["nscf"]["pw"]["pseudos"]
@@ -1473,7 +1477,7 @@ class Wannier90WorkChain(
         if "workchain_pw2wannier90_up" in self.ctx:
             p2w_params_up = self.ctx.workchain_pw2wannier90_up.inputs["pw2wannier90"][
                 "parameters"
-            ].get_dict()["inputpp"]
+            ].get_dict()["INPUTPP"]
             atom_proj = p2w_params_up.get("atom_proj", False)
             atom_proj_ext = p2w_params_up.get("atom_proj_ext", False)
             if atom_proj and atom_proj_ext:
@@ -1481,7 +1485,7 @@ class Wannier90WorkChain(
         if "workchain_pw2wannier90_down" in self.ctx:
             p2w_params_down = self.ctx.workchain_pw2wannier90_down.inputs[
                 "pw2wannier90"
-            ]["parameters"].get_dict()["inputpp"]
+            ]["parameters"].get_dict()["INPUTPP"]
             atom_proj = p2w_params_down.get("atom_proj", False)
             atom_proj_ext = p2w_params_down.get("atom_proj_ext", False)
             if atom_proj and atom_proj_ext:
