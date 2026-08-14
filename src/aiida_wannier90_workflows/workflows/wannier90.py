@@ -1070,28 +1070,32 @@ class Wannier90WorkChain(
         """Verify that the Pw2wannier90BaseWorkChain for the pw2wannier90 run successfully finished."""
         if not self.ctx.spin_collinear:
             workchain = self.ctx.workchain_pw2wannier90
-            self.ctx.current_folder = workchain.outputs.remote_folder
             if not workchain.is_finished_ok:
                 self.report(
                     f"{workchain.process_label} failed with exit status {workchain.exit_status}"
                 )
+                return self.exit_codes.ERROR_SUB_PROCESS_FAILED_PW2WANNIER90
 
+            self.ctx.current_folder = workchain.outputs.remote_folder
         else:
             workchain = [
                 self.ctx.workchain_pw2wannier90_up,
                 self.ctx.workchain_pw2wannier90_down,
             ]
-            # current_folder for wannier90_up and _down will be defined seperately
-            self.ctx.current_folder_up, self.ctx.current_folder_down = (
-                self.ctx.workchain_pw2wannier90_up.outputs.remote_folder,
-                self.ctx.workchain_pw2wannier90_down.outputs.remote_folder,
-            )
             for workchain_spin in workchain:
                 if not workchain_spin.is_finished_ok:
                     self.report(
                         f"{workchain_spin.process_label} failed with exit status {workchain_spin.exit_status}"
                     )
                     return self.exit_codes.ERROR_SUB_PROCESS_FAILED_PW2WANNIER90
+
+            # current_folder for wannier90_up and _down will be defined seperately
+            self.ctx.current_folder_up = (
+                self.ctx.workchain_pw2wannier90_up.outputs.remote_folder
+            )
+            self.ctx.current_folder_down = (
+                self.ctx.workchain_pw2wannier90_down.outputs.remote_folder
+            )
 
     def prepare_wannier90_inputs(self):  # pylint: disable=too-many-statements
         """Prepare the inputs of wannier90 calculation before submission.
