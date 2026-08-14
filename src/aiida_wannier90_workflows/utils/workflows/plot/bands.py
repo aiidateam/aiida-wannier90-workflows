@@ -160,8 +160,8 @@ def read_band_proj_sigma_mu_from_workchain(
     projections = projcalc.outputs[f"projections{spin_component}"]
     bands = projcalc.outputs[f"bands{spin_component}"]
 
-    sigma = p2wcalc.inputs.parameters["inputpp"]["scdm_sigma"]
-    mu = p2wcalc.inputs.parameters["inputpp"]["scdm_mu"]
+    sigma = p2wcalc.inputs.parameters["INPUTPP"]["scdm_sigma"]
+    mu = p2wcalc.inputs.parameters["INPUTPP"]["scdm_mu"]
 
     results = {"bands": bands, "projections": projections, "sigma": sigma, "mu": mu}
     return results
