@@ -558,6 +558,10 @@ class Wannier90WorkChain(
         )
 
         # Remove workchain excluded inputs
+        scf_builder["pw"].pop("structure", None)
+        scf_builder.pop("clean_workdir", None)
+        builder.scf = scf_builder._inputs(prune=True)
+
         nscf_builder["pw"].pop("structure", None)
         nscf_builder.pop("clean_workdir", None)
         builder.nscf = nscf_builder._inputs(prune=True)
@@ -671,6 +675,11 @@ class Wannier90WorkChain(
         full k-grid, ``diago_full_acc`` for the empty states, the
         wannier90-ordered explicit k-point list, the ``nbnd`` bookkeeping —
         instead of copying them.
+
+        Both builders are returned as standalone ``PwBaseWorkChain`` builders and
+        still carry ``pw.structure`` and ``clean_workdir``. A caller nesting them
+        under a ``Wannier90WorkChain`` builder must drop both first, since this
+        workchain excludes them from the exposed ``scf`` / ``nscf`` namespaces.
 
         :param code: the ``pw.x`` code.
         :param nbnd: number of bands for the nscf. When None the protocol
