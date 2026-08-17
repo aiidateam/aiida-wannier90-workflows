@@ -1,5 +1,7 @@
 """Utility functions for pseudo potential family."""
 
+import collections
+import math
 import re
 import typing as ty
 import warnings
@@ -80,7 +82,7 @@ def get_pseudo_orbitals(
 ) -> ty.Dict[str, PseudoOrbitals]:
     """Get the valence orbitals (pseudo wave functions) of each pseudopotential.
 
-    Resolution proceeds in three tiers, per kind:
+    Resolution proceeds in four tiers, per kind:
 
     1. an entry in ``overrides``, when given;
     2. the bundled semicore tables (matched by md5), which carry curated
@@ -101,8 +103,12 @@ def get_pseudo_orbitals(
        * Pslibrary/1.0.0/relPBE/PAW
 
     3. the pseudo's own ``PP_PSWFC`` block, read via ``upf-tools``: the labels
-       of its atomic wave functions are the valence orbitals, with an empty
-       ``semicores`` list (nothing is auto-excluded) and a warning.
+       of its atomic wave functions are the valence orbitals;
+    4. inference from the pseudo's ``z_valence`` by aufbau filling, for UPFs
+       whose ``PP_PSWFC`` block is missing or too sparse to label.
+
+    Tiers 3 and 4 leave ``semicores`` empty (nothing is auto-excluded) and
+    warn, naming which of the two resolved the kind.
 
     A ``ValueError`` is raised only when none of the tiers can resolve a
     pseudopotential; its message explains what to pass via ``overrides``.
@@ -156,22 +162,28 @@ def get_pseudo_orbitals(
                 pseudo_orbitals[kind] = data[pseudos[kind].element]
                 break
         else:
-            derived = _derive_pseudo_orbitals_from_upf(pseudos[kind])
-            if derived is None:
+            source = (
+                "read directly from the pseudopotential file's atomic wave functions"
+            )
+            entry = _derive_pseudo_orbitals_from_upf(pseudos[kind])
+            if entry is None:
+                source = "inferred from its z_valence by aufbau filling"
+                entry = _infer_pseudo_orbitals(pseudos[kind])
+            if entry is None:
                 raise ValueError(
                     f"Cannot find pseudopotential {kind} with md5 {pseudos[kind].md5}, "
-                    "and its valence orbitals could not be read from the pseudopotential "
-                    "file. Provide the entry explicitly via the `overrides` argument, e.g. "
+                    "and its valence orbitals could neither be read from the "
+                    "pseudopotential file nor inferred from its z_valence. Provide the "
+                    "entry explicitly via the `overrides` argument, e.g. "
                     '{"' + str(kind) + '": {"pswfcs": ["3S", "3P"], "semicores": []}}.'
                 )
             warnings.warn(
                 f"Pseudopotential {kind} (md5 {pseudos[kind].md5}) is not in the bundled "
-                "semicore tables; its valence orbitals were read directly from the "
-                "pseudopotential file's atomic wave functions "
-                f"({derived['pswfcs']}), and no semicore states will be excluded. Pass "
+                f"semicore tables; its valence orbitals were {source} "
+                f"({entry['pswfcs']}), and no semicore states will be excluded. Pass "
                 "`overrides` to specify them explicitly."
             )
-            pseudo_orbitals[kind] = derived
+            pseudo_orbitals[kind] = entry
 
     return pseudo_orbitals
 
@@ -180,6 +192,18 @@ def get_pseudo_orbitals(
 # pseudo wave function's label from its (n, l) when the UPF's own label field
 # is missing or unusable.
 _L_TO_LETTER = {0: "S", 1: "P", 2: "D", 3: "F", 4: "G", 5: "H"}
+_LETTER_TO_L = {letter: l for l, letter in _L_TO_LETTER.items()}
+
+
+def _read_upf(pseudo: PseudoPotentialData) -> ty.Optional["UPFDict"]:
+    """Parse a pseudo's UPF content, or return ``None`` when it cannot be read."""
+    try:
+        return UPFDict.from_str(pseudo.get_content())
+    except (KeyError, TypeError, ValueError, IndexError, AttributeError, SyntaxError):
+        # xml.etree ParseError subclasses SyntaxError; a missing PP_HEADER
+        # section surfaces as KeyError; unparseable content yields a dict
+        # without the expected keys.
+        return None
 
 
 def _chi_label(entry: ty.Mapping) -> ty.Optional[str]:
@@ -239,13 +263,13 @@ def _derive_pseudo_orbitals_from_upf(
     cannot be recovered) or when the wave function occupations do not sum to
     ``z_valence``, which can indicate a missing valence orbital.
     """
+    upf = _read_upf(pseudo)
+    if upf is None:
+        return None
     try:
-        upf = UPFDict.from_str(pseudo.get_content())
         chi = upf["pswfc"]["chi"]
-    except (KeyError, TypeError, ValueError, IndexError, AttributeError, SyntaxError):
-        # xml.etree ParseError subclasses SyntaxError; a missing PP_PSWFC or
-        # PP_HEADER section surfaces as KeyError once parsed; unparseable
-        # content yields a dict without the expected keys.
+    except (KeyError, TypeError, IndexError):
+        # A missing PP_PSWFC section surfaces as KeyError once parsed.
         return None
     if not chi:
         return None
@@ -311,6 +335,127 @@ def _occupations_disagree(
         )
         return True
     return False
+
+
+# Aufbau filling order of the neutral atom, and the electron capacity of each
+# subshell, used to infer valence orbitals from a pseudo's ``z_valence``.
+_AUFBAU_ORDER = [
+    (1, "S"),
+    (2, "S"),
+    (2, "P"),
+    (3, "S"),
+    (3, "P"),
+    (4, "S"),
+    (3, "D"),
+    (4, "P"),
+    (5, "S"),
+    (4, "D"),
+    (5, "P"),
+    (6, "S"),
+    (4, "F"),
+    (5, "D"),
+    (6, "P"),
+    (7, "S"),
+    (5, "F"),
+    (6, "D"),
+    (7, "P"),
+]
+_L_OCCUPANCY = {"S": 2, "P": 6, "D": 10, "F": 14}
+
+
+def _infer_pseudo_orbitals(
+    pseudo: PseudoPotentialData,
+) -> ty.Optional[PseudoOrbitals]:
+    """Infer the valence orbitals of a pseudo from its ``z_valence``.
+
+    Walks the aufbau filling of the neutral atom from the outermost subshell
+    inward until the pseudo's valence electrons are accounted for; the
+    subshells collected on the way are the valence orbitals, semicore-in-valence
+    included (Ti with ``z_valence`` 12 yields 3S 3P 4S 3D). ``semicores`` is
+    left empty, as for UPF-derived entries.
+
+    Aufbau order is not pseudisation order, so the inference is cross-checked
+    against the angular momenta of the UPF's own atomic wave functions whenever
+    those are readable, and refused on a mismatch. That check is what keeps the
+    inference honest for heavy elements: gold with ``z_valence`` 19 fills to
+    4F 5D, while its UPF lists 5S 5P 5D 6S.
+
+    Returns ``None`` when the pseudo carries no ``z_valence``, when its element
+    is unknown, or when the cross-check disagrees.
+    """
+    from aiida.common.constants import elements as aiida_elements
+
+    z_valence = getattr(pseudo, "z_valence", None)
+    if z_valence is None:
+        return None
+    symbol_to_z = {data["symbol"]: z for z, data in aiida_elements.items()}
+    z_atom = symbol_to_z.get(pseudo.element)
+    if z_atom is None:
+        return None
+
+    filled = []
+    remaining = z_atom
+    for shell_n, shell_l in _AUFBAU_ORDER:
+        if remaining <= 0:
+            break
+        occupancy = min(_L_OCCUPANCY[shell_l], remaining)
+        filled.append((shell_n, shell_l, occupancy))
+        remaining -= occupancy
+
+    pswfcs = []
+    accounted = 0
+    for shell_n, shell_l, occupancy in reversed(filled):
+        pswfcs.append(f"{shell_n}{shell_l}")
+        accounted += occupancy
+        if accounted >= round(z_valence):
+            break
+    pswfcs.reverse()
+
+    upf_momenta = _upf_angular_momenta(pseudo)
+    inferred_momenta = sorted(_LETTER_TO_L[label[-1]] for label in pswfcs)
+    if upf_momenta is not None and upf_momenta != inferred_momenta:
+        return None
+
+    return PseudoOrbitals(
+        filename=getattr(pseudo, "filename", f"{pseudo.element}.upf"),
+        md5=pseudo.md5,
+        pswfcs=pswfcs,
+        semicores=[],
+    )
+
+
+def _upf_angular_momenta(
+    pseudo: PseudoPotentialData,
+) -> ty.Optional[ty.List[int]]:
+    """Return the sorted angular momenta of a pseudo's atomic wave functions.
+
+    One momentum per subshell: a fully-relativistic pseudo lists one ``PP_CHI``
+    per j channel (each l > 0 subshell splits into j = l +/- 1/2), so its l > 0
+    counts are halved, rounding up.
+
+    Returns ``None`` when the ``PP_PSWFC`` block is absent, empty, or carries
+    an unreadable ``l``, so the caller can skip the cross-check rather than
+    fail it.
+    """
+    upf = _read_upf(pseudo)
+    if upf is None:
+        return None
+    try:
+        chi = upf["pswfc"]["chi"]
+        momenta = [int(entry["l"]) for entry in chi]
+        has_so = bool(upf["header"]["has_so"])
+    except (KeyError, TypeError, ValueError, IndexError):
+        return None
+    if not momenta:
+        return None
+    if not has_so:
+        return sorted(momenta)
+    counts = collections.Counter(momenta)
+    return sorted(
+        l
+        for l, count in counts.items()
+        for _ in range(count if l == 0 else math.ceil(count / 2))
+    )
 
 
 def get_semicore_list(

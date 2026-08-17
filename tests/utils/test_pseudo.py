@@ -219,9 +219,77 @@ def test_get_pseudo_orbitals_derivation_warns():
     assert result["Si"]["semicores"] == []
 
 
-def test_get_pseudo_orbitals_unresolvable_raises():
-    """When derivation is impossible the error explains the override escape hatch."""
+def test_get_pseudo_orbitals_unreadable_pswfc_infers():
+    """A UPF whose content cannot be parsed at all still resolves: the valence
+    orbitals are inferred from z_valence instead of raising."""
     from aiida_wannier90_workflows.utils.pseudo import get_pseudo_orbitals
 
-    with pytest.raises(ValueError, match="overrides"):
-        get_pseudo_orbitals({"Xx": FakePseudo("Xx", 4, "not a upf file")})
+    pseudo = FakePseudo("Si", 4, "not a upf file")
+    with pytest.warns(UserWarning, match="inferred from its z_valence"):
+        result = get_pseudo_orbitals({"Si": pseudo})
+    assert result["Si"]["pswfcs"] == ["3S", "3P"]
+    assert result["Si"]["semicores"] == []
+
+
+def test_get_pseudo_orbitals_unlabelled_pswfc_infers():
+    """PP_CHI entries carrying only ``l`` -- no label and no ``n`` -- cannot be
+    labelled, so the derivation declines and the inference resolves the kind.
+    The angular momenta the UPF does state back the inference up."""
+    from aiida_wannier90_workflows.utils.pseudo import (
+        _derive_pseudo_orbitals_from_upf,
+        get_pseudo_orbitals,
+    )
+
+    content = (
+        '<UPF version="2.0.1">\n'
+        '<PP_HEADER element="O" z_valence="6" number_of_proj="0" '
+        'number_of_wfc="2" mesh_size="3" has_so="false"/>\n'
+        '<PP_MESH><PP_R size="3"> 0 0.1 0.2 </PP_R></PP_MESH>\n'
+        '<PP_PSWFC>\n<PP_CHI.1 l="0"/>\n<PP_CHI.2 l="1"/>\n</PP_PSWFC>\n'
+        "</UPF>\n"
+    )
+    pseudo = FakePseudo("O", 6, content)
+    assert _derive_pseudo_orbitals_from_upf(pseudo) is None
+    with pytest.warns(UserWarning, match="inferred from its z_valence"):
+        result = get_pseudo_orbitals({"O": pseudo})
+    assert result["O"]["pswfcs"] == ["2S", "2P"]
+
+
+def test_infer_pseudo_orbitals_refuses_on_angular_momentum_mismatch():
+    """Aufbau order is not pseudisation order: for gold with z_valence 19 the
+    walk fills to 4F 5D, while the UPF states a 5s/5p/5d/6s valence. The
+    cross-check refuses the inference rather than returning the wrong shells."""
+    from aiida_wannier90_workflows.utils.pseudo import _infer_pseudo_orbitals
+
+    content = _upf_content("Au", 19, [(5, 0), (5, 1), (5, 2), (6, 0)])
+    assert _infer_pseudo_orbitals(FakePseudo("Au", 19, content)) is None
+
+
+def test_infer_pseudo_orbitals_collapses_relativistic_j_split():
+    """A fully-relativistic UPF lists one PP_CHI per j channel, so its raw
+    angular momenta outnumber the inferred subshells; the cross-check compares
+    one momentum per subshell and lets the inference stand."""
+    from aiida_wannier90_workflows.utils.pseudo import _infer_pseudo_orbitals
+
+    # Si-like FR pseudo: 3s (j=1/2) and 3p (j=1/2, 3/2) -- l values [0, 1, 1]
+    # against the inferred [0, 1].
+    content = _upf_content(
+        "Si", 4, [(3, 0, 0.5), (3, 1, 0.5), (3, 1, 1.5)], has_so=True
+    )
+    entry = _infer_pseudo_orbitals(FakePseudo("Si", 4, content))
+    assert entry is not None
+    assert entry["pswfcs"] == ["3S", "3P"]
+
+
+def test_get_pseudo_orbitals_unresolvable_raises():
+    """When neither route can resolve a kind, the error names the kind and its
+    md5 and explains the override escape hatch."""
+    from aiida_wannier90_workflows.utils.pseudo import get_pseudo_orbitals
+
+    # An element outside the periodic table defeats the inference as well as
+    # the derivation: there is no neutral-atom filling to walk.
+    pseudo = FakePseudo("Xx", 4, "not a upf file", md5="a" * 32)
+    with pytest.raises(ValueError, match="overrides") as excinfo:
+        get_pseudo_orbitals({"Xx": pseudo})
+    assert "Xx" in str(excinfo.value)
+    assert "a" * 32 in str(excinfo.value)
