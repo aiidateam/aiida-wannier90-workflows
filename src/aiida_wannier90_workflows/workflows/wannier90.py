@@ -633,6 +633,11 @@ class Wannier90WorkChain(
             # Remove workchain excluded inputs
             projwfc_builder.pop("clean_workdir", None)
             builder.projwfc = projwfc_builder._inputs(prune=True)
+            if nscf_parent_folder is not None:
+                # ``setup`` takes this as the starting folder, ahead of pw2wannier90,
+                # when it finds no scf/nscf namespace but does find a projwfc one, and
+                # ``run_projwfc`` passes it on to the calculation.
+                builder.projwfc["projwfc"]["parent_folder"] = nscf_parent_folder
 
         # Prepare pw2wannier90 builder
         exclude_projectors = None

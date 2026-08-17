@@ -7,7 +7,10 @@ from aiida.plugins import WorkflowFactory
 
 from aiida_quantumespresso.common.types import ElectronicType, SpinType
 
-from aiida_wannier90_workflows.common.types import WannierProjectionType
+from aiida_wannier90_workflows.common.types import (
+    WannierFrozenType,
+    WannierProjectionType,
+)
 
 Wannier90WorkChain = WorkflowFactory("wannier90_workflows.wannier90")
 
@@ -353,3 +356,89 @@ def test_nscf_parent_folder_semicore_unknown_family(
             exclude_semicore=True,
             print_summary=False,
         )
+
+
+def test_nscf_parent_folder_scdm_setup(
+    generate_builder_inputs, generate_remote_data, fixture_localhost
+):
+    """Test the default SCDM projector (which runs projwfc) starts `setup` cleanly.
+
+    With both scf and nscf skipped, `setup` reaches its projwfc branch before its
+    pw2wannier90 one, so the builder must wire the reused folder onto `projwfc` too.
+    """
+    remote = generate_remote_data(fixture_localhost, "/tmp", "quantumespresso.pw")
+
+    inputs = generate_builder_inputs()
+    inputs["codes"].pop("pw")
+
+    builder = Wannier90WorkChain.get_builder_from_protocol(
+        **inputs,
+        nscf_parent_folder=remote,
+        exclude_semicore=False,
+        print_summary=False,
+    )
+    pruned = builder._inputs(prune=True)  # pylint: disable=protected-access
+    assert pruned["projwfc"]["projwfc"]["parent_folder"] is remote
+
+    process = Wannier90WorkChain(inputs=pruned)
+    process.setup()
+    assert process.ctx.current_folder is remote
+
+
+def test_nscf_parent_folder_atomic_projectors_qe_setup(
+    generate_builder_inputs, generate_remote_data, fixture_localhost
+):
+    """Test atomic projectors (no projwfc) still starts `setup` from pw2wannier90.
+
+    `ATOMIC_PROJECTORS_QE` without `ENERGY_AUTO` never populates the `projwfc`
+    namespace, so `setup` falls through to its pw2wannier90 branch, unaffected by
+    the projwfc wiring added for the SCDM/`ENERGY_AUTO` cases.
+    """
+    remote = generate_remote_data(fixture_localhost, "/tmp", "quantumespresso.pw")
+
+    inputs = generate_builder_inputs()
+    inputs["codes"].pop("pw")
+
+    builder = Wannier90WorkChain.get_builder_from_protocol(
+        **inputs,
+        nscf_parent_folder=remote,
+        exclude_semicore=False,
+        projection_type=WannierProjectionType.ATOMIC_PROJECTORS_QE,
+        print_summary=False,
+    )
+    pruned = builder._inputs(prune=True)  # pylint: disable=protected-access
+    assert "projwfc" not in pruned
+    assert pruned["pw2wannier90"]["pw2wannier90"]["parent_folder"] is remote
+
+    process = Wannier90WorkChain(inputs=pruned)
+    process.setup()
+    assert process.ctx.current_folder is remote
+
+
+def test_nscf_parent_folder_energy_auto_setup(
+    generate_builder_inputs, generate_remote_data, fixture_localhost
+):
+    """Test `frozen_type=ENERGY_AUTO` with a non-SCDM projector also runs projwfc.
+
+    This reaches the same `setup` projwfc branch as the SCDM default, via a
+    different `run_projwfc` condition in `get_builder_from_protocol`.
+    """
+    remote = generate_remote_data(fixture_localhost, "/tmp", "quantumespresso.pw")
+
+    inputs = generate_builder_inputs()
+    inputs["codes"].pop("pw")
+
+    builder = Wannier90WorkChain.get_builder_from_protocol(
+        **inputs,
+        nscf_parent_folder=remote,
+        exclude_semicore=False,
+        projection_type=WannierProjectionType.ATOMIC_PROJECTORS_QE,
+        frozen_type=WannierFrozenType.ENERGY_AUTO,
+        print_summary=False,
+    )
+    pruned = builder._inputs(prune=True)  # pylint: disable=protected-access
+    assert pruned["projwfc"]["projwfc"]["parent_folder"] is remote
+
+    process = Wannier90WorkChain(inputs=pruned)
+    process.setup()
+    assert process.ctx.current_folder is remote
