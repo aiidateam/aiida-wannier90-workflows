@@ -242,7 +242,9 @@ class Wannier90BaseWorkChain(ProtocolMixin, BaseRestartWorkChain):
         overrides: dict = None,
         pseudo_family: str = None,
         external_projectors: dict = None,
-        pseudo_orbitals_overrides: ty.Optional[ty.Mapping[str, "PseudoOrbitals"]] = None,
+        pseudo_orbitals_overrides: ty.Optional[
+            ty.Mapping[str, "PseudoOrbitals"]
+        ] = None,
         electronic_type: ElectronicType = ElectronicType.METAL,
         spin_type: SpinType = SpinType.NONE,
         projection_type: WannierProjectionType = WannierProjectionType.ATOMIC_PROJECTORS_QE,
@@ -378,7 +380,9 @@ class Wannier90BaseWorkChain(ProtocolMixin, BaseRestartWorkChain):
             num_wann = num_projs
 
         if meta_parameters["exclude_semicore"]:
-            pseudo_orbitals = get_pseudo_orbitals(pseudos, overrides=pseudo_orbitals_overrides)
+            pseudo_orbitals = get_pseudo_orbitals(
+                pseudos, overrides=pseudo_orbitals_overrides
+            )
             if projection_type == WannierProjectionType.ATOMIC_PROJECTORS_EXTERNAL:
                 semicore_list = get_semicore_list_ext(
                     structure, external_projectors, pseudo_orbitals, spin_non_collinear
@@ -419,7 +423,9 @@ class Wannier90BaseWorkChain(ProtocolMixin, BaseRestartWorkChain):
         ]:
             parameters["auto_projections"] = True
         elif projection_type == WannierProjectionType.ANALYTIC:
-            pseudo_orbitals = get_pseudo_orbitals(pseudos, overrides=pseudo_orbitals_overrides)
+            pseudo_orbitals = get_pseudo_orbitals(
+                pseudos, overrides=pseudo_orbitals_overrides
+            )
             projections = []
             if external_projectors is None:
                 for kind in structure.kinds:
