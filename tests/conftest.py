@@ -153,6 +153,41 @@ def pseudos(aiida_profile, generate_upf_data, generate_upf_data_soc):
 
 
 @pytest.fixture(scope="session")
+def cutoffs_family_without_stringency(
+    pseudos, generate_upf_data
+):  # pylint: disable=unused-argument
+    """Create a cutoffs family with no stringency, so it recommends no cutoffs.
+
+    The shape a user gets after grouping pseudos of their own into a
+    ``CutoffsPseudoPotentialFamily`` without calling ``set_cutoffs``. Ordered
+    after ``pseudos``, which resets the profile.
+    """
+    from aiida.plugins import GroupFactory
+
+    family = GroupFactory("pseudo.family.cutoffs")(label="NoStringency/1.0")
+    family.store()
+    family.add_nodes([generate_upf_data("Si")])
+
+    return family
+
+
+@pytest.fixture(scope="session")
+def plain_pseudo_family(pseudos, generate_upf_data):  # pylint: disable=unused-argument
+    """Create a plain family, the shape ``aiida-pseudo install family`` produces.
+
+    Cutoffs are not even representable on this family class. Ordered after
+    ``pseudos``, which resets the profile.
+    """
+    from aiida.plugins import GroupFactory
+
+    family = GroupFactory("pseudo.family")(label="MyPseudos/local")
+    family.store()
+    family.add_nodes([generate_upf_data("Si")])
+
+    return family
+
+
+@pytest.fixture(scope="session")
 def generate_upf_data(filepath_fixtures):
     """Return a `UpfData` instance for the given element a file for which should exist in `tests/fixtures/pseudos`."""
 
