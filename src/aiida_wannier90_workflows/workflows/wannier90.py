@@ -744,7 +744,9 @@ class Wannier90WorkChain(
         called it (e.g. a ``PwBaseWorkChain`` wrapping the raw
         ``PwCalculation``). Returns ``None`` if the folder has no creator, or
         neither the creator nor its caller expose ``SYSTEM`` parameters (for
-        example an imported ``RemoteData`` or a non-pw creator).
+        example an imported ``RemoteData``). A non-pw creator whose parameters
+        carry no ``SYSTEM`` namelist (projwfc.x, pw2wannier90.x) reads as
+        ``nspin = 1`` rather than ``None``, so no warning is reported there.
         """
         creator = folder.creator
         if creator is None:
