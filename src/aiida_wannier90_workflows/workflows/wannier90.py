@@ -141,6 +141,51 @@ class Wannier90WorkChain(
             namespace_options={"help": "Inputs for the `Wannier90BaseWorkChain`."},
         )
         spec.inputs["wannier90"].validator = validate_inputs_base_wannier90
+        spec.expose_inputs(
+            Wannier90BaseWorkChain,
+            namespace="wannier90_pp",
+            include=("metadata",),
+            namespace_options={
+                "required": False,
+                "populate_defaults": False,
+                # `Wannier90BaseWorkChain.spec().inputs.validator` is a mutable
+                # property `expose_inputs` would otherwise copy onto this
+                # namespace verbatim; it checks for the full input set
+                # (`wannier90`, `shift_energy_windows`, ...) this
+                # metadata-only namespace never carries, so it's cleared here.
+                "validator": None,
+                # `absorb()` (plumpy's `PortNamespace.absorb`, which
+                # `expose_inputs` calls) copies mutable properties from the
+                # source namespace by iterating `dir(source)`, which is
+                # alphabetical. `Wannier90BaseWorkChain`'s own inputs
+                # namespace sets `valid_type = orm.Data` then `dynamic =
+                # False`, in that order, deliberately -- its own comment
+                # notes that setting `valid_type` forces `dynamic = True` as
+                # a side effect, so it resets `dynamic` afterwards. But
+                # "dynamic" sorts before "valid_type", so `absorb()` copies
+                # them in the wrong order for that protection to survive:
+                # copying `dynamic = False` first, then copying `valid_type
+                # = orm.Data` re-triggers the side effect, leaving this
+                # namespace dynamic regardless of an explicit override here
+                # (an override of `dynamic` alone is copied first, then
+                # overwritten the same way). Overriding `valid_type` to
+                # `None` instead survives, since `None` is the one value
+                # whose setter sets `dynamic = False` rather than `True`,
+                # and nothing later in the alphabetical copy touches it
+                # again -- this is the actual fix; `dynamic` needs no
+                # explicit override once `valid_type` is `None`.
+                "valid_type": None,
+                "help": (
+                    "Metadata (e.g. `label`) for the `Wannier90BaseWorkChain` run in "
+                    "preprocessing mode, kept independent of `wannier90`'s so the two "
+                    "steps can be told apart. Physics inputs always come from "
+                    "`wannier90`: the preprocessing and minimization runs are two "
+                    "phases of one calculation (the .nnkp the minimization consumes "
+                    "must match what preprocessing wrote), so this namespace cannot "
+                    "carry its own code, parameters, or kpoints."
+                ),
+            },
+        )
 
         spec.inputs.validator = validate_inputs
 
@@ -817,9 +862,18 @@ class Wannier90WorkChain(
             get_fermi_energy_from_nscf,
         )
 
+        # Physics inputs always come from `wannier90`, never `wannier90_pp`:
+        # the preprocessing and minimization runs are two phases of one
+        # calculation (the .nnkp preprocessing writes is what pw2wannier90
+        # and the minimization consume), so they can't diverge. `wannier90_pp`
+        # only ever carries `metadata` (e.g. a distinct `label`), swapped in
+        # here when a caller sets it; absent, the preprocessing run keeps
+        # `wannier90`'s own metadata, same as before this namespace existed.
         base_inputs = AttributeDict(
             self.exposed_inputs(Wannier90BaseWorkChain, namespace="wannier90")
         )
+        if "wannier90_pp" in self.inputs:
+            base_inputs["metadata"] = AttributeDict(self.inputs.wannier90_pp.metadata)
         inputs = base_inputs["wannier90"]
         inputs.structure = self.ctx.current_structure
         parameters = inputs.parameters.get_dict()
@@ -890,7 +944,7 @@ class Wannier90WorkChain(
         """Wannier90 post processing step."""
         if not self.ctx.spin_collinear:
             inputs = self.prepare_wannier90_pp_inputs()
-            inputs["metadata"] = {"call_link_label": "wannier90_pp"}
+            inputs.metadata.call_link_label = "wannier90_pp"
 
             inputs = prepare_process_inputs(Wannier90BaseWorkChain, inputs)
             running = self.submit(Wannier90BaseWorkChain, **inputs)
@@ -911,7 +965,7 @@ class Wannier90WorkChain(
     def run_wannier90_pp_up(self):
         """Wannier90 post processing step for spin up."""
         inputs = self.prepare_wannier90_pp_inputs()
-        inputs["metadata"] = {"call_link_label": "wannier90_pp_up"}
+        inputs.metadata.call_link_label = "wannier90_pp_up"
 
         inputs = prepare_process_inputs(Wannier90BaseWorkChain, inputs)
         running = self.submit(Wannier90BaseWorkChain, **inputs)
@@ -922,7 +976,7 @@ class Wannier90WorkChain(
     def run_wannier90_pp_down(self):
         """Wannier90 post processing step for spin down."""
         inputs = self.prepare_wannier90_pp_inputs()
-        inputs["metadata"] = {"call_link_label": "wannier90_pp_down"}
+        inputs.metadata.call_link_label = "wannier90_pp_down"
 
         inputs = prepare_process_inputs(Wannier90BaseWorkChain, inputs)
         running = self.submit(Wannier90BaseWorkChain, **inputs)
@@ -1168,7 +1222,7 @@ class Wannier90WorkChain(
         """Wannier90 step for MLWF."""
         if not self.ctx.spin_collinear:
             inputs = self.prepare_wannier90_inputs()
-            inputs["metadata"] = {"call_link_label": "wannier90"}
+            inputs.metadata.call_link_label = "wannier90"
 
             inputs = prepare_process_inputs(Wannier90BaseWorkChain, inputs)
             running = self.submit(Wannier90BaseWorkChain, **inputs)
@@ -1188,7 +1242,7 @@ class Wannier90WorkChain(
     def run_wannier90_up(self):
         """Wannier90 step for MLWF."""
         inputs = self.prepare_wannier90_inputs()
-        inputs["metadata"] = {"call_link_label": "wannier90_up"}
+        inputs.metadata.call_link_label = "wannier90_up"
 
         inputs = prepare_process_inputs(Wannier90BaseWorkChain, inputs)
         running = self.submit(Wannier90BaseWorkChain, **inputs)
@@ -1199,7 +1253,7 @@ class Wannier90WorkChain(
     def run_wannier90_down(self):
         """Wannier90 step for MLWF."""
         inputs = self.prepare_wannier90_inputs()
-        inputs["metadata"] = {"call_link_label": "wannier90_down"}
+        inputs.metadata.call_link_label = "wannier90_down"
 
         inputs = prepare_process_inputs(Wannier90BaseWorkChain, inputs)
         running = self.submit(Wannier90BaseWorkChain, **inputs)
