@@ -52,16 +52,20 @@ def submit_builder(  # pylint: disable=inconsistent-return-statements
 
 
 def check_codes(
-    codes: ty.Mapping[str, ty.Union[str, int, orm.Code]]
+    codes: ty.Mapping[str, ty.Union[str, int, orm.Code]],
+    required_codes: ty.Sequence[str] = ("pw", "pw2wannier90", "wannier90"),
 ) -> ty.Mapping[str, orm.Code]:
     """Check and load pw.x, pw2wannier90.x, wannier90.x, projwfc.x, open_grid.x codes for Wannier workchain.
 
     :param codes: [description]
     :type codes: dict
+    :param required_codes: the keys that must be present in ``codes``. Callers that do not
+    populate every input namespace pass a smaller set, e.g. a builder that skips the scf
+    and nscf namespaces does not need `pw`.
+    :type required_codes: ty.Sequence[str]
     :raises ValueError: [description]
     :raises ValueError: [description]
     """
-    required_codes = ("pw", "pw2wannier90", "wannier90")
     optional_codes = ("projwfc", "open_grid")
 
     if not isinstance(codes, ty.Mapping):
