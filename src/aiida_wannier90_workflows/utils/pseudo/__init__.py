@@ -253,9 +253,16 @@ def get_frozen_list_ext(
 ) -> list:
     """Get frozen states (a subset of pseudo wavefunctions) in the external_projectors.
 
+    Whether a projector is frozen is decided by, in order of precedence:
+
+    1. an explicit boolean ``frozen`` key on the projector, if present;
+    2. otherwise the ``alpha`` key: ``"UPF"`` (or a missing ``alpha``) marks a
+       pseudo-atomic orbital, which is frozen; a numeric ``alpha`` marks a
+       generated (e.g. hydrogenic) orbital, which is not.
+
     :param structure: [description]
     :param external_projectors: dict of external projectors, where every external projector
-    contains the `label`, `l` and `j`(optional).
+    contains the `label`, `l` and `j`(optional), and optionally `frozen` and/or `alpha`.
     :param pseudo_orbitals: [description]
     :param spin_non_collinear: [description]
     :return: [description]
@@ -273,10 +280,9 @@ def get_frozen_list_ext(
             else:
                 num_orbs = (2 * orb["l"] + 1) * nspin
 
-            alpha = orb.get(
-                "alpha", "UPF"
-            )  # if not defined, it is better to Lowdin all projectors
-            if alpha == "UPF":
+            # if neither key is defined, it is better to Lowdin all projectors
+            frozen = orb.get("frozen", orb.get("alpha", "UPF") == "UPF")
+            if frozen:
                 frozen_list.extend(list(range(num_projs + 1, num_projs + num_orbs + 1)))
             num_projs += num_orbs
 
