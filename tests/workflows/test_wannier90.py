@@ -229,3 +229,116 @@ def test_inspect_wannier90_failed(
         workchain.inspect_wannier90()
         == workchain.exit_codes.ERROR_SUB_PROCESS_FAILED_WANNIER90
     )
+
+
+def _spin_collinear_warnings(workchain):
+    """Return report logs about the undetermined-spin fallback, if any."""
+    return [
+        log
+        for log in orm.Log.collection.get_logs_for(workchain.node)
+        if "currently can not determine" in log.message
+    ]
+
+
+@pytest.mark.parametrize(("nspin", "expected_spin_collinear"), ((2, True), (1, False)))
+def test_setup_spin_collinear_projwfc_parent_folder(
+    generate_workchain,
+    generate_inputs_wannier90,
+    fixture_localhost,
+    generate_calc_job_node,
+    nspin,
+    expected_spin_collinear,
+):  # pylint: disable=redefined-outer-name
+    """When scf/nscf are skipped and `projwfc.parent_folder` is given, spin is read from its creator.
+
+    Regression test: before the fix, this path (and the `pw2wannier90.parent_folder`
+    path below) always set `spin_collinear = False` and reported a warning, silently
+    dropping the up/down step splitting for a collinear-spin caller.
+    """
+    creator = generate_calc_job_node(
+        "quantumespresso.pw",
+        fixture_localhost,
+        inputs={"parameters": orm.Dict({"SYSTEM": {"nspin": nspin}})},
+        store=True,
+    )
+    remote = orm.RemoteData(computer=fixture_localhost, remote_path="/path/on/remote")
+    remote.base.links.add_incoming(
+        creator, link_type=LinkType.CREATE, link_label="remote_folder"
+    )
+    remote.store()
+
+    inputs = generate_inputs_wannier90()
+    inputs.pop("scf")
+    inputs.pop("nscf")
+    inputs["projwfc"]["projwfc"]["parent_folder"] = remote
+    inputs["pw2wannier90"]["pw2wannier90"]["parent_folder"] = remote
+
+    workchain = generate_workchain("wannier90_workflows.wannier90", inputs)
+    assert workchain.setup() is None
+
+    assert workchain.ctx.spin_collinear is expected_spin_collinear
+    assert not _spin_collinear_warnings(workchain)
+
+
+@pytest.mark.parametrize(("nspin", "expected_spin_collinear"), ((2, True), (1, False)))
+def test_setup_spin_collinear_pw2wannier90_parent_folder(
+    generate_workchain,
+    generate_inputs_wannier90,
+    fixture_localhost,
+    generate_calc_job_node,
+    nspin,
+    expected_spin_collinear,
+):  # pylint: disable=redefined-outer-name
+    """When scf/nscf/projwfc are all skipped, spin is read from `pw2wannier90.parent_folder`'s creator."""
+    creator = generate_calc_job_node(
+        "quantumespresso.pw",
+        fixture_localhost,
+        inputs={"parameters": orm.Dict({"SYSTEM": {"nspin": nspin}})},
+        store=True,
+    )
+    remote = orm.RemoteData(computer=fixture_localhost, remote_path="/path/on/remote")
+    remote.base.links.add_incoming(
+        creator, link_type=LinkType.CREATE, link_label="remote_folder"
+    )
+    remote.store()
+
+    inputs = generate_inputs_wannier90()
+    inputs.pop("scf")
+    inputs.pop("nscf")
+    inputs.pop("projwfc")
+    inputs["pw2wannier90"]["pw2wannier90"]["parent_folder"] = remote
+
+    workchain = generate_workchain("wannier90_workflows.wannier90", inputs)
+    assert workchain.setup() is None
+
+    assert workchain.ctx.spin_collinear is expected_spin_collinear
+    assert not _spin_collinear_warnings(workchain)
+
+
+def test_setup_spin_collinear_unreachable_creator_falls_back(
+    generate_workchain,
+    generate_inputs_wannier90,
+    fixture_localhost,
+    generate_remote_data,
+):  # pylint: disable=redefined-outer-name
+    """A parent folder whose creator carries no SYSTEM parameters keeps the honest fallback.
+
+    Covers an imported `RemoteData` or a creator that isn't a pw.x calculation: the
+    workflow cannot know the spin treatment, so it must still default to
+    non-collinear and report the warning, rather than guessing.
+    """
+    remote = generate_remote_data(
+        fixture_localhost, "/path/on/remote", "quantumespresso.pw"
+    )
+
+    inputs = generate_inputs_wannier90()
+    inputs.pop("scf")
+    inputs.pop("nscf")
+    inputs["projwfc"]["projwfc"]["parent_folder"] = remote
+    inputs["pw2wannier90"]["pw2wannier90"]["parent_folder"] = remote
+
+    workchain = generate_workchain("wannier90_workflows.wannier90", inputs)
+    assert workchain.setup() is None
+
+    assert workchain.ctx.spin_collinear is False
+    assert _spin_collinear_warnings(workchain)
