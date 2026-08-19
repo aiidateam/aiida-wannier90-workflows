@@ -271,8 +271,8 @@ class Wannier90BaseWorkChain(ProtocolMixin, BaseRestartWorkChain):
         from aiida_wannier90_workflows.utils.pseudo import (
             get_number_of_projections,
             get_number_of_projections_ext,
-            get_pseudo_and_cutoff,
             get_pseudo_orbitals,
+            get_pseudos,
             get_semicore_list,
             get_semicore_list_ext,
             get_wannier_number_of_bands,
@@ -323,7 +323,7 @@ class Wannier90BaseWorkChain(ProtocolMixin, BaseRestartWorkChain):
 
         if pseudo_family is None:
             pseudo_family = meta_parameters["pseudo_family"]
-        pseudos, _, _ = get_pseudo_and_cutoff(pseudo_family, structure)
+        pseudos = get_pseudos(pseudo_family, structure)
 
         if external_projectors is not None:
             if projection_type in [
