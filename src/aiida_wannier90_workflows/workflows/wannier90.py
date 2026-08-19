@@ -149,8 +149,8 @@ class Wannier90WorkChain(
                 "required": False,
                 "populate_defaults": False,
                 "help": (
-                    "Inputs for the `Wannier90BaseWorkChain` run in postproc mode. "
-                    "When omitted, the postproc run reuses the `wannier90` namespace, "
+                    "Inputs for the `Wannier90BaseWorkChain` run in preprocessing mode. "
+                    "When omitted, the preprocessing run reuses the `wannier90` namespace, "
                     "unchanged from before this namespace existed."
                 ),
             },
@@ -833,7 +833,7 @@ class Wannier90WorkChain(
         )
 
         # `wannier90_pp` is an optional namespace for callers who want the
-        # postproc run to carry its own inputs (e.g. a distinct
+        # preprocessing run to carry its own inputs (e.g. a distinct
         # `metadata.label`), independent of the minimization run built from
         # `wannier90`. When absent, fall back to `wannier90` in full.
         pp_namespace = "wannier90_pp" if "wannier90_pp" in self.inputs else "wannier90"

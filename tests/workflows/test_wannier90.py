@@ -232,7 +232,7 @@ def _run_through_wannier90_pp(
     needs, without mocking the nscf/projwfc/pw2wannier90 steps this fix
     doesn't touch.
 
-    :return: the submitted postproc `Wannier90BaseWorkChain` node, and the
+    :return: the submitted preprocessing `Wannier90BaseWorkChain` node, and the
         dict from :func:`_install_submit_capture`.
     """
     captured = _install_submit_capture(workchain)
@@ -304,7 +304,7 @@ def test_metadata_survives_shared_wannier90_namespace(
 ):
     """A caller-set ``wannier90.metadata`` label reaches both wannier90.x steps.
 
-    Both the postproc (``wannier90_pp``) and minimization (``wannier90``)
+    Both the preprocessing (``wannier90_pp``) and minimization (``wannier90``)
     runs build from the one exposed ``wannier90`` namespace when no
     ``wannier90_pp`` override is given, so they carry the identical
     caller-set label. This pins the metadata-preservation fix, ambiguity
@@ -343,7 +343,7 @@ def test_wannier90_pp_namespace_gives_distinct_label(
     generate_calc_job_node,
     fixture_code,
 ):
-    """A caller-set ``wannier90_pp`` namespace names the postproc node independently.
+    """A caller-set ``wannier90_pp`` namespace names the preprocessing node independently.
 
     ``wannier90_pp`` is optional; when a caller supplies it,
     ``prepare_wannier90_pp_inputs`` builds entirely from it instead of
@@ -379,7 +379,7 @@ def test_wannier90_pp_namespace_gives_distinct_label(
 def test_wannier90_pp_namespace_absent_reuses_wannier90_inputs(
     generate_workchain, generate_inputs_wannier90
 ):
-    """With no ``wannier90_pp`` input, the postproc step still builds off ``wannier90`` alone.
+    """With no ``wannier90_pp`` input, the preprocessing step still builds off ``wannier90`` alone.
 
     Every existing caller never sets ``wannier90_pp``, so
     ``prepare_wannier90_pp_inputs`` must fall back to exactly the
