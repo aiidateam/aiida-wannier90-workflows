@@ -3,12 +3,12 @@
 import io
 
 from plumpy.process_states import ProcessState
+import pytest
 
 from aiida import orm
 from aiida.common import AttributeDict, LinkType
 
 from aiida_quantumespresso.calculations.helpers import pw_input_helper
-from aiida_quantumespresso.utils.resources import get_default_options
 
 from aiida_wannier90_workflows.workflows.base.wannier90 import Wannier90BaseWorkChain
 
@@ -341,26 +341,19 @@ def test_wannier90_pp_namespace_gives_distinct_label(
     fixture_localhost,
     generate_remote_data,
     generate_calc_job_node,
-    fixture_code,
 ):
-    """A caller-set ``wannier90_pp`` namespace names the preprocessing node independently.
+    """A caller-set ``wannier90_pp.metadata`` names the preprocessing node independently.
 
-    ``wannier90_pp`` is optional; when a caller supplies it,
-    ``prepare_wannier90_pp_inputs`` builds entirely from it instead of
-    falling back to ``wannier90``, so the two wannier90.x steps can carry
-    distinct labels -- the point of adding the namespace.
+    ``wannier90_pp`` is optional and metadata-only; when a caller sets its
+    ``metadata``, ``prepare_wannier90_pp_inputs`` swaps that in for the
+    preprocessing run while still building every physics input off
+    ``wannier90`` -- see ``test_wannier90_pp_metadata_leaves_physics_unchanged``
+    for that half. Here: the two wannier90.x steps can carry distinct
+    labels, the point of adding the namespace.
     """
     inputs = generate_inputs_wannier90()
     inputs["wannier90"]["metadata"] = {"label": "Minimization"}
-    inputs["wannier90_pp"] = {
-        "wannier90": {
-            "code": fixture_code("wannier90.wannier90"),
-            "parameters": orm.Dict({"fermi_energy": 6.0}),
-            "kpoints": inputs["wannier90"]["wannier90"]["kpoints"],
-            "metadata": {"options": get_default_options()},
-        },
-        "metadata": {"label": "Preprocessing"},
-    }
+    inputs["wannier90_pp"] = {"metadata": {"label": "Preprocessing"}}
 
     workchain = generate_workchain("wannier90_workflows.wannier90", inputs)
     assert "wannier90_pp" in workchain.inputs
@@ -376,27 +369,24 @@ def test_wannier90_pp_namespace_gives_distinct_label(
     assert captured["wannier90"]["call_link_label"] == "wannier90"
 
 
-def test_wannier90_pp_namespace_absent_reuses_wannier90_inputs(
+def test_wannier90_pp_metadata_leaves_physics_unchanged(
     generate_workchain, generate_inputs_wannier90
 ):
-    """With no ``wannier90_pp`` input, the preprocessing step still builds off ``wannier90`` alone.
+    """Setting ``wannier90_pp.metadata`` doesn't touch the preprocessing run's physics inputs.
 
-    Every existing caller never sets ``wannier90_pp``, so
-    ``prepare_wannier90_pp_inputs`` must fall back to exactly the
-    ``wannier90`` namespace -- unchanged from before this namespace existed.
-    Compares everything ``prepare_wannier90_pp_inputs`` doesn't itself
-    rewrite (code, kpoints, parameters content, calcjob- and workchain-level
-    metadata); ``settings`` is excluded because that method always adds
-    ``postproc_setup`` regardless of which namespace it read from, so it
-    can never match the untouched ``wannier90`` inputs and isn't evidence
-    about the fallback either way.
+    Physics inputs come from ``wannier90`` unconditionally now -- there's no
+    branch left that could read them from ``wannier90_pp`` (see
+    ``test_wannier90_pp_rejects_physics_inputs``, which pins that the spec
+    itself refuses to accept them there). This is the construction
+    guarantee that check exists for: even with ``wannier90_pp`` populated,
+    ``prepare_wannier90_pp_inputs``'s code/parameters still match
+    ``wannier90``'s directly.
     """
     inputs = generate_inputs_wannier90()
     inputs["wannier90"]["wannier90"]["parameters"] = orm.Dict({"fermi_energy": 6.0})
+    inputs["wannier90_pp"] = {"metadata": {"label": "Preprocessing"}}
 
     workchain = generate_workchain("wannier90_workflows.wannier90", inputs)
-    assert "wannier90_pp" not in workchain.inputs
-
     assert workchain.setup() is None
     pp_inputs = workchain.prepare_wannier90_pp_inputs()
     direct_inputs = AttributeDict(
@@ -405,10 +395,42 @@ def test_wannier90_pp_namespace_absent_reuses_wannier90_inputs(
     pp_calc, direct_calc = pp_inputs["wannier90"], direct_inputs["wannier90"]
 
     assert pp_calc["code"].uuid == direct_calc["code"].uuid
-    assert pp_calc["kpoints"].uuid == direct_calc["kpoints"].uuid
     # `prepare_wannier90_pp_inputs` always re-derives `parameters` (it
     # (re-)injects `fermi_energy`, here already present with the same
     # value), so content rather than node identity is the fair comparison.
     assert pp_calc["parameters"].get_dict() == direct_calc["parameters"].get_dict()
-    assert dict(pp_calc["metadata"]) == dict(direct_calc["metadata"])
-    assert dict(pp_inputs["metadata"]) == dict(direct_inputs["metadata"])
+    assert pp_inputs["metadata"]["label"] == "Preprocessing"
+
+
+def test_wannier90_pp_rejects_physics_inputs(
+    generate_workchain, generate_inputs_wannier90, fixture_code
+):
+    """``wannier90_pp`` only accepts ``metadata`` -- physics inputs are rejected outright.
+
+    The pp and minimization runs are two phases of one calculation (the
+    ``.nnkp`` preprocessing writes is what pw2wannier90 and the
+    minimization consume), so divergent physics between them would be a
+    silent-wrong-results bug class. Making the spec itself refuse a
+    ``wannier90_pp.wannier90`` override -- rather than merely not reading
+    one -- is what makes that class of bug unrepresentable.
+
+    The override below is a *complete*, otherwise-valid
+    ``Wannier90BaseWorkChain`` input set (code, parameters, kpoints) --
+    before this namespace was restricted to metadata-only, the spec
+    accepted exactly this and built the preprocessing run from it,
+    silently, instead of ``wannier90``. An incomplete override (missing
+    `kpoints`, say) would raise a "required value was not provided" error
+    on both the old and new spec, which wouldn't discriminate between them.
+    """
+    inputs = generate_inputs_wannier90()
+    inputs["wannier90_pp"] = {
+        "metadata": {"label": "Preprocessing"},
+        "wannier90": {
+            "code": fixture_code("wannier90.wannier90"),
+            "parameters": orm.Dict({"fermi_energy": 99.0}),
+            "kpoints": inputs["wannier90"]["wannier90"]["kpoints"],
+        },
+    }
+
+    with pytest.raises(ValueError, match="Unexpected ports"):
+        generate_workchain("wannier90_workflows.wannier90", inputs)

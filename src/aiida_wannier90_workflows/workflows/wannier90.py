@@ -144,18 +144,48 @@ class Wannier90WorkChain(
         spec.expose_inputs(
             Wannier90BaseWorkChain,
             namespace="wannier90_pp",
-            exclude=("clean_workdir", "wannier90.structure"),
+            include=("metadata",),
             namespace_options={
                 "required": False,
                 "populate_defaults": False,
+                # `Wannier90BaseWorkChain.spec().inputs.validator` is a mutable
+                # property `expose_inputs` would otherwise copy onto this
+                # namespace verbatim; it checks for the full input set
+                # (`wannier90`, `shift_energy_windows`, ...) this
+                # metadata-only namespace never carries, so it's cleared here.
+                "validator": None,
+                # `absorb()` (plumpy's `PortNamespace.absorb`, which
+                # `expose_inputs` calls) copies mutable properties from the
+                # source namespace by iterating `dir(source)`, which is
+                # alphabetical. `Wannier90BaseWorkChain`'s own inputs
+                # namespace sets `valid_type = orm.Data` then `dynamic =
+                # False`, in that order, deliberately -- its own comment
+                # notes that setting `valid_type` forces `dynamic = True` as
+                # a side effect, so it resets `dynamic` afterwards. But
+                # "dynamic" sorts before "valid_type", so `absorb()` copies
+                # them in the wrong order for that protection to survive:
+                # copying `dynamic = False` first, then copying `valid_type
+                # = orm.Data` re-triggers the side effect, leaving this
+                # namespace dynamic regardless of an explicit override here
+                # (an override of `dynamic` alone is copied first, then
+                # overwritten the same way). Overriding `valid_type` to
+                # `None` instead survives, since `None` is the one value
+                # whose setter sets `dynamic = False` rather than `True`,
+                # and nothing later in the alphabetical copy touches it
+                # again -- this is the actual fix; `dynamic` needs no
+                # explicit override once `valid_type` is `None`.
+                "valid_type": None,
                 "help": (
-                    "Inputs for the `Wannier90BaseWorkChain` run in preprocessing mode. "
-                    "When omitted, the preprocessing run reuses the `wannier90` namespace, "
-                    "unchanged from before this namespace existed."
+                    "Metadata (e.g. `label`) for the `Wannier90BaseWorkChain` run in "
+                    "preprocessing mode, kept independent of `wannier90`'s so the two "
+                    "steps can be told apart. Physics inputs always come from "
+                    "`wannier90`: the preprocessing and minimization runs are two "
+                    "phases of one calculation (the .nnkp the minimization consumes "
+                    "must match what preprocessing wrote), so this namespace cannot "
+                    "carry its own code, parameters, or kpoints."
                 ),
             },
         )
-        spec.inputs["wannier90_pp"].validator = validate_inputs_base_wannier90
 
         spec.inputs.validator = validate_inputs
 
@@ -832,14 +862,18 @@ class Wannier90WorkChain(
             get_fermi_energy_from_nscf,
         )
 
-        # `wannier90_pp` is an optional namespace for callers who want the
-        # preprocessing run to carry its own inputs (e.g. a distinct
-        # `metadata.label`), independent of the minimization run built from
-        # `wannier90`. When absent, fall back to `wannier90` in full.
-        pp_namespace = "wannier90_pp" if "wannier90_pp" in self.inputs else "wannier90"
+        # Physics inputs always come from `wannier90`, never `wannier90_pp`:
+        # the preprocessing and minimization runs are two phases of one
+        # calculation (the .nnkp preprocessing writes is what pw2wannier90
+        # and the minimization consume), so they can't diverge. `wannier90_pp`
+        # only ever carries `metadata` (e.g. a distinct `label`), swapped in
+        # here when a caller sets it; absent, the preprocessing run keeps
+        # `wannier90`'s own metadata, same as before this namespace existed.
         base_inputs = AttributeDict(
-            self.exposed_inputs(Wannier90BaseWorkChain, namespace=pp_namespace)
+            self.exposed_inputs(Wannier90BaseWorkChain, namespace="wannier90")
         )
+        if "wannier90_pp" in self.inputs:
+            base_inputs["metadata"] = AttributeDict(self.inputs.wannier90_pp.metadata)
         inputs = base_inputs["wannier90"]
         inputs.structure = self.ctx.current_structure
         parameters = inputs.parameters.get_dict()
