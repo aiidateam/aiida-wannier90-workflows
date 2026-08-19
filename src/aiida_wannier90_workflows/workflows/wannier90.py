@@ -141,6 +141,21 @@ class Wannier90WorkChain(
             namespace_options={"help": "Inputs for the `Wannier90BaseWorkChain`."},
         )
         spec.inputs["wannier90"].validator = validate_inputs_base_wannier90
+        spec.expose_inputs(
+            Wannier90BaseWorkChain,
+            namespace="wannier90_pp",
+            exclude=("clean_workdir", "wannier90.structure"),
+            namespace_options={
+                "required": False,
+                "populate_defaults": False,
+                "help": (
+                    "Inputs for the `Wannier90BaseWorkChain` run in postproc mode. "
+                    "When omitted, the postproc run reuses the `wannier90` namespace, "
+                    "unchanged from before this namespace existed."
+                ),
+            },
+        )
+        spec.inputs["wannier90_pp"].validator = validate_inputs_base_wannier90
 
         spec.inputs.validator = validate_inputs
 
@@ -817,8 +832,13 @@ class Wannier90WorkChain(
             get_fermi_energy_from_nscf,
         )
 
+        # `wannier90_pp` is an optional namespace for callers who want the
+        # postproc run to carry its own inputs (e.g. a distinct
+        # `metadata.label`), independent of the minimization run built from
+        # `wannier90`. When absent, fall back to `wannier90` in full.
+        pp_namespace = "wannier90_pp" if "wannier90_pp" in self.inputs else "wannier90"
         base_inputs = AttributeDict(
-            self.exposed_inputs(Wannier90BaseWorkChain, namespace="wannier90")
+            self.exposed_inputs(Wannier90BaseWorkChain, namespace=pp_namespace)
         )
         inputs = base_inputs["wannier90"]
         inputs.structure = self.ctx.current_structure
@@ -890,7 +910,7 @@ class Wannier90WorkChain(
         """Wannier90 post processing step."""
         if not self.ctx.spin_collinear:
             inputs = self.prepare_wannier90_pp_inputs()
-            inputs["metadata"] = {"call_link_label": "wannier90_pp"}
+            inputs.metadata.call_link_label = "wannier90_pp"
 
             inputs = prepare_process_inputs(Wannier90BaseWorkChain, inputs)
             running = self.submit(Wannier90BaseWorkChain, **inputs)
@@ -911,7 +931,7 @@ class Wannier90WorkChain(
     def run_wannier90_pp_up(self):
         """Wannier90 post processing step for spin up."""
         inputs = self.prepare_wannier90_pp_inputs()
-        inputs["metadata"] = {"call_link_label": "wannier90_pp_up"}
+        inputs.metadata.call_link_label = "wannier90_pp_up"
 
         inputs = prepare_process_inputs(Wannier90BaseWorkChain, inputs)
         running = self.submit(Wannier90BaseWorkChain, **inputs)
@@ -922,7 +942,7 @@ class Wannier90WorkChain(
     def run_wannier90_pp_down(self):
         """Wannier90 post processing step for spin down."""
         inputs = self.prepare_wannier90_pp_inputs()
-        inputs["metadata"] = {"call_link_label": "wannier90_pp_down"}
+        inputs.metadata.call_link_label = "wannier90_pp_down"
 
         inputs = prepare_process_inputs(Wannier90BaseWorkChain, inputs)
         running = self.submit(Wannier90BaseWorkChain, **inputs)
@@ -1168,7 +1188,7 @@ class Wannier90WorkChain(
         """Wannier90 step for MLWF."""
         if not self.ctx.spin_collinear:
             inputs = self.prepare_wannier90_inputs()
-            inputs["metadata"] = {"call_link_label": "wannier90"}
+            inputs.metadata.call_link_label = "wannier90"
 
             inputs = prepare_process_inputs(Wannier90BaseWorkChain, inputs)
             running = self.submit(Wannier90BaseWorkChain, **inputs)
@@ -1188,7 +1208,7 @@ class Wannier90WorkChain(
     def run_wannier90_up(self):
         """Wannier90 step for MLWF."""
         inputs = self.prepare_wannier90_inputs()
-        inputs["metadata"] = {"call_link_label": "wannier90_up"}
+        inputs.metadata.call_link_label = "wannier90_up"
 
         inputs = prepare_process_inputs(Wannier90BaseWorkChain, inputs)
         running = self.submit(Wannier90BaseWorkChain, **inputs)
@@ -1199,7 +1219,7 @@ class Wannier90WorkChain(
     def run_wannier90_down(self):
         """Wannier90 step for MLWF."""
         inputs = self.prepare_wannier90_inputs()
-        inputs["metadata"] = {"call_link_label": "wannier90_down"}
+        inputs.metadata.call_link_label = "wannier90_down"
 
         inputs = prepare_process_inputs(Wannier90BaseWorkChain, inputs)
         running = self.submit(Wannier90BaseWorkChain, **inputs)
