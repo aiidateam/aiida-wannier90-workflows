@@ -319,3 +319,40 @@ def test_prepare_wannier90_pp_inputs_rejects_none_fermi_in_parameters(
 
     with pytest.raises(ValueError, match="wannier90 parameters is None"):
         workchain.prepare_wannier90_pp_inputs()
+
+
+@pytest.mark.parametrize("spin_collinear", (False, True))
+def test_inspect_wannier90_failed(
+    generate_workchain_wannier90,
+    fixture_localhost,
+    generate_calc_job_node,
+    spin_collinear,
+):  # pylint: disable=redefined-outer-name
+    """Test that a failed wannier90 run is reported through its exit code.
+
+    A ``Wannier90BaseWorkChain`` that did not finish successfully has no
+    ``remote_folder`` output, so reading it hides the real failure behind an
+    attribute error.
+    """
+
+    def generate_failed_workchain():
+        node = generate_calc_job_node("wannier90.wannier90", fixture_localhost)
+        node.set_process_state(ProcessState.FINISHED)
+        node.set_exit_status(400)
+        assert "remote_folder" not in node.outputs
+        return node
+
+    workchain = generate_workchain_wannier90()
+    assert workchain.setup() is None
+    workchain.ctx.spin_collinear = spin_collinear
+
+    if spin_collinear:
+        workchain.ctx.workchain_wannier90_up = generate_failed_workchain()
+        workchain.ctx.workchain_wannier90_down = generate_failed_workchain()
+    else:
+        workchain.ctx.workchain_wannier90 = generate_failed_workchain()
+
+    assert (
+        workchain.inspect_wannier90()
+        == workchain.exit_codes.ERROR_SUB_PROCESS_FAILED_WANNIER90
+    )
