@@ -148,32 +148,12 @@ class Wannier90WorkChain(
             namespace_options={
                 "required": False,
                 "populate_defaults": False,
-                # `Wannier90BaseWorkChain.spec().inputs.validator` is a mutable
-                # property `expose_inputs` would otherwise copy onto this
-                # namespace verbatim; it checks for the full input set
-                # (`wannier90`, `shift_energy_windows`, ...) this
-                # metadata-only namespace never carries, so it's cleared here.
+                # The source's validator expects inputs this metadata-only
+                # namespace never carries.
                 "validator": None,
-                # `absorb()` (plumpy's `PortNamespace.absorb`, which
-                # `expose_inputs` calls) copies mutable properties from the
-                # source namespace by iterating `dir(source)`, which is
-                # alphabetical. `Wannier90BaseWorkChain`'s own inputs
-                # namespace sets `valid_type = orm.Data` then `dynamic =
-                # False`, in that order, deliberately -- its own comment
-                # notes that setting `valid_type` forces `dynamic = True` as
-                # a side effect, so it resets `dynamic` afterwards. But
-                # "dynamic" sorts before "valid_type", so `absorb()` copies
-                # them in the wrong order for that protection to survive:
-                # copying `dynamic = False` first, then copying `valid_type
-                # = orm.Data` re-triggers the side effect, leaving this
-                # namespace dynamic regardless of an explicit override here
-                # (an override of `dynamic` alone is copied first, then
-                # overwritten the same way). Overriding `valid_type` to
-                # `None` instead survives, since `None` is the one value
-                # whose setter sets `dynamic = False` rather than `True`,
-                # and nothing later in the alphabetical copy touches it
-                # again -- this is the actual fix; `dynamic` needs no
-                # explicit override once `valid_type` is `None`.
+                # Must be None, not a `dynamic` override: the copied
+                # `valid_type` setter re-enables `dynamic` after any
+                # explicit `dynamic: False` has been applied.
                 "valid_type": None,
                 "help": (
                     "Metadata (e.g. `label`) for the `Wannier90BaseWorkChain` run in "
@@ -862,13 +842,8 @@ class Wannier90WorkChain(
             get_fermi_energy_from_nscf,
         )
 
-        # Physics inputs always come from `wannier90`, never `wannier90_pp`:
-        # the preprocessing and minimization runs are two phases of one
-        # calculation (the .nnkp preprocessing writes is what pw2wannier90
-        # and the minimization consume), so they can't diverge. `wannier90_pp`
-        # only ever carries `metadata` (e.g. a distinct `label`), swapped in
-        # here when a caller sets it; absent, the preprocessing run keeps
-        # `wannier90`'s own metadata, same as before this namespace existed.
+        # `wannier90_pp` carries metadata only; physics always reads the
+        # `wannier90` namespace.
         base_inputs = AttributeDict(
             self.exposed_inputs(Wannier90BaseWorkChain, namespace="wannier90")
         )
