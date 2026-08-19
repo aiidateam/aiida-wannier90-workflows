@@ -210,3 +210,33 @@ def test_metadata_overrides(
     )
 
     data_regression.check(serialize_builder(builder))
+
+
+@pytest.mark.parametrize(
+    "family_fixture", ("cutoffs_family_without_stringency", "plain_pseudo_family")
+)
+def test_pseudo_family_without_cutoffs(
+    fixture_code, generate_structure, request, family_fixture
+):
+    """A pseudo family that recommends no cutoffs builds the same inputs.
+
+    This builder counts bands and projections from the pseudos and never uses
+    the cutoffs, so a family that has none must serve it as well as one that
+    does.
+    """
+    code = fixture_code("wannier90.wannier90")
+    structure = generate_structure("Si")
+    family = request.getfixturevalue(family_fixture)
+
+    builder = Wannier90BaseWorkChain.get_builder_from_protocol(
+        code, structure=structure, pseudo_family=family.label
+    )
+    reference = Wannier90BaseWorkChain.get_builder_from_protocol(
+        code, structure=structure
+    )
+
+    assert isinstance(builder, ProcessBuilder)
+    assert (
+        builder.wannier90.parameters.get_dict()
+        == reference.wannier90.parameters.get_dict()
+    )

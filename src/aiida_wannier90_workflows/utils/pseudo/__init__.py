@@ -7,34 +7,67 @@ from aiida.common import exceptions
 from aiida.plugins import DataFactory, GroupFactory
 
 PseudoPotentialData = DataFactory("pseudo")
+PseudoPotentialFamily = GroupFactory("pseudo.family")
 SsspFamily = GroupFactory("pseudo.family.sssp")
 PseudoDojoFamily = GroupFactory("pseudo.family.pseudo_dojo")
 CutoffsPseudoPotentialFamily = GroupFactory("pseudo.family.cutoffs")
 
 
+def _load_pseudo_family(
+    label: str, pseudo_set: ty.Tuple[type, ...] = (PseudoPotentialFamily,)
+):
+    """Return the stored pseudopotential family with the given label.
+
+    :param pseudo_set: the family classes to search. The default accepts every
+        ``aiida-pseudo`` family; pass a narrower set when the caller needs a
+        capability only some families have.
+    :raises ValueError: no family in ``pseudo_set`` carries that label.
+    """
+    try:
+        return orm.QueryBuilder().append(pseudo_set, filters={"label": label}).one()[0]
+    except exceptions.NotExistent as exception:
+        raise ValueError(
+            f"required pseudo family `{label}` is not installed. Please use `aiida-pseudo install` to"
+            "install it."
+        ) from exception
+
+
+def get_pseudos(
+    pseudo_family: str, structure: orm.StructureData
+) -> ty.Mapping[str, PseudoPotentialData]:
+    """Get the pseudo potential of each kind of a structure, from a pseudo family.
+
+    Any ``aiida-pseudo`` family serves, including one built by the user with
+    ``aiida-pseudo install family``: no recommended cutoffs are needed.
+
+    :param pseudo_family: label of the family to take the pseudos from.
+    :param structure: the structure whose kinds are to be covered.
+    :raises ValueError: the family is not installed, or does not cover every
+        kind of the structure.
+    """
+    return _load_pseudo_family(pseudo_family).get_pseudos(structure=structure)
+
+
 def get_pseudo_and_cutoff(
     pseudo_family: str, structure: orm.StructureData
 ) -> ty.Tuple[ty.Mapping[str, PseudoPotentialData], float, float]:
-    """Get pseudo potential and cutoffs of a given pseudo family and structure.
+    """Get the pseudo potentials and the recommended cutoffs of a pseudo family.
 
-    :param pseudo_family: [description]
-    :param structure: [description]
-    :raises ValueError: [description]
-    :raises ValueError: [description]
-    :return: [description]
+    Only families that recommend cutoffs qualify, i.e. SSSP, PseudoDojo and any
+    family with a cutoff stringency defined. Use :func:`get_pseudos` when the
+    cutoffs are not needed.
+
+    :param pseudo_family: label of the family to take the pseudos from.
+    :param structure: the structure whose kinds are to be covered.
+    :raises ValueError: the family is not installed among those that recommend
+        cutoffs.
+    :raises ValueError: the family recommends no cutoffs for this structure.
+    :return: the pseudos per kind, the wave-function cutoff and the charge
+        density cutoff, both in Ry.
     """
-    try:
-        pseudo_set = (PseudoDojoFamily, SsspFamily, CutoffsPseudoPotentialFamily)
-        pseudo_family = (
-            orm.QueryBuilder()
-            .append(pseudo_set, filters={"label": pseudo_family})
-            .one()[0]
-        )
-    except exceptions.NotExistent as exception:
-        raise ValueError(
-            f"required pseudo family `{pseudo_family}` is not installed. Please use `aiida-pseudo install` to"
-            "install it."
-        ) from exception
+    pseudo_family = _load_pseudo_family(
+        pseudo_family, (PseudoDojoFamily, SsspFamily, CutoffsPseudoPotentialFamily)
+    )
 
     try:
         cutoff_wfc, cutoff_rho = pseudo_family.get_recommended_cutoffs(
