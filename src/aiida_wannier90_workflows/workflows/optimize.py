@@ -497,7 +497,7 @@ class Wannier90OptimizeWorkChain(
             if self.should_run_wannier90_plot():
                 inputs["wannier90"]["metadata"]["options"].pop("stash", None)
 
-            inputs["metadata"] = {"call_link_label": "wannier90"}
+            inputs.metadata.call_link_label = "wannier90"
             inputs = prepare_process_inputs(Wannier90BaseWorkChain, inputs)
             running = self.submit(Wannier90BaseWorkChain, **inputs)
             self.report(f"launching {running.process_label}<{running.pk}>")
@@ -517,7 +517,7 @@ class Wannier90OptimizeWorkChain(
         inputs = self.prepare_wannier90_inputs()
         if self.should_run_wannier90_plot():
             inputs["wannier90"]["metadata"]["options"].pop("stash", None)
-        inputs["metadata"] = {"call_link_label": "wannier90_up"}
+        inputs.metadata.call_link_label = "wannier90_up"
 
         inputs = prepare_process_inputs(Wannier90BaseWorkChain, inputs)
         running = self.submit(Wannier90BaseWorkChain, **inputs)
@@ -530,7 +530,7 @@ class Wannier90OptimizeWorkChain(
         inputs = self.prepare_wannier90_inputs()
         if self.should_run_wannier90_plot():
             inputs["wannier90"]["metadata"]["options"].pop("stash", None)
-        inputs["metadata"] = {"call_link_label": "wannier90_down"}
+        inputs.metadata.call_link_label = "wannier90_down"
 
         inputs = prepare_process_inputs(Wannier90BaseWorkChain, inputs)
         running = self.submit(Wannier90BaseWorkChain, **inputs)

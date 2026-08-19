@@ -383,8 +383,13 @@ def test_wannier90_pp_namespace_absent_reuses_wannier90_inputs(
 
     Every existing caller never sets ``wannier90_pp``, so
     ``prepare_wannier90_pp_inputs`` must fall back to exactly the
-    ``wannier90`` namespace's own code/kpoints -- unchanged from before this
-    namespace existed.
+    ``wannier90`` namespace -- unchanged from before this namespace existed.
+    Compares everything ``prepare_wannier90_pp_inputs`` doesn't itself
+    rewrite (code, kpoints, parameters content, calcjob- and workchain-level
+    metadata); ``settings`` is excluded because that method always adds
+    ``postproc_setup`` regardless of which namespace it read from, so it
+    can never match the untouched ``wannier90`` inputs and isn't evidence
+    about the fallback either way.
     """
     inputs = generate_inputs_wannier90()
     inputs["wannier90"]["wannier90"]["parameters"] = orm.Dict({"fermi_energy": 6.0})
@@ -397,11 +402,13 @@ def test_wannier90_pp_namespace_absent_reuses_wannier90_inputs(
     direct_inputs = AttributeDict(
         workchain.exposed_inputs(Wannier90BaseWorkChain, namespace="wannier90")
     )
+    pp_calc, direct_calc = pp_inputs["wannier90"], direct_inputs["wannier90"]
 
-    assert (
-        pp_inputs["wannier90"]["code"].uuid == direct_inputs["wannier90"]["code"].uuid
-    )
-    assert (
-        pp_inputs["wannier90"]["kpoints"].uuid
-        == direct_inputs["wannier90"]["kpoints"].uuid
-    )
+    assert pp_calc["code"].uuid == direct_calc["code"].uuid
+    assert pp_calc["kpoints"].uuid == direct_calc["kpoints"].uuid
+    # `prepare_wannier90_pp_inputs` always re-derives `parameters` (it
+    # (re-)injects `fermi_energy`, here already present with the same
+    # value), so content rather than node identity is the fair comparison.
+    assert pp_calc["parameters"].get_dict() == direct_calc["parameters"].get_dict()
+    assert dict(pp_calc["metadata"]) == dict(direct_calc["metadata"])
+    assert dict(pp_inputs["metadata"]) == dict(direct_inputs["metadata"])
