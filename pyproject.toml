@@ -36,7 +36,8 @@ dependencies = [
     "aiida-quantumespresso>=4.4,<5",
     "aiida-wannier90 @ git+https://github.com/aiidateam/aiida-wannier90.git@v2.2.0",
     "click>=8.0",
-    "colorama"
+    "colorama",
+    "upf-tools>=0.1.9"
 ]
 
 [project.urls]
