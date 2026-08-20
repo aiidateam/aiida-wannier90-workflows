@@ -48,3 +48,22 @@ def test_overrides(
 
     builder = workchain.get_builder_from_protocol(**inputs, overrides=overrides)
     data_regression.check(serialize_builder(builder).pop(overrides_key))
+
+
+def test_scf_nscf_builders_from_protocol_default_pseudo(generate_builder_inputs):
+    """The standalone ``get_scf_nscf_builders_from_protocol`` must work at its own defaults.
+
+    Called without an explicit ``pseudo_family`` it should fall back to the protocol's
+    default family, not write ``pseudo_family=None`` into the sub-builder overrides
+    (which raised ``ValueError: required pseudo family None is not installed``).
+    """
+    inputs = generate_builder_inputs("Si")
+
+    scf_builder, nscf_builder = Wannier90WorkChain.get_scf_nscf_builders_from_protocol(
+        inputs["codes"]["pw"],
+        structure=inputs["structure"],
+    )
+
+    # Both sub-builders must resolve pseudos from the protocol default family.
+    assert len(scf_builder["pw"]["pseudos"]) > 0
+    assert len(nscf_builder["pw"]["pseudos"]) > 0
