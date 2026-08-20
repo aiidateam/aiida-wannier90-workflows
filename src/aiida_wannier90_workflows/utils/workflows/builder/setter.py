@@ -382,9 +382,9 @@ def get_metadata(
         }
     }
     if num_mpiprocs_per_machine:
-        metadata["options"]["resources"]["num_mpiprocs_per_machine"] = (
-            num_mpiprocs_per_machine
-        )
+        metadata["options"]["resources"][
+            "num_mpiprocs_per_machine"
+        ] = num_mpiprocs_per_machine
     if queue_name:
         metadata["options"]["queue_name"] = queue_name
     if account:

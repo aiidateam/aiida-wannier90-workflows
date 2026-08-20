@@ -49,7 +49,7 @@ projwfc:
         withmpi: true
     parameters:
       PROJWFC:
-        DeltaE: 0.2
+        deltae: 0.2
 pw2wannier90:
   pw2wannier90:
     code: test.quantumespresso.pw2wannier90@localhost
@@ -60,7 +60,7 @@ pw2wannier90:
           num_machines: 1
         withmpi: true
     parameters:
-      inputpp:
+      INPUTPP:
         scdm_entanglement: erfc
         scdm_proj: true
 scf:

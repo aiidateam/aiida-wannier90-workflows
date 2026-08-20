@@ -2,7 +2,7 @@ plot_wannier_functions:
     pw2wannier90:
         pw2wannier90:
             parameters:
-                inputpp:
+                INPUTPP:
                     write_unk: True
     wannier90:
         wannier90:

@@ -26,7 +26,7 @@ def validate_inputs(inputs, ctx=None):  # pylint: disable=unused-argument
     from .bands import validate_inputs as parent_validate_inputs
 
     # Call parent validator
-    result = parent_validate_inputs(inputs)
+    result = parent_validate_inputs(inputs, ctx)
     if result is not None:
         return result
 
