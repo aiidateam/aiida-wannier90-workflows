@@ -876,20 +876,33 @@ class Wannier90WorkChain(
 
         # Add Fermi energy
         if "workchain_scf" in self.ctx:
-            scf_output_parameters = self.ctx.workchain_scf.outputs.output_parameters
-            fermi_energy = get_fermi_energy(scf_output_parameters)
-        elif "workchain_nscf" in self.ctx:
-            if (
-                "fermi_energy" not in parameters
-            ):  # we can provide it if the workchain_nscf was already performed before this run.
-                fermi_energy = get_fermi_energy_from_nscf(self.ctx.workchain_nscf)
-            else:
-                fermi_energy = parameters["fermi_energy"]
+            fermi_source = self.ctx.workchain_scf
+            fermi_energy = get_fermi_energy(fermi_source.outputs.output_parameters)
+        elif "workchain_nscf" in self.ctx and "fermi_energy" not in parameters:
+            fermi_source = self.ctx.workchain_nscf
+            fermi_energy = get_fermi_energy_from_nscf(fermi_source)
+        elif "fermi_energy" in parameters:
+            # Given by the caller, which is the only source when the scf and nscf
+            # ran before this workchain.
+            fermi_source = None
+            fermi_energy = parameters["fermi_energy"]
         else:
-            if "fermi_energy" in parameters:
-                fermi_energy = parameters["fermi_energy"]
-            else:
-                raise ValueError("Cannot retrieve Fermi energy from scf or nscf output")
+            raise ValueError("Cannot retrieve Fermi energy from scf or nscf output")
+        if fermi_energy is None:
+            # Fail loudly here rather than passing None through to the .win
+            # writer, which rejects it with an opaque "Invalid value" error.
+            if fermi_source is None:
+                raise ValueError(
+                    "The `fermi_energy` in the wannier90 parameters is None. Set it "
+                    "to a number in eV, or drop it to read it from the scf or nscf "
+                    "output."
+                )
+            raise ValueError(
+                f"Could not read a Fermi energy from {fermi_source}. Its "
+                "`output_parameters` must contain `fermi_energy` (or both "
+                "`fermi_energy_up` and `fermi_energy_down`), together with "
+                "`fermi_energy_units` set to `eV`."
+            )
         parameters["fermi_energy"] = fermi_energy
 
         inputs.parameters = orm.Dict(parameters)

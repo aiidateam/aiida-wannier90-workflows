@@ -379,6 +379,17 @@ def get_workchain_fermi_energy(
             else:
                 raise ValueError("Cannot find fermi energy")
 
+    if fermi_energy is None:
+        # `get_fermi_energy_from_nscf` (used by the nscf branches above) can
+        # return None. Fail loudly here rather than letting None flow into the
+        # band-plotting arithmetic downstream.
+        raise ValueError(
+            f"Could not read a Fermi energy from {workchain}. Its "
+            "`output_parameters` must contain `fermi_energy` (or both "
+            "`fermi_energy_up` and `fermi_energy_down`), together with "
+            "`fermi_energy_units` set to `eV`."
+        )
+
     return fermi_energy
 
 
