@@ -48,23 +48,34 @@ class ProjwfcBandsWorkChain(PwBandsWorkChain):
         )
         spec.inputs.validator = validate_inputs
 
-        spec.outline(
-            cls.setup,
-            if_(cls.should_run_relax)(
-                cls.run_relax,
-                cls.inspect_relax,
-            ),
-            if_(cls.should_run_seekpath)(
-                cls.run_seekpath,
-            ),
-            cls.run_scf,
-            cls.inspect_scf,
-            cls.run_bands,
-            cls.inspect_bands,
-            cls.run_projwfc,
-            cls.inspect_projwfc,
-            cls.results,
+        outline = [cls.setup]
+
+        # `PwBandsWorkChain` no longer includes relaxation as of
+        # aiida-quantumespresso v5. Retain the step when running with v4.
+        if hasattr(cls, "should_run_relax"):
+            outline.append(
+                if_(cls.should_run_relax)(
+                    cls.run_relax,
+                    cls.inspect_relax,
+                )
+            )
+
+        outline.extend(
+            (
+                if_(cls.should_run_seekpath)(
+                    cls.run_seekpath,
+                ),
+                cls.run_scf,
+                cls.inspect_scf,
+                cls.run_bands,
+                cls.inspect_bands,
+                cls.run_projwfc,
+                cls.inspect_projwfc,
+                cls.results,
+            )
         )
+
+        spec.outline(*outline)
 
         spec.expose_outputs(ProjwfcBaseWorkChain, namespace="projwfc")
 

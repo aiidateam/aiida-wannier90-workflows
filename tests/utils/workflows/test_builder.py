@@ -101,3 +101,53 @@ def test_serializer(inout):
     from aiida_wannier90_workflows.utils.workflows.builder.serializer import serialize
 
     assert serialize(inout[0]) == inout[1], inout
+
+
+def test_relax_builder_namespaces(fixture_code, generate_structure):
+    """Test relax builder generation and parallelization for AQE 4 and 5."""
+    from aiida_quantumespresso.common.types import SpinType
+    from aiida_quantumespresso.workflows.pw.relax import PwRelaxWorkChain
+
+    from aiida_wannier90_workflows.utils.workflows.builder.generator import (
+        get_relax_builder,
+    )
+    from aiida_wannier90_workflows.utils.workflows.builder.setter import (
+        set_parallelization,
+    )
+
+    if "base_relax" in PwRelaxWorkChain.spec().inputs:
+        relax_namespaces = ("base_init_relax", "base_relax")
+    else:
+        relax_namespaces = ("base",)
+
+    builder = get_relax_builder(
+        code=fixture_code("quantumespresso.pw"),
+        structure=generate_structure(),
+        kpoints_distance=0.2,
+        pseudo_family="PseudoDojo/0.4/PBE/FR/standard/upf",
+        spin_type=SpinType.SPIN_ORBIT,
+    )
+
+    for namespace in relax_namespaces:
+        assert builder[namespace].kpoints_distance.value == 0.2
+        parameters = builder[namespace].pw.parameters.get_dict()
+        assert parameters["SYSTEM"]["noncolin"] is True
+        assert parameters["SYSTEM"]["lspinorb"] is True
+
+    set_parallelization(
+        builder,
+        parallelization={"npool": 2},
+        process_class=PwRelaxWorkChain,
+    )
+
+    pruned_builder = builder._inputs(prune=True)
+    parallel_namespaces = {
+        "base",
+        "base_final_scf",
+        "base_init_relax",
+        "base_relax",
+    }.intersection(pruned_builder)
+
+    assert parallel_namespaces
+    for namespace in parallel_namespaces:
+        assert builder[namespace].pw.parallelization["npool"] == 2

@@ -214,18 +214,18 @@ def set_parallelization(
         )
 
     elif process_class == PwRelaxWorkChain:
-        if "base" in pruned_builder:
-            set_parallelization(
-                builder["base"],
-                parallelization=parallelization,
-                process_class=PwBaseWorkChain,
-            )
-        if "base_final_scf" in pruned_builder:
-            set_parallelization(
-                builder["base_final_scf"],
-                parallelization=parallelization,
-                process_class=PwBaseWorkChain,
-            )
+        for namespace in (
+            "base",
+            "base_final_scf",
+            "base_init_relax",
+            "base_relax",
+        ):
+            if namespace in pruned_builder:
+                set_parallelization(
+                    builder[namespace],
+                    parallelization=parallelization,
+                    process_class=PwBaseWorkChain,
+                )
 
     elif process_class == PwBandsWorkChain:
         if "relax" in pruned_builder:

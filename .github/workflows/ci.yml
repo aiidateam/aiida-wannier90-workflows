@@ -34,6 +34,10 @@ jobs:
     strategy:
       matrix:
         python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+        aqe-version: ["5.0"]
+        include:
+          - python-version: "3.12"
+            aqe-version: "4.4"
 
     services:
       postgres:
@@ -54,8 +58,8 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ~/.cache/pip
-          key: pip-tests-${{ matrix.python-version }}-${{ hashFiles('**/pyproject.toml') }}
-          restore-keys: pip-tests-${{ matrix.python-version }}
+          key: pip-tests-${{ matrix.python-version }}-aqe-${{ matrix.aqe-version }}-${{ hashFiles('**/pyproject.toml') }}
+          restore-keys: pip-tests-${{ matrix.python-version }}-aqe-${{ matrix.aqe-version }}
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
@@ -63,7 +67,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install python dependencies
-        run: pip install -e .[tests]
+        run: pip install -e .[tests] "aiida-quantumespresso~=${{ matrix.aqe-version }}"
 
       - name: Run pytest
         run: pytest --cov=aiida_wannier90_workflows --cov-report=xml -sv

@@ -17,15 +17,22 @@ def get_relax_builder(
     """Generate a `PwRelaxWorkChain` builder for SOC or non-SOC."""
     from aiida_quantumespresso.workflows.pw.relax import PwRelaxWorkChain
 
+    relax_namespaces = (
+        ("base_init_relax", "base_relax")
+        if "base_relax" in PwRelaxWorkChain.spec().inputs
+        else ("base",)
+    )
+
     overrides = kwargs.get("overrides", {})
     if clean_workdir:
         overrides["clean_workdir"] = clean_workdir
-    if kpoints_distance:
-        overrides.setdefault("base", {})
-        overrides["base"]["kpoints_distance"] = kpoints_distance
-    if pseudo_family:
-        overrides.setdefault("base", {})
-        overrides["base"]["pseudo_family"] = pseudo_family
+    for namespace in relax_namespaces:
+        if kpoints_distance:
+            overrides.setdefault(namespace, {})
+            overrides[namespace]["kpoints_distance"] = kpoints_distance
+        if pseudo_family:
+            overrides.setdefault(namespace, {})
+            overrides[namespace]["pseudo_family"] = pseudo_family
 
     # PwBaseWorkChain.get_builder_from_protocol() does not support SOC, I have to
     # pretend that I am doing an non-SOC calculation and add SOC parameters later.
@@ -43,12 +50,13 @@ def get_relax_builder(
         code=code, overrides=overrides, **kwargs
     )
 
-    parameters = builder.base["pw"]["parameters"].get_dict()
+    for namespace in relax_namespaces:
+        parameters = builder[namespace]["pw"]["parameters"].get_dict()
 
-    if spin_type == SpinType.SPIN_ORBIT:
-        parameters["SYSTEM"]["noncolin"] = True
-        parameters["SYSTEM"]["lspinorb"] = True
-    builder.base["pw"]["parameters"] = orm.Dict(parameters)
+        if spin_type == SpinType.SPIN_ORBIT:
+            parameters["SYSTEM"]["noncolin"] = True
+            parameters["SYSTEM"]["lspinorb"] = True
+        builder[namespace]["pw"]["parameters"] = orm.Dict(parameters)
 
     return builder
 
