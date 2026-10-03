@@ -470,6 +470,9 @@ class Wannier90BaseWorkChain(ProtocolMixin, BaseRestartWorkChain):
             elif frozen_type == WannierFrozenType.PROJECTABILITY:
                 parameters.update(
                     {
+                        # wannier90 reads dis_proj_min/dis_proj_max only when
+                        # dis_froz_proj is true
+                        "dis_froz_proj": True,
                         "dis_proj_min": 0.01,
                         "dis_proj_max": 0.95,
                     }
@@ -478,6 +481,9 @@ class Wannier90BaseWorkChain(ProtocolMixin, BaseRestartWorkChain):
                 inputs["shift_energy_windows"] = True
                 parameters.update(
                     {
+                        # wannier90 reads dis_proj_min/dis_proj_max only when
+                        # dis_froz_proj is true
+                        "dis_froz_proj": True,
                         "dis_proj_min": 0.01,
                         "dis_proj_max": 0.95,
                         "dis_froz_max": +2.0,  # relative to fermi_energy
