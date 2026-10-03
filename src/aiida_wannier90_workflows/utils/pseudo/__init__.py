@@ -1,6 +1,10 @@
 """Utility functions for pseudo potential family."""
 
+import re
 import typing as ty
+import warnings
+
+from upf_tools import UPFDict
 
 from aiida import orm
 from aiida.common import exceptions
@@ -11,6 +15,27 @@ PseudoPotentialFamily = GroupFactory("pseudo.family")
 SsspFamily = GroupFactory("pseudo.family.sssp")
 PseudoDojoFamily = GroupFactory("pseudo.family.pseudo_dojo")
 CutoffsPseudoPotentialFamily = GroupFactory("pseudo.family.cutoffs")
+
+
+# Two-class split only because requires-python is 3.9: merge into a single
+# TypedDict with NotRequired[...] fields once python >= 3.11.
+class _PseudoOrbitalsTableMeta(ty.TypedDict, total=False):
+    """Optional provenance metadata carried by the bundled semicore tables."""
+
+    filename: str
+    md5: str
+
+
+class PseudoOrbitals(_PseudoOrbitalsTableMeta):
+    """Valence-orbital description of one pseudopotential.
+
+    * ``pswfcs`` — labels of the pseudo wave functions, e.g. ``["3S", "3P"]``.
+    * ``semicores`` — the subset of ``pswfcs`` to treat as semicore states
+      (excluded from the Wannier manifold when ``exclude_semicore`` is on).
+    """
+
+    pswfcs: ty.List[str]
+    semicores: ty.List[str]
 
 
 def _load_pseudo_family(
@@ -82,24 +107,42 @@ def get_pseudo_and_cutoff(
     return pseudos, cutoff_wfc, cutoff_rho
 
 
-def get_pseudo_orbitals(pseudos: ty.Mapping[str, PseudoPotentialData]) -> dict:
-    """Get the pseudo wave functions contained in the pseudo potential.
+def get_pseudo_orbitals(
+    pseudos: ty.Mapping[str, PseudoPotentialData],
+    overrides: ty.Optional[ty.Mapping[str, PseudoOrbitals]] = None,
+) -> ty.Dict[str, PseudoOrbitals]:
+    """Get the valence orbitals (pseudo wave functions) of each pseudopotential.
 
-    Currently only support the following pseudopotentials installed by `aiida-pseudo`:
-        * SSSP/1.3/PBE/efficiency
-        * SSSP/1.3/PBEsol/efficiency
-        * SSSP/1.1/PBE/efficiency
-        * SSSP/1.1/PBEsol/efficiency
-        * PseudoDojo/0.4/LDA/SR/standard/upf
-        * PseudoDojo/0.4/LDA/SR/stringent/upf
-        * PseudoDojo/0.4/PBE/SR/standard/upf
-        * PseudoDojo/0.4/PBE/SR/stringent/upf
-        * PseudoDojo/0.5/PBE/SR/standard/upf
-        * PseudoDojo/0.5/PBE/SR/stringent/upf
-        * PseudoDojo/0.4/PBE/FR/standard/upf
-        * Pslibrary/1.0.0/relPBE/PAW
-            ** Pslibrary should be installed manually.
-            ** Please follow `src/aiida_wannier90_workflows/utils/pseudo/data/__init__.py`
+    Resolution proceeds in three tiers, per kind:
+
+    1. an entry in ``overrides``, when given;
+    2. the bundled semicore tables (matched by md5), which carry curated
+       ``semicores`` lists for the following families installed by
+       ``aiida-pseudo``:
+
+       * SSSP/1.3/PBE/efficiency
+       * SSSP/1.3/PBEsol/efficiency
+       * SSSP/1.1/PBE/efficiency
+       * SSSP/1.1/PBEsol/efficiency
+       * PseudoDojo/0.4/LDA/SR/standard/upf
+       * PseudoDojo/0.4/LDA/SR/stringent/upf
+       * PseudoDojo/0.4/PBE/SR/standard/upf
+       * PseudoDojo/0.4/PBE/SR/stringent/upf
+       * PseudoDojo/0.5/PBE/SR/standard/upf
+       * PseudoDojo/0.5/PBE/SR/stringent/upf
+       * PseudoDojo/0.4/PBE/FR/standard/upf
+       * Pslibrary/1.0.0/relPBE/PAW
+
+    3. the pseudo's own ``PP_PSWFC`` block, read via ``upf-tools``: the labels
+       of its atomic wave functions are the valence orbitals, with an empty
+       ``semicores`` list (nothing is auto-excluded) and a warning.
+
+    A ``ValueError`` is raised only when none of the tiers can resolve a
+    pseudopotential; its message explains what to pass via ``overrides``.
+
+    :param overrides: optional per-kind :class:`PseudoOrbitals` entries that
+        take precedence over the bundled tables, e.g. ``{"Ti": {"pswfcs":
+        ["3S", "3P", "4S", "3D"], "semicores": ["3S", "3P"]}}``.
     """
     from .data import load_pseudo_metadata
 
@@ -138,16 +181,169 @@ def get_pseudo_orbitals(pseudos: ty.Mapping[str, PseudoPotentialData]) -> dict:
     # pseudos dictionary will contain kinds as keys, which may change
     # e.g. when including Hubbard corrections 'Mn'->'Mn3d'
     for kind in pseudos:
+        if overrides is not None and kind in overrides:
+            pseudo_orbitals[kind] = overrides[kind]
+            continue
         for data in pseudo_data:
             if data.get(pseudos[kind].element, {}).get("md5", "") == pseudos[kind].md5:
                 pseudo_orbitals[kind] = data[pseudos[kind].element]
                 break
         else:
-            raise ValueError(
-                f"Cannot find pseudopotential {kind} with md5 {pseudos[kind].md5}"
+            derived = _derive_pseudo_orbitals_from_upf(pseudos[kind])
+            if derived is None:
+                raise ValueError(
+                    f"Cannot find pseudopotential {kind} with md5 {pseudos[kind].md5}, "
+                    "and its valence orbitals could not be read from the pseudopotential "
+                    "file. Provide the entry explicitly via the `overrides` argument, e.g. "
+                    '{"' + str(kind) + '": {"pswfcs": ["3S", "3P"], "semicores": []}}.'
+                )
+            warnings.warn(
+                f"Pseudopotential {kind} (md5 {pseudos[kind].md5}) is not in the bundled "
+                "semicore tables; its valence orbitals were read directly from the "
+                "pseudopotential file's atomic wave functions "
+                f"({derived['pswfcs']}), and no semicore states will be excluded. Pass "
+                "`overrides` to specify them explicitly."
             )
+            pseudo_orbitals[kind] = derived
 
     return pseudo_orbitals
+
+
+# Angular-momentum quantum number to spectroscopic letter, used to build a
+# pseudo wave function's label from its (n, l) when the UPF's own label field
+# is missing or unusable.
+_L_TO_LETTER = {0: "S", 1: "P", 2: "D", 3: "F", 4: "G", 5: "H"}
+
+
+def _chi_label(entry: ty.Mapping) -> ty.Optional[str]:
+    """Build the ``n`` + spectroscopic-letter label of one ``PP_CHI`` entry.
+
+    ``l`` (the angular momentum) is the physical ground truth and is always
+    carried by a ``PP_CHI`` entry, so the spectroscopic letter is taken from
+    it. The principal quantum number ``n`` is taken from the leading digits of
+    the UPF's own ``label`` field, which carries the true atomic ``n`` (``3S``,
+    ``6P``, ...) across generators. The ``n`` *attribute* is not reliable for
+    this: some ultrasoft/PAW generators write the *pseudo* principal quantum
+    number there -- radial nodes + l + 1 -- so a node-free 6s/6p/5d projector
+    is labelled n=1/2/3 rather than 6/6/5. The attribute is used only as a
+    fallback when the label has no leading digit (empty or non-standard label
+    but intact ``n``/``l``).
+
+    Returns ``None`` when neither ``l`` nor ``n`` can be determined, so the
+    caller can fail closed.
+    """
+    try:
+        l = int(entry.get("l"))
+    except (TypeError, ValueError):
+        return None
+    letter = _L_TO_LETTER.get(l)
+    if letter is None:
+        return None
+    label = entry.get("label")
+    match = re.match(r"\s*(\d+)", label) if isinstance(label, str) else None
+    n = match.group(1) if match is not None else entry.get("n")
+    try:
+        n = int(n)
+    except (TypeError, ValueError):
+        return None
+    return f"{n}{letter}"
+
+
+def _derive_pseudo_orbitals_from_upf(
+    pseudo: PseudoPotentialData,
+) -> ty.Optional[PseudoOrbitals]:
+    """Read the valence orbitals of a pseudo directly from its ``PP_PSWFC`` block.
+
+    The UPF states its own valence: each ``PP_CHI`` atomic wave function carries
+    the angular momentum ``l`` and (via its label or ``n`` attribute) the
+    principal quantum number, so the pseudo wave function labels are read off
+    rather than guessed. ``semicores`` is left empty -- which shells to
+    auto-exclude is a curated judgement, so nothing is excluded for
+    UPF-derived entries.
+
+    Fully-relativistic pseudos list one ``PP_CHI`` per j channel (each l > 0
+    shell splits into j = l +/- 1/2); the split is collapsed by keeping each
+    (n, l) label once, in first-appearance order -- the order in which
+    ``pw2wannier90.x``/``projwfc.x`` emit the projections.
+
+    Returns ``None`` -- so ``get_pseudo_orbitals`` fails closed and asks for an
+    explicit ``overrides`` entry -- when the ``PP_PSWFC`` block cannot be read
+    (unparseable content, no atomic wave functions, or an entry whose (n, l)
+    cannot be recovered) or when the wave function occupations do not sum to
+    ``z_valence``, which can indicate a missing valence orbital.
+    """
+    try:
+        upf = UPFDict.from_str(pseudo.get_content())
+        chi = upf["pswfc"]["chi"]
+    except (KeyError, TypeError, ValueError, IndexError, AttributeError, SyntaxError):
+        # xml.etree ParseError subclasses SyntaxError; a missing PP_PSWFC or
+        # PP_HEADER section surfaces as KeyError once parsed; unparseable
+        # content yields a dict without the expected keys.
+        return None
+    if not chi:
+        return None
+
+    labels = []
+    for entry in chi:
+        label = _chi_label(entry)
+        if label is None:
+            # A wave function whose (n, l) cannot be recovered makes the whole
+            # derivation untrustworthy; fail closed rather than emit a partial
+            # or wrongly-ordered orbital set.
+            return None
+        labels.append(label)
+    # Collapse fully-relativistic j-splits: keep one label per unique (n, l),
+    # preserving first-appearance order.
+    pswfcs = list(dict.fromkeys(labels))
+
+    if _occupations_disagree(pseudo, chi):
+        return None
+
+    return PseudoOrbitals(
+        filename=getattr(pseudo, "filename", f"{pseudo.element}.upf"),
+        md5=pseudo.md5,
+        pswfcs=pswfcs,
+        semicores=[],
+    )
+
+
+def _occupations_disagree(
+    pseudo: PseudoPotentialData, chi: ty.Sequence[ty.Mapping]
+) -> bool:
+    """Return True when the ``PP_CHI`` occupations do not sum to ``z_valence``.
+
+    The atomic wave function occupations must account for the pseudo's valence
+    electrons; a disagreement can mean a valence orbital is missing from
+    ``PP_PSWFC``, in which case the derived labels would be silently
+    incomplete. The derivation therefore fails closed on any disagreement
+    beyond numerical noise. The check is skipped when either quantity is
+    unavailable.
+    """
+    z_valence = getattr(pseudo, "z_valence", None)
+    if z_valence is None:
+        return False
+    try:
+        occupations = [
+            float(entry["occupation"])
+            for entry in chi
+            if entry.get("occupation") is not None
+        ]
+        z_valence = float(z_valence)
+    except (KeyError, TypeError, ValueError):
+        return False
+    if not occupations:
+        return False
+    occ_sum = sum(occupations)
+    if abs(occ_sum - z_valence) > 1.0e-3:
+        warnings.warn(
+            f"Pseudopotential {pseudo.element} (md5 {pseudo.md5}): its atomic "
+            f"wave function occupations sum to {occ_sum:g}, which disagrees with "
+            f"its z_valence {z_valence:g}, so a valence orbital may be missing "
+            "from PP_PSWFC. Refusing the derived orbitals; provide an explicit "
+            "`overrides` entry instead."
+        )
+        return True
+    return False
 
 
 def get_semicore_list(

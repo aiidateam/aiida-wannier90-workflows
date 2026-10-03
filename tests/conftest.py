@@ -188,6 +188,41 @@ def plain_pseudo_family(pseudos, generate_upf_data):  # pylint: disable=unused-a
 
 
 @pytest.fixture(scope="session")
+def pseudo_family_without_pswfc(pseudos):  # pylint: disable=unused-argument
+    """Create a family whose ``Si`` UPF carries no ``PP_PSWFC`` content.
+
+    The shape SG15 ONCV pseudopotentials take: ``number_of_wfc="0"`` and no
+    atomic wave functions to read valence orbitals from. Ordered after
+    ``pseudos``, which resets the profile.
+    """
+    from aiida.plugins import GroupFactory
+    from aiida_pseudo.data.pseudo import PseudoPotentialData, UpfData
+
+    content = (
+        '<UPF version="2.0.1">\n'
+        '<PP_HEADER element="Si" z_valence="4" number_of_proj="0" '
+        'number_of_wfc="0" mesh_size="3" core_correction="false" '
+        'pseudo_type="NC" is_ultrasoft="false" is_paw="false" has_so="false" '
+        'l_max="3" l_max_rho="0"/>\n'
+        '<PP_MESH><PP_R size="3"> 0 0.1 0.2 </PP_R></PP_MESH>\n'
+        '<PP_LOCAL size="3"> 0 0 0 </PP_LOCAL>\n'
+        "<PP_NONLOCAL><PP_DIJ> 0 </PP_DIJ></PP_NONLOCAL>\n"
+        "<PP_PSWFC>\n</PP_PSWFC>\n"
+        '<PP_RHOATOM size="3"> 0 0 0 </PP_RHOATOM>\n'
+        "</UPF>\n"
+    )
+    stream = io.BytesIO(content.encode("utf-8"))
+    upf = UpfData(stream, filename="Si.no_pswfc.upf")
+    super(PseudoPotentialData, upf).store()
+
+    family = GroupFactory("pseudo.family")(label="NoPswfc/Si")
+    family.store()
+    family.add_nodes([upf])
+
+    return family
+
+
+@pytest.fixture(scope="session")
 def generate_upf_data(filepath_fixtures):
     """Return a `UpfData` instance for the given element a file for which should exist in `tests/fixtures/pseudos`."""
 

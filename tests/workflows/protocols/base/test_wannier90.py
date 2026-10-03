@@ -240,3 +240,70 @@ def test_pseudo_family_without_cutoffs(
         builder.wannier90.parameters.get_dict()
         == reference.wannier90.parameters.get_dict()
     )
+
+
+def test_analytic_without_projections_requires_orbitals(
+    fixture_code, generate_structure, pseudo_family_without_pswfc
+):
+    """Negative control: ``ANALYTIC`` without an explicit projection list
+    still needs the pseudos' valence orbitals, and fails closed with the
+    existing message when a pseudopotential carries none -- even with
+    ``exclude_semicore`` off, isolating the failure to ``ANALYTIC``'s own
+    derivation rather than the separate ``exclude_semicore`` lookup."""
+    code = fixture_code("wannier90.wannier90")
+    structure = generate_structure("Si")
+
+    with pytest.raises(ValueError, match="valence orbitals could not be read"):
+        Wannier90BaseWorkChain.get_builder_from_protocol(
+            code,
+            structure=structure,
+            pseudo_family=pseudo_family_without_pswfc.label,
+            electronic_type=ElectronicType.INSULATOR,
+            projection_type=WannierProjectionType.ANALYTIC,
+            overrides={"meta_parameters": {"exclude_semicore": False}},
+        )
+
+
+def test_analytic_explicit_projections_skip_lookup(
+    fixture_code, generate_structure, pseudo_family_without_pswfc
+):
+    """An explicit projection list, given via ``overrides``, is honored as
+    given and needs no pseudo-orbital lookup -- the only way to build a
+    Wannier90 step for a pseudopotential with no ``PP_PSWFC`` content."""
+    code = fixture_code("wannier90.wannier90")
+    structure = generate_structure("Si")
+    given = ["Si:s", "Si:p"]
+
+    builder = Wannier90BaseWorkChain.get_builder_from_protocol(
+        code,
+        structure=structure,
+        pseudo_family=pseudo_family_without_pswfc.label,
+        electronic_type=ElectronicType.INSULATOR,
+        projection_type=WannierProjectionType.ANALYTIC,
+        overrides={
+            "meta_parameters": {"exclude_semicore": False},
+            "wannier90": {"projections": given},
+        },
+    )
+
+    assert builder.wannier90.projections.get_list() == given
+
+
+def test_analytic_resolvable_pseudo_unaffected(
+    fixture_code, generate_structure, plain_pseudo_family
+):
+    """A pseudopotential whose orbitals are resolvable still derives its
+    projections the same way: the new path only takes over when ``overrides``
+    already supply an explicit list."""
+    code = fixture_code("wannier90.wannier90")
+    structure = generate_structure("Si")
+
+    builder = Wannier90BaseWorkChain.get_builder_from_protocol(
+        code,
+        structure=structure,
+        pseudo_family=plain_pseudo_family.label,
+        electronic_type=ElectronicType.INSULATOR,
+        projection_type=WannierProjectionType.ANALYTIC,
+    )
+
+    assert builder.wannier90.projections.get_list() == ["Si:s", "Si:p"]
