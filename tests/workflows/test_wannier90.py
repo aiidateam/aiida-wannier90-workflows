@@ -10,6 +10,19 @@ from aiida.common import LinkType
 
 from aiida_quantumespresso.calculations.helpers import pw_input_helper
 
+# The scf Fermi energy an nscf run reports in its stdout. Any test that reads a
+# different value did not consult the nscf.
+NSCF_SCF_FERMI_ENERGY = 5.9034
+
+NSCF_STDOUT = f"""
+     End of band structure calculation
+
+     the Fermi energy is     5.9816 ev
+     (compare with:     {NSCF_SCF_FERMI_ENERGY} eV, computed in scf)
+
+     Writing output data file aiida.save
+"""
+
 
 def test_scdm(
     generate_workchain_wannier90,
@@ -36,7 +49,11 @@ def test_scdm(
         scf_workchain, link_type=LinkType.RETURN, link_label="remote_folder"
     )
 
-    params = orm.Dict({"fermi_energy": 6.0, "number_of_electrons": 8})
+    # The pw.x parser always stores `fermi_energy_units` alongside
+    # `fermi_energy`; `get_fermi_energy` reads a value only when it does.
+    params = orm.Dict(
+        {"fermi_energy": 6.0, "fermi_energy_units": "eV", "number_of_electrons": 8}
+    )
     params.store()
     params.base.links.add_incoming(
         scf_workchain, link_type=LinkType.RETURN, link_label="output_parameters"
@@ -108,6 +125,9 @@ def test_scdm(
 
     # mock run wannier90 pp
     w90pp_workchain = workchain.run_wannier90_pp()["workchain_wannier90_pp"]
+
+    # The scf Fermi energy reaches the wannier90 parameters
+    assert w90pp_workchain.inputs.wannier90.parameters["fermi_energy"] == 6.0
 
     # The wannier90 step will use `get_last_calcjob` to retrieve input parameters of the calcjob
     entry_point_calc_job = "wannier90.wannier90"
@@ -192,6 +212,113 @@ def test_scdm(
         _ in workchain.outputs
         for _ in ("scf", "nscf", "projwfc", "wannier90_pp", "pw2wannier90", "wannier90")
     )
+
+
+def _generate_finished_nscf_calc(generate_calc_job_node, fixture_localhost):
+    """Return a finished nscf ``PwCalculation`` node whose stdout reports the scf Fermi energy."""
+    node = generate_calc_job_node("quantumespresso.pw", fixture_localhost, store=False)
+    node.set_process_state(ProcessState.FINISHED)
+    node.set_exit_status(0)
+    node.store()
+
+    retrieved = orm.FolderData()
+    retrieved.put_object_from_filelike(io.StringIO(NSCF_STDOUT), "aiida.out")
+    retrieved.base.links.add_incoming(
+        node, link_type=LinkType.CREATE, link_label="retrieved"
+    )
+    retrieved.store()
+
+    return node
+
+
+def _generate_workchain_without_scf_context(
+    generate_workchain,
+    generate_inputs_wannier90,
+    generate_calc_job_node,
+    fixture_localhost,
+    w90_parameters,
+):
+    """Return a ``Wannier90WorkChain`` whose context holds an nscf run but no scf run.
+
+    ``w90_parameters`` are the wannier90 parameters the caller supplies, which is
+    where an externally computed Fermi energy would arrive.
+    """
+    inputs = generate_inputs_wannier90()
+    inputs["wannier90"]["wannier90"]["parameters"] = orm.Dict(w90_parameters)
+
+    workchain = generate_workchain("wannier90_workflows.wannier90", inputs)
+    workchain.setup()
+    workchain.ctx.workchain_nscf = _generate_finished_nscf_calc(
+        generate_calc_job_node, fixture_localhost
+    )
+
+    return workchain
+
+
+def test_prepare_wannier90_pp_inputs_fermi_from_nscf(
+    generate_workchain,
+    generate_inputs_wannier90,
+    generate_calc_job_node,
+    fixture_localhost,
+):  # pylint: disable=redefined-outer-name
+    """Without a Fermi energy in the parameters, read it from the nscf run in the context."""
+    workchain = _generate_workchain_without_scf_context(
+        generate_workchain,
+        generate_inputs_wannier90,
+        generate_calc_job_node,
+        fixture_localhost,
+        w90_parameters={},
+    )
+
+    inputs = workchain.prepare_wannier90_pp_inputs()
+
+    assert inputs["wannier90"]["parameters"]["fermi_energy"] == pytest.approx(
+        NSCF_SCF_FERMI_ENERGY
+    )
+
+
+def test_prepare_wannier90_pp_inputs_fermi_from_parameters(
+    generate_workchain,
+    generate_inputs_wannier90,
+    generate_calc_job_node,
+    fixture_localhost,
+):  # pylint: disable=redefined-outer-name
+    """A Fermi energy already in the parameters wins over the nscf run in the context."""
+    given_fermi_energy = 1.23
+    assert given_fermi_energy != NSCF_SCF_FERMI_ENERGY
+
+    workchain = _generate_workchain_without_scf_context(
+        generate_workchain,
+        generate_inputs_wannier90,
+        generate_calc_job_node,
+        fixture_localhost,
+        w90_parameters={"fermi_energy": given_fermi_energy},
+    )
+
+    inputs = workchain.prepare_wannier90_pp_inputs()
+
+    assert inputs["wannier90"]["parameters"]["fermi_energy"] == pytest.approx(
+        given_fermi_energy
+    )
+
+
+def test_prepare_wannier90_pp_inputs_rejects_none_fermi_in_parameters(
+    generate_workchain,
+    generate_inputs_wannier90,
+    generate_calc_job_node,
+    fixture_localhost,
+):  # pylint: disable=redefined-outer-name
+    """A `fermi_energy` of None in the parameters is reported against the parameters."""
+    workchain = _generate_workchain_without_scf_context(
+        generate_workchain,
+        generate_inputs_wannier90,
+        generate_calc_job_node,
+        fixture_localhost,
+        w90_parameters={"fermi_energy": None},
+    )
+
+    with pytest.raises(ValueError, match="wannier90 parameters is None"):
+        workchain.prepare_wannier90_pp_inputs()
 
 
 @pytest.mark.parametrize("spin_collinear", (False, True))
