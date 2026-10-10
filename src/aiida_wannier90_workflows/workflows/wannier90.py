@@ -305,6 +305,7 @@ class Wannier90WorkChain(
         retrieve_matrices: bool = False,
         compute_fermi_surface: bool = False,
         fermi_surface_kpoint_distance: float = 0.04,
+        only_valence: ty.Optional[bool] = None,
         scf_parent_folder: orm.RemoteData = None,
         nscf_parent_folder: orm.RemoteData = None,
         print_summary: bool = True,
@@ -350,6 +351,9 @@ class Wannier90WorkChain(
         :param retrieve_matrices: if True retrieve amn/mmn/eig/chk/spin files.
         :param compute_fermi_surface: if True compute the Fermi surface.
         :param fermi_surface_kpoint_distance: the distance between kpoints for the Fermi surface calculation.
+        :param only_valence: Wannierize the valence manifold alone, so that ``num_bands``
+        counts occupied states only and ``num_wann == num_bands``. Default to None,
+        meaning ``electronic_type == ElectronicType.INSULATOR``.
         :param scf_parent_folder: the remote folder of an scf run performed elsewhere. The
         scf namespace is left unpopulated and the folder is set as the nscf `parent_folder`,
         so the returned builder starts at the nscf step.
@@ -552,6 +556,7 @@ class Wannier90WorkChain(
             frozen_type=frozen_type,
             pseudo_family=pseudo_family,
             external_projectors=external_projectors,
+            only_valence=only_valence,
         )
         # Remove workchain excluded inputs
         wannier_builder["wannier90"].pop("structure", None)
