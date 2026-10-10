@@ -195,6 +195,43 @@ def test_scdm(
 
 
 @pytest.mark.parametrize("spin_collinear", (False, True))
+def test_inspect_pw2wannier90_failed(
+    generate_workchain_wannier90,
+    fixture_localhost,
+    generate_calc_job_node,
+    spin_collinear,
+):  # pylint: disable=redefined-outer-name
+    """Test that a failed pw2wannier90 run stops the workchain through its exit code.
+
+    A ``Pw2wannier90BaseWorkChain`` that did not finish successfully has no
+    ``remote_folder`` output, so reading it hides the real failure behind an
+    attribute error.
+    """
+
+    def generate_failed_workchain():
+        node = generate_calc_job_node("quantumespresso.pw2wannier90", fixture_localhost)
+        node.set_process_state(ProcessState.FINISHED)
+        node.set_exit_status(400)
+        assert "remote_folder" not in node.outputs
+        return node
+
+    workchain = generate_workchain_wannier90()
+    assert workchain.setup() is None
+    workchain.ctx.spin_collinear = spin_collinear
+
+    if spin_collinear:
+        workchain.ctx.workchain_pw2wannier90_up = generate_failed_workchain()
+        workchain.ctx.workchain_pw2wannier90_down = generate_failed_workchain()
+    else:
+        workchain.ctx.workchain_pw2wannier90 = generate_failed_workchain()
+
+    assert (
+        workchain.inspect_pw2wannier90()
+        == workchain.exit_codes.ERROR_SUB_PROCESS_FAILED_PW2WANNIER90
+    )
+
+
+@pytest.mark.parametrize("spin_collinear", (False, True))
 def test_inspect_wannier90_failed(
     generate_workchain_wannier90,
     fixture_localhost,
