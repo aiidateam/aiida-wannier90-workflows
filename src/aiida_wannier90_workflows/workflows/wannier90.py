@@ -735,6 +735,35 @@ class Wannier90WorkChain(
         for note in notes:
             print(f"  * {note}")
 
+    @staticmethod
+    def _get_nspin_from_parent_folder(folder: orm.RemoteData) -> ty.Optional[int]:
+        """Return the ``nspin`` of the pw.x run that produced ``folder``.
+
+        Reads the stored ``SYSTEM`` parameters of the folder's creator
+        calculation, falling back to the parameters of the ``WorkChain`` that
+        called it (e.g. a ``PwBaseWorkChain`` wrapping the raw
+        ``PwCalculation``). Returns ``None`` if the folder has no creator, or
+        neither the creator nor its caller expose ``SYSTEM`` parameters (for
+        example an imported ``RemoteData``). A non-pw creator whose parameters
+        carry no ``SYSTEM`` namelist (projwfc.x, pw2wannier90.x) reads as
+        ``nspin = 1`` rather than ``None``, so no warning is reported there.
+        """
+        creator = folder.creator
+        if creator is None:
+            return None
+
+        for node in (creator, creator.caller):
+            if node is None:
+                continue
+            for parameters in (
+                getattr(node.inputs, "parameters", None),
+                getattr(getattr(node.inputs, "pw", None), "parameters", None),
+            ):
+                if parameters is not None:
+                    return parameters.get_dict().get("SYSTEM", {}).get("nspin", 1)
+
+        return None
+
     def setup(self) -> None:
         """Define the current structure in the context to be the input structure."""
         self.ctx.current_structure = self.inputs.structure
@@ -759,12 +788,17 @@ class Wannier90WorkChain(
                     == 2
                 )
             else:
-                self.ctx.spin_collinear = False
-                self.report(
-                    "Warning: "
-                    "currently can not determine whether the workflow uses collinear spin, "
-                    "because it skips scf and nscf steps."
-                )
+                nspin = self._get_nspin_from_parent_folder(self.ctx.current_folder)
+                if nspin is None:
+                    self.ctx.spin_collinear = False
+                    self.report(
+                        "Warning: "
+                        "currently can not determine whether the workflow uses collinear spin, "
+                        "because it skips scf and nscf steps and the parent folder's creator "
+                        "does not expose SYSTEM parameters."
+                    )
+                else:
+                    self.ctx.spin_collinear = nspin == 2
         else:
             self.ctx.spin_collinear = (
                 self.inputs["scf"]["pw"]["parameters"]["SYSTEM"].get("nspin", 1) == 2
