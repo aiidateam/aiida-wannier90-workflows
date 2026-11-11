@@ -908,10 +908,18 @@ class Wannier90WorkChain(
         base_inputs["wannier90"] = inputs
 
         if base_inputs["shift_energy_windows"] and "bands" not in base_inputs:
-            if "workchain_scf" in self.ctx:
-                output_band = self.ctx.workchain_scf.outputs.output_band
-            elif "workchain_nscf" in self.ctx:
+            # Prefer the nscf bands: they are the eigenvalues wannier90 reads
+            # (same k-mesh, `nbnd` >= num_bands), which the base workchain
+            # also uses to cap `dis_froz_max` below band num_wann + 1. The scf
+            # usually has fewer bands than num_wann (+ excluded semicore), so
+            # that cap silently does nothing and wannier90 aborts with
+            # "More states in the frozen window than target WFs".
+            if "workchain_nscf" in self.ctx and (
+                "output_band" in self.ctx.workchain_nscf.outputs
+            ):
                 output_band = self.ctx.workchain_nscf.outputs.output_band
+            elif "workchain_scf" in self.ctx:
+                output_band = self.ctx.workchain_scf.outputs.output_band
             else:
                 raise ValueError("No output scf or nscf bands")
             base_inputs.bands = output_band
