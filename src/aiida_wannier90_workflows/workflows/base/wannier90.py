@@ -470,6 +470,10 @@ class Wannier90BaseWorkChain(ProtocolMixin, BaseRestartWorkChain):
             elif frozen_type == WannierFrozenType.PROJECTABILITY:
                 parameters.update(
                     {
+                        # Wannier90 >= v4 requires `dis_froz_proj` to enable
+                        # projectability disentanglement, older versions
+                        # do not recognize this keyword and will crash.
+                        "dis_froz_proj": True,
                         "dis_proj_min": 0.01,
                         "dis_proj_max": 0.95,
                     }
@@ -478,6 +482,8 @@ class Wannier90BaseWorkChain(ProtocolMixin, BaseRestartWorkChain):
                 inputs["shift_energy_windows"] = True
                 parameters.update(
                     {
+                        # Wannier90 >= v4, see above
+                        "dis_froz_proj": True,
                         "dis_proj_min": 0.01,
                         "dis_proj_max": 0.95,
                         "dis_froz_max": +2.0,  # relative to fermi_energy

@@ -104,6 +104,7 @@ wannier90:
       conv_window: 3
       dis_conv_tol: 3.0e-07
       dis_froz_max: 2.0
+      dis_froz_proj: true
       dis_num_iter: 4000
       dis_proj_max: 0.95
       dis_proj_min: 0.01
