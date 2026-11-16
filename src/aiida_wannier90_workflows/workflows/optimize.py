@@ -596,6 +596,7 @@ class Wannier90OptimizeWorkChain(
         parameters = inputs.parameters.get_dict()
 
         dis_proj_min, dis_proj_max = self.ctx.optimize_minmax_new[0]
+        parameters["dis_froz_proj"] = True  # required by Wannier90 >= v4
         parameters["dis_proj_min"] = dis_proj_min
         parameters["dis_proj_max"] = dis_proj_max
 

@@ -49,9 +49,11 @@ class WannierFrozenType(enum.Enum):
     # TODO add doc, for each entry explain number of free parameters and detail explaination  # pylint: disable=fixme
 
     # disentaglement per kpoint based on projectability, default thresholds are min/max = 0.01/0.95
+    # Sets `dis_froz_proj = True`, requires Wannier90 >= v4.
     PROJECTABILITY = "projectability"
 
     # fixed window + projectability per kpoint, default is fermi_energy + 2 eV and min/max = 0.01/0.95
+    # Sets `dis_froz_proj = True`, requires Wannier90 >= v4.
     FIXED_PLUS_PROJECTABILITY = "fixed_plus_projectability"
 
 
