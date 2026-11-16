@@ -194,6 +194,47 @@ def test_scdm(
     )
 
 
+def test_wannier90_pp_bands_prefer_nscf(
+    generate_workchain,
+    generate_inputs_wannier90,
+    generate_bands_data,
+):  # pylint: disable=redefined-outer-name
+    """The postproc step hands the nscf bands, not the scf ones, to the base workchain.
+
+    ``Wannier90BaseWorkChain`` caps ``dis_froz_max`` below band ``num_wann + 1``
+    of these bands. The scf usually has fewer bands than ``num_wann``, which
+    leaves the cap with nothing to bind on.
+    """
+
+    def mock_pw_workchain():
+        node = orm.WorkflowNode()
+        node.store()
+        params = orm.Dict({"fermi_energy": 6.0, "fermi_energy_units": "eV"})
+        params.store()
+        params.base.links.add_incoming(
+            node, link_type=LinkType.RETURN, link_label="output_parameters"
+        )
+        bands = generate_bands_data()
+        bands.store()
+        bands.base.links.add_incoming(
+            node, link_type=LinkType.RETURN, link_label="output_band"
+        )
+        return node, bands
+
+    inputs = generate_inputs_wannier90()
+    inputs["wannier90"]["shift_energy_windows"] = orm.Bool(True)
+    inputs["pw2wannier90"]["pw2wannier90"]["parameters"] = orm.Dict({"INPUTPP": {}})
+    inputs.pop("projwfc")
+    workchain = generate_workchain("wannier90_workflows.wannier90", inputs)
+    assert workchain.setup() is None
+
+    workchain.ctx.workchain_scf, _ = mock_pw_workchain()
+    workchain.ctx.workchain_nscf, nscf_bands = mock_pw_workchain()
+
+    base_inputs = workchain.prepare_wannier90_pp_inputs()
+    assert base_inputs["bands"].uuid == nscf_bands.uuid
+
+
 @pytest.mark.parametrize("spin_collinear", (False, True))
 def test_inspect_wannier90_failed(
     generate_workchain_wannier90,
